@@ -47,9 +47,9 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/alexander-spies/ng-prism.git",
+        "url": "https://github.com/ng-prism/ng-prism.git",
         "directory": "packages/plugin-visual-regression"
     },
-    "homepage": "https://alexander-spies.github.io/ng-prism/",
-    "bugs": "https://github.com/alexander-spies/ng-prism/issues"
+    "homepage": "https://ng-prism.github.io/ng-prism/",
+    "bugs": "https://github.com/ng-prism/ng-prism/issues"
 }

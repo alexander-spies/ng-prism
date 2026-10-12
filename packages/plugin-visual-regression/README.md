@@ -1,10 +1,10 @@
 # @ng-prism/plugin-visual-regression
 
-Visual regression plugin for [@ng-prism/core](https://github.com/alexander-spies/ng-prism). Reads a per-variant screenshot comparison report at build time and renders it inside the styleguide, so diffs live next to the component they belong to instead of in a CI log.
+Visual regression plugin for [@ng-prism/core](https://github.com/ng-prism/ng-prism). Reads a per-variant screenshot comparison report at build time and renders it inside the styleguide, so diffs live next to the component they belong to instead of in a CI log.
 
-> **Full documentation:** [ng-prism Docs: Visual Regression Plugin](https://alexander-spies.github.io/ng-prism/#/plugins/visual-regression)
+> **Full documentation:** [ng-prism Docs: Visual Regression Plugin](https://ng-prism.github.io/ng-prism/#/plugins/visual-regression)
 
-The plugin **only renders a report someone else produced.** It performs no image comparison of its own. That belongs to your runner, which owns the baselines and the pinned container. See [Visual Regression Testing](https://alexander-spies.github.io/ng-prism/#/guide/visual-regression) for how to capture screenshots that do not flake, including the `?capture=1` isolation mode.
+The plugin **only renders a report someone else produced.** It performs no image comparison of its own. That belongs to your runner, which owns the baselines and the pinned container. See [Visual Regression Testing](https://ng-prism.github.io/ng-prism/#/guide/visual-regression) for how to capture screenshots that do not flake, including the `?capture=1` isolation mode.
 
 ## Installation
 

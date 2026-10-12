@@ -1,14 +1,14 @@
 blank_issues_enabled: false
 contact_links:
     - name: Documentation
-      url: https://alexander-spies.github.io/ng-prism/
+      url: https://ng-prism.github.io/ng-prism/
       about: Guides, API reference, plugin docs, and architecture notes.
     - name: Live Demo
-      url: https://alexander-spies.github.io/ng-prism/demo/?component=ButtonComponent
+      url: https://ng-prism.github.io/ng-prism/demo/?component=ButtonComponent
       about: Opens on the Button component, with variants, live controls and every official plugin enabled.
     - name: Contributing Guide
-      url: https://github.com/alexander-spies/ng-prism/blob/main/CONTRIBUTING.md
+      url: https://github.com/ng-prism/ng-prism/blob/main/CONTRIBUTING.md
       about: Development setup, the test-workspace workflow, and PR guidelines.
     - name: Report a Security Vulnerability
-      url: https://github.com/alexander-spies/ng-prism/security/advisories/new
+      url: https://github.com/ng-prism/ng-prism/security/advisories/new
       about: Please report vulnerabilities privately, not as a public issue.

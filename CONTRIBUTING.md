@@ -37,7 +37,7 @@ This walkthrough takes a fresh clone to a fully running test workspace. Follow e
 #### 1. Clone and install root dependencies
 
 ```bash
-git clone https://github.com/alexander-spies/ng-prism.git
+git clone https://github.com/ng-prism/ng-prism.git
 cd ng-prism
 npm install
 ```
@@ -371,7 +371,7 @@ These are faster than the full `check` because they only run on the named projec
 
 ### 4. Submit a Pull Request
 
-Without write access to the repository, you push your branch to a fork. With the [GitHub CLI](https://cli.github.com/), one command creates the fork and rewires the remotes of your existing clone (`origin` → your fork, `upstream` → `alexander-spies/ng-prism`):
+Without write access to the repository, you push your branch to a fork. With the [GitHub CLI](https://cli.github.com/), one command creates the fork and rewires the remotes of your existing clone (`origin` → your fork, `upstream` → `ng-prism/ng-prism`):
 
 ```bash
 gh repo fork --remote
@@ -557,7 +557,7 @@ For feature requests, please describe:
 
 ### Where to Report
 
-Open an issue on the [GitHub repository](https://github.com/alexander-spies/ng-prism/issues). The issue forms for bugs, feature requests, and documentation problems ask for the information listed above.
+Open an issue on the [GitHub repository](https://github.com/ng-prism/ng-prism/issues). The issue forms for bugs, feature requests, and documentation problems ask for the information listed above.
 
 Suspected security vulnerabilities do **not** belong in public issues. See [SECURITY.md](SECURITY.md) for the private reporting channel.
 

@@ -13,7 +13,7 @@ You add one decorator to your component. ng-prism picks it up at build time and 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-3178c6)](https://www.typescriptlang.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-[Live demo](https://alexander-spies.github.io/ng-prism/demo/?component=ButtonComponent) · [Documentation](https://alexander-spies.github.io/ng-prism/)
+[Live demo](https://ng-prism.github.io/ng-prism/demo/?component=ButtonComponent) · [Documentation](https://ng-prism.github.io/ng-prism/)
 
 <!-- TODO(maintainer): record a 10 to 15 s GIF: pick a component in the sidebar,
      switch the variant, change a control, watch the code snippet update.
@@ -110,7 +110,7 @@ ng build my-lib && npm run strip-showcase
 
 After that, your published library doesn't reference `@ng-prism/core` anywhere, and `grep -r "@ng-prism/core" dist/my-lib/` returns nothing. Keep the package as a `devDependency`. People who install your library never see it.
 
-The details, including Nx targets and how to use the transformer programmatically, are in [Publishing Libraries with @Showcase](https://alexander-spies.github.io/ng-prism/#/guide/library-publishing).
+The details, including Nx targets and how to use the transformer programmatically, are in [Publishing Libraries with @Showcase](https://ng-prism.github.io/ng-prism/#/guide/library-publishing).
 
 ## Why not Storybook?
 
