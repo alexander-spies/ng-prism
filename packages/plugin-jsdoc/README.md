@@ -1,8 +1,8 @@
 # @ng-prism/plugin-jsdoc
 
-API documentation plugin for [@ng-prism/core](https://github.com/dyingangel666/ng-prism). Extracts JSDoc comments from component source code at build time and renders an interactive API panel.
+API documentation plugin for [@ng-prism/core](https://github.com/alexander-spies/ng-prism). Extracts JSDoc comments from component source code at build time and renders an interactive API panel.
 
-> **Full documentation:** [ng-prism Docs: JSDoc Plugin](https://dyingangel666.github.io/ng-prism/#/plugins/jsdoc)
+> **Full documentation:** [ng-prism Docs: JSDoc Plugin](https://alexander-spies.github.io/ng-prism/#/plugins/jsdoc)
 
 ## Installation
 

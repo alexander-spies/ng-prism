@@ -1,8 +1,8 @@
 # @ng-prism/plugin-box-model
 
-CSS box model inspector plugin for [@ng-prism/core](https://github.com/dyingangel666/ng-prism). Overlays margin, padding, border, and content dimensions on the rendered component.
+CSS box model inspector plugin for [@ng-prism/core](https://github.com/alexander-spies/ng-prism). Overlays margin, padding, border, and content dimensions on the rendered component.
 
-> **Full documentation:** [ng-prism Docs: Box Model Plugin](https://dyingangel666.github.io/ng-prism/#/plugins/box-model)
+> **Full documentation:** [ng-prism Docs: Box Model Plugin](https://alexander-spies.github.io/ng-prism/#/plugins/box-model)
 
 ## Installation
 

@@ -1,8 +1,8 @@
 # @ng-prism/plugin-perf
 
-Render performance profiling plugin for [@ng-prism/core](https://github.com/dyingangel666/ng-prism). Tracks component render and re-render timing via the Performance API.
+Render performance profiling plugin for [@ng-prism/core](https://github.com/alexander-spies/ng-prism). Tracks component render and re-render timing via the Performance API.
 
-> **Full documentation:** [ng-prism Docs: Perf Plugin](https://dyingangel666.github.io/ng-prism/#/plugins/perf)
+> **Full documentation:** [ng-prism Docs: Perf Plugin](https://alexander-spies.github.io/ng-prism/#/plugins/perf)
 
 ## Installation
 

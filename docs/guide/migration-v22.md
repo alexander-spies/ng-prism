@@ -320,5 +320,5 @@ None of this affects `ShowcaseConfig`, the manifest format, or any plugin's publ
 
 ## Related
 
-- Issue [#13](https://github.com/dyingangel666/ng-prism/issues/13)
-- Follow-up RFC [#14](https://github.com/dyingangel666/ng-prism/issues/14): drop the separate `<lib>-prism` project entirely
+- Issue [#13](https://github.com/alexander-spies/ng-prism/issues/13)
+- Follow-up RFC [#14](https://github.com/alexander-spies/ng-prism/issues/14): drop the separate `<lib>-prism` project entirely

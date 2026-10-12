@@ -1,8 +1,8 @@
 # @ng-prism/plugin-coverage
 
-Test coverage plugin for [@ng-prism/core](https://github.com/dyingangel666/ng-prism). Reads Istanbul/v8 coverage reports at build time and displays per-component test coverage metrics with a score circle in the tab bar.
+Test coverage plugin for [@ng-prism/core](https://github.com/alexander-spies/ng-prism). Reads Istanbul/v8 coverage reports at build time and displays per-component test coverage metrics with a score circle in the tab bar.
 
-> **Full documentation:** [ng-prism Docs: Coverage Plugin](https://dyingangel666.github.io/ng-prism/#/plugins/coverage)
+> **Full documentation:** [ng-prism Docs: Coverage Plugin](https://alexander-spies.github.io/ng-prism/#/plugins/coverage)
 
 ## Installation
 

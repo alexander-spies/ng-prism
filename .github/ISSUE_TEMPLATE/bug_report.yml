@@ -10,7 +10,7 @@ body:
               the most useful thing you can give us.
 
               Please do not report security vulnerabilities here. Use the
-              [private advisory form](https://github.com/dyingangel666/ng-prism/security/advisories/new)
+              [private advisory form](https://github.com/alexander-spies/ng-prism/security/advisories/new)
               instead.
 
     - type: textarea

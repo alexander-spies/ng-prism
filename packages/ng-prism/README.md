@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-3178c6)](https://www.typescriptlang.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**[Live Demo](https://dyingangel666.github.io/ng-prism/demo/?component=ButtonComponent)** · **[Documentation](https://dyingangel666.github.io/ng-prism/)**
+**[Live Demo](https://alexander-spies.github.io/ng-prism/demo/?component=ButtonComponent)** · **[Documentation](https://alexander-spies.github.io/ng-prism/)**
 
 ## Features
 

@@ -13,7 +13,7 @@ import { join } from 'path';
  * the breakage would only show up for consumers. This spec checks the source
  * text instead of relying on the resolver.
  *
- * See https://github.com/dyingangel666/ng-prism/issues/32.
+ * See https://github.com/alexander-spies/ng-prism/issues/32.
  */
 
 const SCHEMATICS_DIR = __dirname;
