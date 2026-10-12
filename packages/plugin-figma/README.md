@@ -1,8 +1,8 @@
 # @ng-prism/plugin-figma
 
-Figma design embed panel for [@ng-prism/core](https://github.com/dyingangel666/ng-prism). Displays Figma designs as interactive iframes directly in your component styleguide.
+Figma design embed panel for [@ng-prism/core](https://github.com/ng-prism/ng-prism). Displays Figma designs as interactive iframes directly in your component styleguide.
 
-> **Full documentation:** [ng-prism Docs: Figma Plugin](https://dyingangel666.github.io/ng-prism/#/plugins/figma)
+> **Full documentation:** [ng-prism Docs: Figma Plugin](https://ng-prism.github.io/ng-prism/#/plugins/figma)
 
 Uses Figma's official embed endpoint, so no API token is required. Works with any publicly shared Figma file.
 

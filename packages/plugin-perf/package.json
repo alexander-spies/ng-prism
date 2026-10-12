@@ -47,9 +47,9 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/dyingangel666/ng-prism.git",
+        "url": "https://github.com/ng-prism/ng-prism.git",
         "directory": "packages/plugin-perf"
     },
-    "homepage": "https://dyingangel666.github.io/ng-prism/",
-    "bugs": "https://github.com/dyingangel666/ng-prism/issues"
+    "homepage": "https://ng-prism.github.io/ng-prism/",
+    "bugs": "https://github.com/ng-prism/ng-prism/issues"
 }

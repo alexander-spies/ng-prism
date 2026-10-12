@@ -3,7 +3,7 @@
 ## Reporting a Vulnerability
 
 Please report security issues privately via GitHub's **[Report a
-vulnerability](https://github.com/dyingangel666/ng-prism/security/advisories/new)**
+vulnerability](https://github.com/ng-prism/ng-prism/security/advisories/new)**
 form (Security tab → "Report a vulnerability"). This delivers the report
 directly to the maintainers through GitHub's private security advisory channel.
 

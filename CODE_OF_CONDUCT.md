@@ -68,7 +68,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported privately to the project maintainers through GitHub's
-[private reporting form](https://github.com/dyingangel666/ng-prism/security/advisories/new)
+[private reporting form](https://github.com/ng-prism/ng-prism/security/advisories/new)
 (Security tab → "Report a vulnerability"). That channel is primarily meant for
 security reports, but it is the project's only private inbox, so please use it for
 Code of Conduct reports as well, and start your report with "Code of Conduct" so

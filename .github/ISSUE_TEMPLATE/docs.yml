@@ -15,7 +15,7 @@ body:
       attributes:
           label: Which page?
           description: URL on the docs site, or the file path under `docs/`.
-          placeholder: 'https://dyingangel666.github.io/ng-prism/#/guide/configuration'
+          placeholder: 'https://ng-prism.github.io/ng-prism/#/guide/configuration'
       validations:
           required: true
 
