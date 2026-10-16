@@ -1,6 +1,6 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join, resolve } from 'path';
+import { join, relative, resolve } from 'path';
 import type { BuilderContext } from '@angular-devkit/architect';
 import { Tree } from '@angular-devkit/schematics';
 import { SchematicTestRunner } from '@angular-devkit/schematics/testing';
@@ -8,10 +8,18 @@ import { createPipelineState, runPrismPipeline } from '../builder/shared/prism-p
 
 const TEST_WORKSPACE_DIR = join(__dirname, '..', '..', '..', '..', 'test-workspace');
 
+// Installed or generated locally, so copying them would tie the spec to the
+// state of the developer's workspace (and cost ~385 MB per copy). The pipeline
+// does not need `node_modules` here: CI never installs it for test-workspace.
+const EXCLUDED_ENTRIES = new Set(['node_modules', 'dist', '.angular', 'ng-prism-cache']);
+
 function createTempWorkspace(): string {
     const tmp = mkdtempSync(join(tmpdir(), 'ng-prism-integration-'));
 
-    cpSync(TEST_WORKSPACE_DIR, tmp, { recursive: true });
+    cpSync(TEST_WORKSPACE_DIR, tmp, {
+        recursive: true,
+        filter: (src) => !EXCLUDED_ENTRIES.has(relative(TEST_WORKSPACE_DIR, src))
+    });
 
     mkdirSync(join(tmp, 'projects', 'test-lib-prism', 'src'), {
         recursive: true
