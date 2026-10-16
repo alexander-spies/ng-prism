@@ -235,7 +235,8 @@ export default [
     // context override for builder/ is out of scope. scripts/ has no such
     // problem and gets a small real rule set instead of an ignore.
     // test-workspace/*.mjs are the two measurement scripts (measure-pipeline,
-    // measure-watch-rebuilds), same case.
+    // measure-watch-rebuilds), same case. So are the helper scripts that
+    // agent skills ship next to their SKILL.md (.agents/skills/*/*.mjs).
     //
     // globals.nodeBuiltin instead of a hand-kept list: the scripts only need
     // process and console today, but a list with just those would flag the
@@ -243,7 +244,7 @@ export default [
     // finding and isn't.
     {
         ...js.configs.recommended,
-        files: ['scripts/**/*.mjs', 'test-workspace/*.mjs'],
+        files: ['scripts/**/*.mjs', 'test-workspace/*.mjs', '.agents/skills/**/*.mjs'],
         languageOptions: {
             sourceType: 'module',
             ecmaVersion: 'latest',

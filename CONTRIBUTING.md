@@ -284,11 +284,12 @@ virtual `.html` files, which is why they match the template rules above.
 
 \* `scripts/**/*.mjs` is linted too, with plain `eslint:recommended`, no Angular or
 `@stylistic` rules, since it's Node code with no browser or Angular surface.
-The same applies to `test-workspace/*.mjs`, the two measurement scripts.
+The same applies to `test-workspace/*.mjs`, the two measurement scripts, and to
+the helper scripts that agent skills ship under `.agents/skills/`.
 Nothing infers a `lint` target for the workspace root automatically (Nx only
 does that for a root project with a standalone `src`/`lib`), so it runs from
 an explicit `lint` target declared on `ng-prism-workspace` in `package.json`'s
-`nx.targets`, scoped to `eslint scripts jest.config.ts`, which is also how
+`nx.targets`, scoped to `eslint scripts jest.config.ts .agents/skills`, which is also how
 `jest.config.ts` itself ends up linted. `nx run-many -t lint` picks it up like
 any other project's `lint` target, so `npm run lint`, `npm run check`, and CI
 all reach it.

@@ -133,11 +133,12 @@
             "lint": {
                 "executor": "nx:run-commands",
                 "options": {
-                    "command": "eslint scripts jest.config.ts"
+                    "command": "eslint scripts jest.config.ts .agents/skills"
                 },
                 "cache": true,
                 "inputs": [
                     "{workspaceRoot}/scripts/**/*.mjs",
+                    "{workspaceRoot}/.agents/skills/**/*.mjs",
                     "{workspaceRoot}/jest.config.ts",
                     "{workspaceRoot}/eslint.config.mjs",
                     "{workspaceRoot}/.prettierrc",
