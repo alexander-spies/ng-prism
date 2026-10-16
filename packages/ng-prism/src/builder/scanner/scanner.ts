@@ -2,6 +2,7 @@ import ts from 'typescript';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { scanComponents } from './component.scanner.js';
 import { type EntryPointInput, resolveEntryPointExports } from './entry-point.scanner.js';
+import { createSourceFileCache } from './source-file-cache.js';
 
 export interface CreateScannerOptions {
     entryPoints: ReadonlyArray<EntryPointInput>;
@@ -41,21 +42,23 @@ const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
  * transitive type graph (Angular framework typings, etc.) is parsed once and shared via
  * the program's `TypeChecker`, instead of N programs that each load Material/CDK/RxJS.
  *
- * TypeScript reuses parsed SourceFile objects from the old program on rebuild, making
- * incremental scans fast.
+ * On rebuild, the source-file cache hands TypeScript the already parsed SourceFile of
+ * every unchanged file, so only the changed files are parsed again.
  */
 export function createScanner(options: CreateScannerOptions): Scanner {
     const compilerOptions = {
         ...DEFAULT_COMPILER_OPTIONS,
         ...options.compilerOptions
     };
+    const sourceFiles = createSourceFileCache(compilerOptions);
     let previousProgram: ts.Program | undefined;
 
     return {
         scan(): ScanResult {
-            const { program, entries } = resolveEntryPointExports(options.entryPoints, compilerOptions, previousProgram);
+            const { program, entries } = resolveEntryPointExports(options.entryPoints, compilerOptions, previousProgram, sourceFiles.host);
 
             previousProgram = program;
+            sourceFiles.prune(program);
 
             const checker = program.getTypeChecker();
             const allComponents: ScannedComponent[] = [];

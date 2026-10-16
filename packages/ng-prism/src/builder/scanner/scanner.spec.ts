@@ -1,6 +1,7 @@
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path, { join } from 'node:path';
+import ts from 'typescript';
 import { createScanner } from './scanner.js';
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
@@ -101,16 +102,22 @@ describe('createScanner', () => {
         }
     });
 
-    it('should retain program reference across scans (previousProgram threading)', () => {
+    it('should not read unchanged source files again on the next scan', () => {
         const scanner = createScanner({ entryPoints });
 
-        const first = scanner.scan();
+        scanner.scan();
 
-        expect(first.components.length).toBeGreaterThan(0);
+        const readFile = jest.spyOn(ts.sys, 'readFile');
 
-        const second = scanner.scan();
+        try {
+            scanner.scan();
 
-        expect(second.components.map((c) => c.className)).toEqual(first.components.map((c) => c.className));
+            const sourceReads = readFile.mock.calls.map(([file]) => file).filter((file) => file.endsWith('.ts'));
+
+            expect(sourceReads).toEqual([]);
+        } finally {
+            readFile.mockRestore();
+        }
     });
 
     it('should produce the same manifest on repeated scans when files are unchanged', () => {
@@ -247,6 +254,59 @@ describe('createScanner', () => {
             const mutatedButton = second.components.find((c) => c.className === 'ButtonComponent')!;
 
             expect(mutatedButton.showcaseConfig.variants?.map((v) => v.name)).toEqual(['Primary']);
+        } finally {
+            rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('should find a component whose file appears after the entry point already exports it', () => {
+        const tmpDir = mkdtempSync(join(tmpdir(), 'ng-prism-scanner-'));
+
+        try {
+            cpSync(FIXTURES_DIR, tmpDir, { recursive: true });
+            const mutableEntry = join(tmpDir, 'public-api.ts');
+
+            writeFileSync(mutableEntry, `${readFileSync(mutableEntry, 'utf-8')}export { LateComponent } from './late.component.js';\n`);
+            const scanner = createScanner({
+                entryPoints: [{ entryFile: mutableEntry, importPath: 'fixture' }]
+            });
+
+            expect(scanner.scan().components.map((c) => c.className)).not.toContain('LateComponent');
+
+            writeFileSync(
+                join(tmpDir, 'late.component.ts'),
+                [
+                    "import { Component } from '@angular/core';",
+                    'function Showcase(config: { title: string }): ClassDecorator {',
+                    '    return () => {};',
+                    '}',
+                    "@Showcase({ title: 'Late' })",
+                    "@Component({ selector: 'late', template: '' })",
+                    'export class LateComponent {}',
+                    ''
+                ].join('\n')
+            );
+
+            expect(scanner.scan().components.map((c) => c.className)).toContain('LateComponent');
+        } finally {
+            rmSync(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('should drop a component whose file was deleted between scans', () => {
+        const tmpDir = mkdtempSync(join(tmpdir(), 'ng-prism-scanner-'));
+
+        try {
+            cpSync(FIXTURES_DIR, tmpDir, { recursive: true });
+            const scanner = createScanner({
+                entryPoints: [{ entryFile: join(tmpDir, 'public-api.ts'), importPath: 'fixture' }]
+            });
+
+            expect(scanner.scan().components.map((c) => c.className)).toContain('CardComponent');
+
+            rmSync(join(tmpDir, 'card.component.ts'));
+
+            expect(scanner.scan().components.map((c) => c.className)).not.toContain('CardComponent');
         } finally {
             rmSync(tmpDir, { recursive: true, force: true });
         }
