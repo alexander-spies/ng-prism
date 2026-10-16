@@ -274,8 +274,8 @@ export interface NgPrismConfig {
     /**
      * When true, the build fails instead of warning whenever the scanner has
      * to drop a `@Showcase` value: one it cannot evaluate statically, an
-     * invalid `bg`, `status` or `canvasLayout`, a missing `title`, or the
-     * deprecated `providers`, which never reach the styleguide.
+     * invalid `bg`, `status`, `canvasLayout` or `pseudo`, a missing `title`,
+     * or the deprecated `providers`, which never reach the styleguide.
      * Default: `false`.
      */
     strictShowcase?: boolean;

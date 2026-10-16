@@ -312,6 +312,105 @@ describe('scanComponents', () => {
     });
 });
 
+describe('scanComponents with forced pseudo states', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'pseudo-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan() {
+        const diagnostics: string[] = [];
+        const [component] = scanComponents(exports, checker, diagnostics);
+        const pseudoOf = (name: string) => component.showcaseConfig.variants!.find((v) => v.name === name)!.pseudo;
+
+        return { diagnostics, pseudoOf };
+    }
+
+    it('reads true, a selector and a list of selectors', () => {
+        const { pseudoOf } = scan();
+
+        expect(pseudoOf('Hovered')).toEqual({ hover: true });
+        expect(pseudoOf('Pressed')).toEqual({ active: ['.btn', '.btn__icon'], focus: '.btn' });
+    });
+
+    it('resolves a selector from a constant', () => {
+        expect(scan().pseudoOf('Focused')).toEqual({ 'focus-visible': '.btn' });
+    });
+
+    it('leaves a variant without pseudo states without the field', () => {
+        expect(scan().pseudoOf('Plain')).toBeUndefined();
+    });
+
+    it('drops an unknown state and keeps the others', () => {
+        const { diagnostics, pseudoOf } = scan();
+
+        expect(pseudoOf('Unknown state')).toEqual({ hover: true });
+        expect(diagnostics).toContainEqual(
+            'PseudoStatesComponent variant "Unknown state" declares unknown pseudo state "checked", expected one of: hover, active, focus, focus-visible, focus-within. Skipping.'
+        );
+    });
+
+    it('drops a target that is neither true nor selectors, and the field once nothing is left', () => {
+        const { diagnostics, pseudoOf } = scan();
+
+        expect(pseudoOf('Wrong targets')).toBeUndefined();
+        expect(diagnostics).toContainEqual(
+            'PseudoStatesComponent variant "Wrong targets" declares pseudo state "focus" with invalid target 42, expected true, a selector or a list of selectors. Skipping.'
+        );
+        expect(diagnostics).toContainEqual(
+            'PseudoStatesComponent variant "Wrong targets" declares pseudo state "hover" with invalid target false, expected true, a selector or a list of selectors. Skipping.'
+        );
+    });
+
+    it('drops the entries of a selector list that are no selectors', () => {
+        const { diagnostics, pseudoOf } = scan();
+
+        expect(pseudoOf('Mixed list')).toEqual({ 'focus-within': ['.field'] });
+        expect(diagnostics).toContainEqual(
+            'PseudoStatesComponent variant "Mixed list" declares pseudo state "focus-within" with 7, "" in its selector list, expected non-empty strings. Skipping them.'
+        );
+    });
+
+    it('drops empty selectors and empty lists', () => {
+        const { diagnostics, pseudoOf } = scan();
+
+        expect(pseudoOf('Empty')).toBeUndefined();
+        expect(diagnostics).toContainEqual('PseudoStatesComponent variant "Empty" declares pseudo state "focus" with an empty selector. Skipping.');
+        expect(diagnostics).toContainEqual('PseudoStatesComponent variant "Empty" declares pseudo state "active" with an empty selector list. Skipping.');
+    });
+
+    it('drops a pseudo field that is no object', () => {
+        const { diagnostics, pseudoOf } = scan();
+
+        expect(pseudoOf('Not an object')).toBeUndefined();
+        expect(diagnostics).toContainEqual(
+            'PseudoStatesComponent variant "Not an object" declares invalid pseudo "hover", expected an object mapping pseudo states to true or selectors. Skipping.'
+        );
+    });
+
+    it('reports nothing about the valid variants', () => {
+        const { diagnostics } = scan();
+
+        expect(diagnostics.filter((d) => /"(Plain|Focused|Hovered|Pressed)"/.test(d))).toEqual([]);
+        expect(diagnostics).toHaveLength(7);
+    });
+});
+
 describe('scanComponents with @Showcase values it cannot evaluate', () => {
     let checker: ts.TypeChecker;
     let exports: ts.Symbol[];
