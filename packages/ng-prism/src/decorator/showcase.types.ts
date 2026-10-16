@@ -1,6 +1,7 @@
 import type { InputSignalWithTransform, Provider } from '@angular/core';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { CanvasLayout } from '../shared/canvas-layout.type.js';
+import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 
 export type ComponentStatus = 'stable' | 'beta' | 'wip' | 'deprecated';
 
@@ -117,4 +118,13 @@ export interface Variant<T = unknown> {
     bg?: CanvasBg;
     /** Canvas layout mode for this variant. Overrides `ShowcaseConfig.canvasLayout`. See `ShowcaseConfig.canvasLayout` for semantics. */
     canvasLayout?: CanvasLayout;
+    /**
+     * Pseudo states forced on while this variant renders, e.g.
+     * `{ 'focus-visible': '.btn' }` or `{ hover: true }`.
+     * - `true`: the state is forced on every element of the rendered component, the host included.
+     * - A selector, or a list of them: only on the matching elements, resolved against the host and everything inside it.
+     *
+     * The component's own CSS applies: every rule using the pseudo-class gets a copy keyed on a class instead.
+     */
+    pseudo?: ForcedPseudoStates;
 }
