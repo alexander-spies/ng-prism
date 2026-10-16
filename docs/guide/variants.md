@@ -1,6 +1,6 @@
 # Variants
 
-Variants are named tabs displayed above the component canvas. Each variant defines a different combination of inputs, content, and metadata.
+Variants are named tabs displayed above the component canvas. Each variant defines a different combination of inputs, content, metadata and forced pseudo states.
 
 ## Variant Interface
 
@@ -13,6 +13,7 @@ interface Variant<T = unknown> {
     meta?: Record<string, unknown>;
     bg?: 'dots' | 'plain' | 'light' | 'dark' | 'checker' | 'transparent';
     canvasLayout?: 'fit' | 'stretch';
+    pseudo?: Partial<Record<'hover' | 'active' | 'focus' | 'focus-visible' | 'focus-within', true | string | readonly string[]>>;
 }
 ```
 
@@ -262,6 +263,67 @@ In `'stretch'` mode `.demo-wrap` becomes `display: block; width: 100%; max-width
 
 See [Showcase Decorator: canvasLayout](guide/showcase-decorator.md#canvaslayout) for the component-level setting and the [`CanvasLayout`](api/types.md#canvaslayout) type for the wrapper styles applied in each mode.
 
+## Per-Variant Pseudo States
+
+Hover, active and focus states cannot be set through an input. Focusing an element by script does not hold either: only one element in the document can have focus, and the first click into the styleguide takes it away. `pseudo` forces these states for as long as the variant renders:
+
+```typescript
+@Showcase({
+  title: 'Button',
+  variants: [
+    { name: 'Default' },
+    { name: 'Hovered', pseudo: { hover: '.btn' } },
+    { name: 'Pressed', pseudo: { hover: '.btn', active: '.btn' } },
+    { name: 'Focused', pseudo: { 'focus-visible': '.btn' } },
+  ],
+})
+```
+
+The keys are the states: `hover`, `active`, `focus`, `focus-visible` and `focus-within`. Each one takes a target:
+
+- **`true`**: every element of the rendered component, the host included. Closest to what a pointer resting on the component does.
+- **A selector, or a list of them**: only the matching elements, matched against the host element and everything inside it. Use it for the element the state belongs to, such as the inner `<button>` of a host component or a visually hidden `<input>` whose sibling draws the box.
+
+```typescript
+variants: [
+  // A checkbox whose ring is drawn by `.checkbox__input:focus-visible + .checkbox__box::before`
+  { name: 'Focused', pseudo: { 'focus-visible': '.checkbox__input' } },
+  // Two states on two elements: the pill is hovered, its close button is focused
+  { name: 'Hovered, close focused', inputs: { closeable: true }, pseudo: { hover: '.pill', 'focus-visible': '.pill__close' } },
+  // Real focus on a field puts its container into :focus-within as well
+  { name: 'Typing', pseudo: { focus: '.field__input', 'focus-within': '.field' } },
+],
+```
+
+### Your CSS does the styling
+
+Nothing has to be written twice. In every stylesheet rule whose selector uses one of the five pseudo-classes, the pseudo-class is widened to also match a class: `:focus-visible` becomes `:is(:focus-visible, .prism-pseudo--focus-visible)`. That class goes on the targeted elements, and the component's real focus styles apply to them the way the browser applies them on real focus:
+
+- Sibling combinators (`input:focus-visible + .box::before`), pseudo-elements, `:has()`, `:is()`, `:where()` and `:not()` keep their meaning, and so do rules inside `@media`, `@supports`, `@layer` and `@container`, a `@media (forced-colors: active)` fallback included. A forced element counts as being in the state, so `:not(:hover)` stops matching it.
+- Forced and real states combine. `.pill:hover .pill__close:focus-visible` applies when the close button is forced into `:focus-visible` and the pointer really rests on the pill, and the other way round.
+- The cascade does not change. The rule stays where it is in the stylesheet, and `:is()` weighs what the pseudo-class weighed, so it wins and loses against the rules around it exactly as the real state would.
+- A stylesheet is rewritten once, the first time a variant forces a state. Styles that arrive later, through a lazily rendered child component or a hot reload, are rewritten as they arrive.
+- The classes come off when you switch to another variant. Without them every widened selector matches exactly what it matched before, so the styleguide's own UI and every other variant render as before.
+
+The selector is read token by token, so an escaped colon in a class name (`.md\:hover`, as Tailwind writes it) and an attribute value are left alone.
+
+### Limits
+
+- **A state after a pseudo-element stays real.** `::-webkit-scrollbar-thumb:hover` and `::part(label):hover` cannot be forced: `:is()` is not allowed in that position.
+- **Real states are not switched off.** A forced variant still reacts to the pointer and the keyboard. Hovering the canvas adds real `:hover` on top, the same as it would on any other variant.
+- **Cross-origin stylesheets cannot be read.** Their rules are not rewritten, and dev mode warns once per sheet. Serve them from the same origin, or with CORS and a `crossorigin` attribute.
+- **Shadow DOM is not reached.** A component with `ViewEncapsulation.ShadowDom` keeps its styles and elements in a shadow root, which neither the rewrite nor the selectors look into.
+
+The scanner reads `pseudo` from the source like any other variant value. An unknown state, a target that is neither `true` nor a selector, and an empty selector are reported as a warning and dropped; `strictShowcase` turns that into a build error. Whether a selector parses is up to the browser, which warns once when the variant renders.
+
+### Forcing a state while browsing
+
+The **State** group in the tools menu (the sliders button on the floating canvas rail) forces a state on whatever variant is shown, on the whole component. Several can be on at once. The states the variant declares carry a tinted border, like the recommended background in the **Canvas** group, and can be switched off there too. Like a background override, the toggle is transient: switching variants or components resets it, and capture mode ignores it.
+
+### Under visual regression
+
+A forced state is part of the variant, so a screenshot runner captures it without a change on its side: `data-prism-rendered` only appears once the states are in place. Focus rings are usually drawn outside the component's box, so capture mode leaves room around variants that force a state. See [Forced pseudo states](guide/visual-regression.md#forced-pseudo-states).
+
 ## Overview: All Variants at Once
 
 The component header carries a third view tab between `Playground` and `API`: **Overview**. It renders every variant of the active component at the same time, as a grid of cells, more of a contact sheet than a viewfinder. Use it to compare variants against each other instead of stepping through them one by one.
@@ -272,6 +334,7 @@ Each cell renders its variant as declared:
 
 - **Background**: a variant's own [`bg`](guide/showcase-decorator.md#bg) paints that cell, so an `On dark` variant sits on dark while its neighbours do not. Variants that declare nothing get the checkerboard, matching what external tooling is told the variant renders on.
 - **Layout**: a variant with `canvasLayout: 'stretch'` takes a full row instead of a column, because it has no intrinsic width to compare against its neighbours.
+- **Pseudo states**: a variant's own [`pseudo`](#per-variant-pseudo-states) states are forced in its cell, and only there, so a `Hovered` cell sits next to its unhovered neighbours. The tools menu's state toggle does not reach the Overview.
 - **Caption**: running number and variant name below the frame, e.g. `08 On dark`.
 
 The Overview is a stage, not a workbench: it has no controls, no density or zoom settings, and no addon panel. Control values you changed in the Playground do not leak into it. Every cell shows the variant as the decorator declares it.

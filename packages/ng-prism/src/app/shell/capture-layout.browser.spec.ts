@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { TestBed } from '@angular/core/testing';
-import { PrismCaptureService } from '../services/prism-capture.service.js';
+import { CAPTURE_PSEUDO_ROOM, PrismCaptureService } from '../services/prism-capture.service.js';
 import { type CaptureDom, describeAll, renderCanvasChain } from './__fixtures__/capture-dom.js';
 
 /**
@@ -180,5 +182,65 @@ describe('capture mode layout isolation', () => {
         // declared and never expands `outline` into `outline-style`.
         expect(style.outline).toBe('none');
         expect(style.boxShadow).toBe('none');
+    });
+});
+
+/**
+ * A focus ring is drawn outside the component's box (an `outline` with an
+ * offset, a `box-shadow` halo), and `.demo-wrap` hugs that box, so a runner
+ * screenshotting it would crop the very state the variant forces.
+ */
+describe('capture mode room for forced pseudo states', () => {
+    afterEach(() => {
+        setSearch('');
+        document.documentElement.removeAttribute('data-prism-capture');
+        document.head.querySelectorAll('style').forEach((el) => el.remove());
+        document.getElementById('ng-prism-capture-styles')?.remove();
+        document.body.innerHTML = '';
+    });
+
+    it('should leave room around a variant that forces pseudo states', () => {
+        const { demoWrap } = renderInCaptureMode();
+
+        demoWrap.setAttribute('data-pseudo', 'focus-visible');
+        const style = getComputedStyle(demoWrap);
+
+        expect(style.padding).toBe(`${CAPTURE_PSEUDO_ROOM}px`);
+        // Taken back out of layout, so the component sits where it sits without the room.
+        expect(style.margin).toBe(`-${CAPTURE_PSEUDO_ROOM}px`);
+        // A `stretch` variant keeps its width: the padding comes on top of `width: 100%`.
+        expect(style.boxSizing).toBe('content-box');
+    });
+
+    it('should keep the room of a stretch variant inside the canvas', () => {
+        const { demoWrap } = renderInCaptureMode();
+
+        demoWrap.setAttribute('data-pseudo', 'focus-visible');
+        demoWrap.setAttribute('data-canvas-layout', 'stretch');
+
+        // `width: 100%` plus the room would reach past both edges of a canvas
+        // narrower than 816px. `max-width: 800px` still clamps it above that.
+        expect(getComputedStyle(demoWrap).width).toBe(`calc(100% - ${2 * CAPTURE_PSEUDO_ROOM}px)`);
+    });
+
+    it('should leave every other variant as it is, so no existing baseline moves', () => {
+        const { demoWrap } = renderInCaptureMode();
+        const style = getComputedStyle(demoWrap);
+
+        expect(style.padding).not.toBe(`${CAPTURE_PSEUDO_ROOM}px`);
+        expect(style.margin).not.toBe(`-${CAPTURE_PSEUDO_ROOM}px`);
+    });
+
+    it('should not add the room while browsing', () => {
+        const { demoWrap } = renderCanvasChain('light');
+
+        demoWrap.setAttribute('data-pseudo', 'focus-visible');
+        expect(getComputedStyle(demoWrap).padding).not.toBe(`${CAPTURE_PSEUDO_ROOM}px`);
+    });
+
+    it('should key the room on an attribute the renderer actually binds', () => {
+        const template = readFileSync(join(__dirname, '..', 'renderer', 'prism-renderer.component.html'), 'utf8');
+
+        expect(template).toMatch(/class="demo-wrap"[^>]*\[attr\.data-pseudo\]=/);
     });
 });

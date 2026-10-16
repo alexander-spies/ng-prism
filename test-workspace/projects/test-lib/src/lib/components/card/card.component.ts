@@ -15,7 +15,8 @@ import { Showcase } from '@ng-prism/core';
         { name: 'With Image', inputs: { title: 'Featured', subtitle: 'Image card variant.', showImage: true } },
         { name: 'Clickable', inputs: { title: 'Interactive Card', subtitle: 'Click me.', clickable: true } },
         { name: 'Elevated', inputs: { title: 'Elevated Card', subtitle: 'With shadow.', elevated: true } },
-        { name: 'Outlined', inputs: { title: 'Outlined', subtitle: 'Border only.', elevated: false } }
+        { name: 'Outlined', inputs: { title: 'Outlined', subtitle: 'Border only.', elevated: false } },
+        { name: 'Clickable, hovered', inputs: { title: 'Interactive Card', subtitle: 'Hovered.', clickable: true }, pseudo: { hover: true } }
     ],
     tags: ['layout', 'card', 'container', 'surface']
 })

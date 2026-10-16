@@ -17,6 +17,7 @@ import {
 } from '@angular/core';
 import type { ComponentPage } from '../../plugin/page.types.js';
 import type { PanelDefinition, RuntimeComponent } from '../../plugin/plugin.types.js';
+import { PSEUDO_STATES } from '../../shared/pseudo-state.type.js';
 import { VIEWPORT_MAX, VIEWPORT_MIN } from '../../shared/viewport.type.js';
 import { CANVAS_BG_STYLES } from '../canvas/canvas-bg.styles.js';
 import { PrismCanvasBgPillComponent } from '../canvas/prism-canvas-bg-pill.component.js';
@@ -32,12 +33,14 @@ import { PrismManifestService } from '../services/prism-manifest.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
+import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 import { PRISM_RENDERER_HOOKS } from '../tokens/prism-tokens.js';
 import { buildKnownInputs } from './known-inputs.js';
 import { resolveOverlay } from './overlay-resolver.js';
 import { parseContentToNodes } from './projectable-content.js';
+import { resolveRenderedKey } from './rendered-key.js';
 
 @Component({
     selector: 'prism-renderer',
@@ -54,6 +57,7 @@ export class PrismRendererComponent {
     protected readonly canvasService = inject(PrismCanvasService);
     protected readonly capture = inject(PrismCaptureService);
     protected readonly variantBg = inject(PrismVariantBgService);
+    private readonly pseudoState = inject(PrismPseudoStateService);
 
     /**
      * The width the canvas is actually constrained to, `null` for unconstrained.
@@ -96,6 +100,7 @@ export class PrismRendererComponent {
 
     private readonly panelService = inject(PrismPanelService);
     private readonly pluginService = inject(PrismPluginService);
+    private readonly pseudoMarker = this.pseudoState.createMarker();
 
     private readonly outlet = viewChild.required('outlet', {
         read: ViewContainerRef
@@ -107,15 +112,27 @@ export class PrismRendererComponent {
 
     private readonly overlayCache = new Map<string, Type<unknown>>();
     readonly activeOverlay = signal<Type<unknown> | null>(null);
-    /** Identifier of the currently rendered component/variant (for audit tooling / e2e). */
-    protected readonly renderedKey = computed(() => {
-        const el = this.rendererService.renderedElement();
+    /**
+     * Identifier of the currently rendered component/variant (for audit tooling / e2e).
+     * Held back until the variant's forced pseudo states are in place, see {@link resolveRenderedKey}.
+     */
+    protected readonly renderedKey = computed(() =>
+        resolveRenderedKey({
+            component: this.navigationService.activeComponent(),
+            variantIndex: this.rendererService.activeVariantIndex(),
+            element: this.rendererService.renderedElement(),
+            pseudo: this.pseudoState.effective(),
+            pseudoApplied: this.pseudoMarker.applied()
+        })
+    );
+    /**
+     * The states forced on the canvas, space-separated, `null` for none. Capture
+     * mode keys the room it leaves for focus rings on it.
+     */
+    protected readonly forcedStates = computed(() => {
+        const states = this.pseudoMarker.applied()?.states;
 
-        if (!el) return null;
-        const comp = this.navigationService.activeComponent();
-
-        if (!comp) return null;
-        return `${comp.meta.className}:${this.rendererService.activeVariantIndex()}`;
+        return states ? PSEUDO_STATES.filter((state) => states[state] !== undefined).join(' ') : null;
     });
     /** Resolved canvas layout for the active variant. Variant overrides component config; defaults to 'fit'. */
     protected readonly canvasLayout = computed(() => {
@@ -208,7 +225,18 @@ export class PrismRendererComponent {
             });
         });
 
-        this.destroyRef.onDestroy(() => this.cleanup());
+        // `renderedKey` waits for what this applies.
+        effect(() => {
+            const element = this.rendererService.renderedElement();
+            const states = this.pseudoState.effective();
+
+            untracked(() => this.pseudoMarker.apply(element, states));
+        });
+
+        this.destroyRef.onDestroy(() => {
+            this.cleanup();
+            this.pseudoMarker.clear();
+        });
     }
 
     private createComponent(comp: RuntimeComponent): void {

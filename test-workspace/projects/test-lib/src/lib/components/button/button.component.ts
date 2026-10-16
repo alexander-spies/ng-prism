@@ -95,6 +95,25 @@ export type ButtonVariantType = 'filled' | 'outlined' | 'elevated' | 'text' | 'i
             name: 'Full width',
             inputs: { variant: 'filled', label: 'Full width', fullWidth: true },
             canvasLayout: 'stretch'
+        },
+        {
+            name: 'Hovered',
+            inputs: { variant: 'filled', label: 'Hovered' },
+            bg: 'light',
+            pseudo: { hover: '.btn' }
+        },
+        {
+            name: 'Pressed',
+            inputs: { variant: 'filled', label: 'Pressed' },
+            bg: 'light',
+            pseudo: { hover: '.btn', active: '.btn' }
+        },
+        {
+            name: 'Focus visible',
+            inputs: { variant: 'outlined', label: 'Focus visible' },
+            bg: 'light',
+            // The ring is an outline with an offset, drawn outside the button's box.
+            pseudo: { 'focus-visible': '.btn' }
         }
     ],
     tags: ['form', 'action', 'button']

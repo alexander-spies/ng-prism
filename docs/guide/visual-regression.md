@@ -107,6 +107,28 @@ http://localhost:4200/?component=ButtonComponent&variant=2&capture=1
 
 No config change is required, so a CI job can drive a styleguide that was built without screenshots in mind.
 
+## Forced pseudo states
+
+A variant that declares [`pseudo`](guide/variants.md#per-variant-pseudo-states) is captured in that state. Focus rings and hover colours get a baseline like any other variant:
+
+```typescript
+variants: [
+  { name: 'Default', bg: 'light' },
+  { name: 'Focused', bg: 'light', pseudo: { 'focus-visible': '.btn' } },
+],
+```
+
+Two things make this work without a change in the runner:
+
+- **The render marker waits for the state.** `data-prism-rendered` only appears once the forced states are in place on the rendered component. A runner that waits on the marker, as every runner on this page does, captures the forced state.
+- **Capture mode leaves room for the ring.** `.demo-wrap` hugs the component's box, but a focus ring is usually drawn outside it: an `outline` with an `outline-offset`, or a `box-shadow` halo. A screenshot of the bare box would crop exactly the thing under test. In capture mode, `.demo-wrap` therefore gets 8px of padding on every side for a variant that forces a state, taken back out of layout with a negative margin of the same size. The component keeps its position and its size, and the screenshot grows by 16px in each direction. A `stretch` variant keeps its width too as long as the clamp at 800px applies, i.e. from a viewport of 816px up; below that it gives up the 16px so the room stays inside the canvas.
+
+The room applies only to variants that force a state, so no existing baseline moves when you add `pseudo` to some variants. It is keyed on `.demo-wrap[data-pseudo]`, which lists the forced states. A ring wider than 8px still gets cropped. Clip the page screenshot yourself in that case, from the component's bounding box widened by the ring, instead of screenshotting `.demo-wrap`.
+
+The toggle in the canvas tools menu is session state and is ignored in capture mode: only what the variant declares is captured. Transitions are frozen in capture mode as well, so the state is captured at its end value and not on its way there.
+
+`__PRISM_MANIFEST__` reports the forced states per variant ([`pseudo`](guide/external-tooling.md#enumerating-what-exists)), for a runner that wants to label or filter them.
+
 ## Breaking: the default background changed
 
 `DEFAULT_VARIANT_BG` moved from `checker` to `transparent`. The app looks the same while browsing, since both render as the same checkerboard. But every variant that declares no `bg` produces a different capture, so its baseline is invalid.

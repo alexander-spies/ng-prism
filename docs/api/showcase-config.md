@@ -122,6 +122,18 @@ Optional array of `Variant` objects. Each renders as a named tab above the canva
 })
 ```
 
+A variant can also force hover, active and focus states with `pseudo`. It is a variant field only: a forced state describes one variant, not every variant of the component. See [Per-Variant Pseudo States](guide/variants.md#per-variant-pseudo-states).
+
+```typescript
+@Showcase({
+  title: 'Button',
+  variants: [
+    { name: 'Default' },
+    { name: 'Focused', pseudo: { 'focus-visible': '.btn' } },
+  ],
+})
+```
+
 ---
 
 ### `tags`

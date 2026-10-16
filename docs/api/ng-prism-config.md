@@ -256,7 +256,7 @@ See [Accessibility: Library-Wide A11y Score](guide/accessibility.md#library-wide
 
 Fail the build when a `@Showcase` value is lost, instead of warning about it. Default: `false`.
 
-The scanner reads `@Showcase` from the source and drops what it cannot use: a value it [cannot evaluate statically](guide/showcase-decorator.md#what-the-scanner-can-read), an invalid `bg`, `status` or `canvasLayout`, a config without a `title`, which costs the whole component, or the deprecated `providers`, which never reach the styleguide. Each loss prints a warning. With `strictShowcase` on, the build stops after the scan, before a manifest is written:
+The scanner reads `@Showcase` from the source and drops what it cannot use: a value it [cannot evaluate statically](guide/showcase-decorator.md#what-the-scanner-can-read), an invalid `bg`, `status` or `canvasLayout`, a [`pseudo`](guide/variants.md#per-variant-pseudo-states) state or target it cannot use, a config without a `title`, which costs the whole component, or the deprecated `providers`, which never reach the styleguide. Each loss prints a warning. With `strictShowcase` on, the build stops after the scan, before a manifest is written:
 
 ```typescript
 export default defineConfig({ strictShowcase: true });

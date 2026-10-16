@@ -16,7 +16,15 @@ import { Showcase } from '@ng-prism/core';
         { name: 'With Counter', inputs: { maxLength: 200, showCounter: true, placeholder: 'Max 200 characters' } },
         { name: 'Error State', inputs: { value: '', error: 'This field is required.', placeholder: 'Required field' } },
         { name: 'Disabled', inputs: { value: 'Read only content', disabled: true } },
-        { name: 'Small', inputs: { rows: 2, placeholder: 'Short input' } }
+        { name: 'Small', inputs: { rows: 2, placeholder: 'Short input' } },
+        { name: 'Focused', inputs: { placeholder: 'Enter your message...' }, bg: 'light', pseudo: { focus: '.sg-textarea__input' } },
+        {
+            name: 'Typing',
+            inputs: { value: 'Hello', maxLength: 200, showCounter: true },
+            bg: 'light',
+            // Real focus on the field puts the host into :focus-within as well.
+            pseudo: { focus: '.sg-textarea__input', 'focus-within': '.sg-textarea' }
+        }
     ],
     tags: ['form', 'textarea', 'text', 'input']
 })
@@ -106,6 +114,9 @@ import { Showcase } from '@ng-prism/core';
             color: #9ca3af;
             margin-left: auto;
             font-variant-numeric: tabular-nums;
+        }
+        .sg-textarea:focus-within .sg-textarea__counter:not(.sg-textarea__counter--limit) {
+            color: #6366f1;
         }
         .sg-textarea__counter--limit {
             color: #ef4444;

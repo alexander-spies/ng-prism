@@ -1,16 +1,18 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CANVAS_BGS, type CanvasBg } from '../../shared/canvas-bg.type.js';
+import { PSEUDO_STATES, type PseudoState } from '../../shared/pseudo-state.type.js';
 import { VIEWPORT_SNAPS } from '../../shared/viewport.type.js';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { PrismCanvasService } from '../services/prism-canvas.service.js';
+import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 
 /**
  * The canvas tools, as a rail floating over the canvas.
  *
  * Things you toggle constantly (guides, rulers, the viewport constraint) get
- * their own button; things you set once (background, zoom, viewport width) live
- * in the menu. The template is a view rather than a setting and keeps its own
+ * their own button; things you set once (background, forced state, zoom,
+ * viewport width) live in the menu. The template is a view rather than a setting and keeps its own
  * button. Zoom and the active viewport width are shown as readouts; the width
  * only appears while the viewport constraint is on.
  *
@@ -31,6 +33,18 @@ import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 export class PrismCanvasToolbarComponent {
     protected readonly canvas = inject(PrismCanvasService);
     protected readonly variantBg = inject(PrismVariantBgService);
+    protected readonly pseudoState = inject(PrismPseudoStateService);
+
+    /**
+     * The pseudo states the canvas can force, as toggles. Several can be on at
+     * once (`:hover` with `:focus-visible`). The active ones carry `is-on`, the
+     * ones the variant declares the `is-rec` edge, as in the Canvas group.
+     */
+    protected readonly states = PSEUDO_STATES;
+
+    protected stateTitle(state: PseudoState): string {
+        return this.pseudoState.isDeclared(state) ? `:${state} is forced by this variant` : `Force :${state} on the whole component`;
+    }
 
     /** Angular templates resolve names against the component, not the global scope. */
     protected readonly Math = Math;

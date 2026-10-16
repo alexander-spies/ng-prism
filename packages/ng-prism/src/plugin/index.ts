@@ -28,6 +28,12 @@ export type { CanvasBg } from '../shared/canvas-bg.type.js';
 export { CANVAS_BGS } from '../shared/canvas-bg.type.js';
 export { DEFAULT_VARIANT_BG, resolveVariantBg } from '../shared/variant-bg.js';
 export type { VariantBgSource } from '../shared/variant-bg.js';
+
+// The pseudo states a variant can force. `Variant.pseudo` reaches plugins
+// through `ScannedComponent` and `RuntimeComponent`, and `DiscoveryVariant`
+// reports it to external tooling.
+export type { ForcedPseudoStates, PseudoState, PseudoTarget } from '../shared/pseudo-state.type.js';
+export { PSEUDO_STATES } from '../shared/pseudo-state.type.js';
 export { componentPage, customPage } from './page-helpers.js';
 export type { ComponentPageOptions } from './page-helpers.js';
 export { defineConfig } from './define-config.js';

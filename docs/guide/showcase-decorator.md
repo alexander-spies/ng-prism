@@ -183,7 +183,7 @@ Controls the order of this _section_ in the sidebar. Lower numbers appear first.
 
 ### `variants`
 
-Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content`, a `description`, and plugin `meta`.
+Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content`, a `description`, plugin `meta`, its own `bg` and `canvasLayout`, and forced `pseudo` states such as `:focus-visible`.
 
 ```typescript
 @Showcase({

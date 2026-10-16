@@ -63,7 +63,8 @@
         [style.--zoom]="canvasService.zoom()"
         [attr.data-prism-rendered]="renderedKey()"
         [attr.data-canvas-layout]="canvasLayout()"
-        [attr.data-viewport]="viewportWidth() !== null ? '' : null">
+        [attr.data-viewport]="viewportWidth() !== null ? '' : null"
+        [attr.data-pseudo]="forcedStates()">
         <ng-container #outlet />
         @if (activeOverlay()) {
             <ng-container *ngComponentOutlet="activeOverlay()!; inputs: overlayInputs; injector: overlayInjector()" />

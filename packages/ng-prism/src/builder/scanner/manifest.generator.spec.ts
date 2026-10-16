@@ -132,6 +132,23 @@ describe('generateManifest', () => {
         expect(source).toContain('outputs: []');
     });
 
+    it('carries the forced pseudo states of a variant', () => {
+        const forced: ScannedComponent = {
+            ...BUTTON,
+            showcaseConfig: {
+                title: 'Button',
+                variants: [{ name: 'Focused', pseudo: { 'focus-visible': '.btn', hover: true, active: ['.btn', '.icon'] } }]
+            }
+        };
+        const source = generateManifest([forced]);
+        const { diagnostics } = ts.transpileModule(source, { reportDiagnostics: true, compilerOptions: { module: ts.ModuleKind.ES2022 } });
+
+        expect(diagnostics!.map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'))).toEqual([]);
+        expect(source).toContain('"focus-visible": ".btn"');
+        expect(source).toContain('hover: true');
+        expect(source).toMatch(/active: \[\s*"\.btn",\s*"\.icon",\s*\]/);
+    });
+
     it('should include component-level and variant-level bg', () => {
         const source = generateManifest([BUTTON]);
 

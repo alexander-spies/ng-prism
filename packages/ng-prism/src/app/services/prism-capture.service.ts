@@ -8,6 +8,9 @@ export const CAPTURE_ATTRIBUTE = 'data-prism-capture';
 
 const STYLE_ELEMENT_ID = 'ng-prism-capture-styles';
 
+/** Room in px capture mode leaves around a component that forces pseudo states, for a focus ring drawn outside its box. */
+export const CAPTURE_PSEUDO_ROOM = 8;
+
 /**
  * Everything capture mode makes see-through for `bg: 'transparent'`.
  *
@@ -75,6 +78,19 @@ const CAPTURE_CANVAS_ONLY_SELECTOR =
  * padding gone it sits flush against the component, so capture mode removes the
  * paint and keeps the geometry. {@link CAPTURE_TRANSPARENT_SELECTOR} does not
  * cover this: an outline is not a background.
+ *
+ * A variant that forces pseudo states (`.demo-wrap[data-pseudo]`) gets 8px of
+ * room around the component. `.demo-wrap` hugs the component's box, but a focus
+ * ring is drawn outside it (an `outline` with an offset, a `box-shadow` halo),
+ * so a screenshot of the bare box would crop it. The negative margin takes the
+ * padding back out of layout, so the component sits and sizes exactly as
+ * without it, and `content-box` keeps the padding outside a `stretch` variant's
+ * width. That width gives up the room where the canvas is narrower than
+ * `max-width` plus the room, so the room stays inside the canvas instead of
+ * being clipped on one side and scrolling on the other; from there on
+ * `max-width` clamps it to the width it has without the room. Only these
+ * variants: any other change to `.demo-wrap`'s box would move every existing
+ * baseline.
  */
 const CAPTURE_STYLES = `
 [${CAPTURE_ATTRIBUTE}] *,
@@ -112,6 +128,16 @@ ${CAPTURE_CANVAS_ONLY_SELECTOR} {
 
 [${CAPTURE_ATTRIBUTE}] .prism-canvas-wrap:has(.prism-canvas-stage) {
   grid-template-rows: minmax(0, 1fr) !important;
+}
+
+[${CAPTURE_ATTRIBUTE}] .demo-wrap[data-pseudo] {
+  box-sizing: content-box !important;
+  padding: ${CAPTURE_PSEUDO_ROOM}px !important;
+  margin: -${CAPTURE_PSEUDO_ROOM}px !important;
+}
+
+[${CAPTURE_ATTRIBUTE}] .demo-wrap[data-pseudo][data-canvas-layout='stretch'] {
+  width: calc(100% - ${2 * CAPTURE_PSEUDO_ROOM}px) !important;
 }
 `;
 

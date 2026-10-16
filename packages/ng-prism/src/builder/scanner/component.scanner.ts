@@ -6,6 +6,7 @@ import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.ty
 import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, UNEVALUABLE } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
+import { readPseudoStates } from './pseudo-states.js';
 import { describeDeprecatedProviders, describeUnevaluable, describeUnreadableBase } from './showcase-diagnostics.js';
 
 const COMPONENT_STATUSES = ['stable', 'beta', 'wip', 'deprecated'] as const;
@@ -234,6 +235,12 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
                         `invalid canvasLayout "${String(variant['canvasLayout'])}", expected one of: ${CANVAS_LAYOUTS.join(', ')}. Skipping.`
                 );
                 delete cleaned['canvasLayout'];
+            }
+            if (variant['pseudo'] !== undefined) {
+                const pseudo = readPseudoStates(variant['pseudo'], `${className} variant "${String(variant['name'])}"`, report);
+
+                if (pseudo) cleaned['pseudo'] = pseudo;
+                else delete cleaned['pseudo'];
             }
             return cleaned;
         }) as unknown as ShowcaseConfig['variants'];

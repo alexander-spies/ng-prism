@@ -1,6 +1,6 @@
 # Canvas State
 
-The canvas (`PrismRendererComponent`) is governed by two cooperating services with distinct responsibilities.
+The canvas (`PrismRendererComponent`) is governed by cooperating services with distinct responsibilities: durable preferences, the effective background, and the forced pseudo states.
 
 ## `PrismCanvasService`
 
@@ -30,6 +30,28 @@ The override auto-clears whenever the active variant or component changes, so na
 ### Why a separate service?
 
 `PrismCanvasService` owns durable user preferences; `PrismVariantBgService` owns the transient, computed effective state. Keeping them separate preserves the user's global default when they temporarily deviate within a single variant.
+
+## `PrismPseudoStateService`
+
+Decides which pseudo states the canvas forces, following the same pattern as the background:
+
+```
+effective = capture mode ? declared : declared with the user's toggles on top
+```
+
+- `declared`: `Variant.pseudo` of the active variant, or `null`
+- `override`: transient per-state toggles from the tools menu's **State** group. `true` adds a state on the whole component, `false` switches off one the variant declares. Cleared whenever the active variant or component changes, and ignored in capture mode, because session UI state must not shape a baseline.
+- `effective`: what the canvas applies. While nothing is toggled it is the `declared` object itself, not a copy, because the render marker compares by identity (below).
+
+The service also owns the document's `PseudoStyleSheets`, which every marker shares, so each stylesheet is rewritten once whether the Playground or an Overview cell forces a state first.
+
+### Markers
+
+A `PseudoStateMarker` forces states on one rendered component: it puts the stand-in classes (`prism-pseudo--<state>`) on the targeted elements and holds the shared stylesheets while it does, which widens every selector using one of the pseudo-classes in place, `:hover` to `:is(:hover, .prism-pseudo--hover)`. The rule keeps its position and its specificity, and without the class it matches exactly what it matched before. A copy keyed on the class was the first design and is wrong for negation: the copy of `.row:not(:hover) .actions` matches every row without the class, a really hovered one included. A `MutationObserver` on the component re-marks elements rendered later and follows elements whose classes or attributes make them start or stop matching a selector. `PseudoStyleSheets` watches `document.head` only while some marker holds it.
+
+The renderer has one marker for the canvas. An effect applies `effective` to the rendered host element, and `renderedKey` withholds `data-prism-rendered` until `marker.applied()` reports that exact element and that exact states object (`resolveRenderedKey()` in `renderer/rendered-key.ts`). A variant that forces nothing is not held back. `.demo-wrap` carries the forced states in `data-pseudo`, which is what capture mode keys the room for focus rings on.
+
+Each Overview cell creates its own marker and applies the variant's declared states, so a state never leaks into a neighbouring cell. The tools menu's toggle does not reach the Overview.
 
 ## Viewport Width
 
@@ -120,6 +142,7 @@ The deeper reason is architectural rather than visual: a panel overlay is _about
 
 ## UI Affordances
 
+- **Tools menu, State group:** one toggle per pseudo state, several can be on at once. `is-on` follows `effective`, the tinted `is-rec` border marks the states the variant declares, mirroring the Canvas group.
 - **Tools menu, recommendation marker:** the recommended background's button in the **Canvas** group carries a tinted border (driven by `recommended()`) instead of a separate glyph. Title attribute: `Recommended background for this variant`. Passive, always visible while a recommendation is active.
 - **Canvas pill:** `Recommended: <bg> [Reset]` appears in the top-left of the canvas only when `isDeviating()` is true (actionable; the button clears the override and returns to the recommendation).
 - **Tools menu, active state:** the active background button binds to `effective()` and carries the filled `is-on` state. Clicks write to the override when a recommendation exists; otherwise they update the persisted global default (backward-compatible behavior for components without `bg`). The recommended and active buttons can be the same one.
