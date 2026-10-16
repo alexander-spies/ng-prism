@@ -48,3 +48,16 @@ Three things are easy to get wrong and are worth repeating here:
   everything else (`.json`, `.md`, `.yml`, `.scss`, `.css`, `.js`/`.mjs`/`.cjs`,
   and the three standalone `.html` documents). The pre-commit hook does both for
   staged files, so a normal commit needs no manual formatting run.
+
+# Things the tooling won't catch
+
+- Stylesheets under `packages/` are plain `.css`. The packages build with bare
+  `ngc`, which inlines styles verbatim, so SCSS would reach the browser unparsed.
+- Tests run in Jest's `node` environment. In `packages/ng-prism`, a test that
+  needs the DOM is named `*.browser.spec.ts`, which puts it in the jsdom project
+  of its `jest.config.cjs`.
+- A change to public API or behaviour updates the matching pages under `docs/`
+  in the same PR.
+- ng-prism majors track Angular majors. A breaking change inside the current
+  Angular major ships as a minor release, with `@deprecated` (since and removal
+  version) and a migration note.
