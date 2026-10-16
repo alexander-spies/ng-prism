@@ -4,6 +4,7 @@ import { resolveVariantBg } from '../../shared/variant-bg.js';
 import { CANVAS_BG_STYLES } from '../canvas/canvas-bg.styles.js';
 import { buildKnownInputs } from '../renderer/known-inputs.js';
 import { parseContentToNodes } from '../renderer/projectable-content.js';
+import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { computeVariantState } from '../services/prism-renderer.service.js';
 
 /**
@@ -16,6 +17,11 @@ import { computeVariantState } from '../services/prism-renderer.service.js';
  * writing to any of them would corrupt what they mean. `data-prism-rendered`
  * matters most: it is the selector external screenshot runners key on (see
  * `docs/guide/external-tooling.md`), and this component never emits it.
+ *
+ * Forced pseudo states are the variant's own, applied by a marker of the
+ * cell's own, so a hovered cell never hovers its neighbour. The tools menu's
+ * state toggle does not reach here: like every other control, it belongs to
+ * the Playground.
  */
 @Component({
     selector: 'prism-overview-cell',
@@ -35,6 +41,7 @@ export class PrismOverviewCellComponent {
 
     private readonly injector = inject(Injector);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly pseudoMarker = inject(PrismPseudoStateService).createMarker();
     private readonly outlet = viewChild.required('outlet', {
         read: ViewContainerRef
     });
@@ -69,7 +76,10 @@ export class PrismOverviewCellComponent {
             untracked(() => this.mount(component, index));
         });
 
-        this.destroyRef.onDestroy(() => this.outlet().clear());
+        this.destroyRef.onDestroy(() => {
+            this.pseudoMarker.clear();
+            this.outlet().clear();
+        });
     }
 
     // The Playground lets a variant that throws on construction propagate: one
@@ -105,6 +115,7 @@ export class PrismOverviewCellComponent {
                 ref.setInput(key, value);
             }
             ref.changeDetectorRef.detectChanges();
+            this.pseudoMarker.apply(ref.location.nativeElement, component.meta.showcaseConfig.variants?.[index]?.pseudo);
         } catch (error) {
             // `createComponent` attaches the host element and its structural DOM
             // synchronously; a throw almost always comes from `detectChanges` right
@@ -114,6 +125,7 @@ export class PrismOverviewCellComponent {
             // a caught cell actually show an empty stage with its caption still in
             // place, which shows "this variant failed" instead of a broken grid
             // with no indication of which cell caused it.
+            this.pseudoMarker.clear();
             this.outlet().clear();
             console.error(`[ng-prism] Variant ${index} of ${component.meta.className} failed to render:`, error);
         }

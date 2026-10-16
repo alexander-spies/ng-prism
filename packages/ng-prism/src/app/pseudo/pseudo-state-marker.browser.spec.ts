@@ -1,6 +1,6 @@
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { ForcedPseudoStates } from '../../shared/pseudo-state.type.js';
-import { renderedKey } from '../renderer/rendered-key.js';
+import { resolveRenderedKey } from '../renderer/rendered-key.js';
 import { forcesAnyState, PseudoStateMarker } from './pseudo-state-marker.js';
 import { PseudoStyleSheets } from './pseudo-stylesheets.js';
 
@@ -319,7 +319,7 @@ describe('data-prism-rendered and forced states', () => {
     it('is only set once the forced state is in place', () => {
         const element = mount('<lib-button><button class="btn"></button></lib-button>');
         const pseudo = { 'focus-visible': '.btn' };
-        const key = () => renderedKey({ component, variantIndex: 3, element, pseudo, pseudoApplied: marker.applied() });
+        const key = () => resolveRenderedKey({ component, variantIndex: 3, element, pseudo, pseudoApplied: marker.applied() });
 
         expect(key()).toBeNull();
 
@@ -334,10 +334,10 @@ describe('data-prism-rendered and forced states', () => {
         const hovered = { hover: '.btn' };
 
         marker.apply(element, focused);
-        expect(renderedKey({ component, variantIndex: 4, element, pseudo: hovered, pseudoApplied: marker.applied() })).toBeNull();
+        expect(resolveRenderedKey({ component, variantIndex: 4, element, pseudo: hovered, pseudoApplied: marker.applied() })).toBeNull();
 
         marker.apply(element, hovered);
-        expect(renderedKey({ component, variantIndex: 4, element, pseudo: hovered, pseudoApplied: marker.applied() })).toBe('ButtonComponent:4');
+        expect(resolveRenderedKey({ component, variantIndex: 4, element, pseudo: hovered, pseudoApplied: marker.applied() })).toBe('ButtonComponent:4');
     });
 
     it('is withheld for a new element until the states are on it', () => {
@@ -346,13 +346,13 @@ describe('data-prism-rendered and forced states', () => {
         const pseudo = { hover: true as const };
 
         marker.apply(oldElement, pseudo);
-        expect(renderedKey({ component, variantIndex: 0, element: newElement, pseudo, pseudoApplied: marker.applied() })).toBeNull();
+        expect(resolveRenderedKey({ component, variantIndex: 0, element: newElement, pseudo, pseudoApplied: marker.applied() })).toBeNull();
     });
 
     it('does not hold back a variant without forced states', () => {
         const element = mount('<lib-button></lib-button>');
 
-        expect(renderedKey({ component, variantIndex: 1, element, pseudo: null, pseudoApplied: null })).toBe('ButtonComponent:1');
-        expect(renderedKey({ component, variantIndex: 1, element, pseudo: {}, pseudoApplied: null })).toBe('ButtonComponent:1');
+        expect(resolveRenderedKey({ component, variantIndex: 1, element, pseudo: null, pseudoApplied: null })).toBe('ButtonComponent:1');
+        expect(resolveRenderedKey({ component, variantIndex: 1, element, pseudo: {}, pseudoApplied: null })).toBe('ButtonComponent:1');
     });
 });

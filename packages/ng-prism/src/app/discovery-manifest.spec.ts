@@ -224,6 +224,23 @@ describe('buildDiscoveryManifest', () => {
         expect(result.components[0].variants[1].meta).toBeUndefined();
     });
 
+    it('reports the pseudo states a variant forces, and nothing for one that forces none', () => {
+        const result = buildDiscoveryManifest(
+            manifestOf({
+                className: 'ButtonComponent',
+                showcaseConfig: {
+                    title: 'Button',
+                    variants: [{ name: 'Filled' }, { name: 'Focused', pseudo: { 'focus-visible': '.btn', hover: true } }, { name: 'Empty', pseudo: {} }]
+                }
+            })
+        );
+        const [filled, focused, empty] = result.components[0].variants;
+
+        expect(focused.pseudo).toEqual({ 'focus-visible': '.btn', hover: true });
+        expect('pseudo' in filled).toBe(false);
+        expect('pseudo' in empty).toBe(false);
+    });
+
     it('exposes component meta, which is where build-time plugins write', () => {
         const result = buildDiscoveryManifest(
             manifestOf({

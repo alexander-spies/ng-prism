@@ -1,5 +1,6 @@
 import type { Provider, Type } from '@angular/core';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
+import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import type { StyleguidePage } from './page.types.js';
 
 export interface NgPrismPlugin {
@@ -227,6 +228,12 @@ export interface DiscoveryVariant {
     bg: CanvasBg;
     /** Sanitised `Variant.meta`. Omitted when empty. */
     meta?: Record<string, unknown>;
+    /**
+     * `Variant.pseudo`: the pseudo states the variant forces. Omitted when it
+     * forces none. The render marker waits for them, so a capture shows them
+     * without any action on the runner's side.
+     */
+    pseudo?: ForcedPseudoStates;
 }
 
 export interface DiscoveryPage {

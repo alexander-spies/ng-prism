@@ -22,7 +22,7 @@ export interface RenderedKeyInput {
  * element. A runner then captures the forced state with no change on its side.
  * A variant without forced states is not held back.
  */
-export function renderedKey({ component, variantIndex, element, pseudo, pseudoApplied }: RenderedKeyInput): string | null {
+export function resolveRenderedKey({ component, variantIndex, element, pseudo, pseudoApplied }: RenderedKeyInput): string | null {
     if (!element || !component) return null;
     if (forcesAnyState(pseudo) && (pseudoApplied?.root !== element || pseudoApplied.states !== pseudo)) return null;
     return `${component.meta.className}:${variantIndex}`;

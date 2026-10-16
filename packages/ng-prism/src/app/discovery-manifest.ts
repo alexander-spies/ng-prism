@@ -1,5 +1,7 @@
 import type { DiscoveryComponent, DiscoveryManifest, DiscoveryVariant, RuntimeManifest } from '../plugin/plugin.types.js';
+import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import { resolveVariantBg } from '../shared/variant-bg.js';
+import { forcesAnyState } from './pseudo/pseudo-state-marker.js';
 
 /**
  * External tooling reads `__PRISM_MANIFEST__` through a structured-clone bridge
@@ -84,9 +86,12 @@ export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryMani
             const variants: DiscoveryVariant[] = declared.length
                 ? declared.map((variant, index) => {
                       const meta = serializableMeta(variant.meta);
-                      const bg = resolveVariantBg(showcaseConfig, index);
+                      const pseudo = forcesAnyState(variant.pseudo) ? (serializableMeta(variant.pseudo) as ForcedPseudoStates | undefined) : undefined;
+                      const discovered: DiscoveryVariant = { name: variant.name, index, bg: resolveVariantBg(showcaseConfig, index) };
 
-                      return meta ? { name: variant.name, index, bg, meta } : { name: variant.name, index, bg };
+                      if (meta) discovered.meta = meta;
+                      if (pseudo) discovered.pseudo = pseudo;
+                      return discovered;
                   })
                 : [
                       {
