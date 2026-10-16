@@ -25,12 +25,13 @@ export interface MultiEntryResult {
 export function resolveEntryPointExports(
     entryPoints: ReadonlyArray<EntryPointInput>,
     compilerOptions: ts.CompilerOptions,
-    previousProgram?: ts.Program
+    previousProgram?: ts.Program,
+    host?: ts.CompilerHost
 ): MultiEntryResult {
     const program = ts.createProgram(
         entryPoints.map((e) => e.entryFile),
         compilerOptions,
-        undefined,
+        host,
         previousProgram
     );
     const checker = program.getTypeChecker();
