@@ -212,6 +212,17 @@ describe('capture mode room for forced pseudo states', () => {
         expect(style.boxSizing).toBe('content-box');
     });
 
+    it('should keep the room of a stretch variant inside the canvas', () => {
+        const { demoWrap } = renderInCaptureMode();
+
+        demoWrap.setAttribute('data-pseudo', 'focus-visible');
+        demoWrap.setAttribute('data-canvas-layout', 'stretch');
+
+        // `width: 100%` plus the room would reach past both edges of a canvas
+        // narrower than 816px. `max-width: 800px` still clamps it above that.
+        expect(getComputedStyle(demoWrap).width).toBe(`calc(100% - ${2 * CAPTURE_PSEUDO_ROOM}px)`);
+    });
+
     it('should leave every other variant as it is, so no existing baseline moves', () => {
         const { demoWrap } = renderInCaptureMode();
         const style = getComputedStyle(demoWrap);

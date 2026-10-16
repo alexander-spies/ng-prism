@@ -18,90 +18,70 @@ const WHITESPACE = /[ \t\n\r\f]/;
 const IDENT_CHAR = /[a-z0-9_-]/i;
 
 /**
- * The selector with every forced pseudo-class replaced by its class
- * ({@link pseudoStateClass}), or `null` when it uses none.
+ * The selector with every forced pseudo-class `:x` widened to
+ * `:is(:x, .prism-pseudo--x)` ({@link pseudoStateClass}), or `null` when it
+ * uses none or has been widened before.
  *
- * A class has the specificity of the pseudo-class it replaces, so a copy of the
- * rule under the rewritten selector competes in the cascade exactly as the
- * original does. Of a selector list only the items that changed are kept: the
- * others already apply through the original rule.
+ * Without the class on any element the widened selector matches exactly what
+ * the original matched, with the same specificity: `:is()` takes the highest
+ * of its arguments, and a class weighs what a pseudo-class weighs. With the
+ * class, an element counts as being in the state whether it is forced or real,
+ * which keeps `:not(:hover)` exact in both directions and lets a forced state
+ * combine with a real one in the same selector.
  *
  * Tokenised rather than string-replaced. An escaped colon (`.md\:hover`) and an
  * attribute value (`[title=":hover"]`) are left alone, and a state that follows
- * a pseudo-element (`::part(x):hover`) is kept as it is, because a class is not
+ * a pseudo-element (`::part(x):hover`) is kept as it is, because `:is()` is not
  * allowed there.
  */
 export function rewritePseudoSelector(selectorText: string): string | null {
     const s = selectorText;
-    const rewritten: string[] = [];
-    let item = '';
+
+    if (s.includes(PSEUDO_CLASS_PREFIX)) return null;
+
+    let out = '';
     let changed = false;
     // One entry per nesting level: whether the compound being read follows a pseudo-element.
     const afterPseudoElement = [false];
     let i = 0;
 
-    const endItem = (): void => {
-        if (changed) rewritten.push(item.trim());
-        item = '';
-        changed = false;
-    };
-
     while (i < s.length) {
         const ch = s[i];
         const level = afterPseudoElement.length - 1;
+        let end = i + 1;
 
         if (ch === '\\') {
-            const end = escapeEnd(s, i);
-
-            item += s.slice(i, end);
-            i = end;
+            end = escapeEnd(s, i);
         } else if (ch === '"' || ch === "'") {
-            const end = stringEnd(s, i);
-
-            item += s.slice(i, end);
-            i = end;
+            end = stringEnd(s, i);
         } else if (ch === '[') {
-            const end = attributeEnd(s, i);
-
-            item += s.slice(i, end);
-            i = end;
+            end = attributeEnd(s, i);
         } else if (ch === '(') {
             afterPseudoElement.push(false);
-            item += ch;
-            i++;
         } else if (ch === ')') {
             if (level > 0) afterPseudoElement.pop();
-            item += ch;
-            i++;
-        } else if (ch === ',' && level === 0) {
-            endItem();
-            i++;
         } else if (ch === ',' || ch === '>' || ch === '+' || ch === '~' || WHITESPACE.test(ch)) {
             afterPseudoElement[level] = false;
-            item += ch;
-            i++;
         } else if (ch === ':') {
             const isElement = s[i + 1] === ':';
             const nameStart = i + (isElement ? 2 : 1);
-            const nameEnd = identEnd(s, nameStart);
-            const name = s.slice(nameStart, nameEnd).toLowerCase();
 
-            if (!isElement && FORCEABLE.has(name) && s[nameEnd] !== '(' && !afterPseudoElement[level]) {
-                item += `.${PSEUDO_CLASS_PREFIX}${name}`;
+            end = identEnd(s, nameStart);
+            const name = s.slice(nameStart, end).toLowerCase();
+
+            if (!isElement && FORCEABLE.has(name) && s[end] !== '(' && !afterPseudoElement[level]) {
+                out += `:is(${s.slice(i, end)}, .${PSEUDO_CLASS_PREFIX}${name})`;
                 changed = true;
-            } else {
-                if (isElement || LEGACY_PSEUDO_ELEMENTS.has(name)) afterPseudoElement[level] = true;
-                item += s.slice(i, nameEnd);
+                i = end;
+                continue;
             }
-            i = nameEnd;
-        } else {
-            item += ch;
-            i++;
+            if (isElement || LEGACY_PSEUDO_ELEMENTS.has(name)) afterPseudoElement[level] = true;
         }
+        out += s.slice(i, end);
+        i = end;
     }
-    endItem();
 
-    return rewritten.length > 0 ? rewritten.join(', ') : null;
+    return changed ? out : null;
 }
 
 /** End of the escape starting at `start`: a hex escape takes up to six digits and one whitespace character. */

@@ -122,6 +122,18 @@ describe('PseudoStateMarker', () => {
             expect(second.classList.contains(HOVER)).toBe(false);
         });
 
+        it('follows a selector that depends on an attribute', async () => {
+            const root = mount('<div><button class="btn" disabled></button></div>');
+            const button = root.querySelector('button')!;
+
+            marker.apply(root, { hover: 'button:not([disabled])' });
+            expect(button.classList.contains(HOVER)).toBe(false);
+
+            button.removeAttribute('disabled');
+            await settle();
+            expect(button.classList.contains(HOVER)).toBe(true);
+        });
+
         it('puts a class back that the component removed', async () => {
             const root = mount('<div><button class="btn"></button></div>');
             const button = root.querySelector('button')!;
@@ -183,7 +195,7 @@ describe('PseudoStateMarker', () => {
 
             marker.apply(root, null);
             marker.apply(root, {});
-            expect(style.sheet!.cssRules).toHaveLength(1);
+            expect((style.sheet!.cssRules[0] as CSSStyleRule).selectorText).toBe('.a:hover');
         });
 
         it('makes the component CSS paint the forced state, and stops once cleared', () => {
@@ -282,7 +294,7 @@ describe('PseudoStateMarker', () => {
             const late = addStyle('.late:hover { color: red; }');
 
             await settle();
-            expect(late.sheet!.cssRules).toHaveLength(2);
+            expect((late.sheet!.cssRules[0] as CSSStyleRule).selectorText).toContain('prism-pseudo--hover');
             b.clear();
         });
     });

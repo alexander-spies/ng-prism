@@ -297,20 +297,20 @@ variants: [
 
 ### Your CSS does the styling
 
-Nothing has to be written twice. Every stylesheet rule whose selector uses one of the five pseudo-classes gets a copy in which the pseudo-class is replaced by a class, `:focus-visible` by `.prism-pseudo--focus-visible`, and that class goes on the targeted elements. The component's real focus styles then apply, the same way the browser applies them on real focus:
+Nothing has to be written twice. In every stylesheet rule whose selector uses one of the five pseudo-classes, the pseudo-class is widened to also match a class: `:focus-visible` becomes `:is(:focus-visible, .prism-pseudo--focus-visible)`. That class goes on the targeted elements, and the component's real focus styles apply to them the way the browser applies them on real focus:
 
-- Sibling combinators (`input:focus-visible + .box::before`), pseudo-elements, `:has()`, `:is()`, `:where()` and `:not()` keep their meaning, and so do rules inside `@media`, `@supports`, `@layer` and `@container`, a `@media (forced-colors: active)` fallback included.
-- The cascade does not change. A class weighs what a pseudo-class weighs, and each copy sits directly after its original, so it wins and loses against the rules around it exactly as the real state would.
+- Sibling combinators (`input:focus-visible + .box::before`), pseudo-elements, `:has()`, `:is()`, `:where()` and `:not()` keep their meaning, and so do rules inside `@media`, `@supports`, `@layer` and `@container`, a `@media (forced-colors: active)` fallback included. A forced element counts as being in the state, so `:not(:hover)` stops matching it.
+- Forced and real states combine. `.pill:hover .pill__close:focus-visible` applies when the close button is forced into `:focus-visible` and the pointer really rests on the pill, and the other way round.
+- The cascade does not change. The rule stays where it is in the stylesheet, and `:is()` weighs what the pseudo-class weighed, so it wins and loses against the rules around it exactly as the real state would.
 - A stylesheet is rewritten once, the first time a variant forces a state. Styles that arrive later, through a lazily rendered child component or a hot reload, are rewritten as they arrive.
-- The classes come off when you switch to another variant. Without them the copies match nothing, so the styleguide's own UI and every other variant render as before.
+- The classes come off when you switch to another variant. Without them every widened selector matches exactly what it matched before, so the styleguide's own UI and every other variant render as before.
 
 The selector is read token by token, so an escaped colon in a class name (`.md\:hover`, as Tailwind writes it) and an attribute value are left alone.
 
 ### Limits
 
-- **A selector with two states needs both forced.** `.pill:hover .pill__close:focus-visible` applies when both states are forced or both are real, not when one is forced and the pointer supplies the other. Force both, as in the second example above.
-- **A negated state still matches.** A rule with `:not(:hover)` keeps matching a forced element, because the element is not really hovered.
-- **A state after a pseudo-element stays real.** `::-webkit-scrollbar-thumb:hover` and `::part(label):hover` cannot be forced: a class is not allowed in that position.
+- **A state after a pseudo-element stays real.** `::-webkit-scrollbar-thumb:hover` and `::part(label):hover` cannot be forced: `:is()` is not allowed in that position.
+- **Real states are not switched off.** A forced variant still reacts to the pointer and the keyboard. Hovering the canvas adds real `:hover` on top, the same as it would on any other variant.
 - **Cross-origin stylesheets cannot be read.** Their rules are not rewritten, and dev mode warns once per sheet. Serve them from the same origin, or with CORS and a `crossorigin` attribute.
 - **Shadow DOM is not reached.** A component with `ViewEncapsulation.ShadowDom` keeps its styles and elements in a shadow root, which neither the rewrite nor the selectors look into.
 

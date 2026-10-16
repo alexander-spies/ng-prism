@@ -22,7 +22,9 @@ const FOCUS_TARGET = '.btn';
         { name: 'Wrong targets', pseudo: { focus: 42, hover: false } },
         { name: 'Mixed list', pseudo: { 'focus-within': ['.field', 7, ''] } },
         { name: 'Empty', pseudo: { focus: '  ', active: [] } },
-        { name: 'Not an object', pseudo: 'hover' }
+        { name: 'Not an object', pseudo: 'hover' },
+        { name: 'A list', pseudo: ['hover', 'focus'] },
+        { name: 'Object target', pseudo: { hover: {} } }
     ]
 })
 @Component({ selector: 'pseudo-states', standalone: true, template: '' })

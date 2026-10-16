@@ -9,7 +9,8 @@ function isSelector(value: unknown): value is string {
 }
 
 function describeValue(value: unknown): string {
-    return typeof value === 'string' ? JSON.stringify(value) : String(value);
+    if (typeof value === 'string' || (typeof value === 'object' && value !== null)) return JSON.stringify(value) ?? String(value);
+    return String(value);
 }
 
 /**

@@ -63,13 +63,13 @@ function markedElements(root: Element): Element[] {
  *
  * Puts the stand-in class of each state ({@link pseudoStateClass}) on the
  * targeted elements, and holds the document's {@link PseudoStyleSheets} so that
- * every rule using the pseudo-class has a copy keyed on that class. The
+ * every selector using the pseudo-class also matches that class. The
  * component's own CSS then applies, with no special case for sibling
- * combinators, pseudo-elements or `:has()`.
+ * combinators, pseudo-elements, `:has()` or `:not()`.
  *
  * The root is watched while states are forced: an element rendered later
- * (`@if`), or one whose classes change so that it starts or stops matching a
- * selector, is marked again.
+ * (`@if`), or one whose classes or attributes change so that it starts or
+ * stops matching a selector (`button:not([disabled])`), is marked again.
  *
  * One marker per rendered component: the Playground canvas has one, each
  * Overview cell has its own, so a state never leaks into a neighbouring cell.
@@ -125,9 +125,13 @@ export class PseudoStateMarker {
 
     private observe(root: Element): void {
         if (typeof MutationObserver === 'undefined') return;
-        // Our own class changes come back through here too; the second pass finds nothing to change.
-        this.observer = new MutationObserver(() => this.mark());
-        this.observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        // Our own class changes come back through here too; the second pass finds
+        // nothing to change. Inline styles alone cannot change what a selector
+        // matches, and an animation can write them every frame.
+        this.observer = new MutationObserver((records) => {
+            if (records.some((record) => record.attributeName !== 'style')) this.mark();
+        });
+        this.observer.observe(root, { childList: true, subtree: true, attributes: true });
     }
 
     private mark(): void {

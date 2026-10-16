@@ -84,9 +84,13 @@ const CAPTURE_CANVAS_ONLY_SELECTOR =
  * ring is drawn outside it (an `outline` with an offset, a `box-shadow` halo),
  * so a screenshot of the bare box would crop it. The negative margin takes the
  * padding back out of layout, so the component sits and sizes exactly as
- * without it, and `content-box` keeps a `stretch` variant at the width it has
- * without it. Only these variants: any other change to `.demo-wrap`'s box would
- * move every existing baseline.
+ * without it, and `content-box` keeps the padding outside a `stretch` variant's
+ * width. That width gives up the room where the canvas is narrower than
+ * `max-width` plus the room, so the room stays inside the canvas instead of
+ * being clipped on one side and scrolling on the other; from there on
+ * `max-width` clamps it to the width it has without the room. Only these
+ * variants: any other change to `.demo-wrap`'s box would move every existing
+ * baseline.
  */
 const CAPTURE_STYLES = `
 [${CAPTURE_ATTRIBUTE}] *,
@@ -130,6 +134,10 @@ ${CAPTURE_CANVAS_ONLY_SELECTOR} {
   box-sizing: content-box !important;
   padding: ${CAPTURE_PSEUDO_ROOM}px !important;
   margin: -${CAPTURE_PSEUDO_ROOM}px !important;
+}
+
+[${CAPTURE_ATTRIBUTE}] .demo-wrap[data-pseudo][data-canvas-layout='stretch'] {
+  width: calc(100% - ${2 * CAPTURE_PSEUDO_ROOM}px) !important;
 }
 `;
 

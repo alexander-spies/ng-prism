@@ -124,7 +124,7 @@ export interface Variant<T = unknown> {
      * - `true`: the state is forced on every element of the rendered component, the host included.
      * - A selector, or a list of them: only on the matching elements, resolved against the host and everything inside it.
      *
-     * The component's own CSS applies: every rule using the pseudo-class gets a copy keyed on a class instead.
+     * The component's own CSS applies: every selector using the pseudo-class is widened to also match a stand-in class on the targeted elements.
      */
     pseudo?: ForcedPseudoStates;
 }

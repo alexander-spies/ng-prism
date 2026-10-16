@@ -403,11 +403,23 @@ describe('scanComponents with forced pseudo states', () => {
         );
     });
 
+    it('quotes an array or an object it rejects, so the message shows what was written', () => {
+        const { diagnostics, pseudoOf } = scan();
+
+        expect(pseudoOf('A list')).toBeUndefined();
+        expect(diagnostics).toContainEqual(
+            'PseudoStatesComponent variant "A list" declares invalid pseudo ["hover","focus"], expected an object mapping pseudo states to true or selectors. Skipping.'
+        );
+        expect(diagnostics).toContainEqual(
+            'PseudoStatesComponent variant "Object target" declares pseudo state "hover" with invalid target {}, expected true, a selector or a list of selectors. Skipping.'
+        );
+    });
+
     it('reports nothing about the valid variants', () => {
         const { diagnostics } = scan();
 
         expect(diagnostics.filter((d) => /"(Plain|Focused|Hovered|Pressed)"/.test(d))).toEqual([]);
-        expect(diagnostics).toHaveLength(7);
+        expect(diagnostics).toHaveLength(9);
     });
 });
 
