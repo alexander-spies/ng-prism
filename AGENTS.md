@@ -22,6 +22,78 @@
 
 <!-- nx configuration end-->
 
+# Project overview
+
+ng-prism is an Angular-native alternative to Storybook. A library annotates its
+components with `@Showcase`; the ng-prism builder scans the library statically
+and generates a styleguide app around them, without story files.
+
+This repo is an Nx monorepo on npm workspaces:
+
+- `packages/ng-prism/` is `@ng-prism/core`: decorator, builders, styleguide
+  app, plugin API and schematics.
+- `packages/plugin-*/` are the six official plugins (`@ng-prism/plugin-*`).
+- `test-workspace/` is a separate Angular workspace that consumes the local
+  packages. Its `test-lib` is the demo styleguide and the scanner's real-world
+  input (skill `prism-test-workspace`).
+- `docs/` is the published docsify site, `scripts/` holds the release and
+  lint-fix scripts.
+
+# Architecture
+
+Code in the core runs in one of two places, and which one decides what it may
+import:
+
+- **Build time, in Node:** `src/builder/`. The `serve` and `build` builders
+  (`builders.json`) load `ng-prism.config.ts`, scan the library's entry points
+  with the TypeScript Compiler API (`builder/scanner/`), run the plugins'
+  build-time hooks and write `ng-prism-cache/<prism-project>/prism-manifest.ts`,
+  which imports the real component classes. They then hand over to the Angular
+  build or dev server of the generated `<lib>-prism` app; `serve` re-scans on
+  file changes.
+- **Runtime, in the browser:** `src/app/`, the styleguide app that renders the
+  manifest (shell, sidebar, canvas, controls, panels, services). Components
+  render in the same document, without an iframe.
+
+`src/app/` never imports from `src/builder/`; the builder may reuse
+framework-free helpers from `src/app/` (the a11y summary does). Both sides
+share `src/decorator/` (`@Showcase` and its types), `src/plugin/` (plugin API)
+and `src/shared/` (small types such as canvas background, layout and pseudo
+states). `src/schematics/` holds `ng add` and the `ng update` migrations;
+`src/transformer/` strips `@Showcase` from a library's published build
+(`ng-prism-strip`).
+
+The package entry points follow the same split: `@ng-prism/core` (decorator,
+plugin API, styleguide app), `/config` (`defineConfig`), `/plugin`,
+`/transformer` and `/schematics/utils`. A plugin package maps its runtime half
+to the `browser` export condition (`index.browser.ts`), which keeps its Node-only
+build-time code out of the app bundle.
+
+In depth: `docs/architecture/pipeline.md` (build pipeline and both builders),
+`scanner.md`, `plugin-hooks.md` and `canvas-state.md`.
+
+# Tech stack and commands
+
+Angular 22 (signals, standalone components), TypeScript 6, Nx 22. The packages
+build with bare `ngc`, tests run on Jest 30 with SWC, lint on ESLint 9 with
+angular-eslint and Prettier, styles on Stylelint. Playwright is a root
+devDependency for browser automation (the `prism-test-workspace` screenshots),
+and a local Verdaccio registry feeds the test workspace's installs.
+`package.json` holds the exact versions.
+
+```bash
+npm run check          # Full local check: format, declared deps, Stylelint, then lint/test/build/typecheck everywhere
+npm run check:fix      # Fix what check reports (see below for why not nx ... --fix)
+npm run build:all      # Build the core and every plugin
+npx nx test ng-prism   # One package's tests; add -- --testPathPatterns=<name> for one spec
+npm run docs           # docsify site on localhost:3000
+npm run publish        # Interactive release script (scripts/publish.sh)
+```
+
+The test workspace has its own `test:workspace:*` scripts; the
+`prism-test-workspace` skill and `CONTRIBUTING.md` › Test Workspace describe
+them.
+
 # Linting and formatting
 
 The full picture is in the _Linting and formatting_ section of `CONTRIBUTING.md`.
