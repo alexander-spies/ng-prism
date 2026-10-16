@@ -68,8 +68,8 @@
         type="button"
         class="prism-toolrail__btn"
         popovertarget="prism-tools"
-        title="Canvas, zoom and width"
-        aria-label="Canvas, zoom and width">
+        title="Canvas, state, zoom and width"
+        aria-label="Canvas, state, zoom and width">
         <prism-icon
             name="sliders-horizontal"
             [size]="14" />
@@ -89,16 +89,17 @@
     </button>
 </div>
 
-<!-- Only the three choosers. The toggles stay outside: you flip guides,
+<!-- Only the choosers. The toggles stay outside: you flip guides,
      rulers and the viewport constraint constantly while working, and a
      toggle two clicks deep is the classic mistake. What you only ever
-     set may live in a menu. -->
+     set may live in a menu. The states are toggles too, but set once per
+     variant and dropped with it, like the background. -->
 <div
     popover
     id="prism-tools"
     class="prism-toolmenu"
     role="dialog"
-    aria-label="Canvas, zoom and width">
+    aria-label="Canvas, state, zoom and width">
     <span class="prism-toolmenu__lbl">Canvas</span>
     <div class="prism-toolmenu__row">
         @for (bg of bgs; track bg) {
@@ -109,6 +110,21 @@
                 [attr.title]="bgTitle(bg)"
                 (click)="setBg(bg)">
                 {{ capitalize(bg) }}
+            </button>
+        }
+    </div>
+
+    <span class="prism-toolmenu__lbl">State</span>
+    <div class="prism-toolmenu__row">
+        @for (state of states; track state) {
+            <button
+                type="button"
+                [class.is-on]="pseudoState.isForced(state)"
+                [class.is-rec]="pseudoState.isDeclared(state)"
+                [attr.aria-pressed]="pseudoState.isForced(state)"
+                [attr.title]="stateTitle(state)"
+                (click)="pseudoState.toggle(state)">
+                :{{ state }}
             </button>
         }
     </div>
