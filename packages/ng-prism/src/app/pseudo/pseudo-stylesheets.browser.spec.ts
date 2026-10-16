@@ -100,6 +100,16 @@ describe('rewriteRules', () => {
         ]);
     });
 
+    it('does not copy a rule twice when a sheet is rewritten again', () => {
+        // A second PseudoStyleSheets in the same document, e.g. an app bootstrapped anew, starts with no record of what it rewrote.
+        const sheet = sheetOf(addStyle('.a:hover { color: red; } @media (min-width: 1px) { .b:focus { color: blue; } }'));
+
+        rewriteRules(sheet);
+        expect(rewriteRules(sheet)).toBe(0);
+        expect(selectors(sheet.cssRules)).toEqual(['.a:hover', '.a.prism-pseudo--hover', 'CSSMediaRule']);
+        expect(selectors((sheet.cssRules[2] as CSSGroupingRule).cssRules)).toEqual(['.b:focus', '.b.prism-pseudo--focus']);
+    });
+
     it('leaves @keyframes alone', () => {
         const sheet = sheetOf(addStyle('@keyframes pulse { from { opacity: 0; } to { opacity: 1; } }'));
 

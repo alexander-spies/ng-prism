@@ -48,6 +48,7 @@ function copyText(rule: CSSStyleRule, selector: string): string {
  * is. Without the class on an element the copy matches nothing, which is what
  * keeps the shell and every other variant untouched.
  *
+ * Idempotent: a rule whose copy already follows it is not copied again.
  * Returns the number of copies inserted.
  */
 export function rewriteRules(container: RuleContainer): number {
@@ -65,13 +66,21 @@ export function rewriteRules(container: RuleContainer): number {
         let copy: CSSRule | null = null;
 
         if (selector !== null) {
-            try {
-                container.insertRule(copyText(rule, selector), i + 1);
-                copy = container.cssRules[i + 1];
-                copies++;
+            const next = container.cssRules[i + 1];
+
+            if (next && isStyleRule(next) && next.selectorText === selector) {
+                // Rewritten before, by another app instance in this document.
+                copy = next;
                 i++;
-            } catch (error) {
-                if (isDevMode()) console.warn(`[ng-prism] Could not force a pseudo state for "${rule.selectorText}":`, error);
+            } else {
+                try {
+                    container.insertRule(copyText(rule, selector), i + 1);
+                    copy = container.cssRules[i + 1];
+                    copies++;
+                    i++;
+                } catch (error) {
+                    if (isDevMode()) console.warn(`[ng-prism] Could not force a pseudo state for "${rule.selectorText}":`, error);
+                }
             }
         }
         // A nested rule can force a state of its own (`.a { &:hover {} }`), in the original and in its copy.
