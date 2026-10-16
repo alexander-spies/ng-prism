@@ -195,6 +195,7 @@ interface Variant<T = unknown> {
     meta?: Record<string, unknown>;
     bg?: CanvasBg;
     canvasLayout?: CanvasLayout;
+    pseudo?: ForcedPseudoStates;
 }
 ```
 
@@ -209,6 +210,7 @@ The optional type parameter `T` is the component class. When provided (via `@Sho
 | `meta`         | Arbitrary plugin metadata (e.g. `{ figma: 'url' }`)                                                                                                                                                                               |
 | `bg`           | Recommended canvas background. Overrides `ShowcaseConfig.bg`. One of `dots`, `plain`, `light`, `dark`, `checker`, `transparent`. See [Per-Variant Background](guide/variants.md#per-variant-background).                          |
 | `canvasLayout` | Canvas layout mode for this variant. Overrides `ShowcaseConfig.canvasLayout`. One of `fit`, `stretch`. See [Per-Variant Canvas Layout](guide/variants.md#per-variant-canvas-layout) and the [`CanvasLayout`](#canvaslayout) type. |
+| `pseudo`       | Pseudo states forced on while the variant renders, each with the elements it applies to. See [Per-Variant Pseudo States](guide/variants.md#per-variant-pseudo-states) and the [`ForcedPseudoStates`](#forcedpseudostates) type.   |
 
 ---
 
@@ -308,6 +310,43 @@ type CanvasLayout = 'fit' | 'stretch';
 | `stretch` | `display: block; width: 100%; max-width: 800px`    | Components without intrinsic width (horizontal dividers via `border-bottom`) or that opt into filling their container (full-width buttons with `width: 100%`). |
 
 The variant-level value always wins over the component-level value; the default is `'fit'`.
+
+---
+
+## PseudoState
+
+A user-action pseudo-class a variant can force on, used as a key of [`ForcedPseudoStates`](#forcedpseudostates).
+
+```typescript
+type PseudoState = 'hover' | 'active' | 'focus' | 'focus-visible' | 'focus-within';
+```
+
+These are the states a script cannot hold: `:hover` and `:active` follow the pointer, and only one element in the document can be focused. A state an input can set, such as `:checked` or `:disabled`, belongs in `Variant.inputs`. `PSEUDO_STATES` lists every value, in the order the canvas tools menu shows them.
+
+---
+
+## ForcedPseudoStates
+
+The type of `Variant.pseudo`: which states a variant forces, and on which elements.
+
+```typescript
+type PseudoTarget = true | string | readonly string[];
+type ForcedPseudoStates = Partial<Record<PseudoState, PseudoTarget>>;
+```
+
+| Target              | Forces the state on                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| `true`              | Every element of the rendered component, the host included                            |
+| `string`            | The elements matching the selector, matched against the host and everything inside it |
+| `readonly string[]` | The elements matching any of the selectors                                            |
+
+```typescript
+{ 'focus-visible': '.btn' }                          // the inner <button> of the host
+{ hover: true }                                      // the whole component
+{ hover: '.pill', 'focus-visible': '.pill__close' }  // two states on two elements
+```
+
+`PseudoState`, `PseudoTarget`, `ForcedPseudoStates` and `PSEUDO_STATES` are exported from `@ng-prism/core/plugin` (and `@ng-prism/core`). How the states are forced, and what cannot be forced, is described in [Per-Variant Pseudo States](guide/variants.md#per-variant-pseudo-states).
 
 ---
 
