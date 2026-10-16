@@ -1,0 +1,47 @@
+---
+name: prism-test-workspace
+description: Starts ng-prism's demo styleguide (test-workspace) on the local packages and checks a change in the running app - rebuild, serve on :4400, scan the build log for @Showcase warnings, screenshot a component variant with Playwright. Use when asked to run, start or screenshot the styleguide or demo, or to confirm that a UI, scanner or plugin change works in the real app and not only in tests.
+---
+
+# Test workspace — run the demo and check a change
+
+`test-workspace/` is a real Angular workspace that consumes the local `@ng-prism/*` packages through `file:../packages/*`. It holds two demo libraries, each with its own Prism app:
+
+| Library              | Components                                                                                                  | Serve (from the repo root)                          | Port |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ---- |
+| `test-lib` (default) | `test-workspace/projects/test-lib/src/lib/components/`, exported from `projects/test-lib/src/public-api.ts` | `npm run test:workspace:serve`                      | 4400 |
+| `test-ui-kit`        | `test-workspace/projects/test-ui-kit/`, exported from `projects/test-ui-kit/public-api.ts`                  | `cd test-workspace && npx ng run test-ui-kit:prism` | 4401 |
+
+A demo for a new `@Showcase` option or component goes into `test-lib`. Background, scripts and a troubleshooting table: `CONTRIBUTING.md` › Test Workspace.
+
+## Bring it up
+
+1. `npm run test:workspace:update` rebuilds the core and every plugin (Nx-cached), clears the Angular cache and re-syncs the `file:` dependencies offline. The dev server does not pick up changes under `packages/` on its own, so run this after each one. It also frees port 4400.
+2. `npm run test:workspace:serve` as a background command. It is ready once `curl -sf -o /dev/null http://localhost:4400/` succeeds; the log then also carries the line `ng-prism: Generated manifest with N component(s) …` (or `Verified (unchanged)`).
+
+On a fresh clone, when `test-workspace/node_modules` is missing, or after adding a dependency, the install goes through the local Verdaccio registry: start `npm run verdaccio` in the background (port 4873), then `npm run test:workspace:setup` and `npm run test:workspace:install`. An `npm install` inside `test-workspace/` that hangs means Verdaccio is not running.
+
+A serve that crashed and still holds the port: `npm run test:workspace:kill`.
+
+Ask before running `test:workspace:clean` or `test:workspace:reset`. They delete `test-workspace/node_modules`, `package-lock.json` and `ng-prism.config.ts`, and revert `angular.json` and `package.json` to their git state. `ng-prism.config.ts` is gitignored and set up by hand, so leave it as you find it; `ng-prism.config.example.ts` is the committed reference.
+
+## Check the change
+
+**Build log.** The scanner reports every `@Showcase` value it had to drop and every deprecated option it met as a line starting with `⚠ ng-prism:`. A change that adds or touches showcases should not add any. The manifest line's component count shows whether a new component was discovered at all.
+
+**Screenshot.** `screenshot.mjs` next to this file drives Playwright's Chromium from the root devDependencies:
+
+```bash
+node .agents/skills/prism-test-workspace/screenshot.mjs --component ButtonComponent --variant 1
+node .agents/skills/prism-test-workspace/screenshot.mjs --component ButtonComponent --shell
+```
+
+- By default it opens `?component=…&variant=…&capture=1` and screenshots `.demo-wrap`: the component alone, on its declared background, with motion frozen. Use it for anything that changes how a component or variant renders.
+- `--shell` takes the whole window without capture mode. Use it for changes to the styleguide's own UI (sidebar, header, panels, canvas tools), which capture mode removes.
+- `--port 4401` targets `test-ui-kit`; `--out <file>` sets the path (default: the system temp dir).
+
+Variant indexes are 0-based, in `@Showcase` order. The script waits for the render marker `data-prism-rendered="<ClassName>:<variant>"`, prints the URL and the PNG path, and lists browser console errors. If the variant never renders, it saves the full window for diagnosis and exits non-zero.
+
+Open the PNG with the Read tool and look at it before saying the change works. Then report what you checked: the URL, the variant, what the image shows, and the warnings in the log. That is also what the PR template asks for under "How Was This Verified?".
+
+Stop the background serve when you are done, unless the user wants to keep it running.

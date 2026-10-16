@@ -61,3 +61,44 @@ Three things are easy to get wrong and are worth repeating here:
 - ng-prism majors track Angular majors. A breaking change inside the current
   Angular major ships as a minor release, with `@deprecated` (since and removal
   version) and a migration note.
+
+# Personal configuration
+
+`CLAUDE.md` is a committed symlink to this file, so Claude Code, which reads
+`CLAUDE.md` rather than `AGENTS.md`, gets the same instructions as every other
+agent. Personal instructions for this repo go into the gitignored
+`CLAUDE.local.md` (Claude Code loads it right after `CLAUDE.md`), instructions
+for every project into `~/.claude/CLAUDE.md`. Don't replace the symlink with a
+file of your own.
+
+# Skills
+
+Task guides live in `.agents/skills/` (the directory Codex and Copilot read
+natively), one folder per topic with a `SKILL.md`. Claude Code only reads
+`.claude/skills/`, which holds one relative symlink per skill; it loads a skill
+when the task matches its description. The `nx-*` skills named in the Nx section
+above are Nx's own (`.github/skills/`, and the Nx plugin for Claude Code).
+
+Project skills and agents carry the `prism-` prefix; only those are committed
+(see `.gitignore`). A new project skill is a folder
+`.agents/skills/prism-<name>/` plus its symlink:
+`ln -s ../../.agents/skills/prism-<name> .claude/skills/prism-<name>`. Personal
+skills and agents in `.claude/skills/` / `.claude/agents/` without the prefix
+stay local. Don't give a personal skill the `prism-` prefix or a project skill's
+name: a personal skill with the same name silently overrides the project one.
+
+| Skill                      | Covers                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `prism-showcase-component` | Adding or editing a `@Showcase` decorator                                     |
+| `prism-angular-component`  | Creating a component for the core, a plugin or the scanner fixtures           |
+| `prism-scanner-module`     | Creating or extending a module under `packages/ng-prism/src/builder/scanner/` |
+| `prism-plugin`             | Creating a plugin against the `NgPrismPlugin` interface                       |
+| `prism-test-workspace`     | Running the demo styleguide on the local packages and checking a change in it |
+
+# Subagents
+
+Claude Code subagents in `.claude/agents/`:
+
+| Agent                        | Purpose                                                                                                                                   |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `prism-branch-code-reviewer` | Reviews the current branch against the project conventions before a PR (runs on Sonnet); leaves correctness bugs to a general code review |
