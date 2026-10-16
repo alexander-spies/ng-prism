@@ -167,6 +167,19 @@ function findLibraryRoot(filePath: string): string | undefined {
     return undefined;
 }
 
+/**
+ * Reads config files, `extends` included, but lists no directories. Only
+ * `paths` and `baseUrl` are taken from the config, so enumerating the files it
+ * includes would only cost time: with no `include`, that is every source file
+ * below the config, on every rebuild.
+ */
+const CONFIG_HOST: ts.ParseConfigHost = {
+    useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
+    fileExists: ts.sys.fileExists,
+    readFile: ts.sys.readFile,
+    readDirectory: () => []
+};
+
 function resolveTsconfigPaths(entryPointDir: string): ts.CompilerOptions {
     const configPath = ts.findConfigFile(entryPointDir, ts.sys.fileExists, 'tsconfig.json');
 
@@ -176,7 +189,7 @@ function resolveTsconfigPaths(entryPointDir: string): ts.CompilerOptions {
 
     if (configFile.error) return {};
 
-    const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, dirname(configPath));
+    const parsed = ts.parseJsonConfigFileContent(configFile.config, CONFIG_HOST, dirname(configPath));
     const result: ts.CompilerOptions = {};
 
     if (parsed.options.paths) result.paths = parsed.options.paths;
