@@ -21,7 +21,7 @@ This installs the package and registers `perfPlugin()` in your `ng-prism.config.
 ## Configuration
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 import { perfPlugin } from '@ng-prism/plugin-perf';
 

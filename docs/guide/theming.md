@@ -5,7 +5,7 @@ ng-prism uses CSS custom properties for all visual styling. Override any propert
 ## Quick Override
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 
 export default defineConfig({

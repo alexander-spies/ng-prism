@@ -1,9 +1,9 @@
 # Configuration
 
-ng-prism is configured through a `prism.config.ts` file in your showcase app. The file exports a default `NgPrismConfig` object created with `defineConfig()`.
+ng-prism is configured through an `ng-prism.config.ts` file at the workspace root (the builders' `configFile` option can point elsewhere). The file exports a default `NgPrismConfig` object created with `defineConfig()`.
 
 ```typescript
-// projects/my-lib-prism/prism.config.ts
+// ng-prism.config.ts (workspace root)
 import { defineConfig } from '@ng-prism/core';
 import { jsDocPlugin } from '@ng-prism/plugin-jsdoc';
 

@@ -4,7 +4,7 @@ ng-prism lets you replace individual UI regions with your own Angular components
 
 ## Replaceable Slots
 
-Configure replacements in `prism.config.ts` under the `ui` key:
+Configure replacements in `ng-prism.config.ts` under the `ui` key:
 
 ```typescript
 import { defineConfig } from '@ng-prism/core';

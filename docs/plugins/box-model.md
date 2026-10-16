@@ -20,7 +20,7 @@ This installs the package and registers `boxModelPlugin()` in your `ng-prism.con
 ## Configuration
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 import { boxModelPlugin } from '@ng-prism/plugin-box-model';
 

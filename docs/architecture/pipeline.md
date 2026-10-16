@@ -22,7 +22,7 @@ Atomic write  (skip if unchanged)
 
 ### 1. Config Load
 
-`loadConfig()` uses `ts.transpileModule()` to compile `prism.config.ts` to an `.mjs` file in a temp directory, imports it via `import(pathToFileURL(...))`, and cleans up the temp file. This avoids spawning a separate `tsc` process and works with TypeScript config syntax.
+`loadConfig()` uses `ts.transpileModule()` to compile `ng-prism.config.ts` to an `.mjs` file in a temp directory, imports it via `import(pathToFileURL(...))`, and cleans up the temp file. This avoids spawning a separate `tsc` process and works with TypeScript config syntax.
 
 ### 2. Entry Point Scan
 

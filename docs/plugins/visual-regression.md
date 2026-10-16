@@ -29,7 +29,7 @@ ng add @ng-prism/plugin-visual-regression
 ## Configuration
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 import { visualRegressionPlugin } from '@ng-prism/plugin-visual-regression';
 

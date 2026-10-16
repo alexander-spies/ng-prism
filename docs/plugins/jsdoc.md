@@ -21,7 +21,7 @@ This installs the package and registers `jsDocPlugin()` in your `ng-prism.config
 ## Configuration
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 import { jsDocPlugin } from '@ng-prism/plugin-jsdoc';
 

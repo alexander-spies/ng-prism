@@ -1,6 +1,6 @@
 # NgPrismConfig
 
-Configuration object returned by `defineConfig()` and exported as the default export of `prism.config.ts`.
+Configuration object returned by `defineConfig()` and exported as the default export of `ng-prism.config.ts`.
 
 ```typescript
 import type { Provider, Type } from '@angular/core';

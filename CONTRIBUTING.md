@@ -194,8 +194,7 @@ ng-prism/
 │   └── plugin-visual-regression/  # @ng-prism/plugin-visual-regression
 ├── test-workspace/            # Integration test workspace
 ├── docs/                      # Documentation (docsify)
-├── scripts/                   # Build & publish scripts
-└── SPEC.md                    # Product specification (source of truth)
+└── scripts/                   # Build & publish scripts
 ```
 
 ## Development Workflow
