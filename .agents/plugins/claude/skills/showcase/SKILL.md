@@ -1,0 +1,141 @@
+---
+name: showcase
+description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, pseudo states, canvas background and layout, status, component pages), when a build prints a "⚠ ng-prism:" warning, when a component is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
+---
+
+# Writing and checking @Showcase configs
+
+ng-prism builds a styleguide from `@Showcase` decorators on the components of an Angular library. The builder reads
+them with the TypeScript compiler at build time and never executes them. A showcase is data, not code, and most
+mistakes come from forgetting that.
+
+## The installed version decides
+
+Read `version` in `node_modules/@ng-prism/core/package.json`. Where this skill and the installed package disagree, the
+package is right:
+
+- Field reference, with JSDoc on every field and `@deprecated` notes:
+  `node_modules/@ng-prism/core/dist/decorator/showcase.types.d.ts`.
+- A field this skill names that those typings don't have is newer than the installed version: don't use it, suggest an
+  update at most.
+- Guides: `https://ng-prism.github.io/ng-prism/`. The site serves its pages as raw Markdown you can fetch directly,
+  e.g. `https://ng-prism.github.io/ng-prism/guide/variants.md`. The pages for this skill are listed at the end.
+
+## Rules
+
+1. **Only values the builder can evaluate statically.** It reads literals, `const` declarations (imported ones too),
+   enum members, arithmetic and string concatenation on those, template literals with such placeholders, property
+   access on constants (`SIZES.md`), and arrays and objects, spreads included. It drops function calls, ternaries,
+   `??` and `&&`, `let` and `var`, `declare`d values, functions, classes and `new`, each with a `⚠ ng-prism:` warning,
+   and keeps the rest. When the whole config can't be evaluated, the component is skipped. Constants imported from a
+   compiled package (`.d.ts`) are readable only as plain literals. `defineConfig({ strictShowcase: true })` in
+   `ng-prism.config.ts` turns every dropped value into a build error.
+2. **The component must be exported by the library's entry point.** The builder scans what the `entryPoint` of the
+   library's `prism` target exports, `export *` included. Every `ng-package.json` without `dest` below the library is a
+   secondary entry point; when there are any, only those are scanned, not the primary entry file. Without secondary
+   entry points, `entryPoint` has to name the barrel file (e.g. `projects/<lib>/src/public-api.ts`): in 22.5.0 a
+   library directory there finds no component at all, without a warning.
+3. **`title` is required.** Without it the component is skipped with a warning.
+4. **Signal inputs.** `input()`, `input.required()` and `model()` work; `@Input()` is read only partly and warns. The
+   keys under a variant's `inputs` are the class member names, an `alias` is ignored. Write
+   `@Showcase<ButtonComponent>({ … })` to get the keys and their values type-checked.
+5. **`@Showcase` goes above `@Component` / `@Directive`**, imported from `@ng-prism/core` under its own name. An alias
+   (`import { Showcase as S }`) or a namespace call is not recognized.
+6. **No `providers`.** `@Showcase({ providers })` is deprecated since 22.4.0, removed in 23.0.0, and the build drops
+   it: the manifest is static and can't hold providers. Put them into `defineConfig({ appProviders })` in
+   `ng-prism.config.ts`, or use a component page.
+7. **Directives need a `host`**: an HTML string such as `host: '<button class="btn">Save</button>'` (forms: `<tag>`,
+   `<tag attrs>`, `<tag />`, `<tag>text</tag>`; anything else falls back to a `<div>` with a warning), or
+   `{ selector, import: { name, from }, inputs? }` to put the directive on another component.
+8. **Projected content is set per variant.** `content: 'Save'` fills the default `<ng-content>`; an object fills named
+   slots by their `select`, with `default` for the unnamed one:
+   `content: { '[card-header]': '<h3>Title</h3>', default: '<p>Body</p>' }`. There is no component-level `content`.
+9. **States an input can't reach** (hover, active, focus, focus-visible, focus-within) go into a variant's `pseudo`:
+   `true` for every element of the component, or a selector (or a list) for specific ones, e.g.
+   `pseudo: { 'focus-visible': '.btn' }`. The component's own CSS draws the state.
+10. **Custom templates, mock data or several components together make a component page**: registered with
+    `componentPage({ title, … })` in the `componentPages` option of `providePrism` in the styleguide app's `main.ts`,
+    linked with `@Showcase({ renderPage: '<exact page title>' })`. Variant tabs and controls keep working on it.
+
+Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
+(`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
+deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`). A variant
+can set its own `description`, `bg`, `canvasLayout` and `meta`.
+
+## Example
+
+```ts
+import { Component, input } from '@angular/core';
+import { Showcase } from '@ng-prism/core';
+
+export enum ButtonTone {
+    Primary = 'primary',
+    Danger = 'danger'
+}
+
+@Showcase<ButtonComponent>({
+    title: 'Button',
+    category: 'Actions',
+    status: 'stable',
+    variants: [
+        { name: 'Primary', content: 'Save' },
+        { name: 'Danger', inputs: { tone: ButtonTone.Danger }, content: 'Delete' },
+        { name: 'Disabled', inputs: { disabled: true }, content: 'Save' },
+        { name: 'Focused', content: 'Save', pseudo: { 'focus-visible': 'button' } }
+    ]
+})
+@Component({
+    selector: 'lib-button',
+    templateUrl: './button.component.html'
+})
+export class ButtonComponent {
+    readonly tone = input(ButtonTone.Primary);
+    readonly disabled = input(false);
+}
+```
+
+## Workflow
+
+1. Read the component: its `input()` / `model()` members and their types, its `<ng-content>` slots, whether it is a
+   directive.
+2. Write the showcase: one variant per state worth seeing, named for what it shows. Variant indexes are 0-based, in
+   this order.
+3. Run the styleguide as a background process: `ng run <lib>:prism` (Nx: `npx nx run <lib>:prism`). It is ready when
+   `http://localhost:4400/` answers (the target's `port` option may say otherwise) and rescans on every change.
+4. Read the build log. Each `⚠ ng-prism:` line is a dropped value or a deprecated option;
+   `references/troubleshooting.md` has the cause and the fix for each. The line
+   `ng-prism: Generated manifest with N component(s)` (or `Verified (unchanged)`) tells you whether the component was
+   found.
+5. Check every variant you touched in the browser (next section) and look at each image.
+6. Report the URL, the variant, what the screenshot shows and any warning that's left.
+7. Stop the background process unless the user wants it running. Install nothing without asking.
+
+## Checking in the browser
+
+`scripts/screenshot.mjs` next to this file drives Playwright from the user's project. Run it from the project root:
+
+```bash
+node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --variant 1
+node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --shell
+```
+
+- By default it opens the variant in capture mode (`?capture=1`: the component alone on its background, motion
+  frozen) and screenshots `.demo-wrap`. `--shell` takes the whole window, styleguide UI included.
+- `--url` (default `http://localhost:4400`), `--out <file.png>` (default: the system temp dir), `--timeout <ms>`
+  (default 30000).
+- It prints the URL and the PNG path and lists browser console errors. Open the PNG and look at it.
+- Exit codes: `0` saved. `1` the styleguide doesn't answer, the component or variant doesn't exist (it lists what
+  does), or the variant never rendered (it saves the full window for diagnosis). `2` invalid arguments. `3` Playwright
+  or its Chromium is missing: suggest `npm i -D playwright && npx playwright install chromium` and run it only if the
+  user agrees.
+
+Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome DevTools MCP, Claude in Chrome): open
+`http://localhost:4400/?component=<ClassName>&variant=<index>&capture=1`, wait for
+`.demo-wrap[data-prism-rendered="<ClassName>:<index>"]`, then take the screenshot. Otherwise give the user that URL.
+This is ng-prism's public External Tooling API; `window.__PRISM_MANIFEST__` lists every component and its variants.
+
+## Guides
+
+- `guide/showcase-decorator.md`, `guide/variants.md`, `guide/content-projection.md`, `guide/directive-hosting.md`,
+  `guide/component-pages.md`
+- `api/showcase-config.md` (every field), `guide/external-tooling.md` (URL parameters, render marker, capture mode)
