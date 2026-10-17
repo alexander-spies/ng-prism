@@ -1,6 +1,6 @@
 # Content Projection
 
-Use the `content` field on a variant (or as a top-level default) to project HTML into a component's `<ng-content>` slots.
+Use the `content` field on a variant to project HTML into a component's `<ng-content>` slots. Each variant sets its own; there is no component-level default.
 
 ## Single Slot
 

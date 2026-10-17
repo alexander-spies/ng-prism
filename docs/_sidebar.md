@@ -8,6 +8,7 @@
     - [Configuration](guide/configuration.md)
     - [Publishing Libraries](guide/library-publishing.md)
     - [Migrating to v22](guide/migration-v22.md)
+    - [AI Coding Agents](guide/ai-agents.md)
 
 - **Core Concepts**
 
