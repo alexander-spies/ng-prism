@@ -1,0 +1,145 @@
+---
+name: setup
+description: Use when setting up or configuring ng-prism (@ng-prism/core) in an Angular CLI or Nx workspace - ng add, ng-prism.config.ts, the prism and prism-build targets and their options, adding an official plugin (jsdoc, box-model, figma, perf, coverage, visual-regression), theming the styleguide, publishing a library without its @Showcase decorators, or upgrading ng-prism. Not for writing showcases (skill showcase) or plugins (skill write-plugin), and not for developing ng-prism itself.
+---
+
+# Setting up and configuring ng-prism
+
+ng-prism adds a styleguide app to an Angular library. Its builder scans the library's `@Showcase` decorators and serves
+or builds the app around them.
+
+## The installed version decides
+
+Read `version` in `node_modules/@ng-prism/core/package.json`. Where this skill and the installed package disagree, the
+package is right:
+
+- `NgPrismConfig`, with JSDoc on every field: `node_modules/@ng-prism/core/dist/plugin/plugin.types.d.ts`.
+- A field this skill names that those typings don't have is newer than the installed version: don't use it, suggest an
+  update at most.
+- Guides: `https://ng-prism.github.io/ng-prism/`, served as raw Markdown you can fetch directly, e.g.
+  `https://ng-prism.github.io/ng-prism/guide/installation.md`. The pages for this skill are listed at the end.
+
+## Install
+
+Angular CLI, from the workspace root:
+
+```bash
+ng add @ng-prism/core --project <lib>
+```
+
+Nx: `npm i -D @ng-prism/core`, then `npx nx g @ng-prism/core:ng-add --project=<lib>`. Plain `ng add` needs an
+`angular.json` and stops with this hint otherwise. If Nx reports `Cannot find target 'prism'` right afterwards, run
+`npx nx reset`. Further options: `--port` (default 4400), `--zoneless`.
+
+What it adds, without overwriting existing files or path mappings:
+
+- an app `<lib>-prism` next to the library (Nx: under `apps/` or `workspaceLayout.appsDir`) with `src/main.ts`,
+  `src/index.html` and `tsconfig.app.json`
+- on the library: the targets `prism` (`@ng-prism/core:serve`, port 4400) and `prism-build` (`@ng-prism/core:build`,
+  output `dist/<lib>-prism`), both with `entryPoint` set to the library directory
+- `ng-prism.config.ts` at the workspace root
+- path mappings in `tsconfig.base.json` (or `tsconfig.json`): `ng-prism.config`, `prism-manifest/*` and `<lib>` for the
+  library's barrel
+- `ng-prism-cache/` in `.gitignore`: the generated manifest lives there, is rebuilt on every run and never edited
+- the script `strip-showcase` and the devDependencies `highlight.js` and `ngx-highlightjs`
+
+**Check `entryPoint` right after `ng add`.** A library without secondary entry points (no `ng-package.json` without
+`dest` below its root) needs `entryPoint` to name its barrel file, the `lib.entryFile` of its `ng-package.json` (e.g.
+`projects/<lib>/src/public-api.ts`), on both targets. With the directory, 22.5.0 finds no component and doesn't warn:
+the log says `Generated manifest with 0 component(s)`.
+
+Run it with `ng run <lib>:prism` (dev server, rescans on change) or `ng run <lib>:prism-build` (static build); in Nx
+with `npx nx run <lib>:prism`. Target options: `entryPoint` (library directory or its barrel, required), `prismProject`
+(required), `libraryProject`, `libraryImportPath`, `configFile` (default `ng-prism.config.ts`, must be inside the
+workspace), `cacheDir`, `port` (serve) and `outputPath` (build). Unknown options fail validation.
+
+## ng-prism.config.ts
+
+```ts
+import { provideHttpClient } from '@angular/common/http';
+import { defineConfig } from '@ng-prism/core/config';
+import { jsDocPlugin } from '@ng-prism/plugin-jsdoc';
+
+export default defineConfig({
+    plugins: [jsDocPlugin()],
+    appProviders: [provideHttpClient()],
+    theme: { '--prism-primary': '#0f766e' },
+    strictShowcase: true
+});
+```
+
+The file is loaded twice: the builder imports it in Node, and the styleguide app imports it in the browser through
+`main.ts`. Whatever it imports must load on both sides. In Node, only this file is transpiled and its imports resolve
+the Node way, without tsconfig `paths`.
+
+- `plugins`: official or your own (skill write-plugin).
+- `appProviders`: providers for the whole styleguide app, where `@Showcase({ providers })` moved to.
+- `pages`: custom pages declared in the config.
+- `theme`, `darkTheme`, `lightTheme`: CSS custom property overrides (see Theming).
+- `title`, `subtitle`, `logo: { light, dark }`, `buildInfo: { version, gitHash }`: the header.
+- `urlState` (default `true`) keeps the selection in the URL; `persistState` (default `true`) keeps state in
+  sessionStorage across reloads.
+- `a11y`: thresholds and report path for the accessibility audit (`api/ng-prism-config.md`).
+- `strictShowcase` (default `false`): a dropped `@Showcase` value fails the build instead of warning.
+
+`ui`, `appComponent`, `themeStylesheet` and `headless` are in the typings and the docs, but nothing reads them in
+22.5.0. Don't build on them.
+
+## Official plugins
+
+Each one installs with `ng add @ng-prism/plugin-<name>`, which adds the import and the call to `ng-prism.config.ts`
+and skips a plugin that is already there. In Nx: `npm i -D @ng-prism/plugin-<name>`, then
+`npx nx g @ng-prism/plugin-<name>:ng-add`. Import from the package name; the Angular build picks the browser half
+itself. Keep the core and every plugin on the same version: plugins require `@ng-prism/core` `^<their version>-0`.
+
+| Package                              | Call                                                                  | Adds                                                       |
+| ------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab built from the JSDoc of inputs and outputs      |
+| `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                    |
+| `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel |
+| `@ng-prism/plugin-perf`              | `perfPlugin()`                                                        | a Performance panel                                        |
+| `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker               |
+| `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker             |
+
+- **Figma:** the embed shows when the component sets `meta: { figma: '<Figma URL with node-id>' }` as a string on
+  `@Showcase` itself. The Design Diff compares variants that set their own `meta.figma` (a URL or `{ url, nodeId? }`).
+  It calls the Figma API from the browser, so `accessToken` becomes part of the styleguide app: never deploy a
+  styleguide built with a personal token where others can open it.
+- **Coverage** reads `coverage/coverage-summary.json` (Istanbul's `json-summary` reporter) at build time.
+- **Visual regression** reads `vrt-report.json`, written by your own screenshot runner (`guide/visual-regression.md`).
+
+## Theming
+
+Theme values are CSS custom properties, set inline on `<html>`. The order: built-in tokens, the built-in dark or light
+theme, `darkTheme` / `lightTheme`, then `theme`, which wins in both modes. Dark is the default; the user's choice is
+stored in localStorage (`ng-prism-theme`). The main tokens: `--prism-primary`, `--prism-primary-from`,
+`--prism-primary-to`, `--prism-accent`, `--prism-bg`, `--prism-bg-surface`, `--prism-bg-elevated`, `--prism-text`,
+`--prism-text-muted`, `--prism-border`, `--prism-success`, `--prism-warn`, `--prism-danger`, `--prism-font-sans`,
+`--prism-font-mono`.
+
+## Publishing the library
+
+`@Showcase` does nothing at runtime, but the built library still imports `@ng-prism/core`, which its consumers don't
+have. Strip the decorators after the build:
+
+```bash
+ng build <lib> && npm run strip-showcase    # runs ng-prism-strip dist/<lib>
+```
+
+In Nx, a target with `"command": "npx ng-prism-strip dist/<path>"` and `"dependsOn": ["build"]`. It rewrites `.js` and
+`.mjs` files in place and can run twice. `@ng-prism/core` then stays a devDependency of the library. In code:
+`createShowcaseStripTransformer()` or `stripShowcaseDecorators(source)` from `@ng-prism/core/transformer`.
+
+## Upgrading
+
+- ng-prism's major version follows Angular's. A breaking change within one Angular major ships as a minor release, with
+  a deprecation first and the removal in the next major. 22.x supports Angular 20 to 22.
+- Update the core and all plugins in one call: `ng update @ng-prism/core @ng-prism/plugin-jsdoc …`.
+- The migrations to v22 (manifest moved to `ng-prism-cache/`, `.ng-prism/` renamed) read `angular.json` only; in an Nx
+  workspace apply them by hand following `guide/migration-v22.md`. They need Angular CLI 22 and Node 22 or newer.
+
+## Guides
+
+- `guide/installation.md`, `guide/configuration.md`, `api/ng-prism-config.md`
+- `plugins/overview.md` and one page per plugin (`plugins/jsdoc.md`, `plugins/figma.md`, …)
+- `guide/theming.md`, `guide/library-publishing.md`, `guide/migration-v22.md`
