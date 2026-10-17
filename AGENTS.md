@@ -69,6 +69,14 @@ plugin API, styleguide app), `/config` (`defineConfig`), `/plugin`,
 to the `browser` export condition (`index.browser.ts`), which keeps its Node-only
 build-time code out of the app bundle.
 
+**Consumer plugin.** The repo doubles as a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) with one
+plugin, `ng-prism`, in `.agents/plugins/claude/`. Its skills `showcase`, `setup` and `write-plugin` teach agents in
+projects that _use_ ng-prism; they describe the public API and behaviour, not this repo. `scripts/publish.sh` sets the
+plugin's `version` to the release version: Claude Code caches an installed plugin by that string, so existing installs
+get new skill content with the next release. Keep `package.json` and lockfiles out of the plugin folder, since Claude
+Code runs a dependency install in a plugin folder that has both. The `showcase` skill's `scripts/screenshot.mjs` is
+also the script the `prism-test-workspace` skill runs.
+
 In depth: `docs/architecture/pipeline.md` (build pipeline and both builders),
 `scanner.md`, `plugin-hooks.md` and `canvas-state.md`.
 
@@ -128,8 +136,8 @@ Three things are easy to get wrong and are worth repeating here:
 - Tests run in Jest's `node` environment. In `packages/ng-prism`, a test that
   needs the DOM is named `*.browser.spec.ts`, which puts it in the jsdom project
   of its `jest.config.cjs`.
-- A change to public API or behaviour updates the matching pages under `docs/`
-  in the same PR.
+- A change to public API or behaviour updates the matching pages under `docs/` in the same PR, and the consumer
+  plugin's skills under `.agents/plugins/claude/skills/` where they describe it.
 - ng-prism majors track Angular majors. A breaking change inside the current
   Angular major ships as a minor release, with `@deprecated` (since and removal
   version) and a migration note.
@@ -150,6 +158,8 @@ natively), one folder per topic with a `SKILL.md`. Claude Code only reads
 `.claude/skills/`, which holds one relative symlink per skill; it loads a skill
 when the task matches its description. The `nx-*` skills named in the Nx section
 above are Nx's own (`.github/skills/`, and the Nx plugin for Claude Code).
+`.agents/plugins/claude/skills/` holds the consumer plugin's skills (see Architecture): they are for projects that use
+ng-prism, not for work on this repo, and Claude Code here loads them only when the plugin is installed.
 
 Project skills and agents carry the `prism-` prefix; only those are committed
 (see `.gitignore`). A new project skill is a folder
