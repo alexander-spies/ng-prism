@@ -29,18 +29,18 @@ Ask before running `test:workspace:clean` or `test:workspace:reset`. They delete
 
 **Build log.** The scanner reports every `@Showcase` value it had to drop and every deprecated option it met as a line starting with `⚠ ng-prism:`. A change that adds or touches showcases should not add any. The manifest line's component count shows whether a new component was discovered at all.
 
-**Screenshot.** `screenshot.mjs` next to this file drives Playwright's Chromium from the root devDependencies:
+**Screenshot.** The screenshot script ships with the `showcase` skill of the consumer plugin (`.agents/plugins/claude/`). Run from the repo root, it drives Playwright's Chromium from the root devDependencies:
 
 ```bash
-node .agents/skills/prism-test-workspace/screenshot.mjs --component ButtonComponent --variant 1
-node .agents/skills/prism-test-workspace/screenshot.mjs --component ButtonComponent --shell
+node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component ButtonComponent --variant 1
+node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component ButtonComponent --shell
 ```
 
 - By default it opens `?component=…&variant=…&capture=1` and screenshots `.demo-wrap`: the component alone, on its declared background, with motion frozen. Use it for anything that changes how a component or variant renders.
 - `--shell` takes the whole window without capture mode. Use it for changes to the styleguide's own UI (sidebar, header, panels, canvas tools), which capture mode removes.
-- `--port 4401` targets `test-ui-kit`; `--out <file>` sets the path (default: the system temp dir).
+- `--url http://localhost:4401` targets `test-ui-kit`; `--out <file>` sets the path (default: the system temp dir).
 
-Variant indexes are 0-based, in `@Showcase` order. The script waits for the render marker `data-prism-rendered="<ClassName>:<variant>"`, prints the URL and the PNG path, and lists browser console errors. If the variant never renders, it saves the full window for diagnosis and exits non-zero.
+Variant indexes are 0-based, in `@Showcase` order. The script reads `window.__PRISM_MANIFEST__` first and lists the known components or variants when the one you named doesn't exist. It then waits for the render marker `data-prism-rendered="<ClassName>:<variant>"`, prints the URL and the PNG path, and lists browser console errors. Exit codes: 0 saved, 1 not reachable, not found or never rendered (then it saves the full window for diagnosis), 2 invalid arguments, 3 Playwright or Chromium missing.
 
 Open the PNG with the Read tool and look at it before saying the change works. Then report what you checked: the URL, the variant, what the image shows, and the warnings in the log. That is also what the PR template asks for under "How Was This Verified?".
 
