@@ -105,7 +105,8 @@ export class ButtonComponent {
 4. Read the build log. Each `⚠ ng-prism:` line is a dropped value or a deprecated option;
    `references/troubleshooting.md` has the cause and the fix for each. The line
    `ng-prism: Generated manifest with N component(s)` (or `Verified (unchanged)`) tells you whether the component was
-   found.
+   found. If the styleguide runs in a process you didn't start and you can't read its output, ask for the log or run
+   `ng run <lib>:prism-build` once: it scans the same way and prints the same lines.
 5. Check every variant you touched in the browser (next section) and look at each image.
 6. Report the URL, the variant, what the screenshot shows and any warning that's left.
 7. Stop the background process unless the user wants it running. Install nothing without asking.
