@@ -112,6 +112,25 @@ sync_plugin_peer_deps() {
   done
 }
 
+# ─── Sync the Claude Code plugin's version with the release ───
+# .agents/plugins/claude describes the release it ships with. Claude Code caches
+# an installed plugin by this version, so without the bump existing installs
+# keep the old skills. 4-space JSON like the rest of the repo, so a release
+# only changes the version line.
+sync_agent_plugin_version() {
+  local new_version="$1"
+  local manifest=".agents/plugins/claude/.claude-plugin/plugin.json"
+
+  node -e "
+    const fs = require('fs');
+    const path = './$manifest';
+    const p = JSON.parse(fs.readFileSync(path, 'utf-8'));
+    p.version = '$new_version';
+    fs.writeFileSync(path, JSON.stringify(p, null, 4) + '\n');
+  "
+  info "Claude Code plugin -> $new_version"
+}
+
 # ─── Bump version across all packages ───
 bump_version() {
   local bump_type="$1"
@@ -141,6 +160,7 @@ bump_version() {
   done
 
   sync_plugin_peer_deps "$new_version"
+  sync_agent_plugin_version "$new_version"
 
   ok "All packages bumped to $new_version"
   echo "$new_version"
@@ -188,6 +208,7 @@ bump_beta_version() {
   done
 
   sync_plugin_peer_deps "$new_version"
+  sync_agent_plugin_version "$new_version"
 
   ok "All packages bumped to $new_version"
   echo "$new_version"
@@ -219,6 +240,7 @@ promote_beta_to_stable() {
   done
 
   sync_plugin_peer_deps "$new_version"
+  sync_agent_plugin_version "$new_version"
 
   ok "All packages promoted to $new_version"
   echo "$new_version"
