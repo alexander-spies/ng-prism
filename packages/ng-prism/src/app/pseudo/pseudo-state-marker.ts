@@ -1,12 +1,18 @@
 import { signal } from '@angular/core';
-import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoTarget } from '../../shared/pseudo-state.type.js';
+import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoState, type PseudoTarget } from '../../shared/pseudo-state.type.js';
 import { PSEUDO_CLASS_PREFIX, pseudoStateClass } from './pseudo-selector.js';
 import type { PseudoStyleSheets } from './pseudo-stylesheets.js';
+import { evaluateStateFit, reachableTargets, type StateFit } from './state-fit.js';
 
 /** The element a marker forces states in, and the states it forces there. */
 export interface AppliedPseudoStates {
     root: Element;
-    states: ForcedPseudoStates;
+    /** The variant's own states with the toggles on top, unfiltered as in 22.5.0. */
+    states: ForcedPseudoStates | null;
+    /** The active state's pseudo, `null` when no state is active. */
+    state: ForcedPseudoStates | null;
+    /** `null` when `state` is `null`. Re-evaluated on every mark. */
+    fit: StateFit | null;
 }
 
 /** True when `states` forces at least one state on at least one target. */
@@ -44,11 +50,25 @@ export function resolveTargets(root: Element, target: PseudoTarget | undefined):
         } catch {
             if (!warnedSelectors.has(selector)) {
                 warnedSelectors.add(selector);
-                console.warn(`[ng-prism] "${selector}" in a variant's pseudo states is not a valid selector, skipping it.`);
+                console.warn(`[ng-prism] "${selector}" in forced pseudo states is not a valid selector, skipping it.`);
             }
         }
     }
     return targets;
+}
+
+/** The pseudo-classes actually forced right now: `states`, plus `state` while it fits. */
+export function appliedStateNames(applied: AppliedPseudoStates | null): PseudoState[] {
+    if (!applied) return [];
+    const { states, state, fit } = applied;
+    const stateForced = !!state && !!fit?.fits;
+
+    return PSEUDO_STATES.filter((name) => hasTarget(states?.[name]) || (stateForced && hasTarget(state[name])));
+}
+
+function sameFit(a: StateFit | null, b: StateFit | null): boolean {
+    if (a === null || b === null) return a === b;
+    return a.fits ? b.fits : !b.fits && a.reason === b.reason;
 }
 
 /** Every element under `root`, `root` included, that carries a forced-state class. */
@@ -67,9 +87,14 @@ function markedElements(root: Element): Element[] {
  * component's own CSS then applies, with no special case for sibling
  * combinators, pseudo-elements, `:has()` or `:not()`.
  *
+ * A second layer carries the component state that is active: its pseudo is
+ * forced only while it fits, and only on the targets a user could reach
+ * ({@link evaluateStateFit}). The variant's own states are forced as they are.
+ *
  * The root is watched while states are forced: an element rendered later
  * (`@if`), or one whose classes or attributes change so that it starts or
- * stops matching a selector (`button:not([disabled])`), is marked again.
+ * stops matching a selector (`button:not([disabled])`), is marked again, and
+ * the state is checked again.
  *
  * One marker per rendered component: the Playground canvas has one, each
  * Overview cell has its own, so a state never leaks into a neighbouring cell.
@@ -79,17 +104,21 @@ export class PseudoStateMarker {
     private observer: MutationObserver | null = null;
 
     /**
-     * What the marks are in place for, `null` while nothing is forced. A
-     * signal, so the renderer can hold back `data-prism-rendered` until the
-     * states it reports are the ones on screen.
+     * What the marks are in place for, `null` while nothing is forced and no
+     * state is active. A signal, so the renderer can hold back
+     * `data-prism-rendered` until the states it reports are the ones on screen.
+     * A state that does not fit keeps it set, with the reason in `fit`.
      */
     readonly applied = this._applied.asReadonly();
 
     constructor(private readonly stylesheets: PseudoStyleSheets) {}
 
-    /** Forces `states` under `root`, replacing whatever this marker forced before. */
-    apply(root: Element | null, states: ForcedPseudoStates | null | undefined): void {
-        if (!root || !forcesAnyState(states)) {
+    /**
+     * Forces `states`, and `state` where it fits, under `root`, replacing
+     * whatever this marker forced before.
+     */
+    apply(root: Element | null, states: ForcedPseudoStates | null | undefined, state?: ForcedPseudoStates | null): void {
+        if (!root || (!forcesAnyState(states) && !state)) {
             this.clear();
             return;
         }
@@ -105,7 +134,7 @@ export class PseudoStateMarker {
             this.stylesheets.sync();
         }
 
-        this._applied.set({ root, states });
+        this._applied.set({ root, states: states ?? null, state: state ?? null, fit: null });
         this.mark();
     }
 
@@ -138,11 +167,22 @@ export class PseudoStateMarker {
         const applied = this._applied();
 
         if (!applied) return;
-        const { root, states } = applied;
+        const { root, states, state } = applied;
+        // Before this pass touches a class, so the fit never rests on the marks
+        // this pass is about to set.
+        const fit = state ? evaluateStateFit(root, state) : null;
 
-        for (const state of PSEUDO_STATES) {
-            const cls = pseudoStateClass(state);
-            const targets = resolveTargets(root, states[state]);
+        // Only a change of the fit is news. The signal setting off its own
+        // effects is harmless, a new value on every mark is not.
+        if (!sameFit(applied.fit, fit)) this._applied.set({ ...applied, fit });
+
+        for (const name of PSEUDO_STATES) {
+            const cls = pseudoStateClass(name);
+            const targets = resolveTargets(root, states?.[name]);
+
+            if (state && fit?.fits) {
+                for (const el of reachableTargets(root, name, resolveTargets(root, state[name]))) targets.add(el);
+            }
 
             // `classList.remove` writes the attribute even when the class is absent,
             // and the write would come back through the observer as a mutation.

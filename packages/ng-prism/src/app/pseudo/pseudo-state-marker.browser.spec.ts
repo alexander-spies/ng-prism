@@ -1,7 +1,7 @@
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { ForcedPseudoStates } from '../../shared/pseudo-state.type.js';
 import { resolveRenderedKey } from '../renderer/rendered-key.js';
-import { forcesAnyState, PseudoStateMarker } from './pseudo-state-marker.js';
+import { appliedStateNames, forcesAnyState, PseudoStateMarker } from './pseudo-state-marker.js';
 import { PseudoStyleSheets } from './pseudo-stylesheets.js';
 
 const FV = 'prism-pseudo--focus-visible';
@@ -91,9 +91,132 @@ describe('PseudoStateMarker', () => {
             const root = mount('<div class="box"></div>');
 
             marker.apply(root, { hover: '.box[', focus: true });
-            expect(warn).toHaveBeenCalledWith(expect.stringContaining('".box["'));
+            expect(warn).toHaveBeenCalledWith('[ng-prism] ".box[" in forced pseudo states is not a valid selector, skipping it.');
             expect(root.classList.contains('prism-pseudo--focus')).toBe(true);
             expect(root.classList.contains(HOVER)).toBe(false);
+        });
+    });
+
+    describe('a state layer', () => {
+        const state = { 'focus-visible': '.btn' } satisfies ForcedPseudoStates;
+
+        it('puts the state only on reachable targets', () => {
+            const root = mount('<lib-button><button class="btn" disabled></button><button class="btn"></button></lib-button>');
+            const [disabled, enabled] = Array.from(root.querySelectorAll('button'));
+
+            marker.apply(root, null, state);
+            expect(disabled.classList.contains(FV)).toBe(false);
+            expect(enabled.classList.contains(FV)).toBe(true);
+            expect(marker.applied()?.fit).toEqual({ fits: true });
+        });
+
+        it('does not apply a state that does not fit, and says why', () => {
+            const root = mount('<lib-chip><span class="sg-chip__label"></span></lib-chip>');
+
+            marker.apply(root, null, { 'focus-visible': '.sg-chip__remove' });
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.sg-chip__remove matches nothing' });
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
+        });
+
+        it('applies the state once its target appears', async () => {
+            const root = mount('<lib-chip></lib-chip>');
+
+            marker.apply(root, null, { 'focus-visible': '.sg-chip__remove' });
+            const remove = document.createElement('button');
+
+            remove.className = 'sg-chip__remove';
+            root.appendChild(remove);
+            await settle();
+            expect(marker.applied()?.fit).toEqual({ fits: true });
+            expect(remove.classList.contains(FV)).toBe(true);
+        });
+
+        it('takes the state back once its target stops being reachable', async () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const button = root.querySelector('button')!;
+
+            marker.apply(root, null, state);
+            button.disabled = true;
+            await settle();
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.btn is disabled' });
+            expect(button.classList.contains(FV)).toBe(false);
+        });
+
+        it("keeps the variant's own states unfiltered", () => {
+            const root = mount('<lib-button><button class="btn" disabled></button></lib-button>');
+
+            marker.apply(root, { 'focus-visible': '.btn' }, null);
+            expect(root.querySelector('.btn')!.classList.contains(FV)).toBe(true);
+            expect(marker.applied()?.fit).toBeNull();
+        });
+
+        it("forces the variant's states and the state together", () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, { hover: '.btn' }, state);
+            expect(withClass(root, HOVER)).toEqual(['btn']);
+            expect(withClass(root, FV)).toEqual(['btn']);
+        });
+
+        it('stays applied for a state that does not fit, even without states of its own', () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, null, { hover: '.missing' });
+            expect(marker.applied()?.root).toBe(root);
+            marker.apply(root, null, null);
+            expect(marker.applied()).toBeNull();
+        });
+
+        it('keeps the objects it was given', () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const states = { hover: '.btn' };
+
+            marker.apply(root, states, state);
+            expect(marker.applied()?.states).toBe(states);
+            expect(marker.applied()?.state).toBe(state);
+
+            marker.apply(root, states);
+            expect(marker.applied()?.state).toBeNull();
+            expect(marker.applied()?.fit).toBeNull();
+
+            marker.apply(root, null, state);
+            expect(marker.applied()?.states).toBeNull();
+        });
+
+        it('replaces the previous state and its fit when the state switches', () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, null, { hover: '.missing' });
+            expect(marker.applied()?.fit?.fits).toBe(false);
+
+            marker.apply(root, null, { hover: '.btn' });
+            expect(marker.applied()?.fit).toEqual({ fits: true });
+            expect(withClass(root, HOVER)).toEqual(['btn']);
+
+            marker.apply(root, null, state);
+            expect(withClass(root, HOVER)).toEqual([]);
+            expect(withClass(root, FV)).toEqual(['btn']);
+        });
+
+        it('leaves the applied states alone while nothing about the fit changes', async () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, null, state);
+            const before = marker.applied();
+
+            root.setAttribute('data-touched', '');
+            root.querySelector('button')!.className = 'btn btn--filled';
+            await settle();
+            expect(marker.applied()).toBe(before);
+        });
+
+        it("clear removes the state's classes too", () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, { hover: true }, state);
+            marker.clear();
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
+            expect(marker.applied()).toBeNull();
         });
     });
 
@@ -312,6 +435,44 @@ describe('forcesAnyState', () => {
         [{ focus: ['', '.a'] }, true]
     ])('%j forces a state: %s', (states, expected) => {
         expect(forcesAnyState(states)).toBe(expected);
+    });
+});
+
+describe('appliedStateNames', () => {
+    let marker: PseudoStateMarker;
+
+    beforeEach(() => {
+        marker = new PseudoStateMarker(new PseudoStyleSheets(document));
+    });
+
+    afterEach(() => {
+        marker.clear();
+        document.body.innerHTML = '';
+    });
+
+    it('is empty while nothing is applied', () => {
+        expect(appliedStateNames(null)).toEqual([]);
+    });
+
+    it('lists the states and, while it fits, the state', () => {
+        const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+        marker.apply(root, { hover: true }, { 'focus-visible': '.btn' });
+        expect(appliedStateNames(marker.applied())).toEqual(['hover', 'focus-visible']);
+    });
+
+    it('leaves out a state that does not fit', () => {
+        const root = mount('<lib-button><button class="btn" disabled></button></lib-button>');
+
+        marker.apply(root, { hover: true }, { 'focus-visible': '.btn' });
+        expect(appliedStateNames(marker.applied())).toEqual(['hover']);
+    });
+
+    it('does not count an empty selector as a forced state', () => {
+        const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+        marker.apply(root, { hover: '' }, { focus: '.btn' });
+        expect(appliedStateNames(marker.applied())).toEqual(['focus']);
     });
 });
 

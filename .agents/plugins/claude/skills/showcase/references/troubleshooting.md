@@ -86,7 +86,7 @@ Same prefix, but they don't count for `strictShowcase`.
   by the error, the canvas shows nothing or a half-built component, and `.demo-wrap` never gets its
   `data-prism-rendered` marker. The script then exits `1` with "Variant never rendered" and lists the error under the
   browser console errors. The fix is the same.
-- **`[ng-prism] "<selector>" in a variant's pseudo states is not a valid selector, skipping it.`**: fix the CSS selector
+- **`[ng-prism] "<selector>" in forced pseudo states is not a valid selector, skipping it.`**: fix the CSS selector
   in `pseudo`.
 - **`[ng-prism] Could not force a pseudo state for "<selector>".`** and
   **`[ng-prism] Cannot force pseudo states in <stylesheet>: its rules are cross-origin and cannot be read. …`** (dev
