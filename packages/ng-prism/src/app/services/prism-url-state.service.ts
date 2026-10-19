@@ -15,6 +15,14 @@ const DEFAULT_VIEW = 'renderer';
 const PARAM_PANEL = 'panel';
 const DEFAULT_PANEL = 'controls';
 
+/** The index a `variant` parameter addresses in a list of `count` variants, `0` for anything that is not one. */
+function parseVariantIndex(param: string | null, count: number): number {
+    if (param === null) return 0;
+    const index = parseInt(param, 10);
+
+    return !Number.isNaN(index) && index >= 0 && index < count ? index : 0;
+}
+
 /** The index a `state` parameter addresses in a list of `count` states, `null` for anything that is not one. */
 function parseStateIndex(param: string | null, count: number): number | null {
     if (param === null || !/^\d+$/.test(param)) return null;
@@ -73,19 +81,23 @@ export class PrismUrlStateService {
                 const comp = this.manifestService.components().find((c) => c.meta.className === componentClassName);
 
                 if (comp) {
+                    const previousClassName = this.navigationService.activeComponent()?.meta.className;
+
                     this.navigationService.select(comp);
                     // Switching to another component resets the variant and the state
                     // when the renderer mounts it, after this restore. Starting the
                     // component here makes it the current one before the indexes below
                     // are set, so the mount keeps them (a popstate between components).
-                    this.rendererService.resetForComponent(comp);
-                    if (variantParam !== null) {
-                        const index = parseInt(variantParam, 10);
-                        const maxIndex = (comp.meta.showcaseConfig.variants?.length ?? 1) - 1;
+                    // Not for the component already on screen: a popstate that addresses
+                    // it (a hash link inside it fires one) must keep the control overrides.
+                    if (previousClassName !== comp.meta.className) {
+                        this.rendererService.resetForComponent(comp);
+                    }
 
-                        if (!Number.isNaN(index) && index >= 0 && index <= maxIndex) {
-                            this.rendererService.selectVariant(index);
-                        }
+                    const variantIndex = parseVariantIndex(variantParam, comp.meta.showcaseConfig.variants?.length ?? 1);
+
+                    if (variantIndex !== this.rendererService.activeVariantIndex()) {
+                        this.rendererService.selectVariant(variantIndex);
                     }
                     stateIndex = parseStateIndex(stateParam, comp.meta.showcaseConfig.states?.length ?? 0);
                 }

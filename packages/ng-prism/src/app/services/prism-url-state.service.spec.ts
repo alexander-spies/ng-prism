@@ -15,6 +15,7 @@ function createComponent(
         title: string;
         variants: { name: string; states?: false }[];
         states: ShowcaseState[];
+        inputs: RuntimeComponent['meta']['inputs'];
     }> = {}
 ): RuntimeComponent {
     return {
@@ -27,7 +28,7 @@ function createComponent(
                 variants: overrides.variants,
                 states: overrides.states
             },
-            inputs: [],
+            inputs: overrides.inputs ?? [],
             outputs: [],
             componentMeta: { selector: 'test', standalone: true, isDirective: false }
         }
@@ -637,6 +638,63 @@ describe('PrismUrlStateService', () => {
             expect(nav.activeComponent()).toBe(a);
             expect(renderer.activeStateIndex()).toBeNull();
             expect(window.location.search).toBe('?component=A');
+        });
+
+        it('should keep control overrides when popstate addresses the active cell', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES,
+                inputs: [{ name: 'label', type: 'string', required: false }]
+            });
+
+            setUrl('?component=Foo&variant=1&state=1');
+            const { url, nav, renderer } = setup({ components: [comp] });
+
+            mirrorRendererComponent();
+            url.init();
+            flush();
+            renderer.updateInput('label', 'Custom');
+            flush();
+
+            const resetSpy = jest.spyOn(renderer, 'resetForComponent');
+            const selectVariantSpy = jest.spyOn(renderer, 'selectVariant');
+
+            // What a click on a `<a href="#">` inside the component does: popstate to the address on screen.
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            flush();
+
+            expect(resetSpy).not.toHaveBeenCalled();
+            expect(selectVariantSpy).not.toHaveBeenCalled();
+            expect(renderer.inputValues()['label']).toBe('Custom');
+            expect(nav.activeComponent()).toBe(comp);
+            expect(renderer.activeVariantIndex()).toBe(1);
+            expect(renderer.activeStateIndex()).toBe(1);
+        });
+
+        it('should bring the variant and the state back on popstate to the same component without them', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+
+            setUrl('?component=Foo&variant=2&state=1');
+            const { url, renderer } = setup({ components: [comp] });
+
+            mirrorRendererComponent();
+            url.init();
+            flush();
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(1);
+
+            setUrl('?component=Foo');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(0);
+            expect(renderer.activeStateIndex()).toBeNull();
+            expect(window.location.search).toBe('?component=Foo');
         });
 
         it('should keep the state on a variant that opts out', () => {
