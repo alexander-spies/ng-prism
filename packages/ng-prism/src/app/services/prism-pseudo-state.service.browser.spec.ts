@@ -59,14 +59,14 @@ describe('PrismPseudoStateService', () => {
 
         activate(makeComponent([{ name: 'Plain' }, { name: 'Focused', pseudo: FOCUSED }]), 1);
         expect(service.declared()).toEqual(FOCUSED);
-        expect(service.effective()).toBe(service.declared());
+        expect(service.layers().base).toBe(service.declared());
     });
 
     it('forces nothing for a variant without pseudo states', () => {
         const { service, activate } = setUp();
 
         activate(makeComponent([{ name: 'Plain' }]));
-        expect(service.effective()).toBeNull();
+        expect(service.layers().base).toBeNull();
     });
 
     it('switches a state on for the whole component from the tools menu', () => {
@@ -74,7 +74,7 @@ describe('PrismPseudoStateService', () => {
 
         activate(makeComponent([{ name: 'Plain' }]));
         service.toggle('hover');
-        expect(service.effective()).toEqual({ hover: true });
+        expect(service.layers().base).toEqual({ hover: true });
         expect(service.isForced('hover')).toBe(true);
         expect(service.isDeclared('hover')).toBe(false);
     });
@@ -84,11 +84,11 @@ describe('PrismPseudoStateService', () => {
 
         activate(makeComponent([{ name: 'Focused', pseudo: FOCUSED }]));
         service.toggle('focus-visible');
-        expect(service.effective()).toBeNull();
+        expect(service.layers().base).toBeNull();
 
         service.toggle('focus-visible');
         expect(service.override()).toEqual({});
-        expect(service.effective()).toEqual(FOCUSED);
+        expect(service.layers().base).toEqual(FOCUSED);
     });
 
     it('adds a toggled state to what the variant declares', () => {
@@ -96,7 +96,7 @@ describe('PrismPseudoStateService', () => {
 
         activate(makeComponent([{ name: 'Focused', pseudo: FOCUSED }]));
         service.toggle('hover');
-        expect(service.effective()).toEqual({ hover: true, 'focus-visible': '.btn' });
+        expect(service.layers().base).toEqual({ hover: true, 'focus-visible': '.btn' });
     });
 
     it('drops the toggles when the variant changes', () => {
@@ -107,7 +107,7 @@ describe('PrismPseudoStateService', () => {
         renderer.activeVariantIndex.set(1);
         TestBed.flushEffects();
         expect(service.override()).toEqual({});
-        expect(service.effective()).toBeNull();
+        expect(service.layers().base).toBeNull();
     });
 
     it('drops the toggles when the component changes', () => {
@@ -125,7 +125,7 @@ describe('PrismPseudoStateService', () => {
 
         activate(makeComponent([{ name: 'Focused', pseudo: FOCUSED }]));
         service.toggle('hover');
-        expect(service.effective()).toBe(service.declared());
+        expect(service.layers().base).toBe(service.declared());
     });
 
     it('reads the active state', () => {
@@ -139,7 +139,6 @@ describe('PrismPseudoStateService', () => {
         expect(service.activeState()).toBe(HOVERED);
         expect(service.layers().state).toBe(HOVERED.pseudo);
         expect(service.layers().base).toBeNull();
-        expect(service.effective()).toBeNull();
     });
 
     it('keeps a state slot the scanner could not evaluate as an active state with an empty layer', () => {
@@ -300,7 +299,6 @@ describe('PrismPseudoStateService', () => {
         expect(service.override()).not.toEqual({});
         expect(service.layers().base).toBe(FOCUSED);
         expect(service.layers().state).toBe(HOVERED.pseudo);
-        expect(service.effective()).toBe(FOCUSED);
     });
 
     it('gives each rendered component its own marker', () => {

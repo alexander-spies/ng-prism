@@ -130,9 +130,6 @@ export class PrismPseudoStateService {
         equal: (a, b) => a.base === b.base && a.state === b.state
     });
 
-    /** The variant's layer: what the canvas forced before states existed, and what it still forces without one. */
-    readonly effective = computed<ForcedPseudoStates | null>(() => this.layers().base);
-
     constructor() {
         effect(() => {
             this.navigation.activeComponent();
