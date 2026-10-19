@@ -120,9 +120,9 @@ script. The reason says why:
 - **`<target> matches nothing`**: nothing in the variant's rendered component matches the selector (`<target>` is the
   selector, a list joined with `, `, or `the component`). Check the selector against the variant's template, or pick a
   variant that renders it.
-- **`<target> is disabled`** or **`<target> is inert`**: a `focus` or `focus-visible` state, and no match can take focus. A disabled or
-  `[inert]` element can't be focused. For `the component`, every element in it that could take focus (a button, a
-  field, a link, `[tabindex]`) is disabled or inert.
+- **`<target> is disabled`** or **`<target> is inert`**: a `focus` or `focus-visible` state, and no match can take
+  focus. A disabled or `[inert]` element can't be focused. For `the component`, every element in it that could take
+  focus (a button, a field, a link, `[tabindex]`) is disabled or inert.
 - **`<target> has pointer-events: none`**: a `hover` or `active` state, and every match ignores the pointer.
 
 Exit `1` with `<Class> has no state <m> (it declares <n>).` means the index is out of range: states are 0-based, in the
