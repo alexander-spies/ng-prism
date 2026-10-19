@@ -34,8 +34,9 @@ export type InputsOf<T> = [unknown] extends [T]
       };
 
 /**
- * A named combination of forced pseudo states, applied to every variant of the
- * component that does not opt out with `Variant.states: false`.
+ * A named combination of forced pseudo states, combined with every variant of
+ * the component that does not opt out with `Variant.states: false`, and forced
+ * where it fits: only on targets the browser could put into the state.
  */
 export interface ShowcaseState {
     /** Column title in the Overview, chip label in the tools menu. Unique within the component. */
@@ -71,8 +72,9 @@ export interface ShowcaseConfig<T = unknown> {
     variants?: Variant<T>[];
     /**
      * Named pseudo-state combinations, e.g. `{ name: 'Hover', pseudo: { hover: '.btn' } }`.
-     * Each one applies to every variant, so the Overview shows a column per state and a
-     * variant can be viewed in any of them. A variant opts out with `states: false`.
+     * Each one is combined with every variant and forced where it fits, so the Overview shows
+     * a column per state and a variant can be viewed in any of them. A variant opts out with
+     * `states: false`.
      * Not combinable with `renderPage`: a component page has no Overview.
      *
      * The position in the list identifies a state, so keep the order stable.

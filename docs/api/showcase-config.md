@@ -144,7 +144,7 @@ A variant can also force hover, active and focus states with `pseudo`. That desc
 
 ### `states`
 
-Optional array of [`ShowcaseState`](api/types.md#showcasestate) objects, named pseudo states that are combined with every variant. Each has a `name`, unique within the component, and a `pseudo` in the shape of `Variant.pseudo`. The Overview shows variants against states as a matrix, the **State** group in the tools menu has a chip per state, and a screenshot runner can address every combination with `?state=`.
+Optional array of [`ShowcaseState`](api/types.md#showcasestate) objects, named pseudo states that are combined with every variant they fit. Each has a `name`, unique within the component, and a `pseudo` in the shape of `Variant.pseudo`. The Overview shows variants against states as a matrix, the **State** group in the tools menu has a chip per state, and a screenshot runner can address every combination with `?state=`.
 
 ```typescript
 @Showcase<ButtonComponent>({
@@ -161,7 +161,7 @@ Optional array of [`ShowcaseState`](api/types.md#showcasestate) objects, named p
 })
 ```
 
-- **Order is identity.** The position in the array is the state's index in the `state` URL parameter, the `data-prism-rendered` marker, `__PRISM_MANIFEST__` and a visual regression report. Keep the order stable and add new states at the end. An entry the scanner cannot use stays in its place as an empty state, so the entries behind it keep their index.
+- **Order is identity.** The position in the array is the state's index in the `state` URL parameter, the `data-prism-rendered` marker, `__PRISM_MANIFEST__` and a visual regression report. Keep the order stable and add new states at the end. An entry that is not an object, repeats the name of an earlier one, or has a `pseudo` that is missing, empty or has nothing usable left stays in its place as an empty state, so the entries behind it keep their index. An entry without a `name` still works, as `State <position>`.
 - **A state fits or does not.** It is forced only where every pseudo-class it names has a target the browser could put into that state: the selector has to match, a focus target cannot be disabled or inert, a hover or active target has to take the pointer. Otherwise the combination is reported as not fitting, with a reason, and nothing is forced. See [Variants: When a state fits](guide/variants.md#when-a-state-fits).
 - **A variant can opt out** with `states: false`, see [`Variant`](api/types.md#variant).
 - **Not combinable with `renderPage`.** A component page has no Overview. The scanner reports `states` next to `renderPage` and drops it.

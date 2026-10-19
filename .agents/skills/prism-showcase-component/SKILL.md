@@ -49,7 +49,7 @@ export class ButtonComponent { }
     },
   ],
 
-  // Optional — named pseudo states, combined with every variant
+  // Optional — named pseudo states, combined with every variant they fit
   states: [{ name: 'Hover', pseudo: { hover: '.btn' } }],
 })
 ```

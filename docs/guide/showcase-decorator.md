@@ -200,7 +200,7 @@ See [Variants](guide/variants.md) for the full `Variant` interface.
 
 ### `states`
 
-Named pseudo states, `hover`, `active`, `focus`, `focus-visible` and `focus-within`, that apply to every variant. Each entry has a `name` and a `pseudo` in the shape of a variant's `pseudo`. The Overview becomes a matrix of variants against states, the **State** group in the tools menu gets a chip per state, and a screenshot runner can capture every combination.
+Named pseudo states, `hover`, `active`, `focus`, `focus-visible` and `focus-within`, that apply to every variant they fit. Each entry has a `name` and a `pseudo` in the shape of a variant's `pseudo`. The Overview becomes a matrix of variants against states, the **State** group in the tools menu gets a chip per state, and a screenshot runner can capture every combination.
 
 ```typescript
 @Showcase<ButtonComponent>({
