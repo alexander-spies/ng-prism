@@ -233,6 +233,16 @@ describe('PseudoStateMarker', () => {
             expect({ writes, fit: marker.applied()?.fit, hovered: button.classList.contains(HOVER) }).toEqual(settled);
         });
 
+        it("puts the state's class back that a component removed and changed nothing else", async () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const button = root.querySelector('button')!;
+
+            marker.apply(root, null, { hover: '.btn' });
+            button.classList.remove(HOVER);
+            await settle();
+            expect(button.classList.contains(HOVER)).toBe(true);
+        });
+
         it('still marks again when a class other than its own changes', async () => {
             const root = mount('<div><button class="tab"></button><button class="tab tab--active"></button></div>');
             const [first, second] = Array.from(root.querySelectorAll('button'));
