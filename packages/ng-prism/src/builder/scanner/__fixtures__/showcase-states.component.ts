@@ -17,7 +17,8 @@ function pickTarget(): string {
         { pseudo: { focus: '.btn' } },
         { name: 'Hover', pseudo: { focus: '.btn' } },
         { name: 'Empty' },
-        { name: 'Bad', pseudo: { checked: true } }
+        { name: 'Bad', pseudo: { checked: true } },
+        { name: 'Blank', pseudo: {} }
     ],
     variants: [{ name: 'Plain' }, { name: 'Opted out', states: false }, { name: 'Wrong', states: true }]
 })

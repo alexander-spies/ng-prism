@@ -455,7 +455,7 @@ describe('scanComponents with component states', () => {
     it('keeps every state slot so later indices stay put', () => {
         const { states } = scan().config('ShowcaseStatesComponent');
 
-        expect(states!.map((s) => s.name)).toEqual(['Hover', 'Pressed', 'State 3', 'State 4', 'Hover', 'Empty', 'Bad']);
+        expect(states!.map((s) => s.name)).toEqual(['Hover', 'Pressed', 'State 3', 'State 4', 'Hover', 'Empty', 'Bad', 'Blank']);
         expect(states![0].pseudo).toEqual({ hover: '.btn' });
         expect(states![1].pseudo).toEqual({ hover: '.btn', active: '.btn' });
         expect(states![2].pseudo).toEqual({});
@@ -463,6 +463,7 @@ describe('scanComponents with component states', () => {
         expect(states![4].pseudo).toEqual({});
         expect(states![5].pseudo).toEqual({});
         expect(states![6].pseudo).toEqual({});
+        expect(states![7].pseudo).toEqual({});
     });
 
     it('reports each unusable state', () => {
@@ -473,6 +474,7 @@ describe('scanComponents with component states', () => {
         expect(diagnostics).toContainEqual(`${className} states[3] has no name, expected a non-empty string. Calling it "State 4".`);
         expect(diagnostics).toContainEqual(`${className} state "Hover" repeats the name of states[0]; only the first one is used. Its column stays empty.`);
         expect(diagnostics).toContainEqual(`${className} state "Empty" declares no pseudo states. Its column stays empty.`);
+        expect(diagnostics).toContainEqual(`${className} state "Blank" declares no pseudo states. Its column stays empty.`);
         expect(diagnostics).toContainEqual(
             `${className} state "Bad" declares unknown pseudo state "checked", expected one of: hover, active, focus, focus-visible, focus-within. Skipping.`
         );

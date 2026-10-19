@@ -1,6 +1,10 @@
 import type { ShowcaseState } from '../../decorator/showcase.types.js';
 import { describeValue, readPseudoStates } from './pseudo-states.js';
 
+function isEmptyObject(value: unknown): boolean {
+    return typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === 0;
+}
+
 /** Stands in for a state the evaluator dropped, which its own diagnostic already explains. */
 const GAP = Symbol('unevaluable state');
 
@@ -57,11 +61,14 @@ export function readShowcaseStates(
 
         if (!state) return { name, pseudo: {} };
 
-        if (state['pseudo'] === undefined) {
+        const pseudo = state['pseudo'];
+
+        // `readPseudoStates` reports what it drops, but an empty object has nothing to drop.
+        if (pseudo === undefined || isEmptyObject(pseudo)) {
             report(`${className} state "${name}" declares no pseudo states. Its column stays empty.`);
             return { name, pseudo: {} };
         }
 
-        return { name, pseudo: readPseudoStates(state['pseudo'], `${className} state "${name}"`, report) ?? {} };
+        return { name, pseudo: readPseudoStates(pseudo, `${className} state "${name}"`, report) ?? {} };
     });
 }

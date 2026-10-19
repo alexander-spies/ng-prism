@@ -45,10 +45,10 @@ These count for `strictShowcase: true`, which ends the build with
   **`<Class> states[<i>] has no name, expected a non-empty string. Calling it "State <n>".`**,
   **`<Class> state "<name>" declares no pseudo states. Its column stays empty.`** and
   **`<Class> state "<name>" repeats the name of states[<i>]; only the first one is used. Its column stays empty.`**:
-  every entry needs a unique `name` and a `pseudo`. An entry that is not an object, a repeated name and a missing or
-  unusable `pseudo` keep their position as an empty state, so the ones behind it keep their index; an empty state fits
-  no variant (`forces no state`). An entry without a name is not one of them: it is called `State <n>` and works as a
-  state if its `pseudo` is usable, but give it a name.
+  every entry needs a unique `name` and a non-empty `pseudo`. An entry that is not an object, a repeated name and a
+  missing, empty or unusable `pseudo` keep their position as an empty state, so the ones behind it keep their index;
+  an empty state fits no variant (`forces no state`). An entry without a name is not one of them: it is called
+  `State <n>` and works as a state if its `pseudo` is usable, but give it a name.
 - **`<Class> declares states together with renderPage; a component page has no Overview to show them in. Skipping states.`**:
   use one or the other. A component that needs states renders itself, without `renderPage`.
 - **`<Class> variant "<name>" declares invalid states <value>, expected false. Skipping.`**: the only value a variant's
