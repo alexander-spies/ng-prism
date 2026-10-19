@@ -9,7 +9,6 @@ export function jsDocPlugin(): NgPrismPlugin {
                 label: 'API',
                 icon: 'file-text',
                 loadComponent: () => import('./jsdoc-panel.component.js').then((m) => m.JsDocPanelComponent),
-                position: 'bottom',
                 placement: 'view'
             }
         ]

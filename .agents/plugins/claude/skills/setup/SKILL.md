@@ -84,8 +84,9 @@ the Node way, without tsconfig `paths`.
 - `a11y`: thresholds and report path for the accessibility audit (`api/ng-prism-config.md`).
 - `strictShowcase` (default `false`): a dropped `@Showcase` value fails the build instead of warning.
 
-`ui`, `appComponent`, `themeStylesheet` and `headless` are in the typings and the docs, but nothing reads them in
-22.5.0. Don't build on them.
+`ui`, `appComponent`, `themeStylesheet` and `headless` are in the typings, but nothing has ever read them; they are
+deprecated (removed in 23.0.0) and the build prints a notice while one is set. Don't use them, and suggest removing
+them where a config has them.
 
 ## Official plugins
 
@@ -99,7 +100,7 @@ itself. Keep the core and every plugin on the same version: plugins require `@ng
 | `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab built from the JSDoc of inputs and outputs      |
 | `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                    |
 | `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel |
-| `@ng-prism/plugin-perf`              | `perfPlugin()`                                                        | a Performance panel                                        |
+| `@ng-prism/plugin-perf`              | `perfPlugin({ bundle?: { maxTreeDepth? } })`                          | a Performance panel                                        |
 | `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker               |
 | `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker             |
 

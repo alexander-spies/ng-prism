@@ -35,7 +35,7 @@ describe('jsDocPlugin', () => {
 
         expect(panel.id).toBe('jsdoc');
         expect(panel.label).toBe('API');
-        expect(panel.position).toBe('bottom');
+        expect(panel.position).toBeUndefined();
         expect(panel.loadComponent).toBeDefined();
         expect(panel.component).toBeUndefined();
     });

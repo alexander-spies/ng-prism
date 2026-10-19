@@ -60,6 +60,9 @@ Same prefix, but they don't count for `strictShowcase`.
 - **`[ng-prism] @Showcase host="<host>" could not be parsed and will fall back to <div>. Supported forms: …`** (prefix
   `[ng-prism]`): write the host as `<tag>`, `<tag attrs>`, `<tag />` or `<tag>text</tag>`, or as
   `{ selector, import: { name, from } }`.
+- **`<config file> sets "<option>", which is deprecated and will be removed in 23.0.0. It has never had an effect; remove it.`**
+  for `ui`, `themeStylesheet`, `headless` or `appComponent`, and the same for a plugin's `wrapComponent`, a panel's
+  `position` or a `perfPlugin()` option other than `bundle.maxTreeDepth`: delete the option, nothing changes.
 - **`ng-prism: plugin "<name>" failed in <hook> for …: <cause>`** (an error): a plugin's build hook threw. On the first
   build this stops `serve` and `prism-build`; on a rescan the previous manifest stays.
 

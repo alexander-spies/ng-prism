@@ -12,7 +12,7 @@ interface NgPrismPlugin {
     controls?: ControlDefinition[];
     headerWidgets?: HeaderWidgetDefinition[];
     navigationDecorations?: NavigationDecorationDefinition[];
-    wrapComponent?: Type<unknown>;
+    wrapComponent?: Type<unknown>; // deprecated, no effect
 }
 ```
 
@@ -95,7 +95,6 @@ panels: [
         id: 'my-panel',
         label: 'My Panel',
         loadComponent: () => import('./my-panel.component.js').then((m) => m.MyPanelComponent),
-        position: 'bottom',
         placement: 'addon'
     }
 ];
@@ -170,13 +169,7 @@ See [`NavigationDecorationDefinition`](#navigationdecorationdefinition) for the 
 
 ### `wrapComponent`
 
-> **Not yet implemented. Setting this has no effect.** `wrapComponent` exists on `NgPrismPlugin`, but nothing reads it yet.
-
-An Angular standalone component that wraps every rendered component. Use for providing context (theme, mocks, CDK overlay host) that must exist in the component tree.
-
-```typescript
-wrapComponent: ThemeProviderWrapperComponent;
-```
+> **Deprecated since 22.6.0, removed in 23.0.0.** `wrapComponent` has been on `NgPrismPlugin` since the first release, but nothing has ever read it, so setting it never had an effect. While a plugin sets it, the build prints a notice; remove it. A component that needs providers gets them from `defineConfig({ appProviders })` or a [component page](guide/component-pages.md).
 
 ---
 
@@ -191,7 +184,7 @@ interface PanelDefinition {
     overlayComponent?: Type<unknown>;
     loadOverlayComponent?: () => Promise<Type<unknown>>;
     icon?: string;
-    position?: 'bottom' | 'right';
+    position?: 'bottom' | 'right'; // deprecated, no effect
     placement?: 'addon' | 'view';
     providers?: Provider[];
     isVisible?: (component: RuntimeComponent) => boolean;
@@ -209,7 +202,7 @@ interface PanelDefinition {
 | `overlayComponent`     | Component rendered as a canvas overlay (e.g. visual annotations)                                                                                                                                                     |
 | `loadOverlayComponent` | Lazy-loaded canvas overlay                                                                                                                                                                                           |
 | `icon`                 | Icon identifier (optional, theme-dependent)                                                                                                                                                                          |
-| `position`             | _Reserved, not yet implemented._ `'bottom'` (horizontal panel) or `'right'` (sidebar panel)                                                                                                                          |
+| `position`             | _Deprecated since 22.6.0, never had an effect: nothing reads it. Where a panel appears is `placement`._                                                                                                              |
 | `placement`            | `'addon'` = bottom tab bar, `'view'` = view toolbar toggle                                                                                                                                                           |
 | `providers`            | Providers scoped to this panel's child `EnvironmentInjector`                                                                                                                                                         |
 | `isVisible`            | Predicate. When provided, the panel tab is only shown if it returns `true` for the active component                                                                                                                  |

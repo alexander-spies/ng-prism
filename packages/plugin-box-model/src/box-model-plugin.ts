@@ -11,7 +11,6 @@ export function boxModelPlugin(): NgPrismPlugin {
                 icon: 'box',
                 loadComponent: () => import('./box-model-panel.component.js').then((m) => m.BoxModelPanelComponent),
                 loadOverlayComponent: () => import('./box-model-overlay.component.js').then((m) => m.BoxModelOverlayComponent),
-                position: 'bottom',
                 providers: [BoxModelStateService]
             }
         ]

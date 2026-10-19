@@ -5,6 +5,7 @@ import ts from 'typescript';
 import type { StyleguidePage } from '../../plugin/page.types.js';
 import { checkA11yThresholds, DEFAULT_A11Y_REPORT_PATH, readA11yForComponents, readA11yMeta } from '../a11y/a11y-report-reader.js';
 import { loadConfig } from '../config-loader/config-loader.js';
+import { describeDeprecatedOptions } from '../config-loader/deprecated-options.js';
 import { generateRuntimeManifest } from '../manifest/runtime-manifest.generator.js';
 import { runPluginHooks } from '../plugin-runner/plugin-runner.js';
 import { discoverSecondaryEntryPoints, findPrimaryEntryFile } from '../scanner/entry-point-discovery.js';
@@ -46,6 +47,10 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
         workspaceRoot,
         configFileName: options.configFile
     });
+
+    for (const notice of describeDeprecatedOptions(config, options.configFile)) {
+        console.warn(`⚠ ng-prism: ${notice}`);
+    }
 
     context.reportStatus('Scanning components...');
     const { components, diagnostics } = scanEntryPoints(workspaceRoot, options, state);

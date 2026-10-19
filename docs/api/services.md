@@ -179,17 +179,7 @@ Schema version, corrupted JSON, quota-exceeded errors, and a missing `sessionSto
 
 Disabled via `NgPrismConfig.persistState = false`. See [State Preservation](guide/url-state.md).
 
-When using a custom `appComponent`, call both init methods, URL first, then persistence:
-
-```typescript
-@Component({ ... })
-export class MyShellComponent {
-  constructor() {
-    inject(PrismUrlStateService).init();
-    inject(PrismPersistenceService).init();
-  }
-}
-```
+`PrismShellComponent` calls both init methods, URL state first, then persistence.
 
 ---
 

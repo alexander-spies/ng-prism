@@ -408,6 +408,34 @@ describe('runPrismPipeline entry point resolution', () => {
     });
 });
 
+describe('runPrismPipeline deprecated options', () => {
+    let tmp: string;
+
+    afterEach(() => {
+        if (tmp && existsSync(tmp)) {
+            rmSync(tmp, { recursive: true, force: true });
+        }
+    });
+
+    it('warns about deprecated config options it finds', async () => {
+        tmp = createTempWorkspace();
+        writeFileSync(join(tmp, 'ng-prism.config.ts'), "export default { themeStylesheet: 'theme.css' };\n", 'utf-8');
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            await runPrismPipeline(
+                { entryPoint: 'lib/public-api.ts', libraryImportPath: 'my-lib', prismProject: 'my-lib-prism', configFile: 'ng-prism.config.ts' },
+                createMockContext(tmp),
+                createPipelineState()
+            );
+
+            expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^⚠ ng-prism: ng-prism\.config\.ts sets "themeStylesheet", which is deprecated/));
+        } finally {
+            warn.mockRestore();
+        }
+    });
+});
+
 describe('createPipelineState', () => {
     it('should return independent state objects', () => {
         const a = createPipelineState();

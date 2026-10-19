@@ -11,8 +11,7 @@ export function coveragePlugin(_options?: CoveragePluginOptions): NgPrismPlugin 
                 label: 'Coverage',
                 badge: coverageBadge,
                 icon: 'shield-check',
-                loadComponent: () => import('./coverage-panel.component.js').then((m) => m.CoveragePanelComponent),
-                position: 'bottom'
+                loadComponent: () => import('./coverage-panel.component.js').then((m) => m.CoveragePanelComponent)
             }
         ],
         headerWidgets: [

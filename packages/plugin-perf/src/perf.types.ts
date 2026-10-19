@@ -16,15 +16,20 @@ export interface PerfThresholds {
 }
 
 export interface PerfPluginOptions {
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. The panel uses the built-in thresholds. */
     thresholds?: Partial<PerfThresholds>;
     bundle?: {
+        /** How deep the import tree of a component is followed. Default: 5. */
         maxTreeDepth?: number;
+        /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
         excludeImports?: string[];
     };
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     render?: {
         bufferSize?: number;
         autoStart?: boolean;
     };
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     memory?: {
         gcDelayMs?: number;
     };

@@ -33,9 +33,9 @@ The most commonly used fields:
 | `pages`           | `StyleguidePage[]`       | Config-declared custom pages                                          |
 | `appProviders`    | `Provider[]`             | Angular providers added to the Prism app bootstrap                    |
 | `theme`           | `Record<string, string>` | CSS custom property overrides                                         |
-| `themeStylesheet` | `string`                 | _Reserved, not yet implemented._ Path to a custom SCSS file           |
-| `ui`              | object                   | _Reserved, not yet implemented._ Replace UI sections                  |
-| `headless`        | `boolean`                | _Reserved, not yet implemented._ Strips all built-in chrome           |
+| `themeStylesheet` | `string`                 | _Deprecated since 22.6.0, never had an effect._                       |
+| `ui`              | object                   | _Deprecated since 22.6.0, never had an effect._                       |
+| `headless`        | `boolean`                | _Deprecated since 22.6.0, never had an effect._                       |
 | `urlState`        | `boolean`                | Disable URL state sync (default: `true`)                              |
 | `buildInfo`       | `object`                 | Show version / git hash pill in header                                |
 | `strictShowcase`  | `boolean`                | Fail the build when a `@Showcase` value is dropped (default: `false`) |

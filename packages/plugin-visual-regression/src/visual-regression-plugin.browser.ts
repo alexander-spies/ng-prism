@@ -17,7 +17,6 @@ export function visualRegressionPlugin(_options?: VisualRegressionPluginOptions)
                 id: 'visual-regression',
                 label: 'Visual Regression',
                 icon: 'camera',
-                position: 'bottom',
                 isVisible: hasResults,
                 badge: reviewBadge,
                 loadComponent: () => import('./visual-regression-panel.component.js').then((m) => m.VisualRegressionPanelComponent)

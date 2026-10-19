@@ -19,7 +19,7 @@ export interface NgPrismPlugin {
     headerWidgets?: HeaderWidgetDefinition[];
     /** Markers contributed to each component's navigation item. */
     navigationDecorations?: NavigationDecorationDefinition[];
-    /** Angular standalone component that wraps each rendered component */
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     wrapComponent?: Type<unknown>;
 }
 
@@ -93,6 +93,7 @@ export interface PanelDefinition {
     overlayComponent?: Type<unknown>;
     loadOverlayComponent?: () => Promise<Type<unknown>>;
     icon?: string;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. Where a panel appears is `placement`. */
     position?: 'bottom' | 'right';
     /** Where this panel appears: 'addon' (bottom/right tabbar) or 'view' (top view toolbar). Default: 'addon' */
     placement?: 'addon' | 'view';
@@ -262,7 +263,9 @@ export interface NgPrismConfig {
     };
     title?: string;
     subtitle?: string;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     themeStylesheet?: string;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     ui?: {
         header?: Type<unknown>;
         sidebar?: Type<unknown>;
@@ -272,7 +275,9 @@ export interface NgPrismConfig {
         eventsPanel?: Type<unknown>;
         footer?: Type<unknown>;
     };
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     headless?: boolean;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     appComponent?: Type<unknown>;
     /** When false, disables URL state sync (default: true). */
     urlState?: boolean;

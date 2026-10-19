@@ -17,7 +17,6 @@ export function figmaPlugin(options: FigmaPluginOptions = {}): NgPrismPlugin {
             label: 'Figma',
             icon: 'figma',
             component: FigmaPanelComponent,
-            position: 'bottom',
             isVisible: hasFigmaMeta,
             keepAlive: true
         }
@@ -29,7 +28,6 @@ export function figmaPlugin(options: FigmaPluginOptions = {}): NgPrismPlugin {
             label: 'Design Diff',
             icon: 'copy',
             loadComponent: () => import('./diff/figma-design-diff-panel.component.js').then((m) => m.FigmaDesignDiffPanelComponent),
-            position: 'bottom',
             providers: [{ provide: FIGMA_PLUGIN_CONFIG, useValue: options }],
             isVisible: hasVariantFigmaMeta
         });

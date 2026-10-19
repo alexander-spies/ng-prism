@@ -17,8 +17,9 @@ interface NgPrismConfig {
     theme?: Record<string, string>;
     darkTheme?: Record<string, string>;
     lightTheme?: Record<string, string>;
-    themeStylesheet?: string;
+    themeStylesheet?: string; // deprecated, no effect
     ui?: {
+        // deprecated, no effect
         header?: Type<unknown>;
         sidebar?: Type<unknown>;
         componentHeader?: Type<unknown>;
@@ -27,8 +28,8 @@ interface NgPrismConfig {
         eventsPanel?: Type<unknown>;
         footer?: Type<unknown>;
     };
-    headless?: boolean;
-    appComponent?: Type<unknown>;
+    headless?: boolean; // deprecated, no effect
+    appComponent?: Type<unknown>; // deprecated, no effect
     urlState?: boolean;
     persistState?: boolean;
     buildInfo?: { version?: string; gitHash?: string };
@@ -110,70 +111,13 @@ See [Theming](guide/theming.md) for the full list of available properties.
 
 ---
 
-### `themeStylesheet`
+### Deprecated: `themeStylesheet`, `ui`, `headless`, `appComponent`
 
-> **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig`, but nothing reads it yet.
+> **Deprecated since 22.6.0, removed in 23.0.0.** These four options have been on `NgPrismConfig` since the first release, but nothing has ever read them, so setting them never had an effect. While one is set, the build prints `⚠ ng-prism: ng-prism.config.ts sets "<option>", which is deprecated and will be removed in 23.0.0. It has never had an effect; remove it.` Remove them.
 
-Path to a custom CSS/SCSS file loaded by the Prism app. Relative to the workspace root. Use for custom fonts, utility classes, or complex theming that cannot be expressed with CSS custom properties alone.
-
-```typescript
-export default defineConfig({
-    themeStylesheet: 'projects/my-lib-prism/src/theme.scss'
-});
-```
-
----
-
-### `ui`
-
-> **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig`, but nothing reads it yet.
-
-Replace individual UI sections with custom Angular standalone components. All fields are optional. Omit a slot to keep the built-in component.
-
-| Key               | Replaces                                                 |
-| ----------------- | -------------------------------------------------------- |
-| `header`          | Top header bar (logo, toolbar, theme toggle)             |
-| `sidebar`         | Left navigation sidebar                                  |
-| `componentHeader` | Title and description area above the canvas              |
-| `renderer`        | Entire renderer region (canvas + variant tabs + snippet) |
-| `controlsPanel`   | Built-in Controls addon panel                            |
-| `eventsPanel`     | Built-in Events addon panel                              |
-| `footer`          | Footer area below addon panels                           |
-
-```typescript
-export default defineConfig({
-    ui: {
-        header: MyBrandedHeaderComponent,
-        footer: MyFooterComponent
-    }
-});
-```
-
-See [Custom UI Sections](guide/custom-ui.md) for examples.
-
----
-
-### `headless`
-
-> **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig` and is kept for forward compatibility.
-
-When implemented, `true` will strip all built-in chrome (header, sidebar, toolbar, panels) and render only the component canvas. Default: `false`.
-
-For screenshot isolation (a separate, working feature), see [capture isolation mode](guide/external-tooling.md#capture-isolation-mode).
-
----
-
-### `appComponent`
-
-> **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig`, but nothing reads it yet.
-
-Replace the entire application shell with a custom Angular component. When set, ng-prism renders this component instead of `PrismShellComponent` while still providing all services.
-
-```typescript
-export default defineConfig({
-    appComponent: MyCustomShellComponent
-});
-```
+- `themeStylesheet` was meant to load a stylesheet into the styleguide app. Colours, fonts and density go through [`theme`](#theme), `darkTheme` and `lightTheme`.
+- `ui` and `appComponent` were meant to replace regions of the styleguide or its whole shell. For your own content inside the styleguide, use a [component page](guide/component-pages.md); for panels, header widgets and sidebar markers, a [plugin](plugins/writing-plugins.md).
+- `headless` was meant to strip the styleguide down to the canvas. For screenshots, [capture isolation mode](guide/external-tooling.md#capture-isolation-mode) does that.
 
 ---
 

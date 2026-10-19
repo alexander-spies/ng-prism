@@ -81,7 +81,8 @@ export function notesPlugin(): NgPrismPlugin {
   definition of an id wins, later ones are dropped silently. The orders 10, 20 and 30 belong to a11y, visual regression
   and coverage.
 - The first control whose `matchType` matches wins, in registration order.
-- `wrapComponent` and a panel's `position` are in the typings, but nothing reads them in 22.5.0. Don't use them.
+- `wrapComponent` and a panel's `position` are in the typings, but nothing has ever read them; they are deprecated
+  (removed in 23.0.0). Don't use them. Where a panel appears is `placement`.
 
 ## Packaging for npm
 

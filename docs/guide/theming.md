@@ -46,15 +46,7 @@ export default defineConfig({
 
 ## Custom Stylesheet
 
-> **Not yet implemented.** `themeStylesheet` is declared on `NgPrismConfig`, but nothing loads the file yet, so setting it has no effect.
-
-For more complex theming (custom fonts, additional utilities, SCSS variables), the intent is to point `themeStylesheet` at a file in your showcase app:
-
-```typescript
-export default defineConfig({
-    themeStylesheet: 'projects/my-lib-prism/src/theme.scss'
-});
-```
+> **Deprecated since 22.6.0, removed in 23.0.0.** `themeStylesheet` was meant to load a stylesheet of your own into the styleguide app. Nothing has ever loaded it, so setting it never had an effect, and the build prints a notice while it is set. Colours, fonts and density go through the tokens above.
 
 ## Color Properties
 

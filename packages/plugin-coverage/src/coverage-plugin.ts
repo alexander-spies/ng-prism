@@ -67,8 +67,7 @@ export function coveragePlugin(options?: CoveragePluginOptions): NgPrismPlugin {
                 id: 'coverage',
                 label: 'Coverage',
                 badge: coverageBadge,
-                loadComponent: () => import('./coverage-panel.component.js').then((m) => m.CoveragePanelComponent),
-                position: 'bottom'
+                loadComponent: () => import('./coverage-panel.component.js').then((m) => m.CoveragePanelComponent)
             }
         ],
         headerWidgets: [

@@ -26,7 +26,6 @@
 - **Customization**
 
     - [Theming](guide/theming.md)
-    - [Custom UI Sections](guide/custom-ui.md)
     - [State Preservation](guide/url-state.md)
 
 - **External Tooling**
