@@ -1,10 +1,10 @@
-import { Injector, runInInjectionContext } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import { openInPlayground } from '../overview/open-in-playground.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
-import { PrismManifestService } from './prism-manifest.service.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
 import { PrismRendererService } from './prism-renderer.service.js';
-import { PrismSearchService } from './prism-search.service.js';
 
 function createComponent(
     overrides: Partial<{
@@ -34,36 +34,17 @@ function createComponent(
 }
 
 function setup(manifest: RuntimeManifest) {
-    const baseInjector = Injector.create({
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
         providers: [{ provide: PRISM_MANIFEST, useValue: manifest }]
     });
-    const manifestService = runInInjectionContext(baseInjector, () => new PrismManifestService());
-    const searchService = runInInjectionContext(
-        Injector.create({
-            providers: [{ provide: PrismManifestService, useValue: manifestService }],
-            parent: baseInjector
-        }),
-        () => new PrismSearchService()
-    );
-    const navigation = runInInjectionContext(
-        Injector.create({
-            providers: [
-                { provide: PrismSearchService, useValue: searchService },
-                { provide: PrismManifestService, useValue: manifestService }
-            ],
-            parent: baseInjector
-        }),
-        () => new PrismNavigationService()
-    );
-    const renderer = runInInjectionContext(
-        Injector.create({
-            providers: [{ provide: PrismNavigationService, useValue: navigation }],
-            parent: baseInjector
-        }),
-        () => new PrismRendererService()
-    );
 
-    return { renderer, navigation };
+    return { renderer: TestBed.inject(PrismRendererService), navigation: TestBed.inject(PrismNavigationService) };
+}
+
+/** Runs the root effects, as the change detection after a click does. */
+function flush(): void {
+    TestBed.inject(ApplicationRef).tick();
 }
 
 describe('PrismRendererService', () => {
@@ -308,6 +289,91 @@ describe('PrismRendererService', () => {
             renderer.selectState(0);
             renderer.reconcileForComponent(createComponent());
             expect(renderer.activeStateIndex()).toBeNull();
+        });
+    });
+
+    // The shell mounts `<prism-renderer>` in the Playground only. In the Overview, picking another component in the
+    // sidebar keeps the view, so no renderer sees the switch; these tests never reconcile on navigation themselves.
+    describe('component switch without a mounted renderer', () => {
+        const STATES = [
+            { name: 'Hover', pseudo: { hover: true } as const },
+            { name: 'Focus', pseudo: { 'focus-visible': true } as const }
+        ];
+
+        function twoComponents() {
+            const a = createComponent({
+                variants: [{ name: 'A1' }, { name: 'A2' }],
+                states: STATES,
+                inputs: [{ name: 'label', type: 'string', defaultValue: 'A', required: false }]
+            });
+            const b = createComponent({
+                variants: [{ name: 'B1', inputs: { title: 'B1' } }, { name: 'B2' }, { name: 'B3', inputs: { title: 'B3' } }],
+                states: STATES,
+                inputs: [{ name: 'title', type: 'string', required: false }]
+            });
+
+            a.meta.className = 'A';
+            b.meta.className = 'B';
+            return { a, b, ...setup({ components: [a, b] }) };
+        }
+
+        it('resets the variant and the state as soon as the component changes', () => {
+            const { a, b, renderer, navigation } = twoComponents();
+
+            navigation.select(a);
+            renderer.reconcileForComponent(a); // the Playground's renderer mounts A
+            flush();
+            renderer.selectVariant(1);
+            renderer.selectState(1);
+            flush();
+
+            // The Overview is open now, and the sidebar picks B.
+            navigation.select(b);
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(0);
+            expect(renderer.activeStateIndex()).toBeNull();
+            expect(renderer.inputValues()).toEqual({ title: 'B1' });
+        });
+
+        it('opens the Overview cell of a component picked in the Overview', () => {
+            const { a, b, renderer, navigation } = twoComponents();
+            const panels = { activeViewId: signal('renderer') };
+
+            navigation.select(a);
+            renderer.reconcileForComponent(a); // the Playground's renderer mounts A
+            flush();
+            renderer.selectState(1);
+            panels.activeViewId.set('overview');
+            flush();
+
+            navigation.select(b);
+            flush();
+            openInPlayground(renderer, panels, 2, 0);
+            flush();
+            renderer.reconcileForComponent(b); // the Playground's renderer mounts B
+
+            expect(panels.activeViewId()).toBe('renderer');
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(0);
+            expect(renderer.inputValues()).toEqual({ title: 'B3' });
+        });
+
+        it('keeps what a restore sets for the component it starts', () => {
+            const { a, b, renderer, navigation } = twoComponents();
+
+            navigation.select(a);
+            flush();
+
+            // What `PrismUrlStateService` does for `?component=B&variant=2&state=0`: it starts B before setting the cell.
+            navigation.select(b);
+            renderer.resetForComponent(b);
+            renderer.selectVariant(2);
+            renderer.selectState(0);
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(0);
         });
     });
 

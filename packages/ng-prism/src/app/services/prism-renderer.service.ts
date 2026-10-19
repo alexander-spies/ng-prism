@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
 
@@ -99,7 +99,20 @@ export class PrismRendererService {
         return count;
     });
 
+    /** The component the variant, the state and the inputs belong to, `null` before the first. */
     private _lastClassName: string | null = null;
+
+    constructor() {
+        // The variant and the state go with the component in every view, so the reset on a switch follows
+        // navigation, not the renderer: the shell mounts `<prism-renderer>` in the Playground only, and the Overview
+        // keeps its view when the sidebar picks another component. A root effect, created before the URL service's,
+        // so it runs first in the same flush and the URL never sees the previous component's cell on the new one.
+        effect(() => {
+            const comp = this.navigationService.activeComponent();
+
+            if (comp) untracked(() => this.reconcileForComponent(comp));
+        });
+    }
 
     resetForComponent(comp: RuntimeComponent): void {
         this._lastClassName = comp.meta.className;
@@ -108,6 +121,14 @@ export class PrismRendererService {
         this.applyVariant(0, comp);
     }
 
+    /**
+     * Brings the variant, the state and the inputs in line with `comp`: a full
+     * reset when it is another component than the last one, else the variant
+     * and the state clamped to what it still declares and the inputs kept.
+     * Runs on every navigation and again when the renderer mounts, which then
+     * finds the component current and keeps what an Overview cell or a restore
+     * selected.
+     */
     reconcileForComponent(comp: RuntimeComponent): void {
         const prev = this._lastClassName;
 

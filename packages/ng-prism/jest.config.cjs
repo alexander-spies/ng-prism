@@ -16,6 +16,7 @@ module.exports = {
             testPathIgnorePatterns: [
                 '\\.browser\\.spec\\.ts$',
                 'prism-url-state\\.service\\.spec\\.ts$',
+                'prism-renderer\\.service\\.spec\\.ts$',
                 'prism-persistence\\.service\\.spec\\.ts$',
                 'prism-variant-bg\\.service\\.spec\\.ts$',
                 'prism-canvas-bg-pill\\.component\\.spec\\.ts$'
@@ -37,6 +38,7 @@ module.exports = {
             testMatch: [
                 '**/*.browser.spec.ts',
                 '**/prism-url-state.service.spec.ts',
+                '**/prism-renderer.service.spec.ts',
                 '**/prism-persistence.service.spec.ts',
                 '**/prism-variant-bg.service.spec.ts',
                 '**/prism-canvas-bg-pill.component.spec.ts'

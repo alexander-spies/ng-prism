@@ -49,9 +49,11 @@ function flush(): void {
 }
 
 /**
- * What `PrismRendererComponent` does when the active component changes: it
- * reconciles the renderer service with it. The URL service restores the
- * variant and the state in the same tick, so this runs on top of them.
+ * What a mounted `PrismRendererComponent` (the Playground) does when the active
+ * component changes: it reconciles the renderer service with it, on top of the
+ * service's own reconcile on navigation. The URL service restores the variant
+ * and the state in the same tick, so this runs on top of them. Specs for a view
+ * without a renderer leave it out.
  */
 function mirrorRendererComponent(): void {
     const nav = TestBed.inject(PrismNavigationService);
@@ -584,6 +586,67 @@ describe('PrismUrlStateService', () => {
 
             expect(renderer.activeStateIndex()).toBeNull();
             expect(window.location.search).toBe('?component=B');
+        });
+
+        // No `mirrorRendererComponent()`: outside the Playground no renderer is mounted to see the switch.
+        it('should drop the variant and the state when the component changes outside the Playground', () => {
+            const a = createComponent({
+                className: 'A',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+            const b = createComponent({ className: 'B' });
+            const { url, nav, renderer, panel } = setup({ components: [a, b] });
+
+            url.init();
+            nav.select(a);
+            panel.activeViewId.set('overview');
+            renderer.selectVariant(2);
+            renderer.selectState(1);
+            flush();
+            expect(window.location.search).toBe('?component=A&variant=2&state=1&view=overview');
+
+            const pushSpy = jest.spyOn(window.history, 'pushState');
+            const replaceSpy = jest.spyOn(window.history, 'replaceState');
+
+            nav.select(b);
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(0);
+            expect(renderer.activeStateIndex()).toBeNull();
+            expect(window.location.search).toBe('?component=B&view=overview');
+            // Not even for one write: a pushed entry with them would come back on the next back button.
+            const written = [...pushSpy.mock.calls, ...replaceSpy.mock.calls].map(([, , href]) => String(href));
+
+            expect(written).toEqual(['/?component=B&view=overview']);
+        });
+
+        it('should restore a cell of another component outside the Playground on popstate', async () => {
+            const a = createComponent({
+                className: 'A',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+            const b = createComponent({ className: 'B' });
+            const { url, nav, renderer, panel } = setup({ components: [a, b] });
+
+            url.init();
+            nav.select(a);
+            panel.activeViewId.set('overview');
+            renderer.selectVariant(2);
+            renderer.selectState(1);
+            flush();
+            nav.select(b);
+            flush();
+            expect(window.location.search).toBe('?component=B&view=overview');
+
+            await goBack();
+            flush();
+
+            expect(nav.activeComponent()).toBe(a);
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(1);
+            expect(window.location.search).toBe('?component=A&variant=2&state=1&view=overview');
         });
 
         it('should restore the variant and the state on popstate', async () => {

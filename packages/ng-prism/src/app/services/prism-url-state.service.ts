@@ -85,11 +85,12 @@ export class PrismUrlStateService {
 
                     this.navigationService.select(comp);
                     // Switching to another component resets the variant and the state
-                    // when the renderer mounts it, after this restore. Starting the
-                    // component here makes it the current one before the indexes below
-                    // are set, so the mount keeps them (a popstate between components).
-                    // Not for the component already on screen: a popstate that addresses
-                    // it (a hash link inside it fires one) must keep the control overrides.
+                    // once `PrismRendererService` follows the navigation, after this
+                    // restore. Starting the component here makes it the current one
+                    // before the indexes below are set, so that reset, and the renderer
+                    // mounting it, keep them (a popstate between components). Not for
+                    // the component already on screen: a popstate that addresses it (a
+                    // hash link inside it fires one) must keep the control overrides.
                     if (previousClassName !== comp.meta.className) {
                         this.rendererService.resetForComponent(comp);
                     }
