@@ -93,6 +93,26 @@ Same prefix, but they don't count for `strictShowcase`.
   mode only): the browser rejected the rewritten selector, or the stylesheet comes from another origin. Serve it from
   the same origin, or with CORS and a `crossorigin` attribute.
 
+## `screenshot.mjs --state` exits with 4
+
+`<Class> variant <n> × state <m> is excluded: <reason>`: the styleguide rendered the variant, but the state doesn't fit
+it, so nothing is forced and the script takes no screenshot. It is the answer for that combination, not a fault of the
+script. The reason says why:
+
+- **`states: false`**: the variant opts out of the component's `states`. Leave it, or remove `states: false` if the
+  variant should take the state.
+- **`forces no state`**: the state declares no pseudo-class to force. The scanner couldn't evaluate it; look for a
+  `⚠ ng-prism:` line for that `states` entry.
+- **`<target> matches nothing`**: nothing in the variant's rendered component matches the selector (`<target>` is the
+  selector, a list joined with `, `, or `the component`). Check the selector against the variant's template, or pick a
+  variant that renders it.
+- **`<target> is disabled`** or **`<target> is inert`**: a `focus` state, and no match can take focus. A disabled or
+  `[inert]` element can't be focused.
+- **`<target> has pointer-events: none`**: a `hover` or `active` state, and every match ignores the pointer.
+
+Exit `1` with `<Class> has no state <m> (it declares <n>).` means the index is out of range: states are 0-based, in the
+order written in `@Showcase({ states })`.
+
 ## The component is missing from the sidebar
 
 Check the log line `ng-prism: Generated manifest with N component(s)` first, then:

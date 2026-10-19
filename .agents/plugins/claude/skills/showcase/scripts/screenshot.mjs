@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Screenshot one @Showcase variant in a running ng-prism styleguide. Ships with the `showcase` skill of the
-// ng-prism Claude Code plugin; ng-prism's own repo runs it too (skill prism-test-workspace).
+// Screenshot one @Showcase variant, optionally in one of the component's `states`, in a running ng-prism
+// styleguide. Ships with the `showcase` skill of the ng-prism Claude Code plugin; ng-prism's own repo runs it
+// too (skill prism-test-workspace).
 //
-//   node <skill dir>/scripts/screenshot.mjs --component ButtonComponent [--variant 1] [--shell]
+//   node <skill dir>/scripts/screenshot.mjs --component ButtonComponent [--variant 1] [--state 0] [--shell]
 //        [--url http://localhost:4400] [--out file.png] [--timeout 30000]
 //
 // Run it from the project root. Playwright comes from that project (`playwright`, else `@playwright/test`),
@@ -11,9 +12,13 @@
 // Default: capture mode (`capture=1`), element screenshot of `.demo-wrap` with `omitBackground`, so a
 // transparent variant background (also the default when a variant declares no `bg`) keeps its alpha.
 // --shell: the full window without capture mode, for the styleguide UI around the component.
+// --state <index>: the 0-based index into the component's `states` (`@Showcase({ states })`), in source order.
+// Without it no state is active. A state does not fit every variant: when the styleguide marks the cell with
+// `data-prism-excluded`, the script prints the reason, takes no screenshot and exits 4.
 //
-// Exit codes: 0 saved · 1 styleguide unreachable, component or variant unknown, the variant never
-// rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing.
+// Exit codes: 0 saved · 1 styleguide unreachable, component, variant or state unknown, the variant never
+// rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing · 4 the
+// requested state does not fit the variant (the styleguide marked the cell as excluded).
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -38,6 +43,7 @@ try {
         options: {
             component: { type: 'string' },
             variant: { type: 'string', default: '0' },
+            state: { type: 'string' },
             url: { type: 'string', default: 'http://localhost:4400' },
             shell: { type: 'boolean', default: false },
             out: { type: 'string' },
@@ -52,6 +58,8 @@ const { component, shell } = values;
 if (!component) exitWith(2, 'Missing --component <ClassName>, e.g. --component ButtonComponent');
 if (!/^\d+$/.test(values.variant)) exitWith(2, `--variant must be a 0-based index, got "${values.variant}"`);
 const variant = Number(values.variant);
+if (values.state !== undefined && !/^\d+$/.test(values.state)) exitWith(2, `--state must be a 0-based index, got "${values.state}"`);
+const state = values.state === undefined ? undefined : Number(values.state);
 const timeout = Number(values.timeout);
 if (!Number.isInteger(timeout) || timeout <= 0) exitWith(2, `--timeout must be a positive number of milliseconds, got "${values.timeout}"`);
 
@@ -63,13 +71,14 @@ try {
 }
 if (!base || !['http:', 'https:'].includes(base.protocol)) exitWith(2, `--url must be an http(s) URL such as http://localhost:4400, got "${values.url}"`);
 
-const out = values.out ?? join(tmpdir(), `prism-${component}-${variant}${shell ? '-shell' : ''}.png`);
+const out = values.out ?? join(tmpdir(), `prism-${component}-${variant}${state === undefined ? '' : `-s${state}`}${shell ? '-shell' : ''}.png`);
 const target = new URL(base);
 target.searchParams.set('component', component);
 target.searchParams.set('variant', String(variant));
+if (state !== undefined) target.searchParams.set('state', String(state));
 if (!shell) target.searchParams.set('capture', '1');
 const url = target.href;
-const marker = `.demo-wrap[data-prism-rendered="${component}:${variant}"]`;
+const marker = `.demo-wrap[data-prism-rendered="${component}:${variant}${state === undefined ? '' : `:${state}`}"]`;
 
 async function loadChromium() {
     const requireFromProject = createRequire(join(process.cwd(), 'package.json'));
@@ -125,6 +134,10 @@ async function capture(page) {
         console.error(`${component} has ${entry.variants.length} variant(s); --variant ${variant} does not exist:\n${variants}`);
         return 1;
     }
+    if (state !== undefined && !entry.states?.[state]) {
+        console.error(`${component} has no state ${state} (it declares ${entry.states?.length ?? 0}).`);
+        return 1;
+    }
 
     try {
         // Attached, not visible: the marker says the variant rendered. A component without a visible size
@@ -135,6 +148,15 @@ async function capture(page) {
         await saveDiagnosis(page);
         console.error('If ng-prism.config.ts sets urlState: false, the styleguide ignores the URL parameters this script selects the variant with.');
         return 1;
+    }
+
+    if (state !== undefined) {
+        // The marker is set even when the state does not fit the variant; the attribute says why nothing is forced.
+        const excluded = await page.getAttribute(marker, 'data-prism-excluded', { timeout });
+        if (excluded !== null) {
+            console.error(`${component} variant ${variant} × state ${state} is excluded: ${excluded}`);
+            return 4;
+        }
     }
 
     try {

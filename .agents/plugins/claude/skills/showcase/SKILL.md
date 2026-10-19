@@ -125,6 +125,7 @@ export class ButtonComponent {
 
 ```bash
 node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --variant 1
+node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --variant 1 --state 0
 node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --shell
 ```
 
@@ -132,21 +133,30 @@ node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --
   frozen) and screenshots `.demo-wrap`. `--shell` takes the whole window, styleguide UI included.
 - A variant without `bg`, or with `bg: 'transparent'`, comes back with a transparent background (a PNG with alpha).
   Viewers show transparent pixels differently; if a light or dark component is hard to judge, look at `--shell` too.
+- `--state <index>` captures the variant in one of the component's `states` (`@Showcase({ states })`; 0-based, in
+  source order, listed in `window.__PRISM_MANIFEST__`). Without it no state is active. A state doesn't fit every
+  variant, for example one with `states: false`, or one whose target the variant doesn't render. The script then prints
+  `<Class> variant <n> × state <m> is excluded: <reason>`, takes no screenshot and exits `4`. That is a result, not a
+  failure: report the cell as excluded, with the reason.
 - `--url` (default `http://localhost:4400`, https with a self-signed certificate works), `--out <file.png>` (default:
-  the system temp dir), `--timeout <ms>` (default 30000).
+  the system temp dir, `prism-<Class>-<variant>.png`, with `-s<state>` after the variant for a state),
+  `--timeout <ms>` (default 30000).
 - It prints the URL and the PNG path and lists browser console errors. Open the PNG and look at it.
-- It selects the variant through URL parameters, like the URL below, and `urlState: false` in `ng-prism.config.ts`
-  turns them off. The script then times out with "Variant never rendered"; ask before switching `urlState` back on.
-- Exit codes: `0` saved. `1` the styleguide doesn't answer, the component or variant doesn't exist (it lists what
-  does), the variant never rendered (it saves the full window for diagnosis), or the screenshot failed, e.g. for a
-  component without a visible size (`--shell` still works). `2` invalid arguments. `3` Playwright or its Chromium is
-  missing or won't start: suggest `npm i -D playwright && npx playwright install chromium` (on Linux with missing
-  system libraries `npx playwright install --with-deps chromium`) and run it only if the user agrees.
+- It selects the variant and the state through URL parameters, like the URL below, and `urlState: false` in
+  `ng-prism.config.ts` turns them off. The script then times out with "Variant never rendered"; ask before switching `urlState` back on.
+- Exit codes: `0` saved. `1` the styleguide doesn't answer, the component, variant or state doesn't exist (it lists
+  the components and variants that do), the variant never rendered (it saves the full window for diagnosis), or the
+  screenshot failed, e.g. for a component without a visible size (`--shell` still works). `2` invalid arguments. `3`
+  Playwright or its Chromium is missing or won't start: suggest `npm i -D playwright && npx playwright install chromium`
+  (on Linux with missing system libraries `npx playwright install --with-deps chromium`) and run it only if the user
+  agrees. `4` the state doesn't fit the variant, see `--state` above and `references/troubleshooting.md`.
 
 Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome DevTools MCP, Claude in Chrome): open
 `http://localhost:4400/?component=<ClassName>&variant=<index>&capture=1`, wait for
-`.demo-wrap[data-prism-rendered="<ClassName>:<index>"]`, then take the screenshot. Otherwise give the user that URL.
-This is ng-prism's public External Tooling API; `window.__PRISM_MANIFEST__` lists every component and its variants.
+`.demo-wrap[data-prism-rendered="<ClassName>:<index>"]`, then take the screenshot. For a state add
+`&state=<stateIndex>`, wait for `<ClassName>:<index>:<stateIndex>` and skip the screenshot when `.demo-wrap` has a
+`data-prism-excluded` attribute (its value is the reason). Otherwise give the user that URL. This is ng-prism's public
+External Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states.
 
 ## Guides
 
