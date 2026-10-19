@@ -48,16 +48,18 @@ Manages which component or page is currently selected in the sidebar.
 
 Tracks the active variant and input values for the currently rendered component.
 
-| Member                        | Type                                                    | Description                                                                                                                                                     |
-| ----------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `activeVariantIndex`          | `WritableSignal<number>`                                | Index of the active variant tab (0-based)                                                                                                                       |
-| `inputValues`                 | `WritableSignal<Record<string, unknown>>`               | Current input values (merged defaults + variant + user overrides)                                                                                               |
-| `activeContent`               | `Signal<string \| Record<string, string> \| undefined>` | Content projected into the canvas                                                                                                                               |
-| `renderedElement`             | `WritableSignal<Element \| null>`                       | Reference to the root DOM element of the rendered component                                                                                                     |
-| `resetForComponent(comp)`     | `void`                                                  | Full reset: resets variant index, inputs, and content to variant 0                                                                                              |
-| `reconcileForComponent(comp)` | `void`                                                  | Soft reset: preserves variant index and user-overridden inputs on HMR or initial mount; merges input defaults when the prior className was `null` (fresh mount) |
-| `selectVariant(index)`        | `void`                                                  | Change variant and apply its inputs                                                                                                                             |
-| `updateInput(name, value)`    | `void`                                                  | Update a single input value (merges into `inputValues`)                                                                                                         |
+| Member                        | Type                                                    | Description                                                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `activeVariantIndex`          | `WritableSignal<number>`                                | Index of the active variant tab (0-based)                                                                                                                              |
+| `activeStateIndex`            | `WritableSignal<number \| null>`                        | Position in `ShowcaseConfig.states` of the component-level state on the canvas, `null` for none. Survives a variant change; reset when the component changes           |
+| `inputValues`                 | `WritableSignal<Record<string, unknown>>`               | Current input values (merged defaults + variant + user overrides)                                                                                                      |
+| `activeContent`               | `Signal<string \| Record<string, string> \| undefined>` | Content projected into the canvas                                                                                                                                      |
+| `renderedElement`             | `WritableSignal<Element \| null>`                       | Reference to the root DOM element of the rendered component                                                                                                            |
+| `resetForComponent(comp)`     | `void`                                                  | Full reset: resets variant index, state, inputs, and content to variant 0                                                                                              |
+| `reconcileForComponent(comp)` | `void`                                                  | Soft reset: preserves variant index, state and user-overridden inputs on HMR or initial mount; merges input defaults when the prior className was `null` (fresh mount) |
+| `selectVariant(index)`        | `void`                                                  | Change variant and apply its inputs                                                                                                                                    |
+| `selectState(index)`          | `void`                                                  | Set `activeStateIndex`; `null` clears the state                                                                                                                        |
+| `updateInput(name, value)`    | `void`                                                  | Update a single input value (merges into `inputValues`)                                                                                                                |
 
 Use `inputValues()` in Component Pages to react to Controls panel changes:
 
@@ -157,7 +159,7 @@ Provides aggregated plugin contributions (panels and controls) derived from `NgP
 
 ## PrismUrlStateService
 
-Synchronizes navigation state with URL query parameters: `component`, `page`, `variant`, `view`, `panel`. Initialized automatically by `PrismShellComponent`.
+Synchronizes navigation state with URL query parameters: `component`, `page`, `variant`, `state`, `view`, `panel`. Initialized automatically by `PrismShellComponent`.
 
 | Member   | Description                                                                         |
 | -------- | ----------------------------------------------------------------------------------- |

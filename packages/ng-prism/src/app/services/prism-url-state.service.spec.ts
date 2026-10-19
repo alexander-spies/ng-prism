@@ -1,5 +1,6 @@
-import { ApplicationRef } from '@angular/core';
+import { ApplicationRef, effect, untracked } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import type { ShowcaseState } from '../../decorator/showcase.types.js';
 import type { NgPrismConfig, RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { CAPTURE_PARAM } from './prism-capture.service.js';
@@ -12,7 +13,8 @@ function createComponent(
     overrides: Partial<{
         className: string;
         title: string;
-        variants: { name: string }[];
+        variants: { name: string; states?: false }[];
+        states: ShowcaseState[];
     }> = {}
 ): RuntimeComponent {
     return {
@@ -22,7 +24,8 @@ function createComponent(
             filePath: '/test.ts',
             showcaseConfig: {
                 title: overrides.title ?? 'Default',
-                variants: overrides.variants
+                variants: overrides.variants,
+                states: overrides.states
             },
             inputs: [],
             outputs: [],
@@ -35,8 +38,40 @@ function setUrl(search: string): void {
     window.history.replaceState({}, '', `/${search}`);
 }
 
+const STATES: ShowcaseState[] = [
+    { name: 'Hover', pseudo: { hover: true } },
+    { name: 'Focus', pseudo: { 'focus-visible': true } }
+];
+
 function flush(): void {
     TestBed.inject(ApplicationRef).tick();
+}
+
+/**
+ * What `PrismRendererComponent` does when the active component changes: it
+ * reconciles the renderer service with it. The URL service restores the
+ * variant and the state in the same tick, so this runs on top of them.
+ */
+function mirrorRendererComponent(): void {
+    const nav = TestBed.inject(PrismNavigationService);
+    const renderer = TestBed.inject(PrismRendererService);
+
+    TestBed.runInInjectionContext(() =>
+        effect(() => {
+            const comp = nav.activeComponent();
+
+            if (!comp) return;
+            untracked(() => renderer.reconcileForComponent(comp));
+        })
+    );
+}
+
+/** A real history traversal: jsdom fires `popstate` asynchronously, after the entry has changed. */
+function goBack(): Promise<void> {
+    return new Promise((resolve) => {
+        window.addEventListener('popstate', () => resolve(), { once: true });
+        window.history.back();
+    });
 }
 
 function setup(
@@ -387,6 +422,241 @@ describe('PrismUrlStateService', () => {
             flush();
 
             expect(window.location.search).not.toContain('panel=');
+        });
+    });
+
+    describe('state param', () => {
+        it('should restore the state from the URL', () => {
+            const comp = createComponent({ className: 'Foo', states: STATES });
+
+            setUrl('?component=Foo&state=1');
+            const { url, renderer } = setup({ components: [comp] });
+
+            url.init();
+
+            expect(renderer.activeStateIndex()).toBe(1);
+        });
+
+        it.each(['2', '99', '-1', 'abc', '1.5', '1abc', ''])('should ignore the state "%s", which is no index into the states', (value) => {
+            const comp = createComponent({ className: 'Foo', states: STATES });
+
+            setUrl(`?component=Foo&state=${value}`);
+            const { url, renderer } = setup({ components: [comp] });
+
+            url.init();
+
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
+
+        it('should ignore a state on a component without states', () => {
+            const comp = createComponent({ className: 'Foo' });
+
+            setUrl('?component=Foo&state=0');
+            const { url, renderer } = setup({ components: [comp] });
+
+            url.init();
+
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
+
+        it('should ignore a state on a page', () => {
+            const page = {
+                type: 'component' as const,
+                title: 'Patterns',
+                category: 'Docs',
+                component: class {} as any
+            };
+
+            setUrl('?page=Patterns&state=0');
+            const { url, renderer } = setup({ components: [], pages: [page] });
+
+            url.init();
+
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
+
+        it('should restore the variant and the state together', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+
+            setUrl('?component=Foo&variant=2&state=1');
+            const { url, renderer } = setup({ components: [comp] });
+
+            url.init();
+
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(1);
+        });
+
+        it('should write the active state', () => {
+            const comp = createComponent({ className: 'Foo', states: STATES });
+            const { url, nav, renderer } = setup({ components: [comp] });
+
+            url.init();
+            nav.select(comp);
+            flush();
+            expect(window.location.search).toBe('?component=Foo');
+
+            renderer.selectState(1);
+            flush();
+            expect(window.location.search).toBe('?component=Foo&state=1');
+
+            renderer.selectState(0);
+            flush();
+            expect(window.location.search).toBe('?component=Foo&state=0');
+
+            renderer.selectState(null);
+            flush();
+            expect(window.location.search).toBe('?component=Foo');
+        });
+
+        it('should write the state after the variant', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'V2' }],
+                states: STATES
+            });
+            const { url, nav, renderer } = setup({ components: [comp] });
+
+            url.init();
+            nav.select(comp);
+            renderer.activeVariantIndex.set(1);
+            renderer.selectState(1);
+            flush();
+
+            expect(window.location.search).toBe('?component=Foo&variant=1&state=1');
+        });
+
+        it('should use replaceState when only the state changes', () => {
+            const comp = createComponent({ className: 'Foo', states: STATES });
+            const pushSpy = jest.spyOn(window.history, 'pushState');
+            const replaceSpy = jest.spyOn(window.history, 'replaceState');
+            const { url, nav, renderer } = setup({ components: [comp] });
+
+            url.init();
+            nav.select(comp);
+            flush();
+            pushSpy.mockClear();
+            replaceSpy.mockClear();
+
+            renderer.selectState(1);
+            flush();
+
+            expect(pushSpy).not.toHaveBeenCalled();
+            expect(replaceSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not write the state next to a page', () => {
+            const page = {
+                type: 'component' as const,
+                title: 'Patterns',
+                category: 'Docs',
+                component: class {} as any
+            };
+            const { url, nav, renderer } = setup({ components: [], pages: [page] });
+
+            url.init();
+            renderer.selectState(1);
+            nav.selectPage(page);
+            flush();
+
+            expect(window.location.search).toBe('?page=Patterns');
+        });
+
+        it('should drop the state when the component changes', () => {
+            const a = createComponent({ className: 'A', states: STATES });
+            const b = createComponent({ className: 'B', states: STATES });
+            const { url, nav, renderer } = setup({ components: [a, b] });
+
+            mirrorRendererComponent();
+            url.init();
+            nav.select(a);
+            renderer.selectState(1);
+            flush();
+            expect(window.location.search).toBe('?component=A&state=1');
+
+            nav.select(b);
+            flush();
+
+            expect(renderer.activeStateIndex()).toBeNull();
+            expect(window.location.search).toBe('?component=B');
+        });
+
+        it('should restore the variant and the state on popstate', async () => {
+            const a = createComponent({
+                className: 'A',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+            const b = createComponent({ className: 'B', states: STATES });
+            const { url, nav, renderer } = setup({ components: [a, b] });
+
+            mirrorRendererComponent();
+            url.init();
+            nav.select(a);
+            flush();
+            renderer.activeVariantIndex.set(2);
+            renderer.selectState(1);
+            flush();
+            expect(window.location.search).toBe('?component=A&variant=2&state=1');
+
+            nav.select(b);
+            flush();
+            expect(window.location.search).toBe('?component=B');
+
+            await goBack();
+            flush();
+
+            expect(nav.activeComponent()).toBe(a);
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(1);
+            expect(window.location.search).toBe('?component=A&variant=2&state=1');
+        });
+
+        it('should clear the state on popstate to a URL without one', async () => {
+            const a = createComponent({ className: 'A', states: STATES });
+            const b = createComponent({ className: 'B', states: STATES });
+            const { url, nav, renderer } = setup({ components: [a, b] });
+
+            mirrorRendererComponent();
+            url.init();
+            nav.select(a);
+            flush();
+            nav.select(b);
+            flush();
+            renderer.selectState(1);
+            flush();
+            expect(window.location.search).toBe('?component=B&state=1');
+
+            await goBack();
+            flush();
+
+            expect(nav.activeComponent()).toBe(a);
+            expect(renderer.activeStateIndex()).toBeNull();
+            expect(window.location.search).toBe('?component=A');
+        });
+
+        it('should keep the state on a variant that opts out', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'Plain', states: false }],
+                states: STATES
+            });
+
+            setUrl('?component=Foo&variant=1&state=1');
+            const { url, nav, renderer } = setup({ components: [comp] });
+
+            mirrorRendererComponent();
+            url.init();
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(1);
+            expect(renderer.activeStateIndex()).toBe(1);
+            expect(nav.activeComponent()).toBe(comp);
+            expect(window.location.search).toBe('?component=Foo&variant=1&state=1');
         });
     });
 

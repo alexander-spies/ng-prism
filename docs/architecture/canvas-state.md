@@ -110,7 +110,7 @@ Emulating media queries would mean rendering the component in an iframe, which w
 ### Not in the URL
 
 Like `zoom`, `guides` and `rulers`, the viewport width is a `localStorage` preference and not a URL
-parameter. `PrismUrlStateService` carries navigation only (which component, page, variant, view and
+parameter. `PrismUrlStateService` carries navigation only (which component, page, variant, state, view and
 panel you are looking at) and no canvas setup.
 
 ### Capture mode

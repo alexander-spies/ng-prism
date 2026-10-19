@@ -11,7 +11,7 @@ ng-prism exposes a small, stable contract for those tools. This page is the cano
 | Anchor                                                               | Where                           | Purpose                                                                                                                                                                                                                      |
 | -------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `window.__PRISM_MANIFEST__`                                          | global, set by `providePrism()` | Shape: `{ components: [{ className, title, meta?, variants: [{ name, index, bg, meta?, pseudo? }] }], pages: [{ title }] }`. Use it to enumerate what to visit.                                                              |
-| URL params `?component=<className>&variant=<index>`                  | navigation state                | Drive the app to a specific component+variant from the outside. `variant` is the array index; omit it for index `0`.                                                                                                         |
+| URL params `?component=<className>&variant=<index>&state=<index>`    | navigation state                | Drive the app to a specific component+variant from the outside. `variant` is the array index; omit it for index `0`. `state` is the index into the component's `states`; omit it for no state.                               |
 | `[data-prism-rendered="<className>:<variantIndex>"]` on `.demo-wrap` | renderer host element           | Render marker. Wait for this attribute to match the expected key before inspecting the variant. While a component-level state is active the key ends in `:<stateIndex>`, see [Waiting for a render](#waiting-for-a-render).  |
 | `[data-prism-excluded="<reason>"]` on `.demo-wrap`                   | renderer host element           | Set next to the render marker when the requested state is not part of what the canvas shows. A runner reports the cell as excluded instead of capturing it, see [A state that does not apply](#a-state-that-does-not-apply). |
 | `?capture=1`                                                         | URL param                       | [Capture isolation mode](#capture-isolation-mode): strips canvas chrome, hands the canvas the whole viewport and freezes the render for deterministic screenshots.                                                           |
@@ -91,12 +91,13 @@ Build-time plugin hooks write into the same `meta`, so plugin output (for exampl
 
 ### Navigating
 
-Set `component` (and optionally `variant`) on the URL and reload. `variant` is a 0-based index into the `variants` array; values outside the array are ignored and the app falls back to index `0`.
+Set `component` (and optionally `variant` and `state`) on the URL and reload. `variant` is a 0-based index into the `variants` array; values outside the array are ignored and the app falls back to index `0`. `state` is a 0-based index into the `states` array of `@Showcase` (the position in the source, the same index the manifest and the render marker use); a value that is no index into it is ignored and no state is applied. It is read only next to `component`.
 
 ```js
 const url = new URL(baseUrl);
 url.searchParams.set('component', 'ButtonComponent');
 url.searchParams.set('variant', '2');
+url.searchParams.set('state', '1');
 await page.goto(url.toString(), { waitUntil: 'load' });
 ```
 
