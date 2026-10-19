@@ -116,7 +116,8 @@ runtime contributions only:
 A plugin doesn't have to be a package. Import its file from `ng-prism.config.ts` with the `.ts` extension
 (`import { notesPlugin } from './prism/notes-plugin.ts';`) and add `"rewriteRelativeImportExtensions": true` to the
 `compilerOptions` of the styleguide app's `tsconfig.app.json`, so the browser build accepts that path. In the builder,
-Node loads the file as it is, which needs Node 22.18 or newer. That file and whatever it imports statically may only
+Node loads the file as it is, which needs Node 22.18 or newer; without `"type": "module"` in the root `package.json` it
+prints a harmless `MODULE_TYPELESS_PACKAGE_JSON` warning. That file and whatever it imports statically may only
 use TypeScript Node can strip: `import type` for types, no `enum`, no decorators, no constructor parameter properties.
 Write its own relative imports with `.ts` as well; Node adds no extension. Keep components behind `loadComponent`,
 which only the browser runs. That rules out `controls`: a control's `component` is eager, so its decorator would have
