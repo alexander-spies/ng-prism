@@ -9,3 +9,13 @@
     align-content: start;
     padding: var(--sp-6);
 }
+
+/* The panel host is a column flex box that scrolls. The matrix scrolls inside
+   itself instead, so both its scrollbars sit at the edge of the panel and its
+   header row and variant column stay in view. */
+:host([data-matrix]) {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+}

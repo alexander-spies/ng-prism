@@ -1,20 +1,16 @@
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
+import { buildOverviewMatrix } from './overview-matrix.js';
 
 /**
- * How many cells the Overview would hold for this config.
- *
- * Rows are the variants, with an implicit Default row when there are none (the
- * canvas renders that one too, so states on a variant-less component still
- * make a row). Every row is one cell, plus one per component state unless the
- * variant opts out with `states: false`.
+ * How many cells the Overview would hold for this config: the matrix's rows
+ * times its columns, where a variant that opted out with `states: false` has
+ * one cell instead of a row of them.
  */
 export function overviewCellCount(config: ShowcaseConfig): number {
-    const stateCount = config.states?.length ?? 0;
-    const variants = config.variants ?? [];
+    const { columns, rows } = buildOverviewMatrix(config);
 
-    if (variants.length === 0) return 1 + stateCount;
-    return variants.reduce((cells, variant) => cells + 1 + (variant.states === false ? 0 : stateCount), 0);
+    return rows.reduce((cells, row) => cells + (row.optedOut ? 1 : columns.length), 0);
 }
 
 /**
