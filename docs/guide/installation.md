@@ -14,12 +14,13 @@ The fastest path is the `ng add` schematic. It creates a showcase app project, w
 ng add @ng-prism/core
 ```
 
-The schematic prompts for:
+The schematic prompts for the library project unless you pass `--project`. The other two options are flags only:
 
-| Prompt            | Default             | Description                                       |
-| ----------------- | ------------------- | ------------------------------------------------- |
-| Library project   | _(first lib found)_ | The library whose components you want to showcase |
-| Showcase app name | `{lib}-prism`       | Name of the generated Angular app project         |
+| Option       | Default                | Description                                                                                        |
+| ------------ | ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `--project`  | _(prompted, required)_ | The library whose components you want to showcase. The showcase app is named `<project>-prism`.    |
+| `--port`     | `4400`                 | Dev server port, written to the library's `prism` target and to the showcase app's `serve` target. |
+| `--zoneless` | `false`                | Bootstraps the showcase app with `provideZonelessChangeDetection()` and without `zone.js`.         |
 
 After running, your workspace contains:
 

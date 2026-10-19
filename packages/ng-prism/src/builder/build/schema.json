@@ -6,7 +6,7 @@
     "properties": {
         "entryPoint": {
             "type": "string",
-            "description": "Path to the library's public-api.ts (entry point for scanning)"
+            "description": "Library directory or barrel file to scan, relative to the workspace root. The installation guide's Builder Options describe how each is scanned."
         },
         "prismProject": {
             "type": "string",
@@ -14,24 +14,24 @@
         },
         "libraryProject": {
             "type": "string",
-            "description": "Library project name (used to resolve source root)"
+            "description": "Library project name. Only used as the fallback for libraryImportPath."
         },
         "outputPath": {
             "type": "string",
-            "description": "Output directory for the production build"
+            "description": "Output directory for the styleguide build. Overrides the outputPath of the prismProject's build target."
         },
         "libraryImportPath": {
             "type": "string",
-            "description": "NPM package name used for imports in the generated manifest (defaults to libraryProject)"
+            "description": "Package name used for imports in the generated manifest (defaults to libraryProject, then prismProject)"
         },
         "configFile": {
             "type": "string",
             "default": "ng-prism.config.ts",
-            "description": "Path to the ng-prism config file"
+            "description": "Path to the ng-prism config file, relative to the workspace root and inside it"
         },
         "cacheDir": {
             "type": "string",
-            "description": "Override directory for the generated prism-manifest.ts. Default: <workspaceRoot>/.ng-prism/<prismProject>/. Relative paths resolve against workspaceRoot."
+            "description": "Cache root for the generated manifest, written to <cacheDir>/<prismProject>/prism-manifest.ts. Default: <workspaceRoot>/ng-prism-cache. Relative paths resolve against the workspace root. The prism-manifest/* path mapping in tsconfig has to point there too."
         }
     },
     "required": ["entryPoint", "prismProject"],

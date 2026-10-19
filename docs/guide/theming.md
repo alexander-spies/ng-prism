@@ -170,16 +170,17 @@ Four chrome regions size themselves off one shared scalar, `--density`, rather t
 
 ### Density
 
-Every band height is expressed as `calc(<px> * var(--density))`. Setting that one custom property rescales the whole chrome. There is no menu and no setting behind it:
+Every band height is expressed as `calc(<px> * var(--density))`. Setting that one custom property rescales the whole chrome. There is no menu behind it; set it through `theme`:
 
-```css
-prism-shell {
-    --density: 0.8;
-} /* compact  */
-prism-shell {
-    --density: 1.25;
-} /* spacious */
+```typescript
+export default defineConfig({
+    theme: {
+        '--density': '0.8' // compact; '1.25' for spacious
+    }
+});
 ```
+
+The theme service sets every token, `--density` and the band heights included, as an inline style on `<html>`. A custom property that uses `var()` is resolved on the element that declares it, so the band heights are computed on `<html>`, and only a `--density` on `<html>` changes them. A rule such as `prism-shell { --density: 0.8 }` has no effect, and a stylesheet rule on `html` loses against the inline style.
 
 `--density` defaults to `1` and is set on `PRISM_BASE_TOKENS`, so it is the same in both dark and light theme and is not something `darkTheme`/`lightTheme` need to repeat.
 
@@ -229,4 +230,6 @@ The light theme maps the same custom properties to lighter values. Your `theme` 
 
 ## Scoping
 
-All ng-prism CSS uses the `prism-` class prefix. Because the showcase renders without an iframe, your library's styles and ng-prism's chrome coexist in the same document. ng-prism's properties are scoped to `.prism-shell`, so they will not bleed into your rendered component canvas.
+Because the showcase renders without an iframe, your library's styles and ng-prism's chrome share one document. The chrome's component styles use Angular's default emulated encapsulation, so their selectors do not match elements of your component.
+
+The theme tokens are not scoped. The theme service sets them as inline custom properties on `<html>`, next to the `data-theme` attribute, so every element in the document inherits them, your rendered component included. That only matters where your styles read a custom property of the same name. Most tokens carry the `--prism-` prefix, but the base tokens `--font-sans`, `--font-mono`, `--fs-*`, `--sp-*`, `--radius-*`, `--ease-default`, `--dur-*`, `--density` and `--band-*` do not. If your library declares one of these names on `:root` or `html`, ng-prism's inline value wins inside the styleguide; declared on your component's host or below it, yours wins.
