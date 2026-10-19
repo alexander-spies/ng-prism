@@ -210,6 +210,41 @@ describe('PseudoStateMarker', () => {
             expect(marker.applied()).toBe(before);
         });
 
+        it('settles for a state whose own class makes the target unreachable', async () => {
+            // The widened form of `.btn:hover { pointer-events: none }`: forcing the class takes the pointer away.
+            addStyle('.btn:is(:hover, .prism-pseudo--hover) { pointer-events: none; }');
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const button = root.querySelector('button')!;
+            let writes = 0;
+            // Counts the class writes, and gives up on a loop instead of spinning the test runner with it.
+            const watch = new MutationObserver((records) => {
+                writes += records.length;
+                if (writes > 50) marker.clear();
+            });
+
+            watch.observe(root, { attributes: true, attributeFilter: ['class'], subtree: true });
+            marker.apply(root, null, { hover: '.btn' });
+            await settle();
+            const settled = { writes, fit: marker.applied()?.fit, hovered: button.classList.contains(HOVER) };
+
+            await settle();
+            watch.disconnect();
+            expect(writes).toBe(1);
+            expect({ writes, fit: marker.applied()?.fit, hovered: button.classList.contains(HOVER) }).toEqual(settled);
+        });
+
+        it('still marks again when a class other than its own changes', async () => {
+            const root = mount('<div><button class="tab"></button><button class="tab tab--active"></button></div>');
+            const [first, second] = Array.from(root.querySelectorAll('button'));
+
+            marker.apply(root, null, { hover: '.tab--active' });
+            first.classList.add('tab--active');
+            second.classList.remove('tab--active');
+            await settle();
+            expect(first.classList.contains(HOVER)).toBe(true);
+            expect(second.classList.contains(HOVER)).toBe(false);
+        });
+
         it("clear removes the state's classes too", () => {
             const root = mount('<lib-button><button class="btn"></button></lib-button>');
 

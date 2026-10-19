@@ -25,6 +25,28 @@ export function appliedStateNames(applied: AppliedPseudoStates | null): PseudoSt
     return PSEUDO_STATES.filter((name) => hasTarget(states?.[name]) || (stateForced && hasTarget(state[name])));
 }
 
+/** A `class` attribute without the marker's own classes: all a selector can tell apart. */
+function withoutMarks(classAttribute: string | null): string {
+    return (classAttribute ?? '')
+        .split(/\s+/)
+        .filter((cls) => cls !== '' && !cls.startsWith(PSEUDO_CLASS_PREFIX))
+        .join(' ');
+}
+
+/**
+ * Whether `record` can change what a selector matches, and with it the targets
+ * or the fit. Inline styles cannot (an animation can write them every frame),
+ * and neither can a `class` change that only adds or removes the marker's own
+ * classes: those are the marker's writes coming back, and acting on them would
+ * let a state whose class takes away its own reach (`pointer-events: none`)
+ * flip the fit, and the class with it, in a loop of microtasks.
+ */
+function changesMatches(record: MutationRecord): boolean {
+    if (record.attributeName === 'style') return false;
+    if (record.attributeName !== 'class') return true;
+    return withoutMarks(record.oldValue) !== withoutMarks((record.target as Element).getAttribute('class'));
+}
+
 function sameFit(a: StateFit | null, b: StateFit | null): boolean {
     if (a === null || b === null) return a === b;
     return a.fits ? b.fits : !b.fits && a.reason === b.reason;
@@ -113,13 +135,11 @@ export class PseudoStateMarker {
 
     private observe(root: Element): void {
         if (typeof MutationObserver === 'undefined') return;
-        // Our own class changes come back through here too; the second pass finds
-        // nothing to change. Inline styles alone cannot change what a selector
-        // matches, and an animation can write them every frame.
+        // Our own class changes come back through here too, see changesMatches.
         this.observer = new MutationObserver((records) => {
-            if (records.some((record) => record.attributeName !== 'style')) this.mark();
+            if (records.some(changesMatches)) this.mark();
         });
-        this.observer.observe(root, { childList: true, subtree: true, attributes: true });
+        this.observer.observe(root, { childList: true, subtree: true, attributes: true, attributeOldValue: true });
     }
 
     private mark(): void {
