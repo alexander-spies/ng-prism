@@ -16,7 +16,7 @@ export type PseudoStateOverride = Partial<Record<PseudoState, boolean>>;
 export interface PseudoLayers {
     /** The variant's own states, with the user's toggles on top: forced as they are. */
     base: ForcedPseudoStates | null;
-    /** The active state's pseudo: forced only where {@link PrismPseudoStateService.canvasFit} says it fits. `null` when no state applies. */
+    /** The active state's pseudo: forced only where {@link PrismPseudoStateService.canvasFit} says it fits. `null` when no state applies, or the toggles switched off all of it. */
     state: ForcedPseudoStates | null;
 }
 
@@ -29,9 +29,11 @@ export interface PseudoLayers {
  * a copy. A state switched on from the menu applies to the whole component
  * (`true`), the way a pointer over it would, and lands in `base`, which the fit
  * rule does not touch. One the variant or the state declares keeps its own
- * target in its own layer. A state switched off leaves both layers. While a
- * state is active its layer stays an object, an empty one once every class is
- * switched off, so `state` is `null` only when no state applies.
+ * target in its own layer. A state switched off leaves both layers. Once the
+ * toggles have switched off every class the active state declares, its layer is
+ * `null`: that is the user's doing, not a state that forces nothing. A state
+ * that declares nothing itself (a slot the scanner could not evaluate) stays an
+ * empty object, so the marker can report it.
  */
 export function splitLayers(variantPseudo: ForcedPseudoStates | null, statePseudo: ForcedPseudoStates | null, override: PseudoStateOverride): PseudoLayers {
     if (Object.keys(override).length === 0) return { base: variantPseudo, state: statePseudo };
@@ -51,7 +53,9 @@ export function splitLayers(variantPseudo: ForcedPseudoStates | null, statePseud
         if (fromState !== undefined) state[name] = fromState;
         if (forced && fromVariant === undefined && fromState === undefined) base[name] = true;
     }
-    return { base: Object.keys(base).length > 0 ? base : null, state: statePseudo ? state : null };
+    const switchedOff = Object.keys(state).length === 0 && Object.keys(statePseudo ?? {}).length > 0;
+
+    return { base: Object.keys(base).length > 0 ? base : null, state: statePseudo && !switchedOff ? state : null };
 }
 
 /**

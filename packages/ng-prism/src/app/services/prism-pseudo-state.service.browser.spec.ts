@@ -204,7 +204,7 @@ describe('PrismPseudoStateService', () => {
         service.toggle('hover');
         expect(service.override()).toEqual({ hover: false });
         expect(service.isForced('hover')).toBe(false);
-        expect(service.layers().state).toEqual({});
+        expect(service.layers().state).toBeNull();
 
         service.toggle('hover');
         expect(service.override()).toEqual({});
@@ -285,15 +285,27 @@ describe('splitLayers', () => {
         expect(splitLayers(null, pseudo, { hover: false })).toEqual({ base: null, state: { active: true } });
     });
 
-    it('keeps an active state whose every class is toggled off as an empty layer', () => {
-        // Still the active state, and the marker reports it as forcing nothing.
-        expect(splitLayers(null, HOVERED.pseudo, { hover: false })).toEqual({ base: null, state: {} });
+    it('returns null for the state layer once every class of the state is toggled off', () => {
+        // A deliberate toggle must not reach the marker as a state that forces nothing.
+        expect(splitLayers(null, HOVERED.pseudo, { hover: false })).toEqual({ base: null, state: null });
+        expect(splitLayers(null, { hover: '.a', active: true }, { hover: false, active: false })).toEqual({ base: null, state: null });
+    });
+
+    it('keeps a declared empty state as the same object while nothing is toggled', () => {
+        // A slot the scanner could not evaluate: the marker has to see it, to report that it forces no state.
+        const unusable = {};
+
+        expect(splitLayers(null, unusable, {}).state).toBe(unusable);
+    });
+
+    it('keeps a declared empty state as an empty layer when an unrelated class is toggled', () => {
+        expect(splitLayers(null, {}, { hover: true })).toEqual({ base: { hover: true }, state: {} });
     });
 
     it('switching a class off drops it from both layers', () => {
         const layers = splitLayers({ hover: '.a', focus: true }, { hover: '.b' }, { hover: false });
 
-        expect(layers).toEqual({ base: { focus: true }, state: {} });
+        expect(layers).toEqual({ base: { focus: true }, state: null });
     });
 
     it('toggling on a class the variant declares keeps the variant target', () => {
