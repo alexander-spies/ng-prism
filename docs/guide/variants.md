@@ -75,7 +75,9 @@ Without the generic parameter, `inputs` falls back to `Record<string, unknown>` 
 
 See [`InputsOf<T>`](api/types.md#inputsof) for the type mapping rules.
 
-> **Known issue:** an input declared with an `alias` (`input('md', { alias: 'buttonSize' })`) can't be set from a variant or the Controls panel yet. Its member name passes but has no effect (Angular logs `NG0303: Can't set value of the 'size' input`), and its alias is skipped as an unknown input. On a directive it breaks the styleguide build, see [Directive Hosting](guide/directive-hosting.md#aliased-inputs-break-the-build).
+An input declared with an `alias` (`size = input('md', { alias: 'buttonSize' })`) is still keyed by its member name, `inputs: { size: 'lg' }`; ng-prism binds it by the alias, and the code snippet shows `buttonSize="lg"`.
+
+> Up to 22.5.0 an aliased input couldn't be set from a variant or the Controls panel, and on a directive it broke the styleguide build, see [Directive Hosting](guide/directive-hosting.md#aliased-inputs).
 
 ## Input Types and Controls
 

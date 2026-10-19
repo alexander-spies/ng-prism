@@ -38,9 +38,9 @@ package is right:
 3. **`title` is required.** Without it the component is skipped with a warning.
 4. **Signal inputs.** `input()`, `input.required()` and `model()` work; `@Input()` is read only partly and warns. The
    keys under a variant's `inputs` are the class member names. Write `@Showcase<ButtonComponent>({ … })` to get the
-   keys and their values type-checked. In 22.5.0 an input declared with an `alias` can't be set from a variant, neither
-   by its member name nor by its alias, and on a directive it fails the styleguide build with `NG8002`. Don't work
-   around it in the component; tell the user.
+   keys and their values type-checked. An input with an `alias` is keyed by its member name too. Up to 22.5.0 such an
+   input can't be set from a variant, by either name, and on a directive it fails the styleguide build with `NG8002`:
+   don't work around it in the component, tell the user.
 5. **`@Showcase` goes above `@Component` / `@Directive`**, imported from `@ng-prism/core` under its own name. An alias
    (`import { Showcase as S }`) or a namespace call is not recognized.
 6. **No `providers`.** `@Showcase({ providers })` is deprecated since 22.4.0, removed in 23.0.0, and the build drops

@@ -38,7 +38,7 @@ import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 import { PRISM_RENDERER_HOOKS } from '../tokens/prism-tokens.js';
-import { buildKnownInputs } from './known-inputs.js';
+import { buildInputBindings } from './known-inputs.js';
 import { resolveOverlay } from './overlay-resolver.js';
 import { parseContentToNodes } from './projectable-content.js';
 import { resolveRenderedKey } from './rendered-key.js';
@@ -185,14 +185,16 @@ export class PrismRendererComponent {
             }
 
             performance.mark('prism:rerender:start');
-            const knownInputs = buildKnownInputs(comp);
+            const inputBindings = buildInputBindings(comp);
 
             for (const [key, value] of Object.entries(inputs)) {
-                if (!knownInputs.has(key)) {
+                const binding = inputBindings.get(key);
+
+                if (binding === undefined) {
                     console.warn(`[ng-prism] Unknown input "${key}" on <${comp.meta.componentMeta.selector}>, skipping. Remove it from @Showcase variants.`);
                     continue;
                 }
-                ref.setInput(key, value);
+                ref.setInput(binding, value);
             }
             ref.changeDetectorRef.detectChanges();
             performance.mark('prism:rerender:end');
@@ -304,14 +306,16 @@ export class PrismRendererComponent {
             }
         }
 
-        const knownInputs = buildKnownInputs(comp);
+        const inputBindings = buildInputBindings(comp);
 
         for (const [key, value] of Object.entries(this.rendererService.inputValues())) {
-            if (!knownInputs.has(key)) {
+            const binding = inputBindings.get(key);
+
+            if (binding === undefined) {
                 console.warn(`[ng-prism] Unknown input "${key}" on <${selector}>, skipping. Remove it from @Showcase variants.`);
                 continue;
             }
-            this.componentRef.setInput(key, value);
+            this.componentRef.setInput(binding, value);
         }
         this.componentRef.changeDetectorRef.detectChanges();
 

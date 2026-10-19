@@ -77,6 +77,7 @@ function readInput(
 
     if (inputDecorator) {
         const required = isDecoratorInputRequired(inputDecorator);
+        const alias = readAlias(getDecoratorArgument(inputDecorator), name);
         const defaultValue = readInitialValue(member, checker);
         const doc = getJsDocComment(member, checker);
         const instantiated = subclass && usesTypeParameters(member.type ?? member.initializer, owner, checker) ? getInstantiatedType(name, subclass, checker) : undefined;
@@ -84,6 +85,7 @@ function readInput(
 
         return {
             name,
+            ...(alias && { alias }),
             type,
             rawType,
             required,
@@ -98,6 +100,8 @@ function readInput(
     if (!signalCall) return undefined;
 
     const required = isSignalInputRequired(signalCall);
+    // `input(initial, options)`, but `input.required(options)`.
+    const alias = readAlias(signalCall.arguments[required ? 0 : 1], name);
     const defaultValue = readInitialValue(member, checker);
     const doc = getJsDocComment(member, checker);
     const declaredType = signalCall.typeArguments?.[0] ?? signalCall.arguments[0];
@@ -108,6 +112,7 @@ function readInput(
 
     return {
         name,
+        ...(alias && { alias }),
         type,
         rawType,
         required,
@@ -115,6 +120,24 @@ function readInput(
         ...(defaultValue !== undefined && { defaultValue }),
         ...(doc && { doc })
     };
+}
+
+/**
+ * The `alias` of an input or output, from a decorator argument (`'x'` or
+ * `{ alias: 'x' }`) or the options of `input()`, `model()` and `output()`.
+ * Only a string literal counts, and only when it differs from the member name.
+ */
+function readAlias(arg: ts.Expression | undefined, name: string): string | undefined {
+    let alias: ts.Expression | undefined = arg;
+
+    if (arg && ts.isObjectLiteralExpression(arg)) {
+        const prop = arg.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === 'alias');
+
+        alias = prop?.initializer;
+    }
+    if (!alias || !ts.isStringLiteralLike(alias)) return undefined;
+
+    return alias.text !== name ? alias.text : undefined;
 }
 
 /**
@@ -134,12 +157,17 @@ export function extractOutputs(classDecl: ts.ClassDeclaration, checker: ts.TypeC
             const name = member.name && ts.isIdentifier(member.name) ? member.name.text : undefined;
 
             if (!name || seen.has(name)) continue;
-            if (!findDecorator(member, 'Output') && !isOutputSignal(member)) continue;
+
+            const outputDecorator = findDecorator(member, 'Output');
+
+            if (!outputDecorator && !isOutputSignal(member)) continue;
 
             const doc = getJsDocComment(member, checker);
+            const options = outputDecorator ? getDecoratorArgument(outputDecorator) : (member.initializer as ts.CallExpression).arguments[0];
+            const alias = readAlias(options, name);
 
             seen.add(name);
-            outputs.push({ name, ...(doc && { doc }) });
+            outputs.push({ name, ...(alias && { alias }), ...(doc && { doc }) });
         }
     }
 

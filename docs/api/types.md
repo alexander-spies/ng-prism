@@ -75,6 +75,7 @@ Describes a single `input()` signal as extracted by the scanner.
 ```typescript
 interface InputMeta {
     name: string;
+    alias?: string;
     type: 'string' | 'number' | 'boolean' | 'union' | 'array' | 'object' | 'unknown';
     rawType?: string;
     values?: string[];
@@ -84,15 +85,16 @@ interface InputMeta {
 }
 ```
 
-| Field          | Description                                                             |
-| -------------- | ----------------------------------------------------------------------- |
-| `name`         | Property name                                                           |
-| `type`         | Normalized type category used to select a control                       |
-| `rawType`      | Raw TypeScript type string (e.g. `'primary' \| 'danger'`)               |
-| `values`       | For union types: the individual member values                           |
-| `defaultValue` | Value from `input(defaultValue)`                                        |
-| `required`     | `true` if declared with `input.required<T>()`                           |
-| `doc`          | JSDoc comment from the property (populated by `@ng-prism/plugin-jsdoc`) |
+| Field          | Description                                                              |
+| -------------- | ------------------------------------------------------------------------ |
+| `name`         | Property name; variants and controls use it                              |
+| `alias`        | Public name from `alias` (or `@Input('x')`), when it differs from `name` |
+| `type`         | Normalized type category used to select a control                        |
+| `rawType`      | Raw TypeScript type string (e.g. `'primary' \| 'danger'`)                |
+| `values`       | For union types: the individual member values                            |
+| `defaultValue` | Value from `input(defaultValue)`                                         |
+| `required`     | `true` if declared with `input.required<T>()`                            |
+| `doc`          | JSDoc comment from the property (populated by `@ng-prism/plugin-jsdoc`)  |
 
 ---
 
@@ -103,9 +105,12 @@ Describes a single `output()` signal.
 ```typescript
 interface OutputMeta {
     name: string;
+    alias?: string;
     doc?: string;
 }
 ```
+
+`alias` is the public event name from `output({ alias })` or `@Output('x')`, when it differs from `name`.
 
 ---
 

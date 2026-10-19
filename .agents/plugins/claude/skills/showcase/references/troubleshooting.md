@@ -67,10 +67,11 @@ Same prefix, but they don't count for `strictShowcase`.
 
 - **`[ng-prism] Variant "<name>" references unknown input "<key>" on <Class>, ignoring.`** and
   **`[ng-prism] Unknown input "<key>" on <selector>, skipping. Remove it from @Showcase variants.`**: a key under
-  `inputs` isn't an input of the component. Check the spelling, write the class member name, and make sure the member
-  is an `input()` or `model()`. An input's `alias` lands here too: in 22.5.0 a variant can't set an aliased input.
-- **`NG0303: Can't set value of the '<member>' input on the '<Class>' component.`** (Angular, dev mode): the member is
-  an input with an `alias`. The variant can't set it in 22.5.0, by either name; leave it out and tell the user.
+  `inputs` isn't an input of the component. Check the spelling, write the class member name (also for an input with
+  an `alias`), and make sure the member is an `input()` or `model()`. Up to 22.5.0 an alias lands here too.
+- **`NG0303: Can't set value of the '<member>' input on the '<Class>' component.`** (Angular, dev mode), up to 22.5.0:
+  the member is an input with an `alias`, which a variant can't set there, by either name. Leave it out and tell the
+  user.
 - **`[ng-prism] Variant <index> of <Class> failed to render:`** followed by the error: the component threw while
   rendering that variant; the error that follows says why, for example a missing `input.required()`. Fix the variant's
   `inputs`, or the component.
@@ -100,14 +101,14 @@ Check the log line `ng-prism: Generated manifest with N component(s)` first, the
 ## The styleguide build fails with NG8002
 
 `NG8002: Can't bind to '<member>' since it isn't a known property of '<tag>'`, reported in
-`ng-prism-cache/<lib>-prism/prism-manifest.ts`: a directive with `@Showcase` declares an input with an `alias`. The
-generated host binds every input by its member name, which the directive doesn't accept. In 22.5.0 the only ways out
-are to drop the alias or the `@Showcase`; ask the user which.
+`ng-prism-cache/<lib>-prism/prism-manifest.ts`, up to 22.5.0: a directive with `@Showcase` declares an input with an
+`alias`, and the generated host binds the member name, which the directive doesn't accept. There the only ways out are
+to drop the alias or the `@Showcase`; ask the user which. Later versions bind the alias.
 
 ## An input has no effect
 
 - The key isn't the member name: look for the browser console messages above.
-- The input has an `alias`: a variant can't set it in 22.5.0.
+- Up to 22.5.0: the input has an `alias`, which a variant can't set there.
 - The value was dropped: look for a `⚠ ng-prism:` line that names `inputs.<key>`.
 - The input is an `@Input()`: migrate it to `input()`.
 

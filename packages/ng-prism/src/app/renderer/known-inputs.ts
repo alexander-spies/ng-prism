@@ -7,11 +7,19 @@ import type { RuntimeComponent } from '../../plugin/plugin.types.js';
  */
 export const PRISM_CONTENT_INPUT = '__prismContent__';
 
-export function buildKnownInputs(comp: RuntimeComponent): Set<string> {
-    const known = new Set(comp.meta.inputs.map((i) => i.name));
+/**
+ * The inputs a variant may set, by class member name, each mapped to the name
+ * `ComponentRef.setInput` takes. Angular resolves that by the public name, so a
+ * component's aliased input maps to its alias. A directive renders inside the
+ * generated `__PrismHost` wrapper, which declares the inputs under their member
+ * names and binds the aliases itself.
+ */
+export function buildInputBindings(comp: RuntimeComponent): Map<string, string> {
+    const isDirective = comp.meta.componentMeta.isDirective;
+    const bindings = new Map(comp.meta.inputs.map((i) => [i.name, isDirective ? i.name : (i.alias ?? i.name)]));
 
-    if (comp.meta.componentMeta.isDirective) {
-        known.add(PRISM_CONTENT_INPUT);
+    if (isDirective) {
+        bindings.set(PRISM_CONTENT_INPUT, PRISM_CONTENT_INPUT);
     }
-    return known;
+    return bindings;
 }

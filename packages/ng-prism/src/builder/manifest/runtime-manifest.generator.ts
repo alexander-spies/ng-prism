@@ -87,9 +87,10 @@ function generateWrapperClass(comp: ScannedComponent): string {
         importsArray = `[${comp.className}]`;
     }
 
-    const inputBindings = bindableInputs.map((i) => ` [${i.name}]="${i.name}()"`).join('');
+    // The wrapper declares its inputs and outputs under the member names and binds the directive's public ones.
+    const inputBindings = bindableInputs.map((i) => ` [${i.alias ?? i.name}]="${i.name}()"`).join('');
 
-    const outputBindings = comp.outputs.map((o) => ` (${o.name})="${o.name}.emit($event)"`).join('');
+    const outputBindings = comp.outputs.map((o) => ` (${o.alias ?? o.name})="${o.name}.emit($event)"`).join('');
 
     const template = `<${tag}${attrs} ${directiveAttr}${inputBindings}${outputBindings}>{{ __prismContent__() }}</${tag}>`;
 

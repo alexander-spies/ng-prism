@@ -161,7 +161,10 @@ export interface ScannedComponent {
 }
 
 export interface InputMeta {
+    /** The class member. Variants and controls use this name. */
     name: string;
+    /** The public name Angular binds the input by, when an `alias` makes it differ from `name`. */
+    alias?: string;
     type: 'string' | 'number' | 'boolean' | 'union' | 'array' | 'object' | 'unknown';
     rawType?: string;
     values?: string[];
@@ -171,7 +174,10 @@ export interface InputMeta {
 }
 
 export interface OutputMeta {
+    /** The class member. */
     name: string;
+    /** The public event name, when an `alias` makes it differ from `name`. */
+    alias?: string;
     doc?: string;
 }
 
