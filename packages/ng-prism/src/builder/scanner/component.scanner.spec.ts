@@ -498,6 +498,16 @@ describe('scanComponents with component states', () => {
         );
     });
 
+    it('keeps the slot of a state the evaluator could not read', () => {
+        const { diagnostics, config } = scan();
+        const states = config('GapStatesComponent').states!;
+
+        expect(states.map((s) => s.name)).toEqual(['A', 'State 2', 'C']);
+        expect(states[1].pseudo).toEqual({});
+        expect(states[2].pseudo).toEqual({ hover: '.c' });
+        expect(diagnostics.filter((d) => d.startsWith('GapStatesComponent'))).toEqual([expect.stringContaining('GapStatesComponent › states[1] — "makeState()" (')]);
+    });
+
     it('names a state by its name in a diagnostic path', () => {
         const { diagnostics, config } = scan();
         const message = diagnostics.find((d) => d.startsWith('UnevaluableStateComponent'))!;

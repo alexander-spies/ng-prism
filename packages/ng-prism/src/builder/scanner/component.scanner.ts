@@ -146,6 +146,8 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
 
     // Reported once for the whole field below, wherever it came from: the literal, a spread or a constant.
     let providers: ts.Node | undefined;
+    // A state the evaluator dropped whole leaves no element behind, so its position is noted to keep the later states where the source has them.
+    const unevaluableStates = new Set<number>();
     const raw = evaluateStatic(arg, {
         checker,
         report: (issue) => {
@@ -153,6 +155,7 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
                 providers ??= issue.node;
                 return;
             }
+            if (issue.path[0] === 'states' && issue.path.length === 2 && typeof issue.path[1] === 'number') unevaluableStates.add(issue.path[1]);
             report(describeUnevaluable(className, arg, issue));
         }
     });
@@ -194,7 +197,7 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
         if (config.renderPage) {
             report(`${className} declares states together with renderPage; a component page has no Overview to show them in. Skipping states.`);
         } else {
-            const states = readShowcaseStates(obj['states'], className, report);
+            const states = readShowcaseStates(obj['states'], className, report, unevaluableStates);
 
             if (states) config.states = states;
         }

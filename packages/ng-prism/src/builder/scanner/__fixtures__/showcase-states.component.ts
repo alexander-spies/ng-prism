@@ -41,3 +41,14 @@ export class PageStatesComponent {}
 })
 @Component({ selector: 'unevaluable-state', standalone: true, template: '' })
 export class UnevaluableStateComponent {}
+
+function makeState(): Record<string, unknown> {
+    return { name: 'Made', pseudo: { hover: '.btn' } };
+}
+
+@Showcase({
+    title: 'Gap States',
+    states: [{ name: 'A', pseudo: { hover: '.a' } }, makeState(), { name: 'C', pseudo: { hover: '.c' } }]
+})
+@Component({ selector: 'gap-states', standalone: true, template: '' })
+export class GapStatesComponent {}
