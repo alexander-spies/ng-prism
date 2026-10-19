@@ -26,7 +26,7 @@ const warnedSelectors = new Set<string>();
  * The elements under `root` a target names. `root` counts: a selector can name
  * the component's host, and `true` includes it.
  */
-function resolveTargets(root: Element, target: PseudoTarget | undefined): Set<Element> {
+export function resolveTargets(root: Element, target: PseudoTarget | undefined): Set<Element> {
     const targets = new Set<Element>();
 
     if (target === undefined) return targets;
