@@ -119,6 +119,8 @@ The Controls panel checks registered `ControlDefinition` entries in plugin regis
 
 ### `wrapComponent`
 
+> **Not yet implemented. Setting this has no effect.** `wrapComponent` exists on `NgPrismPlugin`, but nothing reads it yet.
+
 A standalone Angular component rendered as a wrapper around every showcased component. Use for context providers (theme, mock services) that must be rendered in the component tree, or for overlay host components.
 
 ```typescript
@@ -197,7 +199,7 @@ Registered like any other `headerWidgets` entry; see [`HeaderWidgetDefinition`](
 | `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                           |
 | `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                         |
 | `icon`                 | `string`              | Icon name (optional)                                               |
-| `position`             | `'bottom' \| 'right'` | Panel area placement                                               |
+| `position`             | `'bottom' \| 'right'` | _Reserved, not yet implemented._ Panel area placement              |
 | `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                |
 | `providers`            | `Provider[]`          | Providers scoped to this panel's injector                          |
 

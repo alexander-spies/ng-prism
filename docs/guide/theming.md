@@ -46,7 +46,9 @@ export default defineConfig({
 
 ## Custom Stylesheet
 
-For more complex theming (custom fonts, additional utilities, SCSS variables), point `themeStylesheet` at a file in your showcase app:
+> **Not yet implemented.** `themeStylesheet` is declared on `NgPrismConfig`, but nothing loads the file yet, so setting it has no effect.
+
+For more complex theming (custom fonts, additional utilities, SCSS variables), the intent is to point `themeStylesheet` at a file in your showcase app:
 
 ```typescript
 export default defineConfig({
@@ -221,9 +223,9 @@ prism-shell {
 
 ## Dark and Light Themes
 
-ng-prism ships with a dark theme by default. A light theme variant is also available. To enable the light theme, add the `prism-theme-light` class to the document root or use the built-in theme toggle button in the header toolbar.
+ng-prism ships with a dark theme by default. A light theme variant is also available through the theme toggle button in the header toolbar. The choice is stored in `localStorage` (`ng-prism-theme`) and set as `data-theme` on `<html>`.
 
-The light theme maps the same custom properties to lighter values. Your `theme` overrides apply to both unless you target the `.prism-theme-light` selector explicitly in `themeStylesheet`.
+The light theme maps the same custom properties to lighter values. Your `theme` overrides apply to both; use `darkTheme` or `lightTheme` for overrides that apply to one of them only.
 
 ## Scoping
 

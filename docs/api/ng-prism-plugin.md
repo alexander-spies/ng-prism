@@ -170,6 +170,8 @@ See [`NavigationDecorationDefinition`](#navigationdecorationdefinition) for the 
 
 ### `wrapComponent`
 
+> **Not yet implemented. Setting this has no effect.** `wrapComponent` exists on `NgPrismPlugin`, but nothing reads it yet.
+
 An Angular standalone component that wraps every rendered component. Use for providing context (theme, mocks, CDK overlay host) that must exist in the component tree.
 
 ```typescript
@@ -207,7 +209,7 @@ interface PanelDefinition {
 | `overlayComponent`     | Component rendered as a canvas overlay (e.g. visual annotations)                                                                                                                                                     |
 | `loadOverlayComponent` | Lazy-loaded canvas overlay                                                                                                                                                                                           |
 | `icon`                 | Icon identifier (optional, theme-dependent)                                                                                                                                                                          |
-| `position`             | `'bottom'` (horizontal panel) or `'right'` (sidebar panel)                                                                                                                                                           |
+| `position`             | _Reserved, not yet implemented._ `'bottom'` (horizontal panel) or `'right'` (sidebar panel)                                                                                                                          |
 | `placement`            | `'addon'` = bottom tab bar, `'view'` = view toolbar toggle                                                                                                                                                           |
 | `providers`            | Providers scoped to this panel's child `EnvironmentInjector`                                                                                                                                                         |
 | `isVisible`            | Predicate. When provided, the panel tab is only shown if it returns `true` for the active component                                                                                                                  |

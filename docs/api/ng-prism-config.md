@@ -112,6 +112,8 @@ See [Theming](guide/theming.md) for the full list of available properties.
 
 ### `themeStylesheet`
 
+> **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig`, but nothing reads it yet.
+
 Path to a custom CSS/SCSS file loaded by the Prism app. Relative to the workspace root. Use for custom fonts, utility classes, or complex theming that cannot be expressed with CSS custom properties alone.
 
 ```typescript
@@ -123,6 +125,8 @@ export default defineConfig({
 ---
 
 ### `ui`
+
+> **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig`, but nothing reads it yet.
 
 Replace individual UI sections with custom Angular standalone components. All fields are optional. Omit a slot to keep the built-in component.
 
@@ -153,13 +157,15 @@ See [Custom UI Sections](guide/custom-ui.md) for examples.
 
 > **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig` and is kept for forward compatibility.
 
-When implemented, `true` will strip all built-in chrome (header, sidebar, toolbar, panels) and render only the component canvas. Default: `false`. For a custom shell today, use [`appComponent`](#appcomponent).
+When implemented, `true` will strip all built-in chrome (header, sidebar, toolbar, panels) and render only the component canvas. Default: `false`.
 
 For screenshot isolation (a separate, working feature), see [capture isolation mode](guide/external-tooling.md#capture-isolation-mode).
 
 ---
 
 ### `appComponent`
+
+> **Not yet implemented. Setting this has no effect.** The property exists on `NgPrismConfig`, but nothing reads it yet.
 
 Replace the entire application shell with a custom Angular component. When set, ng-prism renders this component instead of `PrismShellComponent` while still providing all services.
 

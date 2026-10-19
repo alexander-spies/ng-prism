@@ -2,6 +2,8 @@
 
 ng-prism lets you replace individual UI regions with your own Angular components, or go fully headless and provide an entirely custom shell.
 
+> **Not yet implemented.** `ui`, `appComponent` and `headless` are declared on `NgPrismConfig`, but nothing reads them yet, so setting them has no effect. This page describes the intended behaviour, not current behaviour.
+
 ## Replaceable Slots
 
 Configure replacements in `ng-prism.config.ts` under the `ui` key:
@@ -114,7 +116,7 @@ export class MySidebarComponent {
 
 > **Not yet implemented.** `headless` is declared on `NgPrismConfig` but has no effect today. Setting it does nothing. It is documented here because the option is already part of the published type surface; the section below describes the intended behaviour, not current behaviour.
 
-The intent is that `headless: true` strips all built-in chrome (header, sidebar, toolbar, panels) so only the component canvas is rendered. That is useful for embedding the renderer in a larger custom app. Until it lands, use `appComponent` (see **Full Shell Replacement** below) to supply your own shell.
+The intent is that `headless: true` strips all built-in chrome (header, sidebar, toolbar, panels) so only the component canvas is rendered. That is useful for embedding the renderer in a larger custom app.
 
 > Looking for a stripped-down canvas for **screenshot tooling**? That is a different feature and it does work today: see [capture isolation mode](guide/external-tooling.md#capture-isolation-mode).
 
