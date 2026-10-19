@@ -176,6 +176,13 @@ describe('state-fit', () => {
             expect(evaluateStateFit(root, { 'focus-visible': true })).toEqual({ fits: true });
         });
 
+        it('ignores an empty selector like the marker does', () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            expect(evaluateStateFit(root, { hover: '', 'focus-visible': '.btn' })).toEqual({ fits: true });
+            expect(evaluateStateFit(root, { hover: '' })).toEqual(fitsNot('forces no state'));
+        });
+
         it('treats an invalid selector as matching nothing', () => {
             const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
             const root = mount('<lib-button><button class="btn"></button></lib-button>');
