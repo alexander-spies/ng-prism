@@ -27,6 +27,7 @@ You only need these if you actually use the Design Diff panel. The Embed panel w
 // ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core/config';
 import { figmaPlugin } from '@ng-prism/plugin-figma';
+import { FIGMA_TOKEN } from './figma-token.local.ts';
 
 export default defineConfig({
     plugins: [
@@ -34,7 +35,7 @@ export default defineConfig({
             // Opt in to the Design Diff panel. Omit it and only the Embed panel is registered.
             designDiff: true,
             // Required by the Design Diff panel to fetch node images.
-            accessToken: process.env['FIGMA_TOKEN']
+            accessToken: FIGMA_TOKEN
         })
     ]
 });
@@ -51,7 +52,14 @@ export default defineConfig({
 
 1. Open Figma → **Settings** → **Security** → **Personal access tokens**.
 2. Create a new token. Grant it the **File content (read-only)** scope. The plugin needs nothing else.
-3. Pass it to `figmaPlugin({ accessToken })`.
+3. Put it into a file next to `ng-prism.config.ts` that stays out of git, and import it from there (example above):
+
+    ```typescript
+    // figma-token.local.ts, listed in .gitignore
+    export const FIGMA_TOKEN = 'figd_…';
+    ```
+
+    The config runs twice: in Node inside the builder and in the browser, so `process.env['FIGMA_TOKEN']` doesn't work (the Angular build rejects `process`, and the browser has none). The `.ts` extension in the import lets the builder load the file in Node, which needs Node 22.18 or newer. For the Angular build, add `"rewriteRelativeImportExtensions": true` to the `compilerOptions` of the styleguide app's `tsconfig.app.json`. The file has to exist wherever the styleguide is built: without a token, `export const FIGMA_TOKEN = '';` builds, and the panel reports the missing token when you run a diff.
 
 > **The token becomes part of the styleguide app.** The styleguide's `main.ts` imports `ng-prism.config.ts`, and `figmaPlugin()` hands its options to the Design Diff panel, which calls the Figma REST API from the browser. Anyone who can open a styleguide built with a token can read the token from its bundle. Never deploy a styleguide built with your personal token where others can open it, and never commit the token to a repository.
 

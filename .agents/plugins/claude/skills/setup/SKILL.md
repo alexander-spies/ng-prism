@@ -108,7 +108,10 @@ itself. Keep the core and every plugin on the same version: plugins require `@ng
   `@Showcase` itself. The Design Diff panel appears once a variant sets `meta.figma`: a URL with `node-id`, or
   `{ url, nodeId }`; a variant without its own value falls back to the component's `meta.figma`. It calls the Figma
   API from the browser, so `accessToken` becomes part of the styleguide app: never deploy a styleguide built with a
-  personal token where others can open it.
+  personal token where others can open it. `process.env` doesn't work in the config, which also runs in the browser:
+  keep the token in a gitignored `figma-token.local.ts` next to it, import it with the `.ts` extension and set
+  `"rewriteRelativeImportExtensions": true` in the styleguide app's `tsconfig.app.json` (as for a plugin inside the
+  repo, skill write-plugin).
 - **Coverage** reads `coverage/coverage-summary.json` (Istanbul's `json-summary` reporter) at build time.
 - **Visual regression** reads `vrt-report.json`, written by your own screenshot runner (`guide/visual-regression.md`).
 
