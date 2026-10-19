@@ -39,9 +39,9 @@ export function createScanner(options: CreateScannerOptions): Scanner {
 
 ## Entry Point Discovery
 
-The pipeline accepts either a directory or a file as `entryPoint`. The resolution works the same way for both. The file form is just a convenience that gets resolved upward to its containing library.
+The pipeline accepts either a directory or a file as `entryPoint`. Both lead to the same discovery of secondary entry points; a file is first resolved upward to its containing library. They differ only for a library without secondary entry points: a file is then scanned directly, a directory yields no entry point at all.
 
-### Directory with secondary entry points (recommended)
+### Directory entryPoint
 
 If `entryPoint` is a directory, `discoverSecondaryEntryPoints()` walks it recursively looking for `ng-package.json` files. For each `ng-package.json` that does not have a `dest` field (i.e. a secondary entry point, since `dest` is conventionally only set on the primary), the scanner reads `lib.entryFile` (default: `public-api.ts`) and derives the import path from the relative directory name.
 
@@ -66,7 +66,7 @@ libraryRoot = "projects/my-lib"
 [my-lib/atoms, my-lib/molecules, ...]
 ```
 
-If no `ng-package.json` is found above the file, or if discovery returns no entries (e.g. for a primary-only library without secondaries), the pipeline falls back to scanning the configured file directly, which preserves back-compat for non-ng-packagr setups.
+If no `ng-package.json` is found above the file, or if discovery returns no entries (e.g. for a primary-only library without secondaries), the pipeline falls back to scanning the configured file directly, which preserves back-compat for non-ng-packagr setups. A directory `entryPoint` has no such fallback: for a primary-only library the manifest stays empty, without a warning. `ng add` writes the library directory, so such a library needs its `entryPoint` changed to the barrel file.
 
 ## How Decorators Are Extracted
 
