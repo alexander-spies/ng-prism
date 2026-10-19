@@ -52,6 +52,9 @@ When a teammate opens the repository in Claude Code and trusts the folder, Claud
 install the plugin. The one-command install doesn't work for this: it declares the marketplace in your user settings
 even with `--scope project`, so your teammates' Claude Code wouldn't know where the plugin comes from.
 
+Add `"autoUpdate": true` next to `source` in the marketplace entry, and everyone gets new plugin versions without
+running an update.
+
 ## What it covers
 
 | Skill                   | For                                                                                                                       |
