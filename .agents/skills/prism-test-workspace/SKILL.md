@@ -40,7 +40,7 @@ node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component B
 - `--shell` takes the whole window without capture mode. Use it for changes to the styleguide's own UI (sidebar, header, panels, canvas tools), which capture mode removes.
 - `--url http://localhost:4401` targets `test-ui-kit`; `--out <file>` sets the path (default: the system temp dir).
 
-Variant indexes are 0-based, in `@Showcase` order. The script reads `window.__PRISM_MANIFEST__` first and lists the known components or variants when the one you named doesn't exist. It then waits for the render marker `data-prism-rendered="<ClassName>:<variant>"`, prints the URL and the PNG path, and lists browser console errors. Exit codes: 0 saved, 1 not reachable, not found or never rendered (then it saves the full window for diagnosis), 2 invalid arguments, 3 Playwright or Chromium missing.
+Variant indexes are 0-based, in `@Showcase` order. The script reads `window.__PRISM_MANIFEST__` first and lists the known components or variants when the one you named doesn't exist. It then waits for the render marker `data-prism-rendered="<ClassName>:<variant>"`, prints the URL and the PNG path, and lists browser console errors. Exit codes: 0 saved, 1 not reachable, not found, never rendered (then it saves the full window for diagnosis) or the screenshot failed, 2 invalid arguments, 3 Playwright or Chromium missing. A variant without `bg` or with `bg: 'transparent'` comes back as a PNG with alpha.
 
 Open the PNG with the Read tool and look at it before saying the change works. Then report what you checked: the URL, the variant, what the image shows, and the warnings in the log. That is also what the PR template asks for under "How Was This Verified?".
 

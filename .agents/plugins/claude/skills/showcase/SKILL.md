@@ -130,15 +130,18 @@ node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --
 
 - By default it opens the variant in capture mode (`?capture=1`: the component alone on its background, motion
   frozen) and screenshots `.demo-wrap`. `--shell` takes the whole window, styleguide UI included.
-- `--url` (default `http://localhost:4400`), `--out <file.png>` (default: the system temp dir), `--timeout <ms>`
-  (default 30000).
+- A variant without `bg`, or with `bg: 'transparent'`, comes back with a transparent background (a PNG with alpha).
+  Viewers show transparent pixels differently; if a light or dark component is hard to judge, look at `--shell` too.
+- `--url` (default `http://localhost:4400`, https with a self-signed certificate works), `--out <file.png>` (default:
+  the system temp dir), `--timeout <ms>` (default 30000).
 - It prints the URL and the PNG path and lists browser console errors. Open the PNG and look at it.
 - It selects the variant through URL parameters, like the URL below, and `urlState: false` in `ng-prism.config.ts`
   turns them off. The script then times out with "Variant never rendered"; ask before switching `urlState` back on.
 - Exit codes: `0` saved. `1` the styleguide doesn't answer, the component or variant doesn't exist (it lists what
-  does), or the variant never rendered (it saves the full window for diagnosis). `2` invalid arguments. `3` Playwright
-  or its Chromium is missing: suggest `npm i -D playwright && npx playwright install chromium` and run it only if the
-  user agrees.
+  does), the variant never rendered (it saves the full window for diagnosis), or the screenshot failed, e.g. for a
+  component without a visible size (`--shell` still works). `2` invalid arguments. `3` Playwright or its Chromium is
+  missing or won't start: suggest `npm i -D playwright && npx playwright install chromium` (on Linux with missing
+  system libraries `npx playwright install --with-deps chromium`) and run it only if the user agrees.
 
 Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome DevTools MCP, Claude in Chrome): open
 `http://localhost:4400/?component=<ClassName>&variant=<index>&capture=1`, wait for

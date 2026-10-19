@@ -73,8 +73,13 @@ Same prefix, but they don't count for `strictShowcase`.
   the member is an input with an `alias`, which a variant can't set there, by either name. Leave it out and tell the
   user.
 - **`[ng-prism] Variant <index> of <Class> failed to render:`** followed by the error: the component threw while
-  rendering that variant; the error that follows says why, for example a missing `input.required()`. Fix the variant's
-  `inputs`, or the component.
+  rendering that variant in the **Overview** tab, the only place that logs this line. The Overview catches the error per
+  cell, so that cell stays empty and the others render. The error that follows says why, for example a missing
+  `input.required()`. Fix the variant's `inputs`, or the component.
+  The single-variant canvas (Playground, and `scripts/screenshot.mjs`) doesn't catch it: Angular logs `ERROR` followed
+  by the error, the canvas shows nothing or a half-built component, and `.demo-wrap` never gets its
+  `data-prism-rendered` marker. The script then exits `1` with "Variant never rendered" and lists the error under the
+  browser console errors. The fix is the same.
 - **`[ng-prism] "<selector>" in a variant's pseudo states is not a valid selector, skipping it.`**: fix the CSS selector
   in `pseudo`.
 - **`[ng-prism] Could not force a pseudo state for "<selector>".`** and

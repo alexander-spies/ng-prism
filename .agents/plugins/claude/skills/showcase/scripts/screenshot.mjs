@@ -8,11 +8,12 @@
 // Run it from the project root. Playwright comes from that project (`playwright`, else `@playwright/test`),
 // resolved from the current directory, never from where this file lives (a plugin cache has no node_modules).
 //
-// Default: capture mode (`capture=1`), element screenshot of `.demo-wrap`.
+// Default: capture mode (`capture=1`), element screenshot of `.demo-wrap` with `omitBackground`, so a
+// transparent variant background (also the default when a variant declares no `bg`) keeps its alpha.
 // --shell: the full window without capture mode, for the styleguide UI around the component.
 //
-// Exit codes: 0 saved · 1 styleguide unreachable, component or variant unknown, or the variant never
-// rendered · 2 invalid arguments · 3 Playwright or its Chromium missing.
+// Exit codes: 0 saved · 1 styleguide unreachable, component or variant unknown, the variant never
+// rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing.
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,6 +21,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 const INSTALL_HINT = 'npm i -D playwright && npx playwright install chromium';
+const LINUX_DEPS_HINT = 'npx playwright install --with-deps chromium';
 
 function exitWith(code, message) {
     console.error(message);
@@ -85,6 +87,15 @@ async function loadChromium() {
     return undefined;
 }
 
+async function saveDiagnosis(page) {
+    try {
+        await page.screenshot({ path: out });
+        console.error(`Saved the full window for diagnosis: ${out}`);
+    } catch (error) {
+        console.error(`Could not save the window for diagnosis either: ${firstLine(error)}`);
+    }
+}
+
 async function capture(page) {
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
@@ -98,9 +109,8 @@ async function capture(page) {
         await page.waitForFunction(() => globalThis.__PRISM_MANIFEST__ !== undefined, undefined, { timeout });
         manifest = await page.evaluate(() => globalThis.__PRISM_MANIFEST__);
     } catch {
-        await page.screenshot({ path: out });
         console.error(`${base.href} answers, but window.__PRISM_MANIFEST__ never appeared within ${timeout} ms; is this an ng-prism styleguide?`);
-        console.error(`Saved the full window for diagnosis: ${out}`);
+        await saveDiagnosis(page);
         return 1;
     }
 
@@ -117,19 +127,28 @@ async function capture(page) {
     }
 
     try {
-        await page.waitForSelector(marker, { timeout });
+        // Attached, not visible: the marker says the variant rendered. A component without a visible size
+        // still renders; the element screenshot below reports that case.
+        await page.waitForSelector(marker, { state: 'attached', timeout });
     } catch {
-        await page.screenshot({ path: out });
         console.error(`Variant never rendered: no ${marker} within ${timeout} ms at ${url}`);
-        console.error(`Saved the full window for diagnosis: ${out}`);
+        await saveDiagnosis(page);
         console.error('If ng-prism.config.ts sets urlState: false, the styleguide ignores the URL parameters this script selects the variant with.');
         return 1;
     }
 
-    if (shell) {
-        await page.screenshot({ path: out });
-    } else {
-        await page.locator('.demo-wrap').screenshot({ path: out });
+    try {
+        if (shell) {
+            await page.screenshot({ path: out, timeout });
+        } else {
+            // The capture-mode contract: the page clears every background for `bg: 'transparent'`, but the
+            // browser's own backdrop behind <html> only goes with omitBackground. An opaque `bg` is unaffected.
+            await page.locator('.demo-wrap').screenshot({ path: out, omitBackground: true, timeout });
+        }
+    } catch (error) {
+        const hint = shell ? '' : " A component without a visible size can't be captured on its own; --shell takes the whole window.";
+        console.error(`Could not save the screenshot at ${url} (${firstLine(error).replace(/\.$/, '')}).${hint}`);
+        return 1;
     }
     console.log(`${url}\n${out}`);
     return 0;
@@ -142,19 +161,25 @@ let browser;
 try {
     browser = await chromium.launch();
 } catch (error) {
-    exitWith(3, `Playwright could not start Chromium: ${firstLine(error)}\nInstall the browser with:\n  ${INSTALL_HINT}`);
+    exitWith(
+        3,
+        `Playwright could not start Chromium: ${firstLine(error)}\nInstall the browser with:\n  ${INSTALL_HINT}\nOn Linux, if system libraries are missing:\n  ${LINUX_DEPS_HINT}`
+    );
 }
 
 const errors = [];
 let exitCode = 1;
 
 try {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    // A local styleguide may run on a self-signed certificate (ng serve --ssl).
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, ignoreHTTPSErrors: true });
     page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
     page.on('pageerror', (error) => errors.push(error.message));
     exitCode = await capture(page);
+} catch (error) {
+    console.error(`Capture failed: ${firstLine(error)}`);
 } finally {
-    await browser.close();
+    await browser.close().catch(() => {});
 }
 
 if (errors.length > 0) {
