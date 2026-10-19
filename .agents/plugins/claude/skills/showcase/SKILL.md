@@ -49,13 +49,12 @@ package is right:
 7. **Directives need a `host`**: an HTML string such as `host: '<button class="btn">Save</button>'` (forms: `<tag>`,
    `<tag attrs>`, `<tag />`, `<tag>text</tag>`; anything else falls back to a `<div>` with a warning), or
    `{ selector, import: { name, from }, inputs? }` to put the directive on another component.
-8. **Projected content is set per variant.** `content: 'Save'` fills the default `<ng-content>`. An object is meant to
-   fill named slots by their `select`, with `default` for the unnamed one, but 22.5.0 fills them by position:
-   `default` goes into the first `<ng-content>` of the template, the other keys into the following ones in the order
-   written. So write the keys in template order, e.g.
-   `content: { default: '<p>Body</p>', '[card-footer]': '<button>OK</button>' }`. When a named slot comes before the
-   unnamed one in the template, the contents land swapped: that's the styleguide, not the component, so don't change
-   its template; use a component page or tell the user. There is no component-level `content`.
+8. **Projected content is set per variant.** `content: 'Save'` fills the default `<ng-content>`; an object fills named
+   slots by their `select`, written exactly as in the template, with `default` for the unnamed one:
+   `content: { '[card-header]': '<h3>Title</h3>', default: '<p>Body</p>' }`. There is no component-level `content`.
+   Up to 22.5.0 an object fills the slots by position instead (`default` first, then the keys in the order written),
+   so a named slot before the unnamed one gets swapped content there: don't change the component's template for it,
+   use a component page or tell the user.
 9. **States an input can't reach** (hover, active, focus, focus-visible, focus-within) go into a variant's `pseudo`:
    `true` for every element of the component, or a selector (or a list) for specific ones, e.g.
    `pseudo: { 'focus-visible': '.btn' }`. The component's own CSS draws the state.

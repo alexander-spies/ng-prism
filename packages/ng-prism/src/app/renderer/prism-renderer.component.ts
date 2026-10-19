@@ -9,6 +9,7 @@ import {
     ElementRef,
     inject,
     Injector,
+    reflectComponentType,
     signal,
     type Type,
     untracked,
@@ -278,7 +279,11 @@ export class PrismRendererComponent {
         const content = this.rendererService.activeContent();
 
         this.lastProjectedContent = content;
-        const projectableNodes = content ? parseContentToNodes(content) : undefined;
+        const projectableNodes = content
+            ? parseContentToNodes(content, reflectComponentType(comp.type)?.ngContentSelectors ?? [], (key) =>
+                  console.warn(`[ng-prism] Variant content "${key}" matches no <ng-content> of ${comp.meta.className}, skipping it.`)
+              )
+            : undefined;
 
         this.componentRef = this.outlet().createComponent(comp.type, {
             injector,

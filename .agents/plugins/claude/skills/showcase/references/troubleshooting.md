@@ -113,7 +113,9 @@ are to drop the alias or the `@Showcase`; ask the user which.
 
 ## Projected content lands in the wrong slot
 
-In 22.5.0 an object `content` fills the `<ng-content>` slots by position, not by their `select`: `default` goes into
-the first slot of the template, the other keys into the following ones in the order written. Write the keys in
-template order. A component whose template puts a named slot before the unnamed one shows the contents swapped, and
-reordering the keys can't fix it. Leave the component's template as it is; use a component page or tell the user.
+- **`[ng-prism] Variant content "<key>" matches no <ng-content> of <Class>, skipping it.`** (browser console): the key
+  isn't the `select` of any `<ng-content>` in the template. Copy the selector exactly; `default` is the unnamed slot.
+- Up to 22.5.0 an object `content` fills the slots by position, not by their `select`: `default` goes into the first
+  slot of the template, the other keys into the following ones in the order written. A component whose template puts
+  a named slot before the unnamed one shows the contents swapped there, and reordering the keys can't fix it. Leave
+  the component's template as it is; use a component page or tell the user.

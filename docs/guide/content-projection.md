@@ -58,7 +58,9 @@ Pass a `Record<string, string>` where each key is a CSS selector matching an `<n
 export class CardComponent {}
 ```
 
-> **Known issue:** the slots are currently filled by position, not by their selector. The `default` content goes into the first `<ng-content>` of the template, the other keys into the following ones in the order they are written. The card above therefore renders its body in the header slot and the header in the body slot. A component whose unnamed `<ng-content>` comes first renders correctly when the keys follow the template order; for any other, use a [Component Page](guide/component-pages.md) until this is fixed.
+Each key has to match the `select` attribute of an `<ng-content>` exactly as the template writes it; `default` (or a plain string) goes to the unnamed one. Content for a slot the template doesn't have is dropped with a console warning: `[ng-prism] Variant content "<key>" matches no <ng-content> of <Class>, skipping it.`
+
+> Up to 22.5.0 the slots were filled by position instead: `default` went into the first `<ng-content>` of the template and the other keys into the following ones in the order written, so the card above rendered its body in the header slot.
 
 ## HTML Content
 

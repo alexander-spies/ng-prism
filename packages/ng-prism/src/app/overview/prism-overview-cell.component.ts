@@ -1,4 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, Injector, input, untracked, viewChild, ViewContainerRef } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    DestroyRef,
+    effect,
+    inject,
+    Injector,
+    input,
+    reflectComponentType,
+    untracked,
+    viewChild,
+    ViewContainerRef
+} from '@angular/core';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import { resolveVariantBg } from '../../shared/variant-bg.js';
 import { CANVAS_BG_STYLES } from '../canvas/canvas-bg.styles.js';
@@ -101,7 +114,7 @@ export class PrismOverviewCellComponent {
                 providers: component.meta.showcaseConfig.providers ?? [],
                 parent: this.injector
             });
-            const projectableNodes = activeContent ? parseContentToNodes(activeContent) : undefined;
+            const projectableNodes = activeContent ? parseContentToNodes(activeContent, reflectComponentType(component.type)?.ngContentSelectors ?? []) : undefined;
 
             const ref = this.outlet().createComponent(component.type, {
                 injector,
