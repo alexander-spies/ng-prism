@@ -1,6 +1,19 @@
 <div
     class="cell__stage"
-    [attr.data-bg]="bg()">
+    [attr.data-bg]="unfitReason() === null ? bg() : null"
+    [attr.data-unfit]="unfitReason() === null ? null : ''">
     <div class="cell__mount"><ng-container #outlet /></div>
+    @if (unfitReason(); as reason) {
+        <div class="cell__unfit">
+            <span
+                class="cell__unfit-mark"
+                aria-hidden="true"
+                >–</span
+            >
+            <span class="cell__unfit-reason">{{ reason }}</span>
+        </div>
+    }
 </div>
-<span class="cell__caption">{{ caption() }}</span>
+@if (mode() === 'sheet') {
+    <span class="cell__caption">{{ caption() }}</span>
+}

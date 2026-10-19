@@ -3,6 +3,13 @@
     flex-direction: column;
     gap: var(--sp-2);
     min-width: 0;
+    cursor: pointer;
+}
+
+:host(:focus-visible) {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
 }
 
 /* A stretch variant has no intrinsic width to compare against its
@@ -30,9 +37,38 @@
     max-width: 100%;
 }
 
-:host([data-wide]) .cell__mount {
+:host([data-wide]) .cell__mount,
+:host([data-stretch]) .cell__mount {
     display: block;
     width: 100%;
+}
+
+/* A state that does not fit shows no component and paints no ground: an
+   empty frame with the reason, so it cannot pass for a rendering. */
+.cell__stage[data-unfit] {
+    outline-style: dashed;
+    background: none;
+}
+
+.cell__stage[data-unfit] .cell__mount {
+    display: none;
+}
+
+.cell__unfit {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    align-items: center;
+    max-width: 100%;
+    font-family: var(--prism-font-mono);
+    font-size: var(--fs-xs);
+    color: var(--prism-text-muted);
+    text-align: center;
+}
+
+.cell__unfit-mark {
+    font-size: var(--fs-md);
+    line-height: 1;
 }
 
 /* The caption sits below the frame, not on it. Inside, it would have to
