@@ -36,6 +36,19 @@ export interface VrtVariantResult {
     title?: string;
     variantName?: string;
     variantIndex: number;
+    /**
+     * The component-level state this capture was taken in: the `?state=` value
+     * a runner drove the app with, which is the position of the state in
+     * `@Showcase({ states })`, in source order.
+     *
+     * Omit it for the variant on its own. A component with `states` is captured
+     * once per variant and state, so a report can hold several entries with the
+     * same `variantIndex`, told apart by this index. An entry without it behaves
+     * exactly as before.
+     */
+    stateIndex?: number;
+    /** The state's `name`. Optional, the panel falls back to `State <stateIndex>`. */
+    stateName?: string;
     status: VrtStatus;
     width?: number;
     height?: number;

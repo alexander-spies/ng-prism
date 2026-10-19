@@ -27,7 +27,8 @@ function loadReport(reportPath: string): VrtReport | null {
 }
 
 /**
- * All recorded results for one component, ordered by variant index.
+ * All recorded results for one component, ordered by variant index, then by
+ * state: a variant's own entry first, then its states in source order.
  *
  * Components are matched on `className`, which the report and the scanner
  * share, so the coverage plugin's path-matching heuristics are not needed.
@@ -53,7 +54,7 @@ export function readVariantsForComponent(reportPath: string, className: string):
             warnUnknownStatus(reportPath, entry);
             return false;
         })
-        .sort((a, b) => variantIndexOf(a) - variantIndexOf(b));
+        .sort(compareResults);
 }
 
 function warnUnknownStatus(reportPath: string, entry: VrtVariantResult): void {
@@ -86,4 +87,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** Missing or non-numeric indices sort first rather than poisoning the sort. */
 function variantIndexOf(variant: VrtVariantResult): number {
     return typeof variant.variantIndex === 'number' ? variant.variantIndex : 0;
+}
+
+/**
+ * Variant first, then state. An entry without a state comes before every state
+ * of its variant, whatever the indices. A non-numeric `stateIndex` counts as no
+ * state, which is also how `rowKey` reads it, so a malformed entry keeps the
+ * variant's key instead of splitting off.
+ */
+function compareResults(a: VrtVariantResult, b: VrtVariantResult): number {
+    const byVariant = variantIndexOf(a) - variantIndexOf(b);
+
+    if (byVariant !== 0) return byVariant;
+
+    const stateA = typeof a.stateIndex === 'number' ? a.stateIndex : null;
+    const stateB = typeof b.stateIndex === 'number' ? b.stateIndex : null;
+
+    if (stateA === stateB) return 0;
+    if (stateA === null) return -1;
+    if (stateB === null) return 1;
+    return stateA - stateB;
 }

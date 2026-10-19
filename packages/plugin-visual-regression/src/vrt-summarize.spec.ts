@@ -1,5 +1,5 @@
 import type { VrtStatus, VrtVariantResult } from './visual-regression.types.js';
-import { defaultExpandedGroups, formatPercent, groupRows, statSummary, summarize, summarySegments } from './vrt-summarize.js';
+import { defaultExpandedGroups, formatPercent, groupRows, rowKey, rowLabel, statSummary, summarize, summarySegments } from './vrt-summarize.js';
 
 function variant(status: VrtStatus, diffRatio?: number): VrtVariantResult {
     return {
@@ -284,5 +284,46 @@ describe('statSummary', () => {
 
         expect(stat.variant).toBe('danger');
         expect(stat.label).toBe('Visual regression: 50.00% max diff');
+    });
+});
+
+describe('rowKey', () => {
+    it('keys a variant row by class and variant index', () => {
+        expect(rowKey({ className: 'C', variantIndex: 2, status: 'unchanged' })).toBe('C:2');
+    });
+
+    it('keys a state row apart from its variant row', () => {
+        const variantRow = { className: 'C', variantIndex: 2, status: 'unchanged' } as const;
+        const stateRow = { ...variantRow, stateIndex: 1 };
+
+        expect(rowKey(stateRow)).toBe('C:2:1');
+        expect(rowKey(stateRow)).not.toBe(rowKey(variantRow));
+    });
+
+    it('keeps the first state apart from the variant', () => {
+        // State index 0 is a real state. A truthiness check would drop it and
+        // collide with the variant's own row.
+        expect(rowKey({ className: 'C', variantIndex: 2, stateIndex: 0, status: 'unchanged' })).toBe('C:2:0');
+    });
+});
+
+describe('rowLabel', () => {
+    it('labels a variant row with its name', () => {
+        expect(rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, status: 'unchanged' })).toBe('Outlined');
+    });
+
+    it('falls back to the title, then to the variant index', () => {
+        expect(rowLabel({ className: 'C', title: 'Button', variantIndex: 2, status: 'unchanged' })).toBe('Button');
+        expect(rowLabel({ className: 'C', variantIndex: 2, status: 'unchanged' })).toBe('Variant 2');
+    });
+
+    it('labels a state row', () => {
+        const label = rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, stateIndex: 0, stateName: 'Hover', status: 'unchanged' });
+
+        expect(label).toBe('Outlined × Hover');
+    });
+
+    it('falls back to the state index without a name', () => {
+        expect(rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, stateIndex: 1, status: 'unchanged' })).toBe('Outlined × State 1');
     });
 });

@@ -52,6 +52,34 @@ export interface VrtSegment {
     tone: VrtTone;
 }
 
+/**
+ * Identity of one row in the variant list.
+ *
+ * A component with `states` is captured once per variant and state, so
+ * `className:variantIndex` alone would give the variant and each of its states
+ * the same key. The state index is appended only when the entry has one, which
+ * leaves the key of every entry without a state as it was.
+ */
+export function rowKey(result: VrtVariantResult): string {
+    const base = `${result.className}:${result.variantIndex}`;
+
+    return typeof result.stateIndex === 'number' ? `${base}:${result.stateIndex}` : base;
+}
+
+/**
+ * What a row is called: the variant's name, with the state after it when the
+ * entry is a capture in one (`Outlined × Hover`).
+ *
+ * The variant part falls back as before, to the title and then to
+ * `Variant <index>`. A state without a name reads `State <index>`.
+ */
+export function rowLabel(result: VrtVariantResult): string {
+    const variant = result.variantName ?? result.title ?? `Variant ${result.variantIndex}`;
+
+    if (typeof result.stateIndex !== 'number') return variant;
+    return `${variant} × ${result.stateName ?? `State ${result.stateIndex}`}`;
+}
+
 /** Counts and the worst diff, derived from the variants already in `meta`. */
 export function summarize(variants: readonly VrtVariantResult[]): VrtSummary {
     const counts: Record<VrtStatus, number> = {

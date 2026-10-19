@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import type { VrtComponentMeta, VrtVariantResult } from './visual-regression.types.js';
 import { VrtCompareComponent } from './vrt-compare.component.js';
-import { defaultExpandedGroups, formatPercent, groupRows, STATUS_LABEL, STATUS_TONE, summarize, type VrtGroupKey } from './vrt-summarize.js';
+import { defaultExpandedGroups, formatPercent, groupRows, rowKey, rowLabel, STATUS_LABEL, STATUS_TONE, summarize, type VrtGroupKey } from './vrt-summarize.js';
 import { VrtSummaryComponent } from './vrt-summary.component.js';
 
 @Component({
@@ -33,10 +33,10 @@ export class VisualRegressionPanelComponent {
 
     protected readonly rows = computed(() =>
         this.variants().map((variant) => ({
-            key: `${variant.className}:${variant.variantIndex}`,
+            key: rowKey(variant),
             variant,
             status: variant.status,
-            label: variant.variantName ?? variant.title ?? `Variant ${variant.variantIndex}`,
+            label: rowLabel(variant),
             statusLabel: STATUS_LABEL[variant.status] ?? variant.status,
             tone: STATUS_TONE[variant.status] ?? 'muted',
             diffLabel: formatDiff(variant)

@@ -78,6 +78,28 @@ describe('readVariantsForComponent', () => {
         expect(variants.map((v) => v.variantIndex)).toEqual([0, 1, 2]);
     });
 
+    it('sorts states after their variant', () => {
+        const file = writeReport(
+            JSON.stringify({
+                byVariant: [
+                    { className: 'A', variantIndex: 1, status: 'unchanged' },
+                    { className: 'A', variantIndex: 0, stateIndex: 2, stateName: 'Focus', status: 'unchanged' },
+                    { className: 'A', variantIndex: 0, stateIndex: 0, stateName: 'Hover', status: 'unchanged' },
+                    { className: 'A', variantIndex: 0, status: 'unchanged' }
+                ]
+            })
+        );
+
+        const variants = readVariantsForComponent(file, 'A');
+
+        expect(variants.map((v) => [v.variantIndex, v.stateIndex])).toEqual([
+            [0, undefined],
+            [0, 0],
+            [0, 2],
+            [1, undefined]
+        ]);
+    });
+
     it('does not leak variants from other components', () => {
         const variants = readVariantsForComponent(FIXTURE, 'ButtonComponent');
 
