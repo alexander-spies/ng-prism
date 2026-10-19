@@ -127,7 +127,7 @@ sync_agent_plugin_version() {
     const p = JSON.parse(fs.readFileSync(path, 'utf-8'));
     p.version = '$new_version';
     fs.writeFileSync(path, JSON.stringify(p, null, 4) + '\n');
-  "
+  " || { err "Could not update $manifest"; exit 1; }
   info "Claude Code plugin -> $new_version"
 }
 
