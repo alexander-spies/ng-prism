@@ -1,7 +1,8 @@
 import { signal } from '@angular/core';
-import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoState, type PseudoTarget } from '../../shared/pseudo-state.type.js';
+import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoState } from '../../shared/pseudo-state.type.js';
 import { PSEUDO_CLASS_PREFIX, pseudoStateClass } from './pseudo-selector.js';
 import type { PseudoStyleSheets } from './pseudo-stylesheets.js';
+import { forcesAnyState, hasTarget, resolveTargets } from './pseudo-targets.js';
 import { evaluateStateFit, reachableTargets, type StateFit } from './state-fit.js';
 
 /** The element a marker forces states in, and the states it forces there. */
@@ -13,48 +14,6 @@ export interface AppliedPseudoStates {
     state: ForcedPseudoStates | null;
     /** `null` when `state` is `null`. Re-evaluated on every mark. */
     fit: StateFit | null;
-}
-
-/** True when `states` forces at least one state on at least one target. */
-export function forcesAnyState(states: ForcedPseudoStates | null | undefined): states is ForcedPseudoStates {
-    return !!states && PSEUDO_STATES.some((state) => hasTarget(states[state]));
-}
-
-function hasTarget(target: PseudoTarget | undefined): boolean {
-    if (target === true) return true;
-    if (typeof target === 'string') return target.trim() !== '';
-    return Array.isArray(target) && target.some((selector) => typeof selector === 'string' && selector.trim() !== '');
-}
-
-const warnedSelectors = new Set<string>();
-
-/**
- * The elements under `root` a target names. `root` counts: a selector can name
- * the component's host, and `true` includes it.
- */
-export function resolveTargets(root: Element, target: PseudoTarget | undefined): Set<Element> {
-    const targets = new Set<Element>();
-
-    if (target === undefined) return targets;
-    if (target === true) {
-        targets.add(root);
-        for (const el of Array.from(root.querySelectorAll('*'))) targets.add(el);
-        return targets;
-    }
-
-    for (const selector of typeof target === 'string' ? [target] : target) {
-        if (typeof selector !== 'string' || selector.trim() === '') continue;
-        try {
-            if (root.matches(selector)) targets.add(root);
-            for (const el of Array.from(root.querySelectorAll(selector))) targets.add(el);
-        } catch {
-            if (!warnedSelectors.has(selector)) {
-                warnedSelectors.add(selector);
-                console.warn(`[ng-prism] "${selector}" in forced pseudo states is not a valid selector, skipping it.`);
-            }
-        }
-    }
-    return targets;
 }
 
 /** The pseudo-classes actually forced right now: `states`, plus `state` while it fits. */

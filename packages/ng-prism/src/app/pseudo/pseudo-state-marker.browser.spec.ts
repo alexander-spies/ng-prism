@@ -1,7 +1,7 @@
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { ForcedPseudoStates } from '../../shared/pseudo-state.type.js';
 import { resolveRenderedKey } from '../renderer/rendered-key.js';
-import { appliedStateNames, forcesAnyState, PseudoStateMarker } from './pseudo-state-marker.js';
+import { appliedStateNames, PseudoStateMarker } from './pseudo-state-marker.js';
 import { PseudoStyleSheets } from './pseudo-stylesheets.js';
 
 const FV = 'prism-pseudo--focus-visible';
@@ -420,21 +420,6 @@ describe('PseudoStateMarker', () => {
             expect((late.sheet!.cssRules[0] as CSSStyleRule).selectorText).toContain('prism-pseudo--hover');
             b.clear();
         });
-    });
-});
-
-describe('forcesAnyState', () => {
-    it.each<[ForcedPseudoStates | null | undefined, boolean]>([
-        [undefined, false],
-        [null, false],
-        [{}, false],
-        [{ hover: '' }, false],
-        [{ hover: [] }, false],
-        [{ hover: true }, true],
-        [{ focus: '.a' }, true],
-        [{ focus: ['', '.a'] }, true]
-    ])('%j forces a state: %s', (states, expected) => {
-        expect(forcesAnyState(states)).toBe(expected);
     });
 });
 

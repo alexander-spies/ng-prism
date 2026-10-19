@@ -1,7 +1,7 @@
 import type { DiscoveryComponent, DiscoveryManifest, DiscoveryVariant, RuntimeManifest } from '../plugin/plugin.types.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import { resolveVariantBg } from '../shared/variant-bg.js';
-import { forcesAnyState } from './pseudo/pseudo-state-marker.js';
+import { forcesAnyState } from './pseudo/pseudo-targets.js';
 
 /**
  * External tooling reads `__PRISM_MANIFEST__` through a structured-clone bridge

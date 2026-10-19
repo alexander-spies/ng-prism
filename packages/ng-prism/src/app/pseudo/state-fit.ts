@@ -1,5 +1,5 @@
 import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoState, type PseudoTarget } from '../../shared/pseudo-state.type.js';
-import { forcesAnyState, resolveTargets } from './pseudo-state-marker.js';
+import { forcesAnyState, resolveTargets } from './pseudo-targets.js';
 
 /** Whether a state can be forced on a rendered component, and if not, why. */
 export type StateFit = { fits: true } | { fits: false; reason: string };

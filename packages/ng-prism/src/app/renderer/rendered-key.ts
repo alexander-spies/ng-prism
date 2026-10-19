@@ -1,6 +1,7 @@
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { ForcedPseudoStates } from '../../shared/pseudo-state.type.js';
-import { type AppliedPseudoStates, forcesAnyState } from '../pseudo/pseudo-state-marker.js';
+import type { AppliedPseudoStates } from '../pseudo/pseudo-state-marker.js';
+import { forcesAnyState } from '../pseudo/pseudo-targets.js';
 
 export interface RenderedKeyInput {
     component: RuntimeComponent | null;
