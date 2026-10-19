@@ -8,8 +8,7 @@ export const CONTROLS_PLUGIN: NgPrismPlugin = {
             id: 'controls',
             label: 'Controls',
             icon: 'sliders-horizontal',
-            component: PrismControlsPanelComponent,
-            position: 'bottom'
+            component: PrismControlsPanelComponent
         }
     ]
 };

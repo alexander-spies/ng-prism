@@ -95,7 +95,7 @@ export interface PanelDefinition {
     icon?: string;
     /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. Where a panel appears is `placement`. */
     position?: 'bottom' | 'right';
-    /** Where this panel appears: 'addon' (bottom/right tabbar) or 'view' (top view toolbar). Default: 'addon' */
+    /** Where this panel appears: 'addon' (the tab bar below the canvas) or 'view' (top view toolbar). Default: 'addon' */
     placement?: 'addon' | 'view';
     /** Providers injected into a child EnvironmentInjector scoped to this panel */
     providers?: Provider[];
