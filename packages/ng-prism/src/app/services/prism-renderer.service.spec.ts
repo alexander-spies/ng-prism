@@ -10,6 +10,7 @@ function createComponent(
     overrides: Partial<{
         inputs: RuntimeComponent['meta']['inputs'];
         variants: RuntimeComponent['meta']['showcaseConfig']['variants'];
+        states: RuntimeComponent['meta']['showcaseConfig']['states'];
         isDirective: boolean;
         host: RuntimeComponent['meta']['showcaseConfig']['host'];
     }> = {}
@@ -22,6 +23,7 @@ function createComponent(
             showcaseConfig: {
                 title: 'Test',
                 variants: overrides.variants,
+                ...(overrides.states !== undefined && { states: overrides.states }),
                 ...(overrides.host !== undefined && { host: overrides.host })
             },
             inputs: overrides.inputs ?? [],
@@ -228,6 +230,85 @@ describe('PrismRendererService', () => {
 
         expect(renderer.activeVariantIndex()).toBe(0);
         expect(renderer.inputValues()).toEqual({ b: 0 });
+    });
+
+    describe('active state', () => {
+        const STATES = [
+            { name: 'Hover', pseudo: { hover: true } as const },
+            { name: 'Focus', pseudo: { 'focus-visible': true } as const }
+        ];
+
+        it('starts without an active state, and selects one by its index', () => {
+            const { renderer } = setup({ components: [] });
+
+            expect(renderer.activeStateIndex()).toBeNull();
+
+            renderer.selectState(1);
+            expect(renderer.activeStateIndex()).toBe(1);
+
+            renderer.selectState(null);
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
+
+        it('keeps the active state when the variant changes', () => {
+            const comp = createComponent({ variants: [{ name: 'A' }, { name: 'B' }], states: STATES });
+            const { renderer, navigation } = setup({ components: [comp] });
+
+            navigation.select(comp);
+            renderer.resetForComponent(comp);
+            renderer.selectState(1);
+            renderer.selectVariant(1);
+
+            expect(renderer.activeVariantIndex()).toBe(1);
+            expect(renderer.activeStateIndex()).toBe(1);
+        });
+
+        it('clears the active state when the component changes', () => {
+            const first = createComponent({ states: STATES });
+            const second = createComponent({ states: STATES });
+
+            first.meta.className = 'First';
+            second.meta.className = 'Second';
+            const { renderer, navigation } = setup({ components: [first, second] });
+
+            navigation.select(first);
+            renderer.resetForComponent(first);
+            renderer.selectState(0);
+            navigation.select(second);
+            renderer.resetForComponent(second);
+            expect(renderer.activeStateIndex()).toBeNull();
+
+            renderer.selectState(0);
+            renderer.reconcileForComponent(first);
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
+
+        it('keeps a state index the component still has on a refresh', () => {
+            const comp = createComponent({ states: STATES });
+            const { renderer, navigation } = setup({ components: [comp] });
+
+            navigation.select(comp);
+            renderer.resetForComponent(comp);
+            renderer.selectState(1);
+            renderer.reconcileForComponent(createComponent({ states: STATES }));
+
+            expect(renderer.activeStateIndex()).toBe(1);
+        });
+
+        it('drops a state index the component no longer has', () => {
+            const comp = createComponent({ states: STATES });
+            const { renderer, navigation } = setup({ components: [comp] });
+
+            navigation.select(comp);
+            renderer.resetForComponent(comp);
+            renderer.selectState(1);
+            renderer.reconcileForComponent(createComponent({ states: [STATES[0]] }));
+            expect(renderer.activeStateIndex()).toBeNull();
+
+            renderer.selectState(0);
+            renderer.reconcileForComponent(createComponent());
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
     });
 
     describe('reconcileForComponent', () => {

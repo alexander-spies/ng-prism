@@ -74,6 +74,12 @@ export class PrismRendererService {
     private readonly navigationService = inject(PrismNavigationService);
 
     readonly activeVariantIndex = signal(0);
+    /**
+     * Position in `ShowcaseConfig.states` of the component-level state on the
+     * canvas, `null` for none. Part of the addressed cell next to the variant:
+     * it survives a variant change and goes with the component.
+     */
+    readonly activeStateIndex = signal<number | null>(null);
     readonly inputValues = signal<Record<string, unknown>>({});
     readonly activeContent = signal<string | Record<string, string> | undefined>(undefined);
     readonly renderedElement = signal<Element | null>(null);
@@ -98,6 +104,7 @@ export class PrismRendererService {
     resetForComponent(comp: RuntimeComponent): void {
         this._lastClassName = comp.meta.className;
         this.activeVariantIndex.set(0);
+        this.activeStateIndex.set(null);
         this.applyVariant(0, comp);
     }
 
@@ -108,9 +115,14 @@ export class PrismRendererService {
 
         if (prev !== null && prev !== comp.meta.className) {
             this.activeVariantIndex.set(0);
+            this.activeStateIndex.set(null);
             this.applyVariant(0, comp);
             return;
         }
+
+        const stateIndex = this.activeStateIndex();
+
+        if (stateIndex !== null && stateIndex >= (comp.meta.showcaseConfig.states?.length ?? 0)) this.activeStateIndex.set(null);
 
         const variants = comp.meta.showcaseConfig.variants ?? [];
         const maxIndex = Math.max(0, variants.length - 1);
@@ -153,6 +165,10 @@ export class PrismRendererService {
         const comp = this.navigationService.activeComponent();
 
         if (comp) this.applyVariant(index, comp);
+    }
+
+    selectState(index: number | null): void {
+        this.activeStateIndex.set(index);
     }
 
     updateInput(name: string, value: unknown): void {
