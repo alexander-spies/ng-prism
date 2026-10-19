@@ -46,8 +46,10 @@ export function notesPlugin(): NgPrismPlugin {
   `component.showcaseConfig.variants[i].meta`.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the
   whole library goes into `manifest.meta`, read in the browser with `inject(PRISM_MANIFEST).meta`.
-- The manifest that carries these results to the browser is generated source code: only JSON-like data survives.
-  Functions become `undefined`; `Date`, `Map` and class instances become `{}`.
+- The manifest that carries these results to the browser is generated source code: only JSON-like data survives. In
+  a component's showcase meta a function becomes `undefined`, and a `Date`, `Map`, `Set` or class instance becomes a
+  plain object of its own enumerable fields (`{}` for the built-ins). `manifest.meta` is written with `JSON.stringify`:
+  functions are dropped, a `Date` becomes an ISO string.
 - Import Node-only modules inside the hook (`const { readFile } = await import('node:fs/promises')`), never at the top
   of the file: the same file is bundled for the browser.
 - A hook that throws stops the build with `ng-prism: plugin "<name>" failed in <hook> for …`; during `serve`, a failed
@@ -74,14 +76,17 @@ export function notesPlugin(): NgPrismPlugin {
   `@ng-prism/core/plugin`.
 - `isVisible`, `badge` and a decoration's `badge` run during change detection: keep them pure and cheap, and decide
   verdicts in `onComponentScanned`.
-- Panel ids are not deduplicated: prefix yours and avoid the built-in `overview`, `controls`, `events` and `a11y`. A
-  decoration whose id collides with a built-in loses; the orders 10, 20 and 30 are taken.
+- Panel ids are not deduplicated: prefix yours and avoid the built-in `overview`, `controls`, `events` and `a11y`.
+- Decoration ids are deduplicated: built-ins first (only `a11y`), then plugins in registration order. The first
+  definition of an id wins, later ones are dropped silently. The orders 10, 20 and 30 belong to a11y, visual regression
+  and coverage.
 - The first control whose `matchType` matches wins, in registration order.
 - `wrapComponent` and a panel's `position` are in the typings, but nothing reads them in 22.5.0. Don't use them.
 
 ## Packaging for npm
 
-The official plugins split into a Node entry with everything and a browser entry with the runtime contributions only:
+The official plugins with build-time hooks split into a Node entry with everything and a browser entry with the
+runtime contributions only:
 
 ```json
 {
@@ -102,8 +107,8 @@ The official plugins split into a Node entry with everything and a browser entry
 - `index.ts` exports the factory with hooks and contributions; `index.browser.ts` exports a factory of the same name
   without the hooks. Both export the same names, since they share one `index.d.ts`.
 - Angular and `@ng-prism/core` are `peerDependencies`, never bundled.
-- Optional `ng add`: a schematic that calls `addPluginToConfig(tree, 'ng-prism.config.ts', { importName, importFrom,
-call })` from `@ng-prism/core/schematics/utils`.
+- Optional `ng add`: a schematic that calls `addPluginToConfig(tree, path, { importName, importFrom, call })` from
+  `@ng-prism/core/schematics/utils`, with `path` pointing at `ng-prism.config.ts`.
 
 ## A plugin inside your repo
 
@@ -112,8 +117,10 @@ A plugin doesn't have to be a package. Import its file from `ng-prism.config.ts`
 `compilerOptions` of the styleguide app's `tsconfig.app.json`, so the browser build accepts that path. In the builder,
 Node loads the file as it is, which needs Node 22.18 or newer. That file and whatever it imports statically may only
 use TypeScript Node can strip: `import type` for types, no `enum`, no decorators, no constructor parameter properties.
-Keep components behind `loadComponent`, which only the browser runs. Restart `ng run <lib>:prism` after changing a
-hook: the builder watches the library and the config file, not the plugin.
+Write its own relative imports with `.ts` as well; Node adds no extension. Keep components behind `loadComponent`,
+which only the browser runs. That rules out `controls`: a control's `component` is eager, so its decorator would have
+to run in Node. Restart `ng run <lib>:prism` after changing a hook: Node caches the imported plugin module, so a rescan
+doesn't reload it.
 
 ## Testing
 
