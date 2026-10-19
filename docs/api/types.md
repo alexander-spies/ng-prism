@@ -355,6 +355,28 @@ type ForcedPseudoStates = Partial<Record<PseudoState, PseudoTarget>>;
 
 ---
 
+## DiscoveryState
+
+One component-level state in `window.__PRISM_MANIFEST__`, the entries of `DiscoveryComponent.states`. The manifest is the discovery view for [external tooling](guide/external-tooling.md#enumerating-what-exists).
+
+```typescript
+interface DiscoveryState {
+    name: string;
+    index: number;
+    pseudo: ForcedPseudoStates;
+}
+```
+
+| Field    | Description                                                                                                                                                                        |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`   | The state's name, as declared in `@Showcase({ states })`                                                                                                                           |
+| `index`  | 0-based position in the declared `states` array, the `?state=` URL value                                                                                                           |
+| `pseudo` | The states it forces, as declared, see [`ForcedPseudoStates`](#forcedpseudostates). `{}` for a slot that forces nothing; it stays listed so the indices behind it keep their value |
+
+`DiscoveryComponent.states` is omitted when the component declares none, and `DiscoveryVariant.states` is `false` for a variant that opted out of the component's states and absent otherwise. `DiscoveryState` is exported from `@ng-prism/core/plugin`.
+
+---
+
 ## ComponentStatus
 
 Optional migration / maturity badge used by `ShowcaseConfig.status`.

@@ -202,9 +202,10 @@ export interface RuntimeComponent {
  * The shape external tooling reads from `globalThis.__PRISM_MANIFEST__`.
  *
  * A thin, JSON-safe projection of the runtime manifest: enough to enumerate and
- * address every variant, plus the `@Showcase` metadata a tool needs to decide how
- * to treat one. It carries no Angular class references, and `meta` values that
- * cannot survive a structured clone are dropped rather than half-serialised.
+ * address every variant and component-level state, plus the `@Showcase` metadata
+ * a tool needs to decide how to treat one. It carries no Angular class
+ * references, and `meta` values that cannot survive a structured clone are
+ * dropped rather than half-serialised.
  */
 export interface DiscoveryManifest {
     components: DiscoveryComponent[];
@@ -216,6 +217,16 @@ export interface DiscoveryComponent {
     /** `ShowcaseConfig.title`, i.e. the display name, not the class name. */
     title: string;
     variants: DiscoveryVariant[];
+    /**
+     * `ShowcaseConfig.states`: the component-level states, one entry per declared
+     * slot. Omitted when the component declares none. A component without
+     * `variants` lists them next to its single `Default` variant.
+     *
+     * Whether a state fits a variant is not part of the manifest, because that is
+     * only known once the variant renders; the render marker reports it
+     * (`data-prism-excluded`).
+     */
+    states?: DiscoveryState[];
     /** Sanitised `ShowcaseConfig.meta`. Omitted when empty. */
     meta?: Record<string, unknown>;
 }
@@ -241,6 +252,24 @@ export interface DiscoveryVariant {
      * without any action on the runner's side.
      */
     pseudo?: ForcedPseudoStates;
+    /**
+     * `false` when the variant opts out of the component's `states` (`Variant.states`).
+     * Omitted otherwise. Nothing is forced for a state on such a variant, and the
+     * render marker still reports its cell as excluded.
+     */
+    states?: false;
+}
+
+export interface DiscoveryState {
+    name: string;
+    /** 0-based index into the `states` array (the `?state=` URL value). */
+    index: number;
+    /**
+     * The pseudo states the state forces, exactly as declared. An empty object
+     * for a slot that forces nothing, for example one the scanner could not
+     * evaluate: the slot stays listed so the indices behind it keep their value.
+     */
+    pseudo: ForcedPseudoStates;
 }
 
 export interface DiscoveryPage {

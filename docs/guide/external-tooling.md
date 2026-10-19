@@ -10,7 +10,7 @@ ng-prism exposes a small, stable contract for those tools. This page is the cano
 
 | Anchor                                                               | Where                           | Purpose                                                                                                                                                                                                                      |
 | -------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `window.__PRISM_MANIFEST__`                                          | global, set by `providePrism()` | Shape: `{ components: [{ className, title, meta?, variants: [{ name, index, bg, meta?, pseudo? }] }], pages: [{ title }] }`. Use it to enumerate what to visit.                                                              |
+| `window.__PRISM_MANIFEST__`                                          | global, set by `providePrism()` | Shape: `{ components: [{ className, title, meta?, variants: [{ name, index, bg, meta?, pseudo?, states? }], states?: [{ name, index, pseudo }] }], pages: [{ title }] }`. Use it to enumerate what to visit.                 |
 | URL params `?component=<className>&variant=<index>&state=<index>`    | navigation state                | Drive the app to a specific component+variant from the outside. `variant` is the array index; omit it for index `0`. `state` is the index into the component's `states`; omit it for no state.                               |
 | `[data-prism-rendered="<className>:<variantIndex>"]` on `.demo-wrap` | renderer host element           | Render marker. Wait for this attribute to match the expected key before inspecting the variant. While a component-level state is active the key ends in `:<stateIndex>`, see [Waiting for a render](#waiting-for-a-render).  |
 | `[data-prism-excluded="<reason>"]` on `.demo-wrap`                   | renderer host element           | Set next to the render marker when the requested state is not part of what the canvas shows. A runner reports the cell as excluded instead of capturing it, see [A state that does not apply](#a-state-that-does-not-apply). |
@@ -26,7 +26,8 @@ await page.waitForFunction(() => globalThis.__PRISM_MANIFEST__ !== undefined);
 const manifest = await page.evaluate(() => globalThis.__PRISM_MANIFEST__);
 
 // manifest.components -> [{ className: 'ButtonComponent', title: 'Button',
-//                          variants: [{ name: 'Primary', index: 0, bg: 'light' }, ...] }]
+//                          variants: [{ name: 'Primary', index: 0, bg: 'light' }, ...],
+//                          states: [{ name: 'Hover', index: 0, pseudo: { hover: true } }, ...] }]
 // manifest.pages      -> [{ title: 'Button Patterns' }]
 ```
 
@@ -34,7 +35,16 @@ const manifest = await page.evaluate(() => globalThis.__PRISM_MANIFEST__);
 
 A variant that forces [pseudo states](guide/variants.md#per-variant-pseudo-states) reports them as `pseudo`, exactly as declared, e.g. `{ 'focus-visible': '.btn' }`. The field is omitted for a variant that forces none. Nothing has to act on it: the render marker waits for the states, and capture mode leaves room for their focus rings, see [Forced pseudo states](guide/visual-regression.md#forced-pseudo-states).
 
-The type is exported as `DiscoveryManifest` from `@ng-prism/core/plugin`.
+A component that declares `states` in `@Showcase` lists them as `states`, one entry per declared slot, with `index` being the position in the source, which is the `?state=` URL value and the last part of the render marker, see [Waiting for a render](#waiting-for-a-render). `pseudo` holds the states it forces, as declared. A slot the scanner could not use is listed all the same with `pseudo: {}`, so the indices behind it keep their value. The field is omitted when the component declares no states. A component without `variants` lists its states next to the single `Default` variant, since that variant combines with each of them.
+
+```js
+// component.states -> [{ name: 'Hover', index: 0, pseudo: { hover: true } },
+//                      { name: 'Focus', index: 1, pseudo: { 'focus-visible': '.btn' } }]
+```
+
+A variant that opted out with `states: false` reports `states: false`, and every other variant has no `states` field. Whether a state fits a variant is not in the manifest, because that is only known once the variant renders. The cell is then reported by the render marker, see [A state that does not apply](#a-state-that-does-not-apply).
+
+The types are exported as `DiscoveryManifest`, `DiscoveryComponent`, `DiscoveryVariant`, `DiscoveryState` and `DiscoveryPage` from `@ng-prism/core/plugin`.
 
 ### Reading the background
 
