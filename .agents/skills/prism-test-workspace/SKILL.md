@@ -33,14 +33,16 @@ Ask before running `test:workspace:clean` or `test:workspace:reset`. They delete
 
 ```bash
 node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component ButtonComponent --variant 1
+node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component ButtonComponent --variant 1 --state 0
 node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component ButtonComponent --shell
 ```
 
 - By default it opens `?component=…&variant=…&capture=1` and screenshots `.demo-wrap`: the component alone, on its declared background, with motion frozen. Use it for anything that changes how a component or variant renders.
+- `--state <index>` captures the variant in one of the component's `states` (0-based, in source order). A state that doesn't fit the variant prints the reason and exits 4 without a PNG.
 - `--shell` takes the whole window without capture mode. Use it for changes to the styleguide's own UI (sidebar, header, panels, canvas tools), which capture mode removes.
 - `--url http://localhost:4401` targets `test-ui-kit`; `--out <file>` sets the path (default: the system temp dir).
 
-Variant indexes are 0-based, in `@Showcase` order. The script reads `window.__PRISM_MANIFEST__` first and lists the known components or variants when the one you named doesn't exist. It then waits for the render marker `data-prism-rendered="<ClassName>:<variant>"`, prints the URL and the PNG path, and lists browser console errors. Exit codes: 0 saved, 1 not reachable, not found, never rendered (then it saves the full window for diagnosis) or the screenshot failed, 2 invalid arguments, 3 Playwright or Chromium missing. A variant without `bg` or with `bg: 'transparent'` comes back as a PNG with alpha.
+Variant indexes are 0-based, in `@Showcase` order. The script reads `window.__PRISM_MANIFEST__` first and lists the known components or variants when the one you named doesn't exist. It then waits for the render marker `data-prism-rendered="<ClassName>:<variant>"` (`<ClassName>:<variant>:<state>` with `--state`), prints the URL and the PNG path, and lists browser console errors. Exit codes: 0 saved, 1 not reachable, not found (component, variant or state), never rendered (then it saves the full window for diagnosis) or the screenshot failed, 2 invalid arguments, 3 Playwright or Chromium missing, 4 the state doesn't fit the variant (`data-prism-excluded`). A variant without `bg` or with `bg: 'transparent'` comes back as a PNG with alpha.
 
 Open the PNG with the Read tool and look at it before saying the change works. Then report what you checked: the URL, the variant, what the image shows, and the warnings in the log. That is also what the PR template asks for under "How Was This Verified?".
 

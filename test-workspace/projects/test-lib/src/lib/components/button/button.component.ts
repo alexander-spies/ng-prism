@@ -41,6 +41,12 @@ export type ButtonVariantType = 'filled' | 'outlined' | 'elevated' | 'text' | 'i
             rules: { region: { enabled: false } }
         }
     },
+    states: [
+        { name: 'Hover', pseudo: { hover: '.btn' } },
+        { name: 'Pressed', pseudo: { hover: '.btn', active: '.btn' } },
+        // The ring is an outline with an offset, drawn outside the button's box.
+        { name: 'Focus visible', pseudo: { 'focus-visible': '.btn' } }
+    ],
     variants: [
         {
             name: 'Filled',
@@ -94,26 +100,8 @@ export type ButtonVariantType = 'filled' | 'outlined' | 'elevated' | 'text' | 'i
         {
             name: 'Full width',
             inputs: { variant: 'filled', label: 'Full width', fullWidth: true },
-            canvasLayout: 'stretch'
-        },
-        {
-            name: 'Hovered',
-            inputs: { variant: 'filled', label: 'Hovered' },
-            bg: 'light',
-            pseudo: { hover: '.btn' }
-        },
-        {
-            name: 'Pressed',
-            inputs: { variant: 'filled', label: 'Pressed' },
-            bg: 'light',
-            pseudo: { hover: '.btn', active: '.btn' }
-        },
-        {
-            name: 'Focus visible',
-            inputs: { variant: 'outlined', label: 'Focus visible' },
-            bg: 'light',
-            // The ring is an outline with an offset, drawn outside the button's box.
-            pseudo: { 'focus-visible': '.btn' }
+            canvasLayout: 'stretch',
+            states: false
         }
     ],
     tags: ['form', 'action', 'button']

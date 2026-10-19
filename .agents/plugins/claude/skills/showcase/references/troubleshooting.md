@@ -39,6 +39,20 @@ These count for `strictShowcase: true`, which ends the build with
   **`… with <values> in its selector list, expected non-empty strings. …`** and
   **`… with invalid target <json>, expected true, a selector or a list of selectors. Skipping.`**: the target must be
   `true`, a selector or a list of selectors.
+- **`<Class> declares invalid states <value>, expected a list of { name, pseudo }. Skipping.`**: write
+  `states: [{ name: 'Hover', pseudo: { hover: '.btn' } }]`.
+- **`<Class> states[<i>] is <value>, expected { name, pseudo }. Its column stays empty.`**,
+  **`<Class> states[<i>] has no name, expected a non-empty string. Calling it "State <n>".`**,
+  **`<Class> state "<name>" declares no pseudo states. Its column stays empty.`** and
+  **`<Class> state "<name>" repeats the name of states[<i>]; only the first one is used. Its column stays empty.`**:
+  every entry needs a unique `name` and a non-empty `pseudo`. An entry that is not an object, a repeated name and a
+  missing, empty or unusable `pseudo` keep their position as an empty state, so the ones behind it keep their index;
+  an empty state fits no variant (`forces no state`). An entry without a name is not one of them: it is called
+  `State <n>` and works as a state if its `pseudo` is usable, but give it a name.
+- **`<Class> declares states together with renderPage; a component page has no Overview to show them in. Skipping states.`**:
+  use one or the other. A component that needs states renders itself, without `renderPage`.
+- **`<Class> variant "<name>" declares invalid states <value>, expected false. Skipping.`**: the only value a variant's
+  `states` takes is `false`, which keeps it out of the component's states.
 
 ## Notices
 
@@ -86,12 +100,33 @@ Same prefix, but they don't count for `strictShowcase`.
   by the error, the canvas shows nothing or a half-built component, and `.demo-wrap` never gets its
   `data-prism-rendered` marker. The script then exits `1` with "Variant never rendered" and lists the error under the
   browser console errors. The fix is the same.
-- **`[ng-prism] "<selector>" in a variant's pseudo states is not a valid selector, skipping it.`**: fix the CSS selector
+- **`[ng-prism] "<selector>" in forced pseudo states is not a valid selector, skipping it.`**: fix the CSS selector
   in `pseudo`.
 - **`[ng-prism] Could not force a pseudo state for "<selector>".`** and
   **`[ng-prism] Cannot force pseudo states in <stylesheet>: its rules are cross-origin and cannot be read. …`** (dev
   mode only): the browser rejected the rewritten selector, or the stylesheet comes from another origin. Serve it from
   the same origin, or with CORS and a `crossorigin` attribute.
+
+## `screenshot.mjs --state` exits with 4
+
+`<Class> variant <n> × state <m> is excluded: <reason>`: the styleguide rendered the variant, but the state doesn't fit
+it, so nothing is forced and the script takes no screenshot. It is the answer for that combination, not a fault of the
+script. The reason says why:
+
+- **`states: false`**: the variant opts out of the component's `states`. Leave it, or remove `states: false` if the
+  variant should take the state.
+- **`forces no state`**: the state declares no pseudo-class to force. The scanner couldn't evaluate it; look for a
+  `⚠ ng-prism:` line for that `states` entry.
+- **`<target> matches nothing`**: nothing in the variant's rendered component matches the selector (`<target>` is the
+  selector, a list joined with `, `, or `the component`). Check the selector against the variant's template, or pick a
+  variant that renders it.
+- **`<target> is disabled`** or **`<target> is inert`**: a `focus` or `focus-visible` state, and no match can take
+  focus. A disabled or `[inert]` element can't be focused. For `the component`, every element in it that could take
+  focus (a button, a field, a link, `[tabindex]`) is disabled or inert.
+- **`<target> has pointer-events: none`**: a `hover` or `active` state, and every match ignores the pointer.
+
+Exit `1` with `<Class> has no state <m> (it declares <n>).` means the index is out of range: states are 0-based, in the
+order written in `@Showcase({ states })`.
 
 ## The component is missing from the sidebar
 

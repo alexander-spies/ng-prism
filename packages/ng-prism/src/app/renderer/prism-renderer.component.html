@@ -62,6 +62,7 @@
         class="demo-wrap"
         [style.--zoom]="canvasService.zoom()"
         [attr.data-prism-rendered]="renderedKey()"
+        [attr.data-prism-excluded]="excludedReason()"
         [attr.data-canvas-layout]="canvasLayout()"
         [attr.data-viewport]="viewportWidth() !== null ? '' : null"
         [attr.data-pseudo]="forcedStates()">

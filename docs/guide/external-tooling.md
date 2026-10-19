@@ -8,12 +8,13 @@ ng-prism exposes a small, stable contract for those tools. This page is the cano
 
 ## The Anchors
 
-| Anchor                                                               | Where                           | Purpose                                                                                                                                                            |
-| -------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `window.__PRISM_MANIFEST__`                                          | global, set by `providePrism()` | Shape: `{ components: [{ className, title, meta?, variants: [{ name, index, bg, meta?, pseudo? }] }], pages: [{ title }] }`. Use it to enumerate what to visit.    |
-| URL params `?component=<className>&variant=<index>`                  | navigation state                | Drive the app to a specific component+variant from the outside. `variant` is the array index; omit it for index `0`.                                               |
-| `[data-prism-rendered="<className>:<variantIndex>"]` on `.demo-wrap` | renderer host element           | Render marker. Wait for this attribute to match the expected key before inspecting the variant.                                                                    |
-| `?capture=1`                                                         | URL param                       | [Capture isolation mode](#capture-isolation-mode): strips canvas chrome, hands the canvas the whole viewport and freezes the render for deterministic screenshots. |
+| Anchor                                                               | Where                           | Purpose                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `window.__PRISM_MANIFEST__`                                          | global, set by `providePrism()` | Shape: `{ components: [{ className, title, meta?, variants: [{ name, index, bg, meta?, pseudo?, states? }], states?: [{ name, index, pseudo }] }], pages: [{ title }] }`. Use it to enumerate what to visit.                 |
+| URL params `?component=<className>&variant=<index>&state=<index>`    | navigation state                | Drive the app to a specific component+variant from the outside. `variant` is the array index; omit it for index `0`. `state` is the index into the component's `states`; omit it for no state.                               |
+| `[data-prism-rendered="<className>:<variantIndex>"]` on `.demo-wrap` | renderer host element           | Render marker. Wait for this attribute to match the expected key before inspecting the variant. While a component-level state is active the key ends in `:<stateIndex>`, see [Waiting for a render](#waiting-for-a-render).  |
+| `[data-prism-excluded="<reason>"]` on `.demo-wrap`                   | renderer host element           | Set next to the render marker when the requested state is not part of what the canvas shows. A runner reports the cell as excluded instead of capturing it, see [A state that does not apply](#a-state-that-does-not-apply). |
+| `?capture=1`                                                         | URL param                       | [Capture isolation mode](#capture-isolation-mode): strips canvas chrome, hands the canvas the whole viewport and freezes the render for deterministic screenshots.                                                           |
 
 ### Enumerating what exists
 
@@ -25,7 +26,8 @@ await page.waitForFunction(() => globalThis.__PRISM_MANIFEST__ !== undefined);
 const manifest = await page.evaluate(() => globalThis.__PRISM_MANIFEST__);
 
 // manifest.components -> [{ className: 'ButtonComponent', title: 'Button',
-//                          variants: [{ name: 'Primary', index: 0, bg: 'light' }, ...] }]
+//                          variants: [{ name: 'Primary', index: 0, bg: 'light' }, ...],
+//                          states: [{ name: 'Hover', index: 0, pseudo: { hover: true } }, ...] }]
 // manifest.pages      -> [{ title: 'Button Patterns' }]
 ```
 
@@ -33,7 +35,16 @@ const manifest = await page.evaluate(() => globalThis.__PRISM_MANIFEST__);
 
 A variant that forces [pseudo states](guide/variants.md#per-variant-pseudo-states) reports them as `pseudo`, exactly as declared, e.g. `{ 'focus-visible': '.btn' }`. The field is omitted for a variant that forces none. Nothing has to act on it: the render marker waits for the states, and capture mode leaves room for their focus rings, see [Forced pseudo states](guide/visual-regression.md#forced-pseudo-states).
 
-The type is exported as `DiscoveryManifest` from `@ng-prism/core/plugin`.
+A component that declares `states` in `@Showcase` lists them as `states`, one entry per declared slot, with `index` being the position in the source, which is the `?state=` URL value and the last part of the render marker, see [Waiting for a render](#waiting-for-a-render). `pseudo` holds the states it forces, as declared. A slot the scanner could not use is listed all the same with `pseudo: {}`, so the indices behind it keep their value. The field is omitted when the component declares no states. A component without `variants` lists its states next to the single `Default` variant, since that variant combines with each of them.
+
+```js
+// component.states -> [{ name: 'Hover', index: 0, pseudo: { hover: true } },
+//                      { name: 'Focus', index: 1, pseudo: { 'focus-visible': '.btn' } }]
+```
+
+A variant that opted out with `states: false` reports `states: false`, and every other variant has no `states` field. Whether a state fits a variant is not in the manifest, because that is only known once the variant renders. The cell is then reported by the render marker, see [A state that does not apply](#a-state-that-does-not-apply).
+
+The types are exported as `DiscoveryManifest`, `DiscoveryComponent`, `DiscoveryVariant`, `DiscoveryState` and `DiscoveryPage` from `@ng-prism/core/plugin`.
 
 ### Reading the background
 
@@ -90,12 +101,13 @@ Build-time plugin hooks write into the same `meta`, so plugin output (for exampl
 
 ### Navigating
 
-Set `component` (and optionally `variant`) on the URL and reload. `variant` is a 0-based index into the `variants` array; values outside the array are ignored and the app falls back to index `0`.
+Set `component` (and optionally `variant` and `state`) on the URL and reload. `variant` is a 0-based index into the `variants` array; values outside the array are ignored and the app falls back to index `0`. `state` is a 0-based index into the `states` array of `@Showcase` (the position in the source, the same index the manifest and the render marker use); a value that is no index into it is ignored and no state is applied. It is read only next to `component`.
 
 ```js
 const url = new URL(baseUrl);
 url.searchParams.set('component', 'ButtonComponent');
 url.searchParams.set('variant', '2');
+url.searchParams.set('state', '1');
 await page.goto(url.toString(), { waitUntil: 'load' });
 ```
 
@@ -110,6 +122,43 @@ await page.waitForFunction(([expected]) => document.querySelector('.demo-wrap')?
 ```
 
 > The marker means the component was instantiated; it may not be visually settled yet. Fonts may still be swapping and transitions may still be running when it appears. For anything pixel-sensitive, see [Visual Regression](guide/visual-regression.md).
+
+The value is `<className>:<variantIndex>`. While a component-level state (`@Showcase({ states })`) is active, it is `<className>:<variantIndex>:<stateIndex>`, where `stateIndex` is the position of the state in the `states` array, in source order, the same index the manifest and the URL use. Nothing changes without a state: the value stays exactly `<className>:<variantIndex>`, so a runner that waits for that exact value, or for a prefix of it, keeps working. A runner that wants a state waits for the full key:
+
+```js
+const key = `${comp.className}:${variantIndex}:${stateIndex}`;
+
+await page.waitForSelector(`.demo-wrap[data-prism-rendered="${key}"]`);
+```
+
+The marker holds back until the state is in place on the rendered component, the same way it waits for a variant's own forced states. A variant that opted out of states (`states: false`) is keyed with the state index all the same, so the runner finds its cell.
+
+#### A state that does not apply
+
+A state does not fit every variant. Rendering runs to the end either way and the marker is set, but `.demo-wrap` also carries `data-prism-excluded` with the reason, and nothing is forced for that state. A runner reads the attribute right after the marker appears and reports the cell as excluded, with that reason, instead of taking a picture of a component that is not in the state it asked for:
+
+```js
+const excluded = await page.locator('.demo-wrap').getAttribute('data-prism-excluded');
+
+if (excluded !== null) {
+    // Report the cell as excluded, with `excluded` as the reason, and take no screenshot.
+}
+```
+
+The attribute is absent when no state is active, and when the state fits. Otherwise it holds one of these reasons, where `<target>` is the selector the state forces (a list reads as its selectors joined with `, `), or `the component` when it forces the whole component:
+
+| Reason                              | Why                                                                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `states: false`                     | The variant opts out of component-level states. The state stays in the URL, but is not applied.                                    |
+| `forces no state`                   | The state declares no pseudo-class to force, for example because the scanner could not evaluate it.                                |
+| `<target> matches nothing`          | Nothing in the rendered component matches the selector.                                                                            |
+| `<target> is disabled`              | A `focus` or `focus-visible` state, and no match can take focus, at least one of them being disabled.                              |
+| `<target> is inert`                 | A `focus` or `focus-visible` state, and no match can take focus, none being disabled but all under `[inert]` within the component. |
+| `<target> has pointer-events: none` | A `hover` or `active` state, and every match, and everything inside it, ignores the pointer.                                       |
+
+When a state forces several pseudo-classes, the reason names the first one that cannot be reached. The state fits only if each of them can. For a `focus` or `focus-visible` state on `the component`, the matches are what in it could take focus at all (a button, a field, a link with `href`, `[tabindex]` and the like), so a component whose only button is disabled reads `the component is disabled`.
+
+The answer is the one at the moment the marker appears. The app keeps the attribute current while you browse it, because it checks the state again whenever the component's DOM changes, but a runner should read it once, together with the marker, and capture on that state. A target that renders only later, behind `@defer` or after an HTTP call, is not part of that moment, and the state reads as `<target> matches nothing`. That is the same limit every capture has for content that is not there yet; see the note above on the marker meaning "instantiated".
 
 ## Capture Isolation Mode
 
@@ -137,7 +186,7 @@ When active, ng-prism:
 | **Locks zoom to 1**               | Persisted canvas state in `localStorage` (zoom, guides, rulers, measure, background) is neither read nor written.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | **Suppresses overlays**           | Panel overlays render _inside_ `.demo-wrap`; in capture mode they are not rendered and lazy overlay components are never even fetched.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Freezes motion**                | Transitions and animations are disabled document-wide, including inside your own component, via a document-level stylesheet.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Leaves room for focus rings**   | A variant that forces [pseudo states](guide/variants.md#per-variant-pseudo-states) gets 8px of padding around the component inside `.demo-wrap`, taken back out of layout with a negative margin, so a ring drawn outside the component's box is not cropped. The component keeps its position and size; every other variant keeps its box. The tools menu's state toggle is ignored, like the background override. See [Forced pseudo states](guide/visual-regression.md#forced-pseudo-states).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Leaves room for focus rings**   | A variant that forces [pseudo states](guide/variants.md#per-variant-pseudo-states), or whose active component-level state fits, gets 8px of padding around the component inside `.demo-wrap`, taken back out of layout with a negative margin, so a ring drawn outside the component's box is not cropped. The component keeps its position and size; every other variant keeps its box, and so does one whose state is excluded, since nothing is forced there. The active state applies in capture mode, because it addresses the cell like the variant does; the tools menu's state toggle is ignored, like the background override. See [Forced pseudo states](guide/visual-regression.md#forced-pseudo-states).                                                                                                                                                                                                                                                                                                   |
 | **Skips state restore**           | `sessionStorage` state (control-panel input overrides, a11y sub-tab) is not restored, so a previous session cannot alter what you capture.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 The mode is a single switch with nothing else to configure, so a CI job can use it on a prebuilt styleguide it cannot reconfigure.

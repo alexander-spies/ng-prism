@@ -4,6 +4,7 @@ export type {
     DiscoveryComponent,
     DiscoveryManifest,
     DiscoveryPage,
+    DiscoveryState,
     DiscoveryVariant,
     HeaderWidgetDefinition,
     InputMeta,

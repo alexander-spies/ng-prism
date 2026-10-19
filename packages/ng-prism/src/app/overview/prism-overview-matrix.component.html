@@ -1,0 +1,73 @@
+<div
+    class="matrix"
+    role="table"
+    [attr.aria-label]="component().meta.showcaseConfig.title + ' variants by state'"
+    [style.--matrix-columns]="matrix().columns.length">
+    <div
+        class="matrix__row"
+        role="row">
+        <div
+            class="matrix__corner"
+            role="columnheader">
+            Variant
+        </div>
+        @for (header of headers(); track header.column.state) {
+            <div
+                class="matrix__head"
+                role="columnheader"
+                [attr.data-fits-nowhere]="header.fitsNowhere ? '' : null"
+                [attr.title]="header.fitsNowhere ? header.column.title + ' fits no variant; check its selectors' : null">
+                <span class="matrix__title">{{ header.column.title }}</span>
+                <span class="matrix__signature">{{ header.column.signature }}</span>
+                @if (header.fit; as fit) {
+                    <span class="matrix__fit">{{ fit }}</span>
+                }
+            </div>
+        }
+    </div>
+    @for (row of matrix().rows; track row.variant) {
+        <div
+            class="matrix__row"
+            role="row">
+            <div
+                class="matrix__variant"
+                role="rowheader">
+                <span class="matrix__name">{{ row.title }}</span>
+                @if (row.note; as note) {
+                    <span class="matrix__note">{{ note }}</span>
+                }
+            </div>
+            @if (row.optedOut) {
+                <div
+                    class="matrix__slot matrix__slot--span"
+                    role="cell">
+                    <div
+                        class="matrix__list"
+                        role="list">
+                        <prism-overview-cell
+                            [component]="component()"
+                            [index]="row.variant"
+                            mode="matrix" />
+                    </div>
+                </div>
+            } @else {
+                @for (column of matrix().columns; track column.state) {
+                    <div
+                        class="matrix__slot"
+                        role="cell">
+                        <div
+                            class="matrix__list"
+                            role="list">
+                            <prism-overview-cell
+                                [component]="component()"
+                                [index]="row.variant"
+                                [state]="column.state"
+                                mode="matrix"
+                                (fitChange)="onFit(row.variant, column.state, $event)" />
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>

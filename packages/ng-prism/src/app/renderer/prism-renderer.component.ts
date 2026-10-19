@@ -18,7 +18,6 @@ import {
 } from '@angular/core';
 import type { ComponentPage } from '../../plugin/page.types.js';
 import type { PanelDefinition, RuntimeComponent } from '../../plugin/plugin.types.js';
-import { PSEUDO_STATES } from '../../shared/pseudo-state.type.js';
 import { VIEWPORT_MAX, VIEWPORT_MIN } from '../../shared/viewport.type.js';
 import { CANVAS_BG_STYLES } from '../canvas/canvas-bg.styles.js';
 import { PrismCanvasBgPillComponent } from '../canvas/prism-canvas-bg-pill.component.js';
@@ -27,6 +26,7 @@ import { PrismCanvasRulersComponent } from '../canvas/prism-canvas-rulers.compon
 import { snapViewportWidth } from '../canvas/viewport-snap.js';
 import { PrismResizerDirective } from '../directives/prism-resizer.directive.js';
 import { BUILTIN_PANELS } from '../panels/builtin-panels.js';
+import { appliedStateNames } from '../pseudo/pseudo-state-marker.js';
 import { PrismCanvasService } from '../services/prism-canvas.service.js';
 import { PrismCaptureService } from '../services/prism-capture.service.js';
 import { PrismEventLogService } from '../services/prism-event-log.service.js';
@@ -41,7 +41,7 @@ import { PRISM_RENDERER_HOOKS } from '../tokens/prism-tokens.js';
 import { buildInputBindings } from './input-bindings.js';
 import { resolveOverlay } from './overlay-resolver.js';
 import { parseContentToNodes } from './projectable-content.js';
-import { resolveRenderedKey } from './rendered-key.js';
+import { resolveExcludedReason, resolveRenderedKey } from './rendered-key.js';
 
 @Component({
     selector: 'prism-renderer',
@@ -114,26 +114,39 @@ export class PrismRendererComponent {
     private readonly overlayCache = new Map<string, Type<unknown>>();
     readonly activeOverlay = signal<Type<unknown> | null>(null);
     /**
-     * Identifier of the currently rendered component/variant (for audit tooling / e2e).
-     * Held back until the variant's forced pseudo states are in place, see {@link resolveRenderedKey}.
+     * Identifier of the currently rendered component/variant, and of the active state.
+     * Held back until the forced pseudo states and the state are in place, see {@link resolveRenderedKey}.
      */
-    protected readonly renderedKey = computed(() =>
-        resolveRenderedKey({
+    protected readonly renderedKey = computed(() => {
+        const { base, state } = this.pseudoState.layers();
+
+        return resolveRenderedKey({
             component: this.navigationService.activeComponent(),
             variantIndex: this.rendererService.activeVariantIndex(),
+            stateIndex: this.rendererService.activeStateIndex(),
             element: this.rendererService.renderedElement(),
-            pseudo: this.pseudoState.effective(),
+            pseudo: base,
+            state,
             pseudoApplied: this.pseudoMarker.applied()
-        })
+        });
+    });
+    /**
+     * Why the active state is not part of what the canvas shows, `null` when it is
+     * or none is active. A runner reads it next to `data-prism-rendered` and
+     * reports the cell as excluded rather than taking a picture of it.
+     */
+    protected readonly excludedReason = computed(() =>
+        resolveExcludedReason(this.rendererService.activeStateIndex(), this.pseudoState.stateExclusion(), this.pseudoMarker.applied())
     );
     /**
      * The states forced on the canvas, space-separated, `null` for none. Capture
-     * mode keys the room it leaves for focus rings on it.
+     * mode keys the room it leaves for focus rings on it. The active state's
+     * pseudo-classes count only while it fits.
      */
     protected readonly forcedStates = computed(() => {
-        const states = this.pseudoMarker.applied()?.states;
+        const names = appliedStateNames(this.pseudoMarker.applied());
 
-        return states ? PSEUDO_STATES.filter((state) => states[state] !== undefined).join(' ') : null;
+        return names.length > 0 ? names.join(' ') : null;
     });
     /** Resolved canvas layout for the active variant. Variant overrides component config; defaults to 'fit'. */
     protected readonly canvasLayout = computed(() => {
@@ -231,9 +244,15 @@ export class PrismRendererComponent {
         // `renderedKey` waits for what this applies.
         effect(() => {
             const element = this.rendererService.renderedElement();
-            const states = this.pseudoState.effective();
+            const { base, state } = this.pseudoState.layers();
 
-            untracked(() => this.pseudoMarker.apply(element, states));
+            untracked(() => this.pseudoMarker.apply(element, base, state));
+        });
+
+        // What the layers and the toggles of the tools menu depend on. Written from the marker alone and never
+        // read back here: `null` whenever no state layer is applied, so the fit of the previous state cannot linger.
+        effect(() => {
+            this.pseudoState.canvasFit.set(this.pseudoMarker.applied()?.fit ?? null);
         });
 
         this.destroyRef.onDestroy(() => {

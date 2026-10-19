@@ -27,4 +27,5 @@ export class PrismHeadInfoComponent {
     readonly description = input<string | undefined>(undefined);
     readonly tags = input<readonly string[]>([]);
     readonly variantCount = input<number>(0);
+    readonly stateCount = input<number>(0);
 }

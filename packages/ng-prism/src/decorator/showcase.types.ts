@@ -33,6 +33,18 @@ export type InputsOf<T> = [unknown] extends [T]
           [K in keyof T as T[K] extends InputSignalWithTransform<any, any> ? K : never]: UnwrapSignalInput<T[K]>;
       };
 
+/**
+ * A named combination of forced pseudo states, combined with every variant of
+ * the component that does not opt out with `Variant.states: false`, and forced
+ * where it fits: only on targets the browser could put into the state.
+ */
+export interface ShowcaseState {
+    /** Column title in the Overview, chip label in the tools menu. Unique within the component. */
+    name: string;
+    /** Same shape and semantics as `Variant.pseudo`. */
+    pseudo: ForcedPseudoStates;
+}
+
 export interface ShowcaseConfig<T = unknown> {
     /** Display name in the ng-prism UI */
     title: string;
@@ -58,6 +70,16 @@ export interface ShowcaseConfig<T = unknown> {
     sectionOrder?: number;
     /** Predefined variants shown as tabs */
     variants?: Variant<T>[];
+    /**
+     * Named pseudo-state combinations, e.g. `{ name: 'Hover', pseudo: { hover: '.btn' } }`.
+     * Each one is combined with every variant and forced where it fits, so the Overview shows
+     * a column per state and a variant can be viewed in any of them. A variant opts out with
+     * `states: false`.
+     * Not combinable with `renderPage`: a component page has no Overview.
+     *
+     * The position in the list identifies a state, so keep the order stable.
+     */
+    states?: ShowcaseState[];
     /** Tags for search and filtering */
     tags?: string[];
     /**
@@ -127,4 +149,6 @@ export interface Variant<T = unknown> {
      * The component's own CSS applies: every selector using the pseudo-class is widened to also match a stand-in class on the targeted elements.
      */
     pseudo?: ForcedPseudoStates;
+    /** `false` keeps this variant out of every combination with the component's `states`: it renders in its own pseudo states only, as a single cell in the Overview. */
+    states?: false;
 }

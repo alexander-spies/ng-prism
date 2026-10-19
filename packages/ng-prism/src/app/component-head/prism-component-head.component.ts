@@ -56,6 +56,12 @@ export class PrismComponentHeadComponent {
         return c?.meta.showcaseConfig.variants?.length ?? 0;
     });
 
+    protected readonly stateCount = computed(() => {
+        const c = this.comp();
+
+        return c?.meta.showcaseConfig.states?.length ?? 0;
+    });
+
     protected readonly status = computed<ComponentStatus | undefined>(() => this.comp()?.meta.showcaseConfig.status);
 
     protected readonly statusBadge = computed<StatusBadge | null>(() => {

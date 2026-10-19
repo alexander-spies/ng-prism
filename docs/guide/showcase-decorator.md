@@ -183,7 +183,7 @@ Controls the order of this _section_ in the sidebar. Lower numbers appear first.
 
 ### `variants`
 
-Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content`, a `description`, plugin `meta`, its own `bg` and `canvasLayout`, and forced `pseudo` states such as `:focus-visible`.
+Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content`, a `description`, plugin `meta`, its own `bg` and `canvasLayout`, and forced `pseudo` states such as `:focus-visible`. A state that should apply to many variants is a component-level [`states`](#states) entry instead.
 
 ```typescript
 @Showcase({
@@ -197,6 +197,31 @@ Predefined tabs shown above the canvas. Each variant can set different `inputs`,
 ```
 
 See [Variants](guide/variants.md) for the full `Variant` interface.
+
+### `states`
+
+Named pseudo states, `hover`, `active`, `focus`, `focus-visible` and `focus-within`, that apply to every variant they fit. Each entry has a `name` and a `pseudo` in the shape of a variant's `pseudo`. The Overview becomes a matrix of variants against states, the **State** group in the tools menu gets a chip per state, and a screenshot runner can capture every combination.
+
+```typescript
+@Showcase<ButtonComponent>({
+  title: 'Button',
+  states: [
+    { name: 'Hover', pseudo: { hover: '.btn' } },
+    { name: 'Pressed', pseudo: { hover: '.btn', active: '.btn' } },
+    { name: 'Focus visible', pseudo: { 'focus-visible': '.btn' } },
+  ],
+  variants: [
+    { name: 'Filled', inputs: { variant: 'filled' } },
+    { name: 'Disabled', inputs: { variant: 'filled', disabled: true } },
+    // Not combined with any state
+    { name: 'Full width', inputs: { fullWidth: true }, canvasLayout: 'stretch', states: false },
+  ],
+})
+```
+
+A state is forced only where the browser could put the component in it, so `Focus visible` is not forced on the disabled button, and the combination is reported as not fitting, with the reason. A variant opts out of all states with `states: false`. The position in the list identifies a state in the URL, the render marker, `__PRISM_MANIFEST__` and a visual regression report, so keep the order stable.
+
+Not combinable with [`renderPage`](#renderpage): a component page has no Overview, so the scanner reports `states` there and drops it. See [Variants: States](guide/variants.md#states) for the fit rule, the reasons and when to use `pseudo` on a variant instead.
 
 ### `tags`
 
@@ -334,7 +359,7 @@ Use this to communicate migration state while moving components from a legacy li
 
 Title of a registered `ComponentPage` to render instead of the default component canvas. Use for complex components that need elaborate template projections or mock data that cannot be expressed with simple `content` strings.
 
-The page component can inject `PrismRendererService` to react to variant and controls panel changes.
+The page component can inject `PrismRendererService` to react to variant and controls panel changes. A component with `renderPage` cannot declare [`states`](#states).
 
 ```typescript
 @Showcase({

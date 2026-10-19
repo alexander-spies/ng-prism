@@ -8,7 +8,7 @@ function isSelector(value: unknown): value is string {
     return typeof value === 'string' && value.trim() !== '';
 }
 
-function describeValue(value: unknown): string {
+export function describeValue(value: unknown): string {
     if (typeof value === 'string' || (typeof value === 'object' && value !== null)) return JSON.stringify(value) ?? String(value);
     return String(value);
 }

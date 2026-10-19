@@ -109,6 +109,25 @@ const untypedInputs: Partial<InputsOf<unknown>> = {
 
 void untypedInputs;
 
+// (f) Component states: a list of { name, pseudo }, and `false` as the variant's opt-out.
+@Showcase<FixtureComponent>({
+    title: 'States',
+    states: [{ name: 'Hover', pseudo: { hover: '.btn' } }],
+    variants: [{ name: 'A', states: false }]
+})
+class StatesUsage {}
+void StatesUsage;
+
+@Showcase<FixtureComponent>({
+    title: 'States',
+    variants: [
+        // @ts-expect-error: a variant can only opt out of states, with false
+        { name: 'B', states: true }
+    ]
+})
+class BadVariantStatesUsage {}
+void BadVariantStatesUsage;
+
 describe('@Showcase<T> typed variant inputs', () => {
     it('loads without runtime errors (all checks are compile-time)', () => {
         expect(true).toBe(true);

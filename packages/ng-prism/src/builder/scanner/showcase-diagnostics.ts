@@ -64,16 +64,16 @@ export function describeUnreadableBase(className: string, base: UnreadableBase):
     );
 }
 
-/** A variant is named by its `name` as well as its index, since that is what the styleguide shows. */
+/** A variant or a state is named by its `name` as well as its index, since that is what the styleguide shows. */
 function formatShowcasePath(path: EvaluationPath, config: ts.Expression): string {
     const [head, index, ...rest] = path;
 
-    if (head !== 'variants' || typeof index !== 'number') return formatPath(path);
+    if ((head !== 'variants' && head !== 'states') || typeof index !== 'number') return formatPath(path);
 
-    const name = variantName(config, index);
-    const variant = name === undefined ? `variants[${index}]` : `variants[${index}] ${JSON.stringify(name)}`;
+    const name = elementName(config, head, index);
+    const element = name === undefined ? `${head}[${index}]` : `${head}[${index}] ${JSON.stringify(name)}`;
 
-    return rest.length === 0 ? variant : `${variant} › ${formatPath(rest)}`;
+    return rest.length === 0 ? element : `${element} › ${formatPath(rest)}`;
 }
 
 function formatPath(path: EvaluationPath): string {
@@ -87,10 +87,10 @@ function formatPath(path: EvaluationPath): string {
 }
 
 /** Read from the source, because the evaluated array has already lost the elements before the index. */
-function variantName(config: ts.Expression, index: number): string | undefined {
-    const variants = ts.isObjectLiteralExpression(config) ? findInitializer(config, 'variants') : undefined;
-    const variant = variants && ts.isArrayLiteralExpression(variants) ? variants.elements[index] : undefined;
-    const name = variant && ts.isObjectLiteralExpression(variant) ? findInitializer(variant, 'name') : undefined;
+function elementName(config: ts.Expression, key: 'variants' | 'states', index: number): string | undefined {
+    const elements = ts.isObjectLiteralExpression(config) ? findInitializer(config, key) : undefined;
+    const element = elements && ts.isArrayLiteralExpression(elements) ? elements.elements[index] : undefined;
+    const name = element && ts.isObjectLiteralExpression(element) ? findInitializer(element, 'name') : undefined;
     const value = name && evaluateExpression(name);
 
     return typeof value === 'string' ? value : undefined;

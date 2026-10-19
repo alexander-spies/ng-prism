@@ -1,11 +1,15 @@
 @if (activeComponent(); as component) {
-    <div
-        class="prism-overview"
-        role="list">
-        @for (_ of variants(); track $index) {
-            <prism-overview-cell
-                [component]="component"
-                [index]="$index" />
-        }
-    </div>
+    @if (hasStates()) {
+        <prism-overview-matrix [component]="component" />
+    } @else {
+        <div
+            class="prism-overview"
+            role="list">
+            @for (_ of variants(); track $index) {
+                <prism-overview-cell
+                    [component]="component"
+                    [index]="$index" />
+            }
+        </div>
+    }
 }

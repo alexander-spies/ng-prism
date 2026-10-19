@@ -1,7 +1,7 @@
-import type { DiscoveryComponent, DiscoveryManifest, DiscoveryVariant, RuntimeManifest } from '../plugin/plugin.types.js';
+import type { DiscoveryComponent, DiscoveryManifest, DiscoveryState, DiscoveryVariant, RuntimeManifest } from '../plugin/plugin.types.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import { resolveVariantBg } from '../shared/variant-bg.js';
-import { forcesAnyState } from './pseudo/pseudo-state-marker.js';
+import { forcesAnyState } from './pseudo/pseudo-targets.js';
 
 /**
  * External tooling reads `__PRISM_MANIFEST__` through a structured-clone bridge
@@ -69,8 +69,8 @@ export function serializableMeta(meta: Record<string, unknown> | undefined): Rec
  *
  * It is not the runtime manifest: no Angular class references, no
  * providers, no scanned input/output metadata. It carries what an external tool
- * needs to enumerate and address variants, plus the `@Showcase` metadata that
- * lets a tool decide how to treat one.
+ * needs to enumerate and address variants and component-level states, plus the
+ * `@Showcase` metadata that lets a tool decide how to treat one.
  */
 export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryManifest {
     return {
@@ -91,6 +91,7 @@ export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryMani
 
                       if (meta) discovered.meta = meta;
                       if (pseudo) discovered.pseudo = pseudo;
+                      if (variant.states === false) discovered.states = false;
                       return discovered;
                   })
                 : [
@@ -101,6 +102,15 @@ export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryMani
                       }
                   ];
 
+            // Every slot is listed, the empty ones too: the scanner keeps a state it
+            // cannot use as `{ name, pseudo: {} }` so the position in the array stays
+            // the `?state=` value of the states behind it.
+            const states: DiscoveryState[] = (showcaseConfig.states ?? []).map((state, index) => ({
+                name: state.name,
+                index,
+                pseudo: (serializableMeta(state.pseudo) ?? {}) as ForcedPseudoStates
+            }));
+
             const meta = serializableMeta(showcaseConfig.meta);
             const discovered: DiscoveryComponent = {
                 className,
@@ -108,6 +118,7 @@ export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryMani
                 variants
             };
 
+            if (states.length) discovered.states = states;
             if (meta) discovered.meta = meta;
             return discovered;
         }),

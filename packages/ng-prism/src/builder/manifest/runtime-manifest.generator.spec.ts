@@ -182,6 +182,21 @@ describe('generateRuntimeManifest', () => {
         expect(source).toContain('name: "Slots"');
     });
 
+    it("writes component states and a variant's states: false", () => {
+        const stateful: ScannedComponent = {
+            ...CARD,
+            showcaseConfig: {
+                title: 'Card',
+                states: [{ name: 'Hover', pseudo: { hover: '.card' } }],
+                variants: [{ name: 'A', states: false }]
+            }
+        };
+        const source = generateRuntimeManifest({ components: [stateful], libraryImportPath: 'my-lib' });
+
+        expect(source).toMatch(/states: \[\s+\{\s+name: "Hover",\s+pseudo: \{\s+hover: "\.card"/);
+        expect(source).toContain('states: false');
+    });
+
     it('should handle empty components array', () => {
         const source = generateRuntimeManifest({
             components: [],

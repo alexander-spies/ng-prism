@@ -241,6 +241,102 @@ describe('buildDiscoveryManifest', () => {
         expect('pseudo' in empty).toBe(false);
     });
 
+    it('lists the states with their index', () => {
+        const result = buildDiscoveryManifest(
+            manifestOf({
+                className: 'ButtonComponent',
+                showcaseConfig: {
+                    title: 'Button',
+                    variants: [{ name: 'Filled' }],
+                    states: [
+                        { name: 'Hover', pseudo: { hover: true } },
+                        { name: 'Focus', pseudo: { 'focus-visible': '.btn', hover: ['.a', '.b'] } }
+                    ]
+                }
+            })
+        );
+
+        expect(result.components[0].states).toEqual([
+            { name: 'Hover', index: 0, pseudo: { hover: true } },
+            { name: 'Focus', index: 1, pseudo: { 'focus-visible': '.btn', hover: ['.a', '.b'] } }
+        ]);
+    });
+
+    it('omits states when none are declared', () => {
+        const none = buildDiscoveryManifest(manifestOf({ className: 'ButtonComponent', showcaseConfig: { title: 'Button', variants: [{ name: 'Filled' }] } }));
+        const empty = buildDiscoveryManifest(
+            manifestOf({ className: 'ButtonComponent', showcaseConfig: { title: 'Button', variants: [{ name: 'Filled' }], states: [] } })
+        );
+
+        expect('states' in none.components[0]).toBe(false);
+        expect('states' in empty.components[0]).toBe(false);
+        expect('states' in none.components[0].variants[0]).toBe(false);
+    });
+
+    it('marks a variant that opts out', () => {
+        const result = buildDiscoveryManifest(
+            manifestOf({
+                className: 'ButtonComponent',
+                showcaseConfig: {
+                    title: 'Button',
+                    variants: [{ name: 'Filled' }, { name: 'Static', states: false }],
+                    states: [{ name: 'Hover', pseudo: { hover: true } }]
+                }
+            })
+        );
+        const [filled, fixed] = result.components[0].variants;
+
+        expect(fixed.states).toBe(false);
+        expect('states' in filled).toBe(false);
+    });
+
+    it('keeps an empty slot so later indices stay', () => {
+        // The scanner keeps a state it cannot use as `{ name, pseudo: {} }`, so
+        // the array position is still the `?state=` value of the ones behind it.
+        const result = buildDiscoveryManifest(
+            manifestOf({
+                className: 'ButtonComponent',
+                showcaseConfig: {
+                    title: 'Button',
+                    states: [
+                        { name: 'Broken', pseudo: {} },
+                        { name: 'Hover', pseudo: { hover: true } }
+                    ]
+                }
+            })
+        );
+
+        expect(result.components[0].states).toEqual([
+            { name: 'Broken', index: 0, pseudo: {} },
+            { name: 'Hover', index: 1, pseudo: { hover: true } }
+        ]);
+    });
+
+    it('lists the states of a component without variants next to its synthetic Default', () => {
+        // The implicit Default row combines with every state, so a runner has to
+        // see both. The synthetic variant never opts out.
+        const result = buildDiscoveryManifest(
+            manifestOf({
+                className: 'IconComponent',
+                showcaseConfig: { title: 'Icon', states: [{ name: 'Hover', pseudo: { hover: true } }] }
+            })
+        );
+
+        expect(result.components[0].variants).toEqual([{ name: 'Default', index: 0, bg: 'transparent' }]);
+        expect(result.components[0].states).toEqual([{ name: 'Hover', index: 0, pseudo: { hover: true } }]);
+    });
+
+    it('lists the states of a component with an empty variants array', () => {
+        const result = buildDiscoveryManifest(
+            manifestOf({
+                className: 'IconComponent',
+                showcaseConfig: { title: 'Icon', variants: [], states: [{ name: 'Hover', pseudo: { hover: true } }] }
+            })
+        );
+
+        expect(result.components[0].states).toHaveLength(1);
+    });
+
     it('exposes component meta, which is where build-time plugins write', () => {
         const result = buildDiscoveryManifest(
             manifestOf({
@@ -316,11 +412,13 @@ describe('buildDiscoveryManifest', () => {
                 showcaseConfig: {
                     title: 'Button',
                     meta: { component: SomeComponent, cb: () => 0 },
-                    variants: [{ name: 'Primary', meta: { el: SomeComponent } }]
+                    variants: [{ name: 'Primary', meta: { el: SomeComponent } }],
+                    states: [{ name: 'Hostile', pseudo: { hover: () => 0, 'focus-visible': SomeComponent } as never }]
                 }
             })
         );
 
         expect(() => structuredClone(result)).not.toThrow();
+        expect(result.components[0].states).toEqual([{ name: 'Hostile', index: 0, pseudo: {} }]);
     });
 });

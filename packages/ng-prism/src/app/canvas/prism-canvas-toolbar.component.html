@@ -115,6 +115,22 @@
     </div>
 
     <span class="prism-toolmenu__lbl">State</span>
+    @if (chips().length > 0) {
+        <div class="prism-toolmenu__row">
+            @for (chip of chips(); track chip.index) {
+                <button
+                    type="button"
+                    class="is-rec"
+                    [class.is-on]="chip.active"
+                    [class.is-na]="!chip.fits"
+                    [attr.aria-pressed]="chip.active"
+                    [attr.title]="chip.title"
+                    (click)="pickState(chip)">
+                    {{ chip.name }}
+                </button>
+            }
+        </div>
+    }
     <div class="prism-toolmenu__row">
         @for (state of states; track state) {
             <button

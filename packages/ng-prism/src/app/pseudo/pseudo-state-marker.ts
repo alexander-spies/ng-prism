@@ -1,54 +1,33 @@
 import { signal } from '@angular/core';
-import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoTarget } from '../../shared/pseudo-state.type.js';
+import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoState } from '../../shared/pseudo-state.type.js';
 import { PSEUDO_CLASS_PREFIX, pseudoStateClass } from './pseudo-selector.js';
 import type { PseudoStyleSheets } from './pseudo-stylesheets.js';
+import { forcesAnyState, hasTarget, resolveTargets } from './pseudo-targets.js';
+import { evaluateStateFit, reachableTargets, type StateFit } from './state-fit.js';
 
 /** The element a marker forces states in, and the states it forces there. */
 export interface AppliedPseudoStates {
     root: Element;
-    states: ForcedPseudoStates;
+    /** The variant's own states with the toggles on top, unfiltered as in 22.5.0. */
+    states: ForcedPseudoStates | null;
+    /** The active state's pseudo, `null` when no state is active. */
+    state: ForcedPseudoStates | null;
+    /** `null` when `state` is `null`. Re-evaluated on every mark. */
+    fit: StateFit | null;
 }
 
-/** True when `states` forces at least one state on at least one target. */
-export function forcesAnyState(states: ForcedPseudoStates | null | undefined): states is ForcedPseudoStates {
-    return !!states && PSEUDO_STATES.some((state) => hasTarget(states[state]));
+/** The pseudo-classes actually forced right now: `states`, plus `state` while it fits. */
+export function appliedStateNames(applied: AppliedPseudoStates | null): PseudoState[] {
+    if (!applied) return [];
+    const { states, state, fit } = applied;
+    const stateForced = !!state && !!fit?.fits;
+
+    return PSEUDO_STATES.filter((name) => hasTarget(states?.[name]) || (stateForced && hasTarget(state[name])));
 }
 
-function hasTarget(target: PseudoTarget | undefined): boolean {
-    if (target === true) return true;
-    if (typeof target === 'string') return target.trim() !== '';
-    return Array.isArray(target) && target.some((selector) => typeof selector === 'string' && selector.trim() !== '');
-}
-
-const warnedSelectors = new Set<string>();
-
-/**
- * The elements under `root` a target names. `root` counts: a selector can name
- * the component's host, and `true` includes it.
- */
-function resolveTargets(root: Element, target: PseudoTarget | undefined): Set<Element> {
-    const targets = new Set<Element>();
-
-    if (target === undefined) return targets;
-    if (target === true) {
-        targets.add(root);
-        for (const el of Array.from(root.querySelectorAll('*'))) targets.add(el);
-        return targets;
-    }
-
-    for (const selector of typeof target === 'string' ? [target] : target) {
-        if (typeof selector !== 'string' || selector.trim() === '') continue;
-        try {
-            if (root.matches(selector)) targets.add(root);
-            for (const el of Array.from(root.querySelectorAll(selector))) targets.add(el);
-        } catch {
-            if (!warnedSelectors.has(selector)) {
-                warnedSelectors.add(selector);
-                console.warn(`[ng-prism] "${selector}" in a variant's pseudo states is not a valid selector, skipping it.`);
-            }
-        }
-    }
-    return targets;
+function sameFit(a: StateFit | null, b: StateFit | null): boolean {
+    if (a === null || b === null) return a === b;
+    return a.fits ? b.fits : !b.fits && a.reason === b.reason;
 }
 
 /** Every element under `root`, `root` included, that carries a forced-state class. */
@@ -67,9 +46,19 @@ function markedElements(root: Element): Element[] {
  * component's own CSS then applies, with no special case for sibling
  * combinators, pseudo-elements, `:has()` or `:not()`.
  *
+ * A second layer carries the component state that is active: its pseudo is
+ * forced only while it fits, and only on the targets a user could reach
+ * ({@link evaluateStateFit}). The variant's own states are forced as they are.
+ * Fit and reach are measured with the variant's classes and the state's on all
+ * of its targets at once, on every pass. The first pass, the one
+ * `data-prism-rendered` waits for, therefore marks what any later pass would,
+ * and a rule that takes away the pointer under its own `:hover` reads as not
+ * fitting, as the browser could not keep such an element hovered either.
+ *
  * The root is watched while states are forced: an element rendered later
  * (`@if`), or one whose classes or attributes change so that it starts or
- * stops matching a selector (`button:not([disabled])`), is marked again.
+ * stops matching a selector (`button:not([disabled])`), is marked again, and
+ * the state is checked again.
  *
  * One marker per rendered component: the Playground canvas has one, each
  * Overview cell has its own, so a state never leaks into a neighbouring cell.
@@ -79,17 +68,21 @@ export class PseudoStateMarker {
     private observer: MutationObserver | null = null;
 
     /**
-     * What the marks are in place for, `null` while nothing is forced. A
-     * signal, so the renderer can hold back `data-prism-rendered` until the
-     * states it reports are the ones on screen.
+     * What the marks are in place for, `null` while nothing is forced and no
+     * state is active. A signal, so the renderer can hold back
+     * `data-prism-rendered` until the states it reports are the ones on screen.
+     * A state that does not fit keeps it set, with the reason in `fit`.
      */
     readonly applied = this._applied.asReadonly();
 
     constructor(private readonly stylesheets: PseudoStyleSheets) {}
 
-    /** Forces `states` under `root`, replacing whatever this marker forced before. */
-    apply(root: Element | null, states: ForcedPseudoStates | null | undefined): void {
-        if (!root || !forcesAnyState(states)) {
+    /**
+     * Forces `states`, and `state` where it fits, under `root`, replacing
+     * whatever this marker forced before.
+     */
+    apply(root: Element | null, states: ForcedPseudoStates | null | undefined, state?: ForcedPseudoStates | null): void {
+        if (!root || (!forcesAnyState(states) && !state)) {
             this.clear();
             return;
         }
@@ -105,7 +98,7 @@ export class PseudoStateMarker {
             this.stylesheets.sync();
         }
 
-        this._applied.set({ root, states });
+        this._applied.set({ root, states: states ?? null, state: state ?? null, fit: null });
         this.mark();
     }
 
@@ -125,9 +118,9 @@ export class PseudoStateMarker {
 
     private observe(root: Element): void {
         if (typeof MutationObserver === 'undefined') return;
-        // Our own class changes come back through here too; the second pass finds
-        // nothing to change. Inline styles alone cannot change what a selector
-        // matches, and an animation can write them every frame.
+        // Inline styles alone cannot change what a selector matches, and an
+        // animation can write them every frame. The marker's own writes never
+        // get here, see the end of mark.
         this.observer = new MutationObserver((records) => {
             if (records.some((record) => record.attributeName !== 'style')) this.mark();
         });
@@ -138,20 +131,56 @@ export class PseudoStateMarker {
         const applied = this._applied();
 
         if (!applied) return;
-        const { root, states } = applied;
+        const { root, states, state } = applied;
+        const forced = new Map<PseudoState, Set<Element>>();
+        const stateTargets = new Map<PseudoState, Set<Element>>();
 
-        for (const state of PSEUDO_STATES) {
-            const cls = pseudoStateClass(state);
-            const targets = resolveTargets(root, states[state]);
+        // Every pass measures one DOM, whatever the previous pass left: the
+        // variant's classes, and the state's on every target it names, all at
+        // once. A target can take the pointer only under another forced class
+        // (a hover-reveal), and a mark must not depend on whether an unrelated
+        // write set off a second pass.
+        for (const name of PSEUDO_STATES) {
+            const variantTargets = resolveTargets(root, states?.[name]);
+            const targets = state ? resolveTargets(root, state[name]) : new Set<Element>();
 
-            // `classList.remove` writes the attribute even when the class is absent,
-            // and the write would come back through the observer as a mutation.
-            for (const el of markedElements(root)) {
-                if (!targets.has(el) && el.classList.contains(cls)) el.classList.remove(cls);
-            }
-            for (const el of targets) {
-                if (!el.classList.contains(cls)) el.classList.add(cls);
-            }
+            forced.set(name, variantTargets);
+            stateTargets.set(name, targets);
+            this.write(root, name, new Set([...variantTargets, ...targets]));
+        }
+
+        const fit = state ? evaluateStateFit(root, state) : null;
+        // Read before the first class comes off, so no target is measured
+        // against a DOM another one's removal changed.
+        const reachable = PSEUDO_STATES.map((name) => new Set(fit?.fits ? reachableTargets(root, name, stateTargets.get(name)!) : []));
+
+        // Only a change of the fit is news. The signal setting off its own
+        // effects is harmless, a new value on every mark is not.
+        if (!sameFit(applied.fit, fit)) this._applied.set({ ...applied, fit });
+
+        // The state's class comes off what it cannot reach, and off all of its
+        // targets when it does not fit. The variant's classes stay.
+        PSEUDO_STATES.forEach((name, i) => this.write(root, name, new Set([...forced.get(name)!, ...reachable[i]])));
+
+        // The records of the writes above are ours. Acting on them would only
+        // repeat this pass, and a state whose class takes away its own reach
+        // (`pointer-events: none`) would rewrite its class on every one. Anything
+        // the component changed before this pass was read by it, so nothing
+        // pending is lost.
+        this.observer?.takeRecords();
+    }
+
+    /** Puts the class of `name` on exactly `targets` under `root`. */
+    private write(root: Element, name: PseudoState, targets: Set<Element>): void {
+        const cls = pseudoStateClass(name);
+
+        // `classList.remove` writes the attribute even when the class is absent,
+        // and the write would come back through the observer as a mutation.
+        for (const el of markedElements(root)) {
+            if (!targets.has(el) && el.classList.contains(cls)) el.classList.remove(cls);
+        }
+        for (const el of targets) {
+            if (!el.classList.contains(cls)) el.classList.add(cls);
         }
     }
 }

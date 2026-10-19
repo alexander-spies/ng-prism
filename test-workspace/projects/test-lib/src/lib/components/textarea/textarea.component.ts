@@ -10,6 +10,8 @@ import { Showcase } from '@ng-prism/core';
     status: 'wip',
     category: 'Inputs',
     description: 'Multi-line text input with optional character counter, placeholder, and validation.',
+    // Real focus on the field puts the host into :focus-within as well.
+    states: [{ name: 'Focused', pseudo: { focus: '.sg-textarea__input', 'focus-within': '.sg-textarea' } }],
     variants: [
         { name: 'Default', inputs: { placeholder: 'Enter your message...' } },
         { name: 'With Value', inputs: { value: 'Hello, this is a pre-filled textarea.', placeholder: 'Type here' } },
@@ -17,12 +19,11 @@ import { Showcase } from '@ng-prism/core';
         { name: 'Error State', inputs: { value: '', error: 'This field is required.', placeholder: 'Required field' } },
         { name: 'Disabled', inputs: { value: 'Read only content', disabled: true } },
         { name: 'Small', inputs: { rows: 2, placeholder: 'Short input' } },
-        { name: 'Focused', inputs: { placeholder: 'Enter your message...' }, bg: 'light', pseudo: { focus: '.sg-textarea__input' } },
         {
             name: 'Typing',
             inputs: { value: 'Hello', maxLength: 200, showCounter: true },
             bg: 'light',
-            // Real focus on the field puts the host into :focus-within as well.
+            // Own inputs plus focus: a one-off picture, so it stays a variant with its own pseudo.
             pseudo: { focus: '.sg-textarea__input', 'focus-within': '.sg-textarea' }
         }
     ],

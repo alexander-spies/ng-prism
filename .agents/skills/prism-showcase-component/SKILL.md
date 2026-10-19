@@ -48,6 +48,9 @@ export class ButtonComponent { }
       inputs: { variant: 'danger', label: 'Delete', disabled: false },
     },
   ],
+
+  // Optional — named pseudo states, combined with every variant they fit
+  states: [{ name: 'Hover', pseudo: { hover: '.btn' } }],
 })
 ```
 
@@ -70,6 +73,8 @@ interface ShowcaseConfig<T = unknown> {
     sectionOrder?: number; // Section position. Defaults: Components 0,
     // Directives 10, everything else 100
     variants?: Variant<T>[]; // Predefined demo tabs
+    states?: ShowcaseState[]; // Named pseudo states, combined with every
+    // variant. Order = index. Not with renderPage
     tags?: string[]; // Search/filter tags
     providers?: Provider[]; // @deprecated since 22.4.0, dropped by the build
     meta?: Record<string, unknown>; // Arbitrary plugin metadata
@@ -78,6 +83,11 @@ interface ShowcaseConfig<T = unknown> {
     host?: string | DirectiveHost; // Host element for directives
     renderPage?: string; // Render a styleguide page instead
     status?: ComponentStatus; // 'stable' | 'beta' | 'wip' | 'deprecated'
+}
+
+interface ShowcaseState {
+    name: string; // Overview column title, tools menu chip. Unique
+    pseudo: ForcedPseudoStates; // Same shape as Variant.pseudo
 }
 
 interface Variant<T = unknown> {
@@ -89,6 +99,7 @@ interface Variant<T = unknown> {
     bg?: CanvasBg; // Overrides the component's bg
     canvasLayout?: CanvasLayout; // Overrides the component's layout
     pseudo?: ForcedPseudoStates; // Forced states, e.g. { hover: true }
+    states?: false; // Keeps the variant out of every component state
 }
 ```
 
@@ -101,6 +112,12 @@ interface Variant<T = unknown> {
   `defineConfig({ appProviders })`, or for one component in a component page
   (`renderPage`)
 - `variants.inputs` keys must match the component's `input()` member names
+- A hover, pressed or focus condition that applies to several variants is a `states` entry, not a variant per
+  variant. A picture that belongs to one variant (its own inputs plus a forced state) stays `Variant.pseudo`, which
+  is not deprecated and has no fit rule. A state is forced only where its targets are reachable: when they are not,
+  the combination does not fit and says why (`<target> matches nothing`, `is disabled`, `is inert` or
+  `has pointer-events: none`). A state's position in the list is its index in the URL, the render marker, the
+  manifest and the VRT report, so append new states at the end
 - The component must be exported from the library's entry file to be discovered.
   Which file that is comes from the builder's `entryPoint` option — commonly
   `public-api.ts` or `index.ts`, not a fixed name.
@@ -136,5 +153,6 @@ const MB = 1024 * 1024;
 - [ ] `category` groups the component logically
 - [ ] `variants` cover the main use cases
 - [ ] `variants.inputs` keys match the actual `input()` member names
+- [ ] States shared by several variants are in `states`, with unique names and a stable order; `pseudo` stays on a variant only for a one-off picture
 - [ ] Config values are statically evaluable (literals, `const`, enum members; no function calls, no `let`)
 - [ ] Component is exported from the library's entry file (`entryPoint`)

@@ -118,16 +118,47 @@ variants: [
 ],
 ```
 
+A component that declares [`states`](guide/variants.md#states) gets the same without a variant per state. Each state is combined with every variant, and every combination the state fits is a capture of its own, addressed with `state=` next to `variant=`. A combination it does not fit is reported as `excluded`, see [A state that does not fit](#a-state-that-does-not-fit):
+
+```typescript
+@Showcase({
+  title: 'Button',
+  states: [
+    { name: 'Hover', pseudo: { hover: '.btn' } },
+    { name: 'Focus visible', pseudo: { 'focus-visible': '.btn' } },
+  ],
+  variants: [{ name: 'Filled', bg: 'light' }, { name: 'Outlined', bg: 'light' }],
+})
+```
+
+```
+http://localhost:4200/?component=ButtonComponent&variant=1&state=0&capture=1
+```
+
+That is six captures to take instead of two: each of `Filled` and `Outlined`, on its own, in `Hover` and in `Focus visible`. The state is the index into `states`, the same one `__PRISM_MANIFEST__` lists. A runner that already walks the variants needs a loop over the states and nothing else, see [A worked example](#a-worked-example).
+
 Two things make this work without a change in the runner:
 
-- **The render marker waits for the state.** `data-prism-rendered` only appears once the forced states are in place on the rendered component. A runner that waits on the marker, as every runner on this page does, captures the forced state.
-- **Capture mode leaves room for the ring.** `.demo-wrap` hugs the component's box, but a focus ring is usually drawn outside it: an `outline` with an `outline-offset`, or a `box-shadow` halo. A screenshot of the bare box would crop exactly the thing under test. In capture mode, `.demo-wrap` therefore gets 8px of padding on every side for a variant that forces a state, taken back out of layout with a negative margin of the same size. The component keeps its position and its size, and the screenshot grows by 16px in each direction. A `stretch` variant keeps its width too as long as the clamp at 800px applies, i.e. from a viewport of 816px up; below that it gives up the 16px so the room stays inside the canvas.
+- **The render marker waits for the state.** `data-prism-rendered` only appears once the forced states are in place on the rendered component, whether the variant forces them or a component state does. A runner that waits on the marker, as every runner on this page does, captures the forced state. With a component state the marker ends in its index (`ButtonComponent:1:0`), and a runner that wants the state waits for that exact value. Without a state it stays `ButtonComponent:1`.
+- **Capture mode leaves room for the ring.** `.demo-wrap` hugs the component's box, but a focus ring is usually drawn outside it: an `outline` with an `outline-offset`, or a `box-shadow` halo. A screenshot of the bare box would crop exactly the thing under test. In capture mode, `.demo-wrap` therefore gets 8px of padding on every side for a capture that forces a state, taken back out of layout with a negative margin of the same size. The component keeps its position and its size, and the screenshot grows by 16px in each direction. A `stretch` variant keeps its width too as long as the clamp at 800px applies, i.e. from a viewport of 816px up; below that it gives up the 16px so the room stays inside the canvas.
 
-The room applies only to variants that force a state, so no existing baseline moves when you add `pseudo` to some variants. It is keyed on `.demo-wrap[data-pseudo]`, which lists the forced states. A ring wider than 8px still gets cropped. Clip the page screenshot yourself in that case, from the component's bounding box widened by the ring, instead of screenshotting `.demo-wrap`.
+The room applies only to captures that force a state: a variant with its own `pseudo`, or a combination whose state fits. A variant captured without a state keeps its box, so no existing baseline moves when you add `pseudo` or `states`. It is keyed on `.demo-wrap[data-pseudo]`, which lists the forced states. A ring wider than 8px still gets cropped. Clip the page screenshot yourself in that case, from the component's bounding box widened by the ring, instead of screenshotting `.demo-wrap`.
 
-The toggle in the canvas tools menu is session state and is ignored in capture mode: only what the variant declares is captured. Transitions are frozen in capture mode as well, so the state is captured at its end value and not on its way there.
+The toggle in the canvas tools menu is session state and is ignored in capture mode: what is captured is what the variant declares, plus the state in the URL. Transitions are frozen in capture mode as well, so the state is captured at its end value and not on its way there.
 
-`__PRISM_MANIFEST__` reports the forced states per variant ([`pseudo`](guide/external-tooling.md#enumerating-what-exists)), for a runner that wants to label or filter them.
+`__PRISM_MANIFEST__` reports the forced states per variant ([`pseudo`](guide/external-tooling.md#enumerating-what-exists)) and the component's `states`, for a runner that wants to label, filter or enumerate them.
+
+### A state that does not fit
+
+A state fits a variant only where the browser could put the component in it: `Remove hovered` has nothing to hover on a chip without a remove button, and `Focus visible` has nothing to focus on a disabled button. See [When a state fits](guide/variants.md#when-a-state-fits) for the rule. For such a combination nothing is forced, so what renders is the plain variant.
+
+Do not capture that image. It is the variant's own baseline under the name of a state it is not in, so it can never fail for the state, and a selector that quietly stopped matching would go on passing. The combination still renders and still sets the marker. `.demo-wrap` also carries `data-prism-excluded` with the reason, and the runner reports the cell as `excluded` with that reason instead of taking a screenshot:
+
+```js
+const excluded = await page.locator('.demo-wrap').getAttribute('data-prism-excluded');
+```
+
+The reasons are listed in [A state that does not apply](guide/external-tooling.md#a-state-that-does-not-apply). A variant that opted out with `states: false` has no state captures at all: its manifest entry says `states: false`, and a runner skips the states for it. Asking for one anyway reads `states: false` in the same attribute.
 
 ## Breaking: the default background changed
 
@@ -182,31 +213,45 @@ const manifest = await page.evaluate(() => globalThis.__PRISM_MANIFEST__);
 
 for (const comp of manifest.components) {
     for (const variant of comp.variants) {
-        // 2. Navigate, in capture mode.
-        const url = new URL(baseUrl);
-        url.searchParams.set('component', comp.className);
-        if (variant.index > 0) url.searchParams.set('variant', String(variant.index));
-        url.searchParams.set('capture', '1');
-        await page.goto(url.toString(), { waitUntil: 'load' });
+        // Every variant on its own (`null`), then in each state of the component.
+        // A variant that opted out with `states: false` has no state cells.
+        const cells = [null, ...(variant.states === false ? [] : (comp.states ?? []))];
 
-        // 3. Wait for the component instance...
-        await page.waitForFunction(
-            ([expected]) => document.querySelector('.demo-wrap')?.getAttribute('data-prism-rendered')?.startsWith(expected),
-            [`${comp.className}:`]
-        );
+        for (const state of cells) {
+            // 2. Navigate, in capture mode.
+            const url = new URL(baseUrl);
+            url.searchParams.set('component', comp.className);
+            if (variant.index > 0) url.searchParams.set('variant', String(variant.index));
+            if (state) url.searchParams.set('state', String(state.index));
+            url.searchParams.set('capture', '1');
+            await page.goto(url.toString(), { waitUntil: 'load' });
 
-        // 4. ...and then for the page to settle.
-        await page.evaluate(() => document.fonts.ready);
+            // 3. Wait for the component instance. With a state, the marker ends in its index.
+            const key = `${comp.className}:${variant.index}${state ? `:${state.index}` : ''}`;
+            await page.waitForSelector(`.demo-wrap[data-prism-rendered="${key}"]`);
 
-        // 5. Capture. `variant.bg` is the surface it was captured on. Record it
-        //    with the baseline so a background change is not read as a regression.
-        const png = await page.locator('.demo-wrap').screenshot();
-        await compareAgainstBaseline(comp.className, variant.index, png, variant.bg);
+            // 4. A state that does not fit the variant still renders. Report it, do not capture it.
+            const excluded = await page.locator('.demo-wrap').getAttribute('data-prism-excluded');
+            if (excluded !== null) {
+                await reportExcluded(comp.className, variant.index, state?.index, excluded);
+                continue;
+            }
+
+            // 5. ...and then wait for the page to settle.
+            await page.evaluate(() => document.fonts.ready);
+
+            // 6. Capture. `variant.bg` is the surface it was captured on. Record it
+            //    with the baseline so a background change is not read as a regression.
+            const png = await page.locator('.demo-wrap').screenshot();
+            await compareAgainstBaseline(comp.className, variant.index, state?.index, png, variant.bg);
+        }
     }
 }
 
 await browser.close();
 ```
+
+Name the baseline by variant and state (`01-outlined.png`, `01-outlined--hover.png`), so a state never overwrites the variant's own image. `reportExcluded` writes the cell into the report with `status: 'excluded'`, the reason and the `stateIndex`, see [the report format](plugins/visual-regression.md#states).
 
 Pin `deviceScaleFactor` explicitly. A retina default doubles every dimension and invalidates every baseline captured without it.
 

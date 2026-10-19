@@ -33,15 +33,21 @@ The override auto-clears whenever the active variant or component changes, so na
 
 ## `PrismPseudoStateService`
 
-Decides which pseudo states the canvas forces, following the same pattern as the background:
+Decides which pseudo states the canvas forces, following the same pattern as the background. The addressed cell is a variant and, optionally, a component-level state (`ShowcaseConfig.states`), and both bring pseudo states of their own. The service keeps them in two layers, because only the state's is subject to the fit rule:
 
 ```
-effective = capture mode ? declared : declared with the user's toggles on top
+base  = variant.pseudo, with the user's toggles on top
+state = the active state's pseudo, with the user's toggles on top
 ```
+
+Capture mode skips the toggles: both layers are what is declared.
 
 - `declared`: `Variant.pseudo` of the active variant, or `null`
-- `override`: transient per-state toggles from the tools menu's **State** group. `true` adds a state on the whole component, `false` switches off one the variant declares. Cleared whenever the active variant or component changes, and ignored in capture mode, because session UI state must not shape a baseline.
-- `effective`: what the canvas applies. While nothing is toggled it is the `declared` object itself, not a copy, because the render marker compares by identity (below).
+- `activeState`: the `ShowcaseState` at `PrismRendererService.activeStateIndex`, or `null`. The index is part of the addressed cell next to `activeVariantIndex`, not a browse toggle. It survives a variant change, so a column of states can be clicked through, and goes back to `null` when the component changes, or when a refresh leaves the component with fewer states than the index. A state slot the scanner could not evaluate (`pseudo: {}`) is still an active state, with an empty layer.
+- `stateExclusion`: `'states: false'` while a state is active and the active variant opts out with `Variant.states: false`, else `null`. The state layer is `null` then, and the state declares nothing.
+- `override`: transient per-state toggles from the tools menu's **State** group. `true` adds a state on the whole component, `false` switches off one the variant or the state declares. Cleared whenever the active variant, the active state or the component changes, and ignored in capture mode, because session UI state must not shape a baseline. The active state, in contrast, applies in capture mode: it addresses the cell.
+- `layers`: `{ base, state }`, computed by `splitLayers()`. A toggle switched off takes the state out of both layers. A toggle switched on leaves a target the variant or the state declares in its own layer, and otherwise forces the state on the whole component in `base`, where the fit rule does not reach it. A state that does not fit is not applied, so it does not count as declaring anything here: `splitLayers()` takes a `stateFits` flag, and with `false` a class only the state declares is forced on the whole component by the toggle. The state layer is the same either way, since the marker still needs it to see when the state fits again. The state layer is `null` when no state applies or when the toggles have switched off every class the state declares, so a deliberate toggle never reads as a state that forces nothing. A state that declares nothing itself (a slot the scanner could not evaluate) stays an empty object, which the marker reports as not fitting. While nothing is toggled both layers are the declared objects themselves, not copies, because the render marker compares by identity (below).
+- `canvasFit`: whether the active state fits the rendered canvas, a `StateFit` the renderer writes from its marker, `null` while no state is applied. `isForced()` counts a class of the state layer only while `canvasFit()?.fits`, and `isDeclared()` counts the classes of the variant, and those of the active state while it fits (`canvasFit` still `null` before the first render counts as fitting), so the tools menu can tint both.
 
 The service also owns the document's `PseudoStyleSheets`, which every marker shares, so each stylesheet is rewritten once whether the Playground or an Overview cell forces a state first.
 
@@ -49,9 +55,13 @@ The service also owns the document's `PseudoStyleSheets`, which every marker sha
 
 A `PseudoStateMarker` forces states on one rendered component: it puts the stand-in classes (`prism-pseudo--<state>`) on the targeted elements and holds the shared stylesheets while it does, which widens every selector using one of the pseudo-classes in place, `:hover` to `:is(:hover, .prism-pseudo--hover)`. The rule keeps its position and its specificity, and without the class it matches exactly what it matched before. A copy keyed on the class was the first design and is wrong for negation: the copy of `.row:not(:hover) .actions` matches every row without the class, a really hovered one included. A `MutationObserver` on the component re-marks elements rendered later and follows elements whose classes or attributes make them start or stop matching a selector. `PseudoStyleSheets` watches `document.head` only while some marker holds it.
 
-The renderer has one marker for the canvas. An effect applies `effective` to the rendered host element, and `renderedKey` withholds `data-prism-rendered` until `marker.applied()` reports that exact element and that exact states object (`resolveRenderedKey()` in `renderer/rendered-key.ts`). A variant that forces nothing is not held back. `.demo-wrap` carries the forced states in `data-pseudo`, which is what capture mode keys the room for focus rings on.
+The marker takes the two layers separately, `apply(root, states, state?)`. `states` is forced as given, the way `Variant.pseudo` always was. `state` is forced only where it fits (`evaluateStateFit()` in `pseudo/state-fit.ts`): every one of its pseudo-classes needs a reachable target, and only the reachable targets get the class. Every pass measures the same DOM, whatever the previous pass left: it first puts the variant's classes and the state's on all of the state's targets at once, then evaluates the fit and the reach, then takes the state's class off the targets that cannot be reached, or off all of them when the state does not fit. The first pass, which `data-prism-rendered` waits for, therefore marks what any later one would, a target revealed by another forced hover counts, and a rule that sets `pointer-events: none` under its own `:hover` reads as not fitting. The records of these writes are dropped (`takeRecords()`), so a pass never sets off another. The fit is evaluated again on every pass the component's own DOM changes set off, so a control that removes a target (`removable` on a chip) flips it. `applied()` reports the exact `states` and `state` objects it was given, plus the `fit` (`null` without a state), which is how `PrismPseudoStateService.canvasFit` gets its value.
 
-Each Overview cell creates its own marker and applies the variant's declared states, so a state never leaks into a neighbouring cell. The tools menu's toggle does not reach the Overview.
+The renderer has one marker for the canvas. An effect applies the two layers to the rendered host element, `apply(element, layers().base, layers().state)`. A second effect writes `marker.applied()?.fit ?? null` to `canvasFit`, and only that: it never reads `canvasFit` back, and the value is `null` whenever no state layer is applied, so the fit of the previous state cannot linger. `layers` has an `equal` that compares `base` and `state`, so the override reset that every variant, state or component change triggers (it writes a fresh `{}`) does not re-apply the marker for the same two objects.
+
+`renderedKey` withholds `data-prism-rendered` while the base forces something or a state layer is set, until `marker.applied()` reports that exact element and those exact `states` and `state` objects (`resolveRenderedKey()` in `renderer/rendered-key.ts`). The key is `<className>:<variantIndex>`, with `:<stateIndex>` appended while a state is active, an opted-out variant included (its state layer is `null`, the index is in the key regardless). A variant that forces nothing and has no state layer is not held back. `excludedReason`, `resolveExcludedReason()` in the same file, is the value of `data-prism-excluded`: `stateExclusion` while the variant opts out, else the `reason` of the marker's `fit` when it does not fit, else `null`, and always `null` without an active state. `.demo-wrap` carries the forced states in `data-pseudo`, taken from `appliedStateNames()`, so the active state's classes count only while it fits. That is what capture mode keys the room for focus rings on, and an excluded state gets none.
+
+Each Overview cell creates its own marker and applies the variant's declared states, and a matrix cell also its column's state as the state layer, so a state never leaks into a neighbouring cell. A matrix cell reports the marker's fit to the matrix (`fitChange`), which counts it in the column header. When the state does not fit, the cell clears the marker and the component and shows a dashed placeholder with the reason in its place, since a picture of the plain variant would sit under a label that says something else. The tools menu's toggle does not reach the Overview.
 
 ## Viewport Width
 
@@ -99,7 +109,7 @@ Emulating media queries would mean rendering the component in an iframe, which w
 ### Not in the URL
 
 Like `zoom`, `guides` and `rulers`, the viewport width is a `localStorage` preference and not a URL
-parameter. `PrismUrlStateService` carries navigation only (which component, page, variant, view and
+parameter. `PrismUrlStateService` carries navigation only (which component, page, variant, state, view and
 panel you are looking at) and no canvas setup.
 
 ### Capture mode
@@ -142,7 +152,7 @@ The deeper reason is architectural rather than visual: a panel overlay is _about
 
 ## UI Affordances
 
-- **Tools menu, State group:** one toggle per pseudo state, several can be on at once. `is-on` follows `effective`, the tinted `is-rec` border marks the states the variant declares, mirroring the Canvas group.
+- **Tools menu, State group:** a row of chips for `ShowcaseConfig.states` (`buildStateChips()` in `canvas/state-chips.ts`), at most one on: a click calls `PrismRendererService.selectState()`, and a click on the active chip passes `null`. A chip whose state does not fit the shown variant (`chipFits()`, the canvas's own `canvasFit` for the active one) gets `is-na`, a dashed border, and the reason in its tooltip; it stays selectable. Below the chips, one toggle per pseudo state, several can be on at once. `is-on` follows `isForced()`, the tinted `is-rec` border `isDeclared()`: the states the variant declares and those of the active state while it fits, mirroring the Canvas group.
 - **Tools menu, recommendation marker:** the recommended background's button in the **Canvas** group carries a tinted border (driven by `recommended()`) instead of a separate glyph. Title attribute: `Recommended background for this variant`. Passive, always visible while a recommendation is active.
 - **Canvas pill:** `Recommended: <bg> [Reset]` appears in the top-left of the canvas only when `isDeviating()` is true (actionable; the button clears the override and returns to the recommendation).
 - **Tools menu, active state:** the active background button binds to `effective()` and carries the filled `is-on` state. Clicks write to the override when a recommendation exists; otherwise they update the persisted global default (backward-compatible behavior for components without `bg`). The recommended and active buttons can be the same one.

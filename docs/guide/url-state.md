@@ -2,21 +2,22 @@
 
 ng-prism keeps the UI state alive across full-page reloads, which helps a lot during component-driven development. Two layers cooperate:
 
-- **URL** carries shareable state (component, variant, view, panel tab), so links are bookmarkable and deep-linkable.
+- **URL** carries shareable state (component, variant, state, view, panel tab), so links are bookmarkable and deep-linkable.
 - **sessionStorage** carries per-session ephemeral state (control panel input overrides, a11y sub-tab, perspective) and keeps it off the URL.
 
 After editing a SCSS file in your library and waiting for the dev-server reload, you land back on the same component, same variant, with the same control overrides applied. No more clicking your way back to where you were.
 
 ## URL Parameters
 
-| Parameter   | Example                      | Description                                                                                                                                                     |
-| ----------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `component` | `?component=ButtonComponent` | Active component class name                                                                                                                                     |
-| `page`      | `?page=Button%20Patterns`    | Active page title (URL-encoded)                                                                                                                                 |
-| `variant`   | `?variant=1`                 | Active variant index (0-based)                                                                                                                                  |
-| `view`      | `?view=overview`             | Active view tab (e.g. `overview`, `docs`, `a11y`)                                                                                                               |
-| `panel`     | `?panel=a11y`                | Active addon panel tab (default: `controls`, omitted when default)                                                                                              |
-| `capture`   | `?capture=1`                 | Read-only input flag. Enables [capture isolation mode](guide/external-tooling.md#capture-isolation-mode) for screenshot tooling. Never written back to the URL. |
+| Parameter   | Example                      | Description                                                                                                                                                             |
+| ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `component` | `?component=ButtonComponent` | Active component class name                                                                                                                                             |
+| `page`      | `?page=Button%20Patterns`    | Active page title (URL-encoded)                                                                                                                                         |
+| `variant`   | `?variant=1`                 | Active variant index (0-based)                                                                                                                                          |
+| `state`     | `?state=1`                   | Active component-level state: the 0-based index into the component's `states`. Written only while a state is active; a value that is no index into `states` is ignored. |
+| `view`      | `?view=overview`             | Active view tab (e.g. `overview`, `docs`, `a11y`)                                                                                                                       |
+| `panel`     | `?panel=a11y`                | Active addon panel tab (default: `controls`, omitted when default)                                                                                                      |
+| `capture`   | `?capture=1`                 | Read-only input flag. Enables [capture isolation mode](guide/external-tooling.md#capture-isolation-mode) for screenshot tooling. Never written back to the URL.         |
 
 Example URL:
 
@@ -32,9 +33,17 @@ Share a URL pointing directly to a specific component and variant. Anyone openin
 http://localhost:4200?component=AlertComponent&variant=1
 ```
 
+Add `state` to open the variant in one of the component's `states` (`@Showcase({ states })`):
+
+```
+http://localhost:4200?component=AlertComponent&variant=1&state=1
+```
+
+The state is part of the address next to the variant. It stays in the URL when you switch variants, and goes when you switch components.
+
 ## Browser Back/Forward
 
-Each navigation (selecting a component, changing variant, switching view) pushes a new browser history entry. The browser back and forward buttons move through the navigation history as expected.
+Selecting another component or page pushes a new browser history entry. Changing the variant, the state, the view or the panel tab rewrites the current entry instead, so stepping through variants does not fill the history. The browser back and forward buttons move between components and pages, and an entry holds the variant, state, view and panel its component was last left in.
 
 ## Control Panel & A11y State (sessionStorage)
 

@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
 
@@ -74,6 +74,12 @@ export class PrismRendererService {
     private readonly navigationService = inject(PrismNavigationService);
 
     readonly activeVariantIndex = signal(0);
+    /**
+     * Position in `ShowcaseConfig.states` of the component-level state on the
+     * canvas, `null` for none. Part of the addressed cell next to the variant:
+     * it survives a variant change and goes with the component.
+     */
+    readonly activeStateIndex = signal<number | null>(null);
     readonly inputValues = signal<Record<string, unknown>>({});
     readonly activeContent = signal<string | Record<string, string> | undefined>(undefined);
     readonly renderedElement = signal<Element | null>(null);
@@ -93,14 +99,36 @@ export class PrismRendererService {
         return count;
     });
 
+    /** The component the variant, the state and the inputs belong to, `null` before the first. */
     private _lastClassName: string | null = null;
+
+    constructor() {
+        // The variant and the state go with the component in every view, so the reset on a switch follows
+        // navigation, not the renderer: the shell mounts `<prism-renderer>` in the Playground only, and the Overview
+        // keeps its view when the sidebar picks another component. A root effect, created before the URL service's,
+        // so it runs first in the same flush and the URL never sees the previous component's cell on the new one.
+        effect(() => {
+            const comp = this.navigationService.activeComponent();
+
+            if (comp) untracked(() => this.reconcileForComponent(comp));
+        });
+    }
 
     resetForComponent(comp: RuntimeComponent): void {
         this._lastClassName = comp.meta.className;
         this.activeVariantIndex.set(0);
+        this.activeStateIndex.set(null);
         this.applyVariant(0, comp);
     }
 
+    /**
+     * Brings the variant, the state and the inputs in line with `comp`: a full
+     * reset when it is another component than the last one, else the variant
+     * and the state clamped to what it still declares and the inputs kept.
+     * Runs on every navigation and again when the renderer mounts, which then
+     * finds the component current and keeps what an Overview cell or a restore
+     * selected.
+     */
     reconcileForComponent(comp: RuntimeComponent): void {
         const prev = this._lastClassName;
 
@@ -108,9 +136,14 @@ export class PrismRendererService {
 
         if (prev !== null && prev !== comp.meta.className) {
             this.activeVariantIndex.set(0);
+            this.activeStateIndex.set(null);
             this.applyVariant(0, comp);
             return;
         }
+
+        const stateIndex = this.activeStateIndex();
+
+        if (stateIndex !== null && stateIndex >= (comp.meta.showcaseConfig.states?.length ?? 0)) this.activeStateIndex.set(null);
 
         const variants = comp.meta.showcaseConfig.variants ?? [];
         const maxIndex = Math.max(0, variants.length - 1);
@@ -153,6 +186,10 @@ export class PrismRendererService {
         const comp = this.navigationService.activeComponent();
 
         if (comp) this.applyVariant(index, comp);
+    }
+
+    selectState(index: number | null): void {
+        this.activeStateIndex.set(index);
     }
 
     updateInput(name: string, value: unknown): void {

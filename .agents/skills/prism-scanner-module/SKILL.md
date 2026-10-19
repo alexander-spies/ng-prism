@@ -35,6 +35,7 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
 | `manifest.generator.ts`    | Generate prism-manifest.ts source code                                                                                      |
 | `pseudo-states.ts`         | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                     |
 | `showcase-diagnostics.ts`  | Word the warnings for `@Showcase` values the scan had to drop                                                               |
+| `showcase-states.ts`       | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                              |
 | `entry-point-discovery.ts` | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`) |
 | `scanner.ts`               | Orchestrator — exports `createScanner(options)`, which returns a `Scanner`                                                  |
 | `index.ts`                 | Public surface of the scanner (re-exports the functions and their types)                                                    |

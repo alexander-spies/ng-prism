@@ -1,14 +1,14 @@
 {
     "total": {
-        "auditedVariants": 80,
+        "auditedVariants": 82,
         "auditedComponents": 15,
         "unchanged": 74,
         "changed": 2,
         "sizeMismatch": 1,
-        "new": 2,
+        "new": 3,
         "maxDiffRatio": 0.102624,
         "score": 96,
-        "excluded": 1
+        "excluded": 2
     },
     "byVariant": [
         {
@@ -26,6 +26,17 @@
             "baselineBg": "light",
             "currentPath": "vrt/baseline/ButtonComponent/00-filled.png",
             "bg": "light"
+        },
+        {
+            "className": "ButtonComponent",
+            "title": "Button",
+            "variantName": "Filled",
+            "variantIndex": 0,
+            "stateIndex": 0,
+            "stateName": "Hover",
+            "currentPath": "vrt/current/ButtonComponent/00-filled--hover.png",
+            "bg": "light",
+            "status": "new"
         },
         {
             "className": "ButtonComponent",
@@ -404,6 +415,17 @@
             "diffPixels": 0,
             "totalPixels": 1890,
             "diffRatio": 0
+        },
+        {
+            "className": "ChipComponent",
+            "title": "Chip",
+            "variantName": "Default",
+            "variantIndex": 0,
+            "stateIndex": 0,
+            "stateName": "Remove hovered",
+            "status": "excluded",
+            "reason": ".sg-chip__remove matches nothing",
+            "bg": "transparent"
         },
         {
             "className": "ChipComponent",

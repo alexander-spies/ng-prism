@@ -19,8 +19,18 @@
     @if (description()) {
         <p class="info-card__desc">{{ description() }}</p>
     }
-    @if (variantCount() > 0) {
-        <p class="info-card__meta"> {{ variantCount() }} {{ variantCount() === 1 ? 'variant' : 'variants' }} </p>
+    @if (variantCount() > 0 || stateCount() > 0) {
+        <p class="info-card__meta">
+            @if (variantCount() > 0) {
+                {{ variantCount() }} {{ variantCount() === 1 ? 'variant' : 'variants' }}
+            }
+            @if (variantCount() > 0 && stateCount() > 0) {
+                &middot;
+            }
+            @if (stateCount() > 0) {
+                {{ stateCount() }} {{ stateCount() === 1 ? 'state' : 'states' }}
+            }
+        </p>
     }
     @if (tags().length) {
         <div class="info-card__tags">

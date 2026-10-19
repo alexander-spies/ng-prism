@@ -1,7 +1,7 @@
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { ForcedPseudoStates } from '../../shared/pseudo-state.type.js';
-import { resolveRenderedKey } from '../renderer/rendered-key.js';
-import { forcesAnyState, PseudoStateMarker } from './pseudo-state-marker.js';
+import { resolveExcludedReason, resolveRenderedKey } from '../renderer/rendered-key.js';
+import { appliedStateNames, PseudoStateMarker } from './pseudo-state-marker.js';
 import { PseudoStyleSheets } from './pseudo-stylesheets.js';
 
 const FV = 'prism-pseudo--focus-visible';
@@ -91,9 +91,253 @@ describe('PseudoStateMarker', () => {
             const root = mount('<div class="box"></div>');
 
             marker.apply(root, { hover: '.box[', focus: true });
-            expect(warn).toHaveBeenCalledWith(expect.stringContaining('".box["'));
+            expect(warn).toHaveBeenCalledWith('[ng-prism] ".box[" in forced pseudo states is not a valid selector, skipping it.');
             expect(root.classList.contains('prism-pseudo--focus')).toBe(true);
             expect(root.classList.contains(HOVER)).toBe(false);
+        });
+    });
+
+    describe('a state layer', () => {
+        const state = { 'focus-visible': '.btn' } satisfies ForcedPseudoStates;
+
+        it('puts the state only on reachable targets', () => {
+            const root = mount('<lib-button><button class="btn" disabled></button><button class="btn"></button></lib-button>');
+            const [disabled, enabled] = Array.from(root.querySelectorAll('button'));
+
+            marker.apply(root, null, state);
+            expect(disabled.classList.contains(FV)).toBe(false);
+            expect(enabled.classList.contains(FV)).toBe(true);
+            expect(marker.applied()?.fit).toEqual({ fits: true });
+        });
+
+        it('does not apply a state that does not fit, and says why', () => {
+            const root = mount('<lib-chip><span class="sg-chip__label"></span></lib-chip>');
+
+            marker.apply(root, null, { 'focus-visible': '.sg-chip__remove' });
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.sg-chip__remove matches nothing' });
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
+        });
+
+        it('applies the state once its target appears', async () => {
+            const root = mount('<lib-chip></lib-chip>');
+
+            marker.apply(root, null, { 'focus-visible': '.sg-chip__remove' });
+            const remove = document.createElement('button');
+
+            remove.className = 'sg-chip__remove';
+            root.appendChild(remove);
+            await settle();
+            expect(marker.applied()?.fit).toEqual({ fits: true });
+            expect(remove.classList.contains(FV)).toBe(true);
+        });
+
+        it('takes the state back once its target stops being reachable', async () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const button = root.querySelector('button')!;
+
+            marker.apply(root, null, state);
+            button.disabled = true;
+            await settle();
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.btn is disabled' });
+            expect(button.classList.contains(FV)).toBe(false);
+        });
+
+        it("keeps the variant's own states unfiltered", () => {
+            const root = mount('<lib-button><button class="btn" disabled></button></lib-button>');
+
+            marker.apply(root, { 'focus-visible': '.btn' }, null);
+            expect(root.querySelector('.btn')!.classList.contains(FV)).toBe(true);
+            expect(marker.applied()?.fit).toBeNull();
+        });
+
+        it("forces the variant's states and the state together", () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, { hover: '.btn' }, state);
+            expect(withClass(root, HOVER)).toEqual(['btn']);
+            expect(withClass(root, FV)).toEqual(['btn']);
+        });
+
+        it('stays applied for a state that does not fit, even without states of its own', () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, null, { hover: '.missing' });
+            expect(marker.applied()?.root).toBe(root);
+            marker.apply(root, null, null);
+            expect(marker.applied()).toBeNull();
+        });
+
+        it('keeps the objects it was given', () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const states = { hover: '.btn' };
+
+            marker.apply(root, states, state);
+            expect(marker.applied()?.states).toBe(states);
+            expect(marker.applied()?.state).toBe(state);
+
+            marker.apply(root, states);
+            expect(marker.applied()?.state).toBeNull();
+            expect(marker.applied()?.fit).toBeNull();
+
+            marker.apply(root, null, state);
+            expect(marker.applied()?.states).toBeNull();
+        });
+
+        it('replaces the previous state and its fit when the state switches', () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, null, { hover: '.missing' });
+            expect(marker.applied()?.fit?.fits).toBe(false);
+
+            marker.apply(root, null, { hover: '.btn' });
+            expect(marker.applied()?.fit).toEqual({ fits: true });
+            expect(withClass(root, HOVER)).toEqual(['btn']);
+
+            marker.apply(root, null, state);
+            expect(withClass(root, HOVER)).toEqual([]);
+            expect(withClass(root, FV)).toEqual(['btn']);
+        });
+
+        it('leaves the applied states alone while nothing about the fit changes', async () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, null, state);
+            const before = marker.applied();
+
+            root.setAttribute('data-touched', '');
+            root.querySelector('button')!.className = 'btn btn--filled';
+            await settle();
+            expect(marker.applied()).toBe(before);
+        });
+
+        it('settles for a state whose own class makes the target unreachable', async () => {
+            // The widened form of `.btn:hover { pointer-events: none }`: forcing the class takes the pointer away.
+            addStyle('.btn:is(:hover, .prism-pseudo--hover) { pointer-events: none; }');
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const button = root.querySelector('button')!;
+            let writes = 0;
+            // Counts the class writes, and gives up on a loop instead of spinning the test runner with it.
+            const watch = new MutationObserver((records) => {
+                writes += records.length;
+                if (writes > 50) marker.clear();
+            });
+
+            watch.observe(root, { attributes: true, attributeFilter: ['class'], subtree: true });
+            marker.apply(root, null, { hover: '.btn' });
+            await settle();
+            const settled = { writes, fit: marker.applied()?.fit, hovered: button.classList.contains(HOVER) };
+
+            await settle();
+            watch.disconnect();
+            // Measured with its class on, the way a pointer over it would leave it: it cannot stay hovered.
+            expect(settled).toEqual({ writes: 2, fit: { fits: false, reason: '.btn has pointer-events: none' }, hovered: false });
+            expect({ writes, fit: marker.applied()?.fit, hovered: button.classList.contains(HOVER) }).toEqual(settled);
+        });
+
+        // A hover-reveal written against the forced class too: the actions only take the pointer under a hovered row.
+        describe('measured against one DOM on every pass', () => {
+            const ROW = '<lib-row class="row"><span class="label"></span><div class="actions"><button class="act"></button></div></lib-row>';
+
+            /** What a pass left on the canvas: the fit and the hovered elements. */
+            const outcome = (root: Element) => ({ fit: marker.applied()?.fit, hovered: withClass(root, HOVER) });
+
+            /** The outcome of the first pass, and of the pass a write of the component's own sets off. */
+            async function firstAndNext(root: Element, states: ForcedPseudoStates | null, state: ForcedPseudoStates) {
+                marker.apply(root, states, state);
+                const first = outcome(root);
+
+                root.setAttribute('data-touched', '');
+                await settle();
+                return { first, next: outcome(root) };
+            }
+
+            beforeEach(() => addStyle('.row:not(:hover) .actions { pointer-events: none; }'));
+
+            it("reaches a target that the variant's own hover reveals", async () => {
+                const { first, next } = await firstAndNext(mount(ROW), { hover: '.row' }, { hover: '.act' });
+
+                expect(first).toEqual({ fit: { fits: true }, hovered: ['row', 'act'] });
+                expect(next).toEqual(first);
+            });
+
+            it('reaches every element of the component for true, with the host hovered as well', async () => {
+                const { first, next } = await firstAndNext(mount(ROW), null, { hover: true });
+
+                expect(first).toEqual({ fit: { fits: true }, hovered: ['row', 'label', 'actions', 'act'] });
+                expect(next).toEqual(first);
+            });
+
+            it('reaches a target that another target of the same state reveals', async () => {
+                const { first, next } = await firstAndNext(mount(ROW), null, { hover: ['.row', '.act'] });
+
+                expect(first).toEqual({ fit: { fits: true }, hovered: ['row', 'act'] });
+                expect(next).toEqual(first);
+            });
+
+            it('leaves a target that nothing reveals unreachable', async () => {
+                const { first, next } = await firstAndNext(mount(ROW), null, { hover: '.act' });
+
+                expect(first).toEqual({ fit: { fits: false, reason: '.act has pointer-events: none' }, hovered: [] });
+                expect(next).toEqual(first);
+            });
+        });
+
+        it("keeps the variant's classes while the state does not fit", async () => {
+            const root = mount('<lib-button class="host"><button class="btn" disabled></button></lib-button>');
+
+            marker.apply(root, { hover: '.host', 'focus-visible': '.host' }, { hover: '.btn', 'focus-visible': '.btn' });
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.btn is disabled' });
+            expect(withClass(root, HOVER)).toEqual(['host']);
+            expect(withClass(root, FV)).toEqual(['host']);
+
+            root.setAttribute('data-touched', '');
+            await settle();
+            expect(withClass(root, HOVER)).toEqual(['host']);
+            expect(withClass(root, FV)).toEqual(['host']);
+        });
+
+        it('forces none of the classes of a state with one unreachable pseudo-class', async () => {
+            addStyle('.btn__icon { pointer-events: none; }');
+            const root = mount('<lib-button><button class="btn"><span class="btn__icon"></span></button></lib-button>');
+
+            marker.apply(root, null, { 'focus-visible': '.btn', hover: '.btn__icon', active: '.btn' });
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.btn__icon has pointer-events: none' });
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
+
+            root.setAttribute('data-touched', '');
+            await settle();
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
+        });
+
+        it("puts the state's class back that a component removed and changed nothing else", async () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+            const button = root.querySelector('button')!;
+
+            marker.apply(root, null, { hover: '.btn' });
+            button.classList.remove(HOVER);
+            await settle();
+            expect(button.classList.contains(HOVER)).toBe(true);
+        });
+
+        it('still marks again when a class other than its own changes', async () => {
+            const root = mount('<div><button class="tab"></button><button class="tab tab--active"></button></div>');
+            const [first, second] = Array.from(root.querySelectorAll('button'));
+
+            marker.apply(root, null, { hover: '.tab--active' });
+            first.classList.add('tab--active');
+            second.classList.remove('tab--active');
+            await settle();
+            expect(first.classList.contains(HOVER)).toBe(true);
+            expect(second.classList.contains(HOVER)).toBe(false);
+        });
+
+        it("clear removes the state's classes too", () => {
+            const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+            marker.apply(root, { hover: true }, state);
+            marker.clear();
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
+            expect(marker.applied()).toBeNull();
         });
     });
 
@@ -300,18 +544,41 @@ describe('PseudoStateMarker', () => {
     });
 });
 
-describe('forcesAnyState', () => {
-    it.each<[ForcedPseudoStates | null | undefined, boolean]>([
-        [undefined, false],
-        [null, false],
-        [{}, false],
-        [{ hover: '' }, false],
-        [{ hover: [] }, false],
-        [{ hover: true }, true],
-        [{ focus: '.a' }, true],
-        [{ focus: ['', '.a'] }, true]
-    ])('%j forces a state: %s', (states, expected) => {
-        expect(forcesAnyState(states)).toBe(expected);
+describe('appliedStateNames', () => {
+    let marker: PseudoStateMarker;
+
+    beforeEach(() => {
+        marker = new PseudoStateMarker(new PseudoStyleSheets(document));
+    });
+
+    afterEach(() => {
+        marker.clear();
+        document.body.innerHTML = '';
+    });
+
+    it('is empty while nothing is applied', () => {
+        expect(appliedStateNames(null)).toEqual([]);
+    });
+
+    it('lists the states and, while it fits, the state', () => {
+        const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+        marker.apply(root, { hover: true }, { 'focus-visible': '.btn' });
+        expect(appliedStateNames(marker.applied())).toEqual(['hover', 'focus-visible']);
+    });
+
+    it('leaves out a state that does not fit', () => {
+        const root = mount('<lib-button><button class="btn" disabled></button></lib-button>');
+
+        marker.apply(root, { hover: true }, { 'focus-visible': '.btn' });
+        expect(appliedStateNames(marker.applied())).toEqual(['hover']);
+    });
+
+    it('does not count an empty selector as a forced state', () => {
+        const root = mount('<lib-button><button class="btn"></button></lib-button>');
+
+        marker.apply(root, { hover: '' }, { focus: '.btn' });
+        expect(appliedStateNames(marker.applied())).toEqual(['focus']);
     });
 });
 
@@ -331,7 +598,7 @@ describe('data-prism-rendered and forced states', () => {
     it('is only set once the forced state is in place', () => {
         const element = mount('<lib-button><button class="btn"></button></lib-button>');
         const pseudo = { 'focus-visible': '.btn' };
-        const key = () => resolveRenderedKey({ component, variantIndex: 3, element, pseudo, pseudoApplied: marker.applied() });
+        const key = () => resolveRenderedKey({ component, variantIndex: 3, stateIndex: null, element, pseudo, state: null, pseudoApplied: marker.applied() });
 
         expect(key()).toBeNull();
 
@@ -346,10 +613,12 @@ describe('data-prism-rendered and forced states', () => {
         const hovered = { hover: '.btn' };
 
         marker.apply(element, focused);
-        expect(resolveRenderedKey({ component, variantIndex: 4, element, pseudo: hovered, pseudoApplied: marker.applied() })).toBeNull();
+        expect(resolveRenderedKey({ component, variantIndex: 4, stateIndex: null, element, pseudo: hovered, state: null, pseudoApplied: marker.applied() })).toBeNull();
 
         marker.apply(element, hovered);
-        expect(resolveRenderedKey({ component, variantIndex: 4, element, pseudo: hovered, pseudoApplied: marker.applied() })).toBe('ButtonComponent:4');
+        expect(resolveRenderedKey({ component, variantIndex: 4, stateIndex: null, element, pseudo: hovered, state: null, pseudoApplied: marker.applied() })).toBe(
+            'ButtonComponent:4'
+        );
     });
 
     it('is withheld for a new element until the states are on it', () => {
@@ -358,13 +627,28 @@ describe('data-prism-rendered and forced states', () => {
         const pseudo = { hover: true as const };
 
         marker.apply(oldElement, pseudo);
-        expect(resolveRenderedKey({ component, variantIndex: 0, element: newElement, pseudo, pseudoApplied: marker.applied() })).toBeNull();
+        expect(
+            resolveRenderedKey({ component, variantIndex: 0, stateIndex: null, element: newElement, pseudo, state: null, pseudoApplied: marker.applied() })
+        ).toBeNull();
+    });
+
+    it('keys an active state once the marker holds its layer, and says why it does not fit', () => {
+        const element = mount('<lib-button><button class="btn" disabled></button></lib-button>');
+        const state = { focus: '.btn' };
+        const key = () => resolveRenderedKey({ component, variantIndex: 2, stateIndex: 1, element, pseudo: null, state, pseudoApplied: marker.applied() });
+
+        expect(key()).toBeNull();
+
+        marker.apply(element, null, state);
+        expect(key()).toBe('ButtonComponent:2:1');
+        expect(resolveExcludedReason(1, null, marker.applied())).toBe('.btn is disabled');
+        expect(element.querySelector('.btn')!.className).not.toContain('prism-pseudo--');
     });
 
     it('does not hold back a variant without forced states', () => {
         const element = mount('<lib-button></lib-button>');
 
-        expect(resolveRenderedKey({ component, variantIndex: 1, element, pseudo: null, pseudoApplied: null })).toBe('ButtonComponent:1');
-        expect(resolveRenderedKey({ component, variantIndex: 1, element, pseudo: {}, pseudoApplied: null })).toBe('ButtonComponent:1');
+        expect(resolveRenderedKey({ component, variantIndex: 1, stateIndex: null, element, pseudo: null, state: null, pseudoApplied: null })).toBe('ButtonComponent:1');
+        expect(resolveRenderedKey({ component, variantIndex: 1, stateIndex: null, element, pseudo: {}, state: null, pseudoApplied: null })).toBe('ButtonComponent:1');
     });
 });

@@ -10,7 +10,7 @@
 - Adds a **VRT diff** row to the component head's gauge readout: the worst diff among that component's variants. The gauge chip in the head only names it while it deviates, and only when nothing else deviates more
 - Heads the variant list with a **per-component summary**: a composition bar over the statuses present, plus the worst diff. It sits in the list column instead of across the panel, because the dock is only 260px tall by default and a full-width strip would use up that height
 - **Groups the variant list by what needs you**, with the clean variants collapsed out of the way (see below)
-- Per variant: status, diff percentage, and a baseline / current / diff comparison. The list and the comparison scroll independently, so choosing a variant never scrolls the image you chose it for out of view
+- Per variant, and per variant and state when the component declares [`states`](guide/variants.md#states): status, diff percentage, and a baseline / current / diff comparison. The list and the comparison scroll independently, so choosing a variant never scrolls the image you chose it for out of view
 - Three comparison modes: **Wipe**, **Side by side**, and **Diff** (the last only when the report records a distinct diff mask alongside a current capture)
 - **Zoom** at `Fit`, `1×`, `2×`, `4×`, with pixels kept as pixels. A diff is never drawn below 1:1, because a downscaled diff is unreliable
 - Treats a variant with no baseline yet (`new`) as a neutral state, never as a failure
@@ -99,6 +99,24 @@ When nothing needs review the first group starts open, because two collapsed hea
 
 The rows use the same card as the a11y violations list (severity edge, status label, diff percentage), so the two panels look consistent.
 
+### Variants and states
+
+A component that declares [`states`](guide/variants.md#states) is captured once per variant and state, so a variant can have several rows: its own, and one for each state it was captured in. A state row reads `<variant> × <state>`:
+
+```
+NEEDS REVIEW · 2
+  ┃ Outlined × Hover            12.30%
+  ┃ CHANGED
+  ┃ Outlined × State 1          —
+  ┃ NEW
+```
+
+The state part is the entry's `stateName`. An entry that carries a `stateIndex` but no `stateName` reads `State <stateIndex + 1>`, the name the scanner gives a state declared without one, so the row reads like the state's column in the Overview: `State 1` above is `stateIndex` 0.
+
+Each row is its own entry in the report and counts on its own: in the summary bar, in the group counts and in the tab badge. A state that does not fit a variant (the render marker says [why](guide/external-tooling.md#a-state-that-does-not-apply)) is reported as `excluded` with the runner's `reason`, like any other capture the runner skipped.
+
+Rows of the same status are ordered by `variantIndex`, then the variant's own entry before its states, then the states by `stateIndex`. An entry without a `stateIndex` behaves as it always did, so a report from before states renders unchanged.
+
 ## Report Format
 
 Your runner writes this file; the plugin reads it.
@@ -121,6 +139,8 @@ Your runner writes this file; the plugin reads it.
             "title": "Button",
             "variantName": "Primary",
             "variantIndex": 0,
+            "stateIndex": 1, // optional: the ?state= value this capture was taken in
+            "stateName": "Hover", // optional: the state's name
             "status": "changed", // unchanged | changed | size-mismatch | new | excluded
             "width": 800,
             "height": 2,
@@ -138,6 +158,17 @@ Your runner writes this file; the plugin reads it.
 ```
 
 `total` is required and drives the header pill. `byVariant` is matched to components by `className`.
+
+### States
+
+| Field        | Required | Purpose                                                                                              |
+| ------------ | -------- | ---------------------------------------------------------------------------------------------------- |
+| `stateIndex` | no       | The `?state=` value the capture was taken with: the position of the state in `@Showcase({ states })` |
+| `stateName`  | no       | The state's `name`, shown in the row label. Without it the row reads `State <stateIndex + 1>`        |
+
+A runner that captures component-level states (`@Showcase({ states })`, listed in `__PRISM_MANIFEST__`, see [A worked example](guide/visual-regression.md#a-worked-example)) writes one entry per variant and state, with the `variantIndex` of the variant and the `stateIndex` of the state. Leave both fields out for the variant on its own: `variantIndex` alone identifies it, and every report written before states existed stays valid. `stateIndex` counts from 0, like `variantIndex`, and `0` is a real state.
+
+A row is identified by `className`, `variantIndex` and `stateIndex`. Two entries with the same three values are indistinguishable in the list, so a state capture written without its `stateIndex` would collide with the variant's own entry.
 
 ### Status values
 

@@ -1,0 +1,117 @@
+/* The host hands its height to the matrix, which scrolls on its own: the
+   header row and the variant column stay in view only if the scrolling
+   happens inside the grid that holds them. */
+:host {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.matrix {
+    --matrix-edge: var(--prism-border);
+
+    display: grid;
+    flex: 1 1 0;
+    grid-template-columns: minmax(120px, max-content) repeat(var(--matrix-columns, 1), minmax(160px, 1fr));
+    align-content: start;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* The rows only carry the roles. Their cells are the grid's, so the columns
+   line up from the header down. */
+.matrix__row {
+    display: contents;
+}
+
+.matrix__corner,
+.matrix__head,
+.matrix__variant {
+    position: sticky;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    min-width: 0;
+    padding: var(--sp-3) var(--sp-4);
+    background: var(--prism-bg-elevated);
+}
+
+.matrix__corner,
+.matrix__head {
+    top: 0;
+    z-index: 2;
+    justify-content: flex-end;
+    border-bottom: 1px solid var(--matrix-edge);
+}
+
+.matrix__corner,
+.matrix__variant {
+    left: 0;
+    z-index: 1;
+    border-right: 1px solid var(--matrix-edge);
+}
+
+/* Above the header row and the variant column both, where they cross. */
+.matrix__corner {
+    z-index: 3;
+    font-family: var(--prism-font-mono);
+    font-size: var(--fs-xs);
+    color: var(--prism-text-muted);
+}
+
+.matrix__variant {
+    justify-content: center;
+}
+
+.matrix__title,
+.matrix__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--prism-text);
+    white-space: nowrap;
+}
+
+.matrix__signature,
+.matrix__fit,
+.matrix__note {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--prism-font-mono);
+    font-size: var(--fs-xs);
+    color: var(--prism-text-muted);
+    white-space: nowrap;
+}
+
+/* A state that fits no variant at all: most likely a selector with a typo. */
+.matrix__head[data-fits-nowhere] {
+    box-shadow: inset 0 -2px 0 var(--prism-mark-attention);
+}
+
+.matrix__head[data-fits-nowhere] .matrix__fit {
+    color: var(--prism-mark-attention);
+}
+
+.matrix__slot {
+    display: flex;
+    min-width: 0;
+    padding: var(--sp-3);
+}
+
+/* A variant that opted out has a single cell, over Default and every state:
+   it is not combined with any of them. */
+.matrix__slot--span {
+    grid-column: 2 / -1;
+}
+
+.matrix__list {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+}
+
+.matrix__list > prism-overview-cell {
+    flex: 1;
+}
