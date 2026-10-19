@@ -272,7 +272,7 @@ See [Showcase Decorator: canvasLayout](guide/showcase-decorator.md#canvaslayout)
 
 Hover, pressed and focus are conditions a component is in, not different components. Written as variants they multiply: `Hovered`, `Pressed` and `Focus visible` for the filled button, and the same three again for the outlined one. They also sit in the variant ribbon, so whoever plays with the controls there is looking at a button that stays hovered whatever they change.
 
-`states` on the decorator declares them once, and a variant can be shown in any of them:
+`states` on the decorator declares them once, and a variant can be shown in each of them where it fits:
 
 ```typescript
 @Showcase<ButtonComponent>({
@@ -292,7 +292,7 @@ Hover, pressed and focus are conditions a component is in, not different compone
 })
 ```
 
-The ribbon still lists four variants. Each of them, `Full width` aside, is now also available hovered, pressed and focused:
+The ribbon still lists four variants. Each of them, `Full width` aside, is combined with hovered, pressed and focused, wherever the state fits (it does not fit every variant, see [When a state fits](#when-a-state-fits)):
 
 - The [Overview](#overview-all-variants-at-once) shows variants against states as a matrix.
 - The **State** group in the tools menu has a chip per state, to put it on the variant you are looking at, see [Showing a state while browsing](#showing-a-state-while-browsing).
@@ -309,7 +309,7 @@ The position in the list identifies a state. The `state` URL parameter, the rend
 
 A variant with a `pseudo` of its own can be shown in a state as well. Both are forced then, and a pseudo-class both name is forced on the targets of both.
 
-The scanner checks `states` the way it checks `pseudo`. An entry that is not an object, has no `name`, repeats the name of an earlier one or has no usable `pseudo` is reported as a warning, and `strictShowcase` turns that into a build error. The entry keeps its position as an empty state, which fits no variant and shows as an empty column, so the states behind it keep their index. A nameless entry is called `State 2` for the second one, and of two equal names only the first is used.
+The scanner checks `states` the way it checks `pseudo`. An entry that is not an object, has no `name`, repeats the name of an earlier one or has no usable `pseudo` is reported as a warning, and `strictShowcase` turns that into a build error. A pseudo-class or target inside `pseudo` that cannot be used is dropped, and the rest of the entry stays. Three cases leave an empty state: an entry that is not an object, a name that repeats an earlier one (the first entry is used), and a `pseudo` that is missing or has nothing usable left. It keeps its position, forces nothing, fits no variant and shows as an empty column, so the states behind it keep their index. An entry without a `name` is not one of them: it is called `State 2` for the second entry and works as a state, as long as its `pseudo` is usable.
 
 `states` needs the component itself to render. A component with [`renderPage`](guide/component-pages.md) has no Overview and renders a page that reads one global renderer state, so the scanner reports `states` there and drops it.
 

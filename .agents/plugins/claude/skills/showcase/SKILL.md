@@ -60,7 +60,7 @@ package is right:
    `{ 'focus-visible': '.btn' }`. The component's own CSS draws the state. Where it goes depends on who shares it:
     - **A condition that applies to several variants goes into `states` on the component** (since 22.6.0):
       `states: [{ name: 'Hover', pseudo: { hover: '.btn' } }, { name: 'Focus visible', pseudo: { 'focus-visible': '.btn' } }]`.
-      Every variant can then be shown in each of them. The Overview becomes a variant × state matrix, the tools menu
+      Every variant is then combined with each of them, where the state fits. The Overview becomes a variant × state matrix, the tools menu
       gets a chip per state and a screenshot can address each combination. Don't write `Hovered`, `Pressed` and
       `Focus visible` as variants of every variant. `name` is required and unique; the position in the list is the
       state's index (the `state` URL parameter, `--state`), so append new states at the end and don't reorder. A
