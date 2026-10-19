@@ -154,6 +154,10 @@ Detected by checking whether the property initializer is a call expression whose
 
 Detected by `findDecorator(member, 'Input')`. The `required` field is read from `@Input({ required: true })`.
 
+### Aliases
+
+An input or output declared with an alias keeps its member name as `name` and gets the alias as `alias`. The extractor reads it from the options of `input()`, `input.required()`, `model()`, `model.required()` and `output()` (`{ alias: 'x' }`), and from `@Input('x')`, `@Input({ alias: 'x' })` and `@Output('x')`. The value is evaluated statically, so a string literal or a constant counts; an alias the builder can't evaluate, or one equal to the member name, is left out. Variants and controls keep using `name`; the renderer binds `alias ?? name` with `setInput`, and the directive wrapper binds the alias on the host element.
+
 ### Type mapping
 
 `mapType()` converts a `ts.Type` to the `InputMeta.type` enum:

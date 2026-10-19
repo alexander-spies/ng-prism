@@ -486,6 +486,13 @@ describe('extractInputs and extractOutputs with aliases', () => {
         expect(byName.get('legacyObj')?.alias).toBe('legacyObject');
     });
 
+    it('reads an alias from a constant', () => {
+        const byName = new Map(extractInputs(classDecl, checker).map((i) => [i.name, i]));
+
+        expect(byName.get('fromConst')?.alias).toBe('constSize');
+        expect(byName.get('legacyConst')?.alias).toBe('constLegacy');
+    });
+
     it('leaves out an alias that is missing or equals the member name', () => {
         const byName = new Map(extractInputs(classDecl, checker).map((i) => [i.name, i]));
 

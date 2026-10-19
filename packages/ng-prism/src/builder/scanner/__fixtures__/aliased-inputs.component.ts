@@ -1,6 +1,9 @@
 /* eslint-disable @angular-eslint/no-input-rename, @angular-eslint/no-output-rename -- aliases are what this fixture is about */
 import { Component, EventEmitter, Input, input, model, Output, output } from '@angular/core';
 
+const SIZE_ALIAS = 'constSize';
+const LEGACY_ALIAS = 'constLegacy';
+
 function Showcase(config: unknown): ClassDecorator {
     return () => {};
 }
@@ -19,6 +22,8 @@ export class AliasedInputsComponent {
     readonly sameName = input('', { alias: 'sameName' });
     @Input('legacyName') legacy = '';
     @Input({ alias: 'legacyObject' }) legacyObj = 0;
+    readonly fromConst = input(0, { alias: SIZE_ALIAS });
+    @Input(LEGACY_ALIAS) legacyConst = '';
     readonly closed = output<void>({ alias: 'dismissed' });
     @Output('legacyChange') legacyEmitter = new EventEmitter<string>();
     readonly opened = output<void>();

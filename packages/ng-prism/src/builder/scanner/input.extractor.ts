@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import type { InputMeta, OutputMeta } from '../../plugin/plugin.types.js';
-import { evaluateStatic, findDecorator, getDecoratorArgument, getJsDocComment } from './ast-utils.js';
+import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, getJsDocComment } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
 
 /**
@@ -77,7 +77,7 @@ function readInput(
 
     if (inputDecorator) {
         const required = isDecoratorInputRequired(inputDecorator);
-        const alias = readAlias(getDecoratorArgument(inputDecorator), name);
+        const alias = readAlias(getDecoratorArgument(inputDecorator), name, checker);
         const defaultValue = readInitialValue(member, checker);
         const doc = getJsDocComment(member, checker);
         const instantiated = subclass && usesTypeParameters(member.type ?? member.initializer, owner, checker) ? getInstantiatedType(name, subclass, checker) : undefined;
@@ -101,7 +101,7 @@ function readInput(
 
     const required = isSignalInputRequired(signalCall);
     // `input(initial, options)`, but `input.required(options)`.
-    const alias = readAlias(signalCall.arguments[required ? 0 : 1], name);
+    const alias = readAlias(signalCall.arguments[required ? 0 : 1], name, checker);
     const defaultValue = readInitialValue(member, checker);
     const doc = getJsDocComment(member, checker);
     const declaredType = signalCall.typeArguments?.[0] ?? signalCall.arguments[0];
@@ -125,19 +125,14 @@ function readInput(
 /**
  * The `alias` of an input or output, from a decorator argument (`'x'` or
  * `{ alias: 'x' }`) or the options of `input()`, `model()` and `output()`.
- * Only a string literal counts, and only when it differs from the member name.
+ * It counts when the builder can evaluate it statically to a string (a literal
+ * or a constant) that differs from the member name.
  */
-function readAlias(arg: ts.Expression | undefined, name: string): string | undefined {
-    let alias: ts.Expression | undefined = arg;
+function readAlias(arg: ts.Expression | undefined, name: string, checker: ts.TypeChecker): string | undefined {
+    const value = arg ? evaluateExpression(arg, checker) : undefined;
+    const alias = typeof value === 'object' && value !== null ? (value as Record<string, unknown>)['alias'] : value;
 
-    if (arg && ts.isObjectLiteralExpression(arg)) {
-        const prop = arg.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === 'alias');
-
-        alias = prop?.initializer;
-    }
-    if (!alias || !ts.isStringLiteralLike(alias)) return undefined;
-
-    return alias.text !== name ? alias.text : undefined;
+    return typeof alias === 'string' && alias !== name ? alias : undefined;
 }
 
 /**
@@ -164,7 +159,7 @@ export function extractOutputs(classDecl: ts.ClassDeclaration, checker: ts.TypeC
 
             const doc = getJsDocComment(member, checker);
             const options = outputDecorator ? getDecoratorArgument(outputDecorator) : (member.initializer as ts.CallExpression).arguments[0];
-            const alias = readAlias(options, name);
+            const alias = readAlias(options, name, checker);
 
             seen.add(name);
             outputs.push({ name, ...(alias && { alias }), ...(doc && { doc }) });
