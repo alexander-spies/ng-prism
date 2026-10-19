@@ -125,7 +125,10 @@ export class PrismPseudoStateService {
     private readonly stateFits = computed(() => this.canvasFit()?.fits !== false);
 
     /** What the canvas forces: `declared` and the active state with the user's toggles on top, which capture mode leaves out. */
-    readonly layers = computed<PseudoLayers>(() => splitLayers(this.declared(), this.statePseudo(), this.capture.active() ? {} : this._override(), this.stateFits()));
+    readonly layers = computed<PseudoLayers>(() => splitLayers(this.declared(), this.statePseudo(), this.capture.active() ? {} : this._override(), this.stateFits()), {
+        // A reset to `{}` writes a fresh override and would hand out a new wrapper around the same two objects, which re-applies the marker for nothing.
+        equal: (a, b) => a.base === b.base && a.state === b.state
+    });
 
     /** The variant's layer: what the canvas forced before states existed, and what it still forces without one. */
     readonly effective = computed<ForcedPseudoStates | null>(() => this.layers().base);

@@ -274,6 +274,20 @@ describe('PrismPseudoStateService', () => {
         expect(service.override()).toEqual({});
     });
 
+    it('keeps the layers object when the toggles are reset to empty again', () => {
+        // The renderer re-applies the marker whenever `layers` changes: a fresh wrapper
+        // around the same two objects would do that for nothing.
+        const { service, renderer, activate } = setUp();
+
+        activate(makeComponent([{ name: 'Focused', pseudo: FOCUSED }], 'ButtonComponent', [HOVERED]));
+        renderer.selectState(0);
+        TestBed.flushEffects();
+        const layers = service.layers();
+
+        service.clearOverride();
+        expect(service.layers()).toBe(layers);
+    });
+
     it('applies the state layer in capture mode but ignores the toggles', () => {
         setSearch('?capture=1');
         const { service, renderer, activate } = setUp();
