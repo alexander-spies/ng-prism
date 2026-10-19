@@ -201,21 +201,50 @@ interface Variant<T = unknown> {
     bg?: CanvasBg;
     canvasLayout?: CanvasLayout;
     pseudo?: ForcedPseudoStates;
+    states?: false;
 }
 ```
 
 The optional type parameter `T` is the component class. When provided (via `@Showcase<MyComponent>({...})`), `inputs` becomes `Partial<InputsOf<MyComponent>>` and the editor checks both keys and values against the component's signal inputs. When omitted, `T` defaults to `unknown` and `inputs` falls back to `Record<string, unknown>`, which keeps it fully backwards compatible.
 
-| Field          | Description                                                                                                                                                                                                                       |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`         | Tab label                                                                                                                                                                                                                         |
-| `inputs`       | Key-value map of input signal names to values. Typed via [`InputsOf<T>`](#inputsof) when a component generic is supplied to `@Showcase`.                                                                                          |
-| `content`      | Content projected into `<ng-content>`: string for single slot, record for named slots                                                                                                                                             |
-| `description`  | Optional description rendered below the variant tab                                                                                                                                                                               |
-| `meta`         | Arbitrary plugin metadata (e.g. `{ figma: 'url' }`)                                                                                                                                                                               |
-| `bg`           | Recommended canvas background. Overrides `ShowcaseConfig.bg`. One of `dots`, `plain`, `light`, `dark`, `checker`, `transparent`. See [Per-Variant Background](guide/variants.md#per-variant-background).                          |
-| `canvasLayout` | Canvas layout mode for this variant. Overrides `ShowcaseConfig.canvasLayout`. One of `fit`, `stretch`. See [Per-Variant Canvas Layout](guide/variants.md#per-variant-canvas-layout) and the [`CanvasLayout`](#canvaslayout) type. |
-| `pseudo`       | Pseudo states forced on while the variant renders, each with the elements it applies to. See [Per-Variant Pseudo States](guide/variants.md#per-variant-pseudo-states) and the [`ForcedPseudoStates`](#forcedpseudostates) type.   |
+| Field          | Description                                                                                                                                                                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`         | Tab label                                                                                                                                                                                                                                                                    |
+| `inputs`       | Key-value map of input signal names to values. Typed via [`InputsOf<T>`](#inputsof) when a component generic is supplied to `@Showcase`.                                                                                                                                     |
+| `content`      | Content projected into `<ng-content>`: string for single slot, record for named slots                                                                                                                                                                                        |
+| `description`  | Optional description rendered below the variant tab                                                                                                                                                                                                                          |
+| `meta`         | Arbitrary plugin metadata (e.g. `{ figma: 'url' }`)                                                                                                                                                                                                                          |
+| `bg`           | Recommended canvas background. Overrides `ShowcaseConfig.bg`. One of `dots`, `plain`, `light`, `dark`, `checker`, `transparent`. See [Per-Variant Background](guide/variants.md#per-variant-background).                                                                     |
+| `canvasLayout` | Canvas layout mode for this variant. Overrides `ShowcaseConfig.canvasLayout`. One of `fit`, `stretch`. See [Per-Variant Canvas Layout](guide/variants.md#per-variant-canvas-layout) and the [`CanvasLayout`](#canvaslayout) type.                                            |
+| `pseudo`       | Pseudo states forced on while the variant renders, each with the elements it applies to. See [Per-Variant Pseudo States](guide/variants.md#per-variant-pseudo-states) and the [`ForcedPseudoStates`](#forcedpseudostates) type.                                              |
+| `states`       | `false` keeps the variant out of every combination with the component's [`states`](#showcasestate): it renders in its own pseudo states only, as a single cell in the Overview. No other value is valid. See [Opting a variant out](guide/variants.md#opting-a-variant-out). |
+
+---
+
+## ShowcaseState
+
+One named combination of forced pseudo states, an entry of `ShowcaseConfig.states`. It applies on top of any variant that does not opt out with `Variant.states: false`.
+
+```typescript
+interface ShowcaseState {
+    name: string;
+    pseudo: ForcedPseudoStates;
+}
+```
+
+| Field    | Description                                                                                                                                                                                                                                     |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`   | Column title in the Overview, chip label in the tools menu and state name in a visual regression report. Unique within the component.                                                                                                           |
+| `pseudo` | The pseudo states the state forces, with the same shape and meaning as `Variant.pseudo`, see [`ForcedPseudoStates`](#forcedpseudostates). Unlike `Variant.pseudo`, a state is forced only where it [fits](guide/variants.md#when-a-state-fits). |
+
+```typescript
+{ name: 'Hover', pseudo: { hover: '.btn' } }
+{ name: 'Pressed', pseudo: { hover: '.btn', active: '.btn' } }
+```
+
+The position of a state in `ShowcaseConfig.states` is its identity: the `state` URL parameter, the render marker, [`DiscoveryState`](#discoverystate) and a visual regression report use that index. When a variant has a `pseudo` of its own, both are forced, and a pseudo-class both name goes to the targets of both.
+
+`ShowcaseState` is exported from `@ng-prism/core`. See [Variants: States](guide/variants.md#states).
 
 ---
 
@@ -320,7 +349,7 @@ The variant-level value always wins over the component-level value; the default 
 
 ## PseudoState
 
-A user-action pseudo-class a variant can force on, used as a key of [`ForcedPseudoStates`](#forcedpseudostates).
+A user-action pseudo-class a variant or a [component state](#showcasestate) can force on, used as a key of [`ForcedPseudoStates`](#forcedpseudostates).
 
 ```typescript
 type PseudoState = 'hover' | 'active' | 'focus' | 'focus-visible' | 'focus-within';
@@ -332,7 +361,7 @@ These are the states a script cannot hold: `:hover` and `:active` follow the poi
 
 ## ForcedPseudoStates
 
-The type of `Variant.pseudo`: which states a variant forces, and on which elements.
+The type of `Variant.pseudo` and `ShowcaseState.pseudo`: which states a variant or a component state forces, and on which elements.
 
 ```typescript
 type PseudoTarget = true | string | readonly string[];

@@ -1,6 +1,6 @@
 ---
 name: showcase
-description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, pseudo states, canvas background and layout, status, component pages), when a build prints a "⚠ ng-prism:" warning, when a component is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
+description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, states and pseudo states, canvas background and layout, status, component pages), when a build prints a "⚠ ng-prism:" warning, when a component is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
 ---
 
 # Writing and checking @Showcase configs
@@ -55,9 +55,26 @@ package is right:
    Up to 22.5.0 an object fills the slots by position instead (`default` first, then the keys in the order written),
    so a named slot before the unnamed one gets swapped content there: don't change the component's template for it,
    use a component page or tell the user.
-9. **States an input can't reach** (hover, active, focus, focus-visible, focus-within) go into a variant's `pseudo`:
-   `true` for every element of the component, or a selector (or a list) for specific ones, e.g.
-   `pseudo: { 'focus-visible': '.btn' }`. The component's own CSS draws the state.
+9. **States an input can't reach** (hover, active, focus, focus-visible, focus-within) are forced with `pseudo`: `true`
+   for every element of the component, or a selector (or a list) for specific ones, e.g.
+   `{ 'focus-visible': '.btn' }`. The component's own CSS draws the state. Where it goes depends on who shares it:
+    - **A condition that applies to several variants goes into `states` on the component** (since 22.6.0):
+      `states: [{ name: 'Hover', pseudo: { hover: '.btn' } }, { name: 'Focus visible', pseudo: { 'focus-visible': '.btn' } }]`.
+      Every variant can then be shown in each of them. The Overview becomes a variant × state matrix, the tools menu
+      gets a chip per state and a screenshot can address each combination. Don't write `Hovered`, `Pressed` and
+      `Focus visible` as variants of every variant. `name` is required and unique; the position in the list is the
+      state's index (the `state` URL parameter, `--state`), so append new states at the end and don't reorder. A
+      variant that must not take part says `states: false`. `states` is not possible together with `renderPage`.
+    - **A picture that belongs to one variant stays `pseudo` on that variant**: its own inputs plus a forced state, or a
+      one-off mix of targets, e.g. `{ name: 'Typing', inputs: { value: 'Hello' }, pseudo: { focus: '.field__input' } }`.
+      `pseudo` forces exactly what it says, with no fit rule.
+    - **A state fits a variant only where the browser could put the component in it.** Every pseudo-class of the state
+      needs a target that exists, and a focus target must not be `:disabled` or under `[inert]`, a hover or active
+      target must take the pointer (not `pointer-events: none`). Otherwise nothing is forced and the cell is shown as
+      not fitting, with the reason: `<target> matches nothing`, `<target> is disabled`, `<target> is inert`,
+      `<target> has pointer-events: none`. That is intended, for example a remove-button state on a chip without that
+      button, so don't widen the selector to make it fit. A state that fits no variant at all is usually a typo in its
+      selector; the Overview warns about it in the browser console.
 10. **Custom templates, mock data or several components together make a component page**: a
     `{ title, component, … }` entry in `componentPages`, the third argument of
     `providePrism(manifest, config, { componentPages })` in the styleguide app's `main.ts`, linked with
@@ -68,7 +85,7 @@ package is right:
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
 deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`). A variant
-can set its own `description`, `bg`, `canvasLayout` and `meta`.
+can set its own `description`, `bg`, `canvasLayout`, `meta` and `pseudo`.
 
 ## Example
 
@@ -88,8 +105,13 @@ export enum ButtonTone {
     variants: [
         { name: 'Primary', content: 'Save' },
         { name: 'Danger', inputs: { tone: ButtonTone.Danger }, content: 'Delete' },
-        { name: 'Disabled', inputs: { disabled: true }, content: 'Save' },
-        { name: 'Focused', content: 'Save', pseudo: { 'focus-visible': 'button' } }
+        { name: 'Disabled', inputs: { disabled: true }, content: 'Save' }
+    ],
+    // Combined with every variant. `Focus visible` is not forced on `Disabled`, whose button can't take focus:
+    // that cell shows as not fitting. A variant that wants no states says `states: false`.
+    states: [
+        { name: 'Hover', pseudo: { hover: 'button' } },
+        { name: 'Focus visible', pseudo: { 'focus-visible': 'button' } }
     ]
 })
 @Component({
@@ -106,8 +128,8 @@ export class ButtonComponent {
 
 1. Read the component: its `input()` / `model()` members and their types, its `<ng-content>` slots, whether it is a
    directive.
-2. Write the showcase: one variant per state worth seeing, named for what it shows. Variant indexes are 0-based, in
-   this order.
+2. Write the showcase: one variant per combination of inputs worth seeing, named for what it shows. A hover, pressed or
+   focus condition is a `states` entry, not another variant. Variant and state indexes are 0-based, in this order.
 3. Run the styleguide as a background process: `ng run <lib>:prism` (Nx: `npx nx run <lib>:prism`). It is ready when
    `http://localhost:4400/` answers (the target's `port` option may say otherwise) and rescans on every change.
 4. Read the build log. Each `⚠ ng-prism:` line is a dropped value or a deprecated option;

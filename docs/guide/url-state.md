@@ -39,11 +39,11 @@ Add `state` to open the variant in one of the component's `states` (`@Showcase({
 http://localhost:4200?component=AlertComponent&variant=1&state=1
 ```
 
-The state is part of the address next to the variant. It stays in the URL when you switch variants, and goes when you switch components. The browser back and forward buttons restore variant and state together.
+The state is part of the address next to the variant. It stays in the URL when you switch variants, and goes when you switch components.
 
 ## Browser Back/Forward
 
-Each navigation (selecting a component, changing variant, switching view) pushes a new browser history entry. The browser back and forward buttons move through the navigation history as expected.
+Selecting another component or page pushes a new browser history entry. Changing the variant, the state, the view or the panel tab rewrites the current entry instead, so stepping through variants does not fill the history. The browser back and forward buttons move between components and pages, and an entry holds the variant, state, view and panel its component was last left in.
 
 ## Control Panel & A11y State (sessionStorage)
 

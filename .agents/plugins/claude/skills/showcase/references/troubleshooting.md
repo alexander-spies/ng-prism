@@ -39,6 +39,18 @@ These count for `strictShowcase: true`, which ends the build with
   **`… with <values> in its selector list, expected non-empty strings. …`** and
   **`… with invalid target <json>, expected true, a selector or a list of selectors. Skipping.`**: the target must be
   `true`, a selector or a list of selectors.
+- **`<Class> declares invalid states <value>, expected a list of { name, pseudo }. Skipping.`**: write
+  `states: [{ name: 'Hover', pseudo: { hover: '.btn' } }]`.
+- **`<Class> states[<i>] is <value>, expected { name, pseudo }. Its column stays empty.`**,
+  **`<Class> states[<i>] has no name, expected a non-empty string. Calling it "State <n>".`**,
+  **`<Class> state "<name>" declares no pseudo states. Its column stays empty.`** and
+  **`<Class> state "<name>" repeats the name of states[<i>]; only the first one is used. Its column stays empty.`**:
+  every entry needs a unique `name` and a `pseudo`. The entry keeps its position as an empty state, so the ones behind
+  it keep their index; a state with no usable `pseudo` fits no variant (`forces no state`).
+- **`<Class> declares states together with renderPage; a component page has no Overview to show them in. Skipping states.`**:
+  use one or the other. A component that needs states renders itself, without `renderPage`.
+- **`<Class> variant "<name>" declares invalid states <value>, expected false. Skipping.`**: the only value a variant's
+  `states` takes is `false`, which keeps it out of the component's states.
 
 ## Notices
 
