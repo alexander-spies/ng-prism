@@ -131,6 +131,8 @@ node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --
 - `--url` (default `http://localhost:4400`), `--out <file.png>` (default: the system temp dir), `--timeout <ms>`
   (default 30000).
 - It prints the URL and the PNG path and lists browser console errors. Open the PNG and look at it.
+- It selects the variant through URL parameters, like the URL below, and `urlState: false` in `ng-prism.config.ts`
+  turns them off. The script then times out with "Variant never rendered"; ask before switching `urlState` back on.
 - Exit codes: `0` saved. `1` the styleguide doesn't answer, the component or variant doesn't exist (it lists what
   does), or the variant never rendered (it saves the full window for diagnosis). `2` invalid arguments. `3` Playwright
   or its Chromium is missing: suggest `npm i -D playwright && npx playwright install chromium` and run it only if the

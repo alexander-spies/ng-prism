@@ -122,6 +122,7 @@ async function capture(page) {
         await page.screenshot({ path: out });
         console.error(`Variant never rendered: no ${marker} within ${timeout} ms at ${url}`);
         console.error(`Saved the full window for diagnosis: ${out}`);
+        console.error('If ng-prism.config.ts sets urlState: false, the styleguide ignores the URL parameters this script selects the variant with.');
         return 1;
     }
 
