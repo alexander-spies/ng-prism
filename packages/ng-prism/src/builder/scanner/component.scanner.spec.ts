@@ -423,6 +423,91 @@ describe('scanComponents with forced pseudo states', () => {
     });
 });
 
+describe('scanComponents with component states', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'showcase-states-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan() {
+        const diagnostics: string[] = [];
+        const components = scanComponents(exports, checker, diagnostics);
+        const config = (className: string) => components.find((c) => c.className === className)!.showcaseConfig;
+
+        return { diagnostics, config };
+    }
+
+    it('keeps every state slot so later indices stay put', () => {
+        const { states } = scan().config('ShowcaseStatesComponent');
+
+        expect(states!.map((s) => s.name)).toEqual(['Hover', 'Pressed', 'State 3', 'State 4', 'Hover', 'Empty', 'Bad']);
+        expect(states![0].pseudo).toEqual({ hover: '.btn' });
+        expect(states![1].pseudo).toEqual({ hover: '.btn', active: '.btn' });
+        expect(states![2].pseudo).toEqual({});
+        expect(states![3].pseudo).toEqual({ focus: '.btn' });
+        expect(states![4].pseudo).toEqual({});
+        expect(states![5].pseudo).toEqual({});
+        expect(states![6].pseudo).toEqual({});
+    });
+
+    it('reports each unusable state', () => {
+        const { diagnostics } = scan();
+        const className = 'ShowcaseStatesComponent';
+
+        expect(diagnostics).toContainEqual(`${className} states[2] is "oops", expected { name, pseudo }. Its column stays empty.`);
+        expect(diagnostics).toContainEqual(`${className} states[3] has no name, expected a non-empty string. Calling it "State 4".`);
+        expect(diagnostics).toContainEqual(`${className} state "Hover" repeats the name of states[0]; only the first one is used. Its column stays empty.`);
+        expect(diagnostics).toContainEqual(`${className} state "Empty" declares no pseudo states. Its column stays empty.`);
+        expect(diagnostics).toContainEqual(
+            `${className} state "Bad" declares unknown pseudo state "checked", expected one of: hover, active, focus, focus-visible, focus-within. Skipping.`
+        );
+    });
+
+    it('keeps states: false on a variant and drops anything else', () => {
+        const { diagnostics, config } = scan();
+        const variants = config('ShowcaseStatesComponent').variants!;
+
+        expect(variants.find((v) => v.name === 'Plain')!.states).toBeUndefined();
+        expect(variants.find((v) => v.name === 'Opted out')!.states).toBe(false);
+        expect(variants.find((v) => v.name === 'Wrong')).not.toHaveProperty('states');
+        expect(diagnostics).toContainEqual('ShowcaseStatesComponent variant "Wrong" declares invalid states true, expected false. Skipping.');
+        expect(diagnostics.filter((d) => d.includes('variant "Plain"') || d.includes('variant "Opted out"'))).toEqual([]);
+    });
+
+    it('drops states on a renderPage component', () => {
+        const { diagnostics, config } = scan();
+
+        expect(config('PageStatesComponent').states).toBeUndefined();
+        expect(diagnostics).toContainEqual(
+            'PageStatesComponent declares states together with renderPage; a component page has no Overview to show them in. Skipping states.'
+        );
+    });
+
+    it('names a state by its name in a diagnostic path', () => {
+        const { diagnostics, config } = scan();
+        const message = diagnostics.find((d) => d.startsWith('UnevaluableStateComponent'))!;
+
+        expect(message).toContain('UnevaluableStateComponent › states[1] "Pressed" › pseudo.hover — "pickTarget()" (');
+        expect(message).toContain('cannot be evaluated statically and was dropped.');
+        expect(config('UnevaluableStateComponent').states!.map((s) => s.pseudo)).toEqual([{ hover: '.btn' }, {}]);
+    });
+});
+
 describe('scanComponents with @Showcase values it cannot evaluate', () => {
     let checker: ts.TypeChecker;
     let exports: ts.Symbol[];

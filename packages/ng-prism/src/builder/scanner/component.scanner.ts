@@ -6,8 +6,9 @@ import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.ty
 import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, UNEVALUABLE } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
-import { readPseudoStates } from './pseudo-states.js';
+import { describeValue, readPseudoStates } from './pseudo-states.js';
 import { describeDeprecatedProviders, describeUnevaluable, describeUnreadableBase } from './showcase-diagnostics.js';
+import { readShowcaseStates } from './showcase-states.js';
 
 const COMPONENT_STATUSES = ['stable', 'beta', 'wip', 'deprecated'] as const;
 
@@ -189,6 +190,16 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
     if (obj['host'] !== undefined) config.host = obj['host'] as ShowcaseConfig['host'];
     if (obj['renderPage']) config.renderPage = obj['renderPage'] as string;
 
+    if (obj['states'] !== undefined) {
+        if (config.renderPage) {
+            report(`${className} declares states together with renderPage; a component page has no Overview to show them in. Skipping states.`);
+        } else {
+            const states = readShowcaseStates(obj['states'], className, report);
+
+            if (states) config.states = states;
+        }
+    }
+
     if (obj['status'] !== undefined) {
         if (isComponentStatus(obj['status'])) {
             config.status = obj['status'];
@@ -241,6 +252,10 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
 
                 if (pseudo) cleaned['pseudo'] = pseudo;
                 else delete cleaned['pseudo'];
+            }
+            if (variant['states'] !== undefined && variant['states'] !== false) {
+                report(`${className} variant "${String(variant['name'])}" declares invalid states ${describeValue(variant['states'])}, expected false. Skipping.`);
+                delete cleaned['states'];
             }
             return cleaned;
         }) as unknown as ShowcaseConfig['variants'];
