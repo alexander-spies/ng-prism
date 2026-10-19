@@ -114,13 +114,14 @@ export const PRISM_BASE_TOKENS: Record<string, string> = {
     '--dur-slow': '0.3s',
 
     /**
-     * Chrome density. Set on the shell host, so a consuming app can compact or
-     * loosen the entire interface from CSS alone:
+     * Chrome density. A consuming app compacts or loosens the entire interface
+     * with one token in ng-prism.config.ts:
      *
-     *   prism-shell { --density: .8 }
+     *   theme: { '--density': '0.8' }
      *
-     * There is no signal, service or menu behind this. The whole
-     * control surface is the custom property.
+     * The band heights below resolve it on <html>, where every token is set,
+     * so a --density on a descendant such as prism-shell doesn't reach them.
+     * There is no signal, service or menu behind this.
      */
     '--density': '1',
 
