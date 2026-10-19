@@ -65,8 +65,10 @@ Same prefix, but they don't count for `strictShowcase`.
 
 - **`[ng-prism] Variant "<name>" references unknown input "<key>" on <Class>, ignoring.`** and
   **`[ng-prism] Unknown input "<key>" on <selector>, skipping. Remove it from @Showcase variants.`**: a key under
-  `inputs` isn't an input of the component. Check the spelling, use the class member name rather than an alias, and
-  make sure the member is an `input()` or `model()`.
+  `inputs` isn't an input of the component. Check the spelling, write the class member name, and make sure the member
+  is an `input()` or `model()`. An input's `alias` lands here too: in 22.5.0 a variant can't set an aliased input.
+- **`NG0303: Can't set value of the '<member>' input on the '<Class>' component.`** (Angular, dev mode): the member is
+  an input with an `alias`. The variant can't set it in 22.5.0, by either name; leave it out and tell the user.
 - **`[ng-prism] Variant <index> of <Class> failed to render:`** followed by the error: the component threw while
   rendering that variant; the error that follows says why, for example a missing `input.required()`. Fix the variant's
   `inputs`, or the component.
@@ -93,8 +95,23 @@ Check the log line `ng-prism: Generated manifest with N component(s)` first, the
 5. Did the log warn about a missing `title` or a config that "cannot be evaluated statically, so the component is
    skipped"?
 
+## The styleguide build fails with NG8002
+
+`NG8002: Can't bind to '<member>' since it isn't a known property of '<tag>'`, reported in
+`ng-prism-cache/<lib>-prism/prism-manifest.ts`: a directive with `@Showcase` declares an input with an `alias`. The
+generated host binds every input by its member name, which the directive doesn't accept. In 22.5.0 the only ways out
+are to drop the alias or the `@Showcase`; ask the user which.
+
 ## An input has no effect
 
 - The key isn't the member name: look for the browser console messages above.
+- The input has an `alias`: a variant can't set it in 22.5.0.
 - The value was dropped: look for a `⚠ ng-prism:` line that names `inputs.<key>`.
 - The input is an `@Input()`: migrate it to `input()`.
+
+## Projected content lands in the wrong slot
+
+In 22.5.0 an object `content` fills the `<ng-content>` slots by position, not by their `select`: `default` goes into
+the first slot of the template, the other keys into the following ones in the order written. Write the keys in
+template order. A component whose template puts a named slot before the unnamed one shows the contents swapped, and
+reordering the keys can't fix it. Leave the component's template as it is; use a component page or tell the user.

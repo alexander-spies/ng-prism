@@ -75,6 +75,8 @@ Without the generic parameter, `inputs` falls back to `Record<string, unknown>` 
 
 See [`InputsOf<T>`](api/types.md#inputsof) for the type mapping rules.
 
+> **Known issue:** an input declared with an `alias` (`input('md', { alias: 'buttonSize' })`) can't be set from a variant or the Controls panel yet. Its member name passes but has no effect (Angular logs `NG0303: Can't set value of the 'size' input`), and its alias is skipped as an unknown input. On a directive it breaks the styleguide build, see [Directive Hosting](guide/directive-hosting.md#aliased-inputs-break-the-build).
+
 ## Input Types and Controls
 
 The TypeScript Compiler API extracts the type of each `input()` signal at build time and maps it to the appropriate control in the Controls panel:

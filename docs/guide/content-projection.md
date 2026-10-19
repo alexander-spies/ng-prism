@@ -58,6 +58,8 @@ Pass a `Record<string, string>` where each key is a CSS selector matching an `<n
 export class CardComponent {}
 ```
 
+> **Known issue:** the slots are currently filled by position, not by their selector. The `default` content goes into the first `<ng-content>` of the template, the other keys into the following ones in the order they are written. The card above therefore renders its body in the header slot and the header in the body slot. A component whose unnamed `<ng-content>` comes first renders correctly when the keys follow the template order; for any other, use a [Component Page](guide/component-pages.md) until this is fixed.
+
 ## HTML Content
 
 Content strings are treated as raw HTML and injected via the renderer. You can include any valid HTML markup:

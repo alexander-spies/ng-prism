@@ -37,8 +37,10 @@ package is right:
    library directory there finds no component at all, without a warning.
 3. **`title` is required.** Without it the component is skipped with a warning.
 4. **Signal inputs.** `input()`, `input.required()` and `model()` work; `@Input()` is read only partly and warns. The
-   keys under a variant's `inputs` are the class member names, an `alias` is ignored. Write
-   `@Showcase<ButtonComponent>({ … })` to get the keys and their values type-checked.
+   keys under a variant's `inputs` are the class member names. Write `@Showcase<ButtonComponent>({ … })` to get the
+   keys and their values type-checked. In 22.5.0 an input declared with an `alias` can't be set from a variant, neither
+   by its member name nor by its alias, and on a directive it fails the styleguide build with `NG8002`. Don't work
+   around it in the component; tell the user.
 5. **`@Showcase` goes above `@Component` / `@Directive`**, imported from `@ng-prism/core` under its own name. An alias
    (`import { Showcase as S }`) or a namespace call is not recognized.
 6. **No `providers`.** `@Showcase({ providers })` is deprecated since 22.4.0, removed in 23.0.0, and the build drops
@@ -47,9 +49,13 @@ package is right:
 7. **Directives need a `host`**: an HTML string such as `host: '<button class="btn">Save</button>'` (forms: `<tag>`,
    `<tag attrs>`, `<tag />`, `<tag>text</tag>`; anything else falls back to a `<div>` with a warning), or
    `{ selector, import: { name, from }, inputs? }` to put the directive on another component.
-8. **Projected content is set per variant.** `content: 'Save'` fills the default `<ng-content>`; an object fills named
-   slots by their `select`, with `default` for the unnamed one:
-   `content: { '[card-header]': '<h3>Title</h3>', default: '<p>Body</p>' }`. There is no component-level `content`.
+8. **Projected content is set per variant.** `content: 'Save'` fills the default `<ng-content>`. An object is meant to
+   fill named slots by their `select`, with `default` for the unnamed one, but 22.5.0 fills them by position:
+   `default` goes into the first `<ng-content>` of the template, the other keys into the following ones in the order
+   written. So write the keys in template order, e.g.
+   `content: { default: '<p>Body</p>', '[card-footer]': '<button>OK</button>' }`. When a named slot comes before the
+   unnamed one in the template, the contents land swapped: that's the styleguide, not the component, so don't change
+   its template; use a component page or tell the user. There is no component-level `content`.
 9. **States an input can't reach** (hover, active, focus, focus-visible, focus-within) go into a variant's `pseudo`:
    `true` for every element of the component, or a selector (or a list) for specific ones, e.g.
    `pseudo: { 'focus-visible': '.btn' }`. The component's own CSS draws the state.

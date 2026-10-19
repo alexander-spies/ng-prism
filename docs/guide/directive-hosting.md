@@ -82,6 +82,10 @@ For string hosts, the variant `content` becomes the inner HTML of the host eleme
 
 Inputs whose type cannot be bound via attribute (for example `TemplateRef`, `ElementRef`, or any non-serializable type) are automatically skipped in the generated wrapper and the Controls panel.
 
+## Aliased Inputs Break the Build
+
+The generated wrapper binds every bindable input by its class member name. An input declared with an `alias` only accepts the alias, so the styleguide build fails with `NG8002: Can't bind to '<member>' since it isn't a known property of '<tag>'`, reported in `ng-prism-cache/<lib>-prism/prism-manifest.ts`. This is a known issue; until it is fixed, drop the alias or the `@Showcase` on that directive.
+
 ## Examples
 
 ### Simple attribute directive
