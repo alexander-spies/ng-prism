@@ -1,7 +1,8 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import type { BuilderContext } from '@angular-devkit/architect';
+import ts from 'typescript';
 import { createPipelineState, runPrismPipeline } from './prism-pipeline.js';
 
 const FIXTURES_DIR = join(__dirname, '..', 'scanner', '__fixtures__');
@@ -432,6 +433,71 @@ describe('runPrismPipeline deprecated options', () => {
             expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^⚠ ng-prism: ng-prism\.config\.ts sets "themeStylesheet", which is deprecated/));
         } finally {
             warn.mockRestore();
+        }
+    });
+});
+
+describe('runPrismPipeline tsconfig paths', () => {
+    let tmp: string;
+
+    afterEach(() => {
+        if (tmp && existsSync(tmp)) {
+            rmSync(tmp, { recursive: true, force: true });
+        }
+    });
+
+    const options = {
+        entryPoint: 'lib/public-api.ts',
+        libraryImportPath: 'my-lib',
+        prismProject: 'my-lib-prism',
+        configFile: 'ng-prism.config.ts'
+    };
+
+    /** A workspace whose library re-exports a component through a `paths` alias set in an extended tsconfig. */
+    function createAliasedWorkspace(): string {
+        const root = createTempWorkspace();
+
+        writeFileSync(join(root, 'tsconfig.base.json'), JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@shared/*': ['shared/*'] } } }));
+        writeFileSync(join(root, 'tsconfig.json'), JSON.stringify({ extends: './tsconfig.base.json' }));
+        mkdirSync(join(root, 'shared'));
+        writeFileSync(
+            join(root, 'shared', 'aliased.component.ts'),
+            [
+                "import { Component } from '@angular/core';",
+                'function Showcase(config: { title: string }): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                "@Showcase({ title: 'Aliased' })",
+                "@Component({ selector: 'aliased', template: '' })",
+                'export class AliasedComponent {}',
+                ''
+            ].join('\n')
+        );
+
+        const entry = join(root, 'lib', 'public-api.ts');
+
+        writeFileSync(entry, `${readFileSync(entry, 'utf-8')}export { AliasedComponent } from '@shared/aliased.component';\n`);
+        return root;
+    }
+
+    it('should resolve imports through the paths of an extended tsconfig', async () => {
+        tmp = createAliasedWorkspace();
+
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(readManifest(tmp)).toContain('type: AliasedComponent,');
+    });
+
+    it('should not enumerate the files the tsconfig includes', async () => {
+        tmp = createAliasedWorkspace();
+        const readDirectory = jest.spyOn(ts.sys, 'readDirectory');
+
+        try {
+            await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+            expect(readDirectory).not.toHaveBeenCalled();
+        } finally {
+            readDirectory.mockRestore();
         }
     });
 });

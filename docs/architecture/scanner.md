@@ -8,34 +8,48 @@ The scanner is created via `createScanner()` in `src/builder/scanner/scanner.ts`
 
 ```typescript
 const scanner = createScanner({
-    entryPoint: 'packages/my-lib/src/index.ts'
+    entryPoints: [{ entryFile: 'packages/my-lib/src/public-api.ts', importPath: 'my-lib' }]
 });
-const manifest = scanner.scan();
+const { components, diagnostics } = scanner.scan();
 ```
 
-Each `scan()` call creates or reuses a `ts.Program`, resolves all exports from the entry point, and passes them to `scanComponents()`.
+Each `scan()` call creates a `ts.Program` with every entry file as a root, resolves the exports of each entry point, and passes them to `scanComponents()`.
 
 ## Incremental Builds: the `createScanner()` Factory
 
-`createScanner()` is a stateful factory. It retains the previous `ts.Program` reference between calls. When TypeScript creates a new program via `ts.createProgram(files, opts, oldProgram)`, it reuses `SourceFile` objects for files that have not changed. On file saves during watch mode, only the changed files are re-parsed.
+`createScanner()` is a stateful factory. Between calls it keeps the previous `ts.Program` and a source-file cache (`source-file-cache.ts`), and passes both to `ts.createProgram(files, opts, host, oldProgram)`.
+
+TypeScript only takes a `SourceFile` over from the old program when the compiler host returns the identical object. The default host reads and parses on every call, so an old program on its own saves nothing. The cache's host returns the already parsed `SourceFile` for as long as the file's mtime and size stay the same. A watch rebuild therefore parses only the files that changed, and the binding TypeScript stores on each `SourceFile` carries over with it.
 
 ```typescript
 export function createScanner(options: CreateScannerOptions): Scanner {
+    const sourceFiles = createSourceFileCache(compilerOptions);
     let previousProgram: ts.Program | undefined;
 
     return {
         scan() {
-            const { program, exports } = resolveEntryPointExports(
-                options.entryPoint,
+            const { program, entries } = resolveEntryPointExports(
+                options.entryPoints,
                 compilerOptions,
-                previousProgram // ← reused on next scan
+                previousProgram,
+                sourceFiles.host // ← hands unchanged SourceFiles back to TypeScript
             );
             previousProgram = program;
+            sourceFiles.prune(program);
             // ...
         }
     };
 }
 ```
+
+Two rules keep the scan correct:
+
+- **Module resolutions are recomputed on every scan.** The host reports them as invalidated (`hasInvalidatedResolutions`). If they were reused, a file created after an import of it had already failed to resolve would stay invisible, because the importing file itself did not change.
+- **The cache only holds files of the latest program.** After each scan it drops every file the new program no longer contains.
+
+An edit that keeps the file size and lands within the file system's mtime resolution goes unseen. APFS and ext4 record nanoseconds, so in practice this does not happen.
+
+Every scan still walks the exports of every entry point. Next to parsing, that walk is cheap, so its result is not cached per entry point.
 
 ## Entry Point Discovery
 
@@ -52,7 +66,7 @@ packages/my-lib/
   molecules/ng-package.json      → 'my-lib/molecules'
 ```
 
-All entry points share one `Scanner`, and with it one `ts.Program`, stored in `PrismPipelineState.scanner`. It is rebuilt when the set of entry files changes; otherwise TypeScript reuses the unchanged source files on a rescan.
+All entry points, the primary one included, share one `Scanner` and one `ts.Program`, cached on `PrismPipelineState.scanner`. The scanner is recreated when the set of entry files changes. Every rebuild scans all of them again (see [Incremental Builds](#incremental-builds-the-createscanner-factory)).
 
 The primary entry point is scanned last and marked `primary`. A component it re-exports from a secondary entry point keeps the secondary's import path, without the "exported by multiple entry points" notice that other duplicates get.
 
