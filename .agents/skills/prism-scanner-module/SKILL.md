@@ -25,19 +25,19 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
 
 ## Existing Modules
 
-| Module                     | Purpose                                                                             |
-| -------------------------- | ----------------------------------------------------------------------------------- |
-| `ast-utils.ts`             | Static AST evaluation utilities                                                     |
-| `class-hierarchy.ts`       | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)  |
-| `entry-point.scanner.ts`   | Resolve exports from entry point                                                    |
-| `component.scanner.ts`     | Find @Showcase components, extract config                                           |
-| `input.extractor.ts`       | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`) |
-| `manifest.generator.ts`    | Generate prism-manifest.ts source code                                              |
-| `pseudo-states.ts`         | Read and validate a variant's forced pseudo states (`readPseudoStates`)             |
-| `showcase-diagnostics.ts`  | Word the warnings for `@Showcase` values the scan had to drop                       |
-| `entry-point-discovery.ts` | Find a library's secondary entry points (`discoverSecondaryEntryPoints`)            |
-| `scanner.ts`               | Orchestrator — exports `createScanner(options)`, which returns a `Scanner`          |
-| `index.ts`                 | Public surface of the scanner (re-exports the functions and their types)            |
+| Module                     | Purpose                                                                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ast-utils.ts`             | Static AST evaluation utilities                                                                                             |
+| `class-hierarchy.ts`       | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)                                          |
+| `entry-point.scanner.ts`   | Resolve exports from entry point                                                                                            |
+| `component.scanner.ts`     | Find @Showcase components, extract config                                                                                   |
+| `input.extractor.ts`       | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`)                                         |
+| `manifest.generator.ts`    | Generate prism-manifest.ts source code                                                                                      |
+| `pseudo-states.ts`         | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                     |
+| `showcase-diagnostics.ts`  | Word the warnings for `@Showcase` values the scan had to drop                                                               |
+| `entry-point-discovery.ts` | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`) |
+| `scanner.ts`               | Orchestrator — exports `createScanner(options)`, which returns a `Scanner`                                                  |
+| `index.ts`                 | Public surface of the scanner (re-exports the functions and their types)                                                    |
 
 ## Module Template
 

@@ -24,7 +24,7 @@ interface NgPrismPlugin {
     controls?: ControlDefinition[];
     headerWidgets?: HeaderWidgetDefinition[];
     navigationDecorations?: NavigationDecorationDefinition[];
-    wrapComponent?: Type<unknown>;
+    wrapComponent?: Type<unknown>; // deprecated since 22.6.0, never had an effect
 }
 ```
 
@@ -90,8 +90,7 @@ export function a11yPlugin(): NgPrismPlugin {
                 // Lazy — see the PR checklist: plugin runtime components are loaded
                 // on demand, not pulled into the main bundle via `component:`.
                 loadComponent: () => import('./a11y-panel.component').then((m) => m.A11yPanelComponent),
-                icon: 'accessibility',
-                position: 'bottom'
+                icon: 'accessibility'
             }
         ]
     };
@@ -109,7 +108,7 @@ interface PanelDefinition {
     overlayComponent?: Type<unknown>; // canvas overlay
     loadOverlayComponent?: () => Promise<Type<unknown>>;
     icon?: string;
-    position?: 'bottom' | 'right';
+    position?: 'bottom' | 'right'; // deprecated since 22.6.0, never had an effect
     placement?: 'addon' | 'view';
     providers?: Provider[];
     isVisible?: (component: RuntimeComponent) => boolean;
@@ -169,7 +168,7 @@ Prism app ships.
 - Options object as parameter with sensible defaults
 - `name` must be unique — used for debugging and conflict detection
 - Build-time hooks are async-compatible (can return Promise)
-- Runtime components (panels, controls, wrapComponent) must be standalone
+- Runtime components (panels, controls, header widgets) must be standalone
 - Official plugins: `packages/plugin-*/` → npm: `@ng-prism/plugin-*`
 
 ## Checklist

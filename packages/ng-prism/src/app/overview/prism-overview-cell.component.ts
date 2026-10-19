@@ -15,7 +15,7 @@ import {
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import { resolveVariantBg } from '../../shared/variant-bg.js';
 import { CANVAS_BG_STYLES } from '../canvas/canvas-bg.styles.js';
-import { buildInputBindings } from '../renderer/known-inputs.js';
+import { buildInputBindings } from '../renderer/input-bindings.js';
 import { parseContentToNodes } from '../renderer/projectable-content.js';
 import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { computeVariantState } from '../services/prism-renderer.service.js';

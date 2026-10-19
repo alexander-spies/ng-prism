@@ -1,5 +1,5 @@
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
-import { buildInputBindings, PRISM_CONTENT_INPUT } from './known-inputs.js';
+import { buildInputBindings, PRISM_CONTENT_INPUT } from './input-bindings.js';
 
 function makeComp(
     overrides: Partial<{

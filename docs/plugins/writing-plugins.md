@@ -181,18 +181,18 @@ Registered like any other `headerWidgets` entry; see [`HeaderWidgetDefinition`](
 
 ## PanelDefinition Fields
 
-| Field                  | Type                                                                         | Description                                                        |
-| ---------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `id`                   | `string`                                                                     | Unique panel identifier                                            |
-| `label`                | `string`                                                                     | Tab label                                                          |
-| `component`            | `Type<unknown>`                                                              | Static panel component                                             |
-| `loadComponent`        | `() => Promise<Type>`                                                        | Lazy-loaded panel component (use when importing browser-only APIs) |
-| `overlayComponent`     | `Type<unknown>`                                                              | Canvas overlay component                                           |
-| `loadOverlayComponent` | `() => Promise<Type>`                                                        | Lazy-loaded canvas overlay                                         |
-| `icon`                 | `string`                                                                     | Icon name (optional)                                               |
-| `position`             | `'bottom' \| _Deprecated since 22.6.0, never had an effect._ Use `placement` | _Reserved, not yet implemented._ Panel area placement              |
-| `placement`            | `'addon' \| 'view'`                                                          | `addon` = bottom tab bar, `view` = top view toolbar                |
-| `providers`            | `Provider[]`                                                                 | Providers scoped to this panel's injector                          |
+| Field                  | Type                  | Description                                                                                              |
+| ---------------------- | --------------------- | -------------------------------------------------------------------------------------------------------- |
+| `id`                   | `string`              | Unique panel identifier                                                                                  |
+| `label`                | `string`              | Tab label                                                                                                |
+| `component`            | `Type<unknown>`       | Static panel component                                                                                   |
+| `loadComponent`        | `() => Promise<Type>` | Lazy-loaded panel component (use when importing browser-only APIs)                                       |
+| `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                                                                 |
+| `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                                                               |
+| `icon`                 | `string`              | Icon name (optional)                                                                                     |
+| `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._ |
+| `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                      |
+| `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                |
 
 > **Note:** Always use `loadComponent` rather than `component` if your panel component imports anything from `@angular/platform-browser` or any other browser-only package. The config file is loaded in Node.js during the build, and a static import of a browser component crashes the builder.
 

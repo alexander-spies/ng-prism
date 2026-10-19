@@ -38,7 +38,7 @@ import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 import { PRISM_RENDERER_HOOKS } from '../tokens/prism-tokens.js';
-import { buildInputBindings } from './known-inputs.js';
+import { buildInputBindings } from './input-bindings.js';
 import { resolveOverlay } from './overlay-resolver.js';
 import { parseContentToNodes } from './projectable-content.js';
 import { resolveRenderedKey } from './rendered-key.js';

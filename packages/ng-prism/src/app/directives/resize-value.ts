@@ -5,7 +5,7 @@
  * rendered inside a host component to be exercised, and this package's specs
  * run under jsdom against SWC-compiled sources, where JIT cannot instantiate
  * one. Extracted, the maths is ordinary and testable. It is the same reason
- * `known-inputs.ts` and `overlay-resolver.ts` sit beside their components.
+ * `input-bindings.ts` and `overlay-resolver.ts` sit beside their components.
  */
 
 /**

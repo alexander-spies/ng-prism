@@ -1,6 +1,6 @@
 # Runtime Services
 
-All services are provided in `root` and injectable anywhere in the Prism app or in your custom UI components. Import from `ng-prism`.
+All services are provided in `root` and injectable anywhere in the Prism app, for example in component pages and plugin components. Import from `@ng-prism/core`.
 
 ---
 

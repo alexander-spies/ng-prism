@@ -22,7 +22,7 @@ Atomic write  (skip if unchanged)
 
 ### 1. Config Load
 
-`loadConfig()` uses `ts.transpileModule()` to compile `ng-prism.config.ts` to a temporary `.mjs` file next to the config (`ng-prism.config.<timestamp>-<random>.tmp.mjs`), imports it via `import(pathToFileURL(...))`, and deletes the temp file afterwards, also when the import fails. Because the file sits next to the config, the config's imports resolve from the config's own directory. This avoids spawning a separate `tsc` process and works with TypeScript config syntax.
+`loadConfig()` uses `ts.transpileModule()` to compile `ng-prism.config.ts` to a temporary `.mjs` file next to the config (`ng-prism.config.<timestamp>-<random>.tmp.mjs`), imports it via `import(pathToFileURL(...))`, and deletes the temp file afterwards, also when the import fails. Because the file sits next to the config, the config's imports resolve from the config's own directory. This avoids spawning a separate `tsc` process and works with TypeScript config syntax. Right after loading, `describeDeprecatedOptions()` checks the config and its plugins for options that are deprecated, and the pipeline prints one `⚠ ng-prism:` notice for each.
 
 ### 2. Entry Point Scan
 

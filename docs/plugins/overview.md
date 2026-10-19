@@ -6,7 +6,7 @@ Plugins extend ng-prism with additional panels, controls, and build-time data ex
 
 | Capability           | Description                                                                                 |
 | -------------------- | ------------------------------------------------------------------------------------------- |
-| `panels`             | Add new tabs to the addon panel area (bottom / right) or the view toolbar                   |
+| `panels`             | Add new tabs to the addon panel area or the view toolbar                                    |
 | `controls`           | Register custom input controls for specific TypeScript types                                |
 | `onComponentScanned` | Enrich `ScannedComponent` data at build time (e.g. extract JSDoc, inject external metadata) |
 | `onPageScanned`      | Enrich `StyleguidePage` data at build time                                                  |

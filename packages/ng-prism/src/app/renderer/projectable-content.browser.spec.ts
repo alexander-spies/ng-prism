@@ -1,7 +1,3 @@
-/**
- * @jest-environment jsdom
- */
-
 import { parseContentToNodes } from './projectable-content.js';
 
 describe('parseContentToNodes', () => {
