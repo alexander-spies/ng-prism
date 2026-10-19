@@ -49,6 +49,11 @@ function markedElements(root: Element): Element[] {
  * A second layer carries the component state that is active: its pseudo is
  * forced only while it fits, and only on the targets a user could reach
  * ({@link evaluateStateFit}). The variant's own states are forced as they are.
+ * Fit and reach are measured with the variant's classes and the state's on all
+ * of its targets at once, on every pass. The first pass, the one
+ * `data-prism-rendered` waits for, therefore marks what any later pass would,
+ * and a rule that takes away the pointer under its own `:hover` reads as not
+ * fitting, as the browser could not keep such an element hovered either.
  *
  * The root is watched while states are forced: an element rendered later
  * (`@if`), or one whose classes or attributes change so that it starts or
@@ -127,37 +132,55 @@ export class PseudoStateMarker {
 
         if (!applied) return;
         const { root, states, state } = applied;
-        // Before this pass touches a class, so the fit never rests on the marks
-        // this pass is about to set.
+        const forced = new Map<PseudoState, Set<Element>>();
+        const stateTargets = new Map<PseudoState, Set<Element>>();
+
+        // Every pass measures one DOM, whatever the previous pass left: the
+        // variant's classes, and the state's on every target it names, all at
+        // once. A target can take the pointer only under another forced class
+        // (a hover-reveal), and a mark must not depend on whether an unrelated
+        // write set off a second pass.
+        for (const name of PSEUDO_STATES) {
+            const variantTargets = resolveTargets(root, states?.[name]);
+            const targets = state ? resolveTargets(root, state[name]) : new Set<Element>();
+
+            forced.set(name, variantTargets);
+            stateTargets.set(name, targets);
+            this.write(root, name, new Set([...variantTargets, ...targets]));
+        }
+
         const fit = state ? evaluateStateFit(root, state) : null;
+        // Read before the first class comes off, so no target is measured
+        // against a DOM another one's removal changed.
+        const reachable = PSEUDO_STATES.map((name) => new Set(fit?.fits ? reachableTargets(root, name, stateTargets.get(name)!) : []));
 
         // Only a change of the fit is news. The signal setting off its own
         // effects is harmless, a new value on every mark is not.
         if (!sameFit(applied.fit, fit)) this._applied.set({ ...applied, fit });
 
-        for (const name of PSEUDO_STATES) {
-            const cls = pseudoStateClass(name);
-            const targets = resolveTargets(root, states?.[name]);
+        // The state's class comes off what it cannot reach, and off all of its
+        // targets when it does not fit. The variant's classes stay.
+        PSEUDO_STATES.forEach((name, i) => this.write(root, name, new Set([...forced.get(name)!, ...reachable[i]])));
 
-            if (state && fit?.fits) {
-                for (const el of reachableTargets(root, name, resolveTargets(root, state[name]))) targets.add(el);
-            }
-
-            // `classList.remove` writes the attribute even when the class is absent,
-            // and the write would come back through the observer as a mutation.
-            for (const el of markedElements(root)) {
-                if (!targets.has(el) && el.classList.contains(cls)) el.classList.remove(cls);
-            }
-            for (const el of targets) {
-                if (!el.classList.contains(cls)) el.classList.add(cls);
-            }
-        }
-
-        // The records of the writes above are ours. Acting on them would let a
-        // state whose class takes away its own reach (`pointer-events: none`)
-        // flip the fit, and the class with it, in a loop of microtasks. Anything
+        // The records of the writes above are ours. Acting on them would only
+        // repeat this pass, and a state whose class takes away its own reach
+        // (`pointer-events: none`) would rewrite its class on every one. Anything
         // the component changed before this pass was read by it, so nothing
         // pending is lost.
         this.observer?.takeRecords();
+    }
+
+    /** Puts the class of `name` on exactly `targets` under `root`. */
+    private write(root: Element, name: PseudoState, targets: Set<Element>): void {
+        const cls = pseudoStateClass(name);
+
+        // `classList.remove` writes the attribute even when the class is absent,
+        // and the write would come back through the observer as a mutation.
+        for (const el of markedElements(root)) {
+            if (!targets.has(el) && el.classList.contains(cls)) el.classList.remove(cls);
+        }
+        for (const el of targets) {
+            if (!el.classList.contains(cls)) el.classList.add(cls);
+        }
     }
 }

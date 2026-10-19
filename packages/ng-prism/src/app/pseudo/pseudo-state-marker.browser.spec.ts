@@ -229,8 +229,84 @@ describe('PseudoStateMarker', () => {
 
             await settle();
             watch.disconnect();
-            expect(writes).toBe(1);
+            // Measured with its class on, the way a pointer over it would leave it: it cannot stay hovered.
+            expect(settled).toEqual({ writes: 2, fit: { fits: false, reason: '.btn has pointer-events: none' }, hovered: false });
             expect({ writes, fit: marker.applied()?.fit, hovered: button.classList.contains(HOVER) }).toEqual(settled);
+        });
+
+        // A hover-reveal written against the forced class too: the actions only take the pointer under a hovered row.
+        describe('measured against one DOM on every pass', () => {
+            const ROW = '<lib-row class="row"><span class="label"></span><div class="actions"><button class="act"></button></div></lib-row>';
+
+            /** What a pass left on the canvas: the fit and the hovered elements. */
+            const outcome = (root: Element) => ({ fit: marker.applied()?.fit, hovered: withClass(root, HOVER) });
+
+            /** The outcome of the first pass, and of the pass a write of the component's own sets off. */
+            async function firstAndNext(root: Element, states: ForcedPseudoStates | null, state: ForcedPseudoStates) {
+                marker.apply(root, states, state);
+                const first = outcome(root);
+
+                root.setAttribute('data-touched', '');
+                await settle();
+                return { first, next: outcome(root) };
+            }
+
+            beforeEach(() => addStyle('.row:not(:hover) .actions { pointer-events: none; }'));
+
+            it("reaches a target that the variant's own hover reveals", async () => {
+                const { first, next } = await firstAndNext(mount(ROW), { hover: '.row' }, { hover: '.act' });
+
+                expect(first).toEqual({ fit: { fits: true }, hovered: ['row', 'act'] });
+                expect(next).toEqual(first);
+            });
+
+            it('reaches every element of the component for true, with the host hovered as well', async () => {
+                const { first, next } = await firstAndNext(mount(ROW), null, { hover: true });
+
+                expect(first).toEqual({ fit: { fits: true }, hovered: ['row', 'label', 'actions', 'act'] });
+                expect(next).toEqual(first);
+            });
+
+            it('reaches a target that another target of the same state reveals', async () => {
+                const { first, next } = await firstAndNext(mount(ROW), null, { hover: ['.row', '.act'] });
+
+                expect(first).toEqual({ fit: { fits: true }, hovered: ['row', 'act'] });
+                expect(next).toEqual(first);
+            });
+
+            it('leaves a target that nothing reveals unreachable', async () => {
+                const { first, next } = await firstAndNext(mount(ROW), null, { hover: '.act' });
+
+                expect(first).toEqual({ fit: { fits: false, reason: '.act has pointer-events: none' }, hovered: [] });
+                expect(next).toEqual(first);
+            });
+        });
+
+        it("keeps the variant's classes while the state does not fit", async () => {
+            const root = mount('<lib-button class="host"><button class="btn" disabled></button></lib-button>');
+
+            marker.apply(root, { hover: '.host', 'focus-visible': '.host' }, { hover: '.btn', 'focus-visible': '.btn' });
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.btn is disabled' });
+            expect(withClass(root, HOVER)).toEqual(['host']);
+            expect(withClass(root, FV)).toEqual(['host']);
+
+            root.setAttribute('data-touched', '');
+            await settle();
+            expect(withClass(root, HOVER)).toEqual(['host']);
+            expect(withClass(root, FV)).toEqual(['host']);
+        });
+
+        it('forces none of the classes of a state with one unreachable pseudo-class', async () => {
+            addStyle('.btn__icon { pointer-events: none; }');
+            const root = mount('<lib-button><button class="btn"><span class="btn__icon"></span></button></lib-button>');
+
+            marker.apply(root, null, { 'focus-visible': '.btn', hover: '.btn__icon', active: '.btn' });
+            expect(marker.applied()?.fit).toEqual({ fits: false, reason: '.btn__icon has pointer-events: none' });
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
+
+            root.setAttribute('data-touched', '');
+            await settle();
+            expect(root.outerHTML).not.toContain('prism-pseudo--');
         });
 
         it("puts the state's class back that a component removed and changed nothing else", async () => {
