@@ -10,6 +10,8 @@ import { Showcase } from '@ng-prism/core';
     status: 'beta',
     category: 'Data Display',
     description: 'Compact element for tags and filters with optional removable state.',
+    // Only the removable variants render the remove button, so the state fits those and leaves the rest empty.
+    states: [{ name: 'Remove hovered', pseudo: { hover: '.sg-chip__remove' } }],
     variants: [
         { name: 'Default', inputs: { label: 'Angular' } },
         { name: 'Removable', inputs: { label: 'TypeScript', removable: true } },

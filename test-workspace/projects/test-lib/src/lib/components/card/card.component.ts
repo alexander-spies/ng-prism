@@ -10,13 +10,14 @@ import { Showcase } from '@ng-prism/core';
     status: 'stable',
     category: 'Layout',
     description: 'Content card with optional title, subtitle, image placeholder, and interactive state.',
+    // The hover style hangs off .sg-card--clickable, which only clickable cards carry.
+    states: [{ name: 'Hover', pseudo: { hover: '.sg-card--clickable' } }],
     variants: [
         { name: 'Basic', inputs: { title: 'Card Title', subtitle: 'A brief description of the content.' } },
         { name: 'With Image', inputs: { title: 'Featured', subtitle: 'Image card variant.', showImage: true } },
         { name: 'Clickable', inputs: { title: 'Interactive Card', subtitle: 'Click me.', clickable: true } },
         { name: 'Elevated', inputs: { title: 'Elevated Card', subtitle: 'With shadow.', elevated: true } },
-        { name: 'Outlined', inputs: { title: 'Outlined', subtitle: 'Border only.', elevated: false } },
-        { name: 'Clickable, hovered', inputs: { title: 'Interactive Card', subtitle: 'Hovered.', clickable: true }, pseudo: { hover: true } }
+        { name: 'Outlined', inputs: { title: 'Outlined', subtitle: 'Border only.', elevated: false } }
     ],
     tags: ['layout', 'card', 'container', 'surface']
 })
