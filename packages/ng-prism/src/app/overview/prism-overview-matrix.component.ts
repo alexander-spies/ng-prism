@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, linkedSignal, untracked } from '@angular/core';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { StateFit } from '../pseudo/state-fit.js';
-import { buildOverviewMatrix, columnFit, fitKey, fitLabel, statesFittingNowhere } from './overview-matrix.js';
+import { buildOverviewMatrix, columnHeaders, fitKey, statesFittingNowhere } from './overview-matrix.js';
 import { PrismOverviewCellComponent } from './prism-overview-cell.component.js';
 
 /**
@@ -17,8 +17,9 @@ const warnedStates = new WeakMap<RuntimeComponent, Set<number>>();
  *
  * Whether a state fits a variant is something only the rendered cell knows, so
  * the cells report it (`fitChange`) and this component keeps the answers. The
- * column headers count them, and a state that fits no variant at all is warned
- * about once: it is almost certainly a selector that matches nothing.
+ * column headers count them. A state that fits no variant at all is almost
+ * certainly a selector that matches nothing: its header is marked, and the
+ * console warns about it once.
  *
  * The first row and the first column stay in view while the matrix scrolls.
  */
@@ -41,19 +42,8 @@ export class PrismOverviewMatrixComponent {
         computation: () => new Map()
     });
 
-    /** The column titles with their fit counts, the Default column has none. */
-    protected readonly headers = computed(() => {
-        const fits = this.fits();
-        const matrix = this.matrix();
-
-        return matrix.columns.map((column) => {
-            if (column.state === null) return { column, fit: null };
-
-            const { fits: count, eligible } = columnFit(fits, matrix, column.state);
-
-            return { column, fit: fitLabel(count, eligible) };
-        });
-    });
+    /** The column titles with their fit counts (the Default column has none), and whether a state fits no variant. */
+    protected readonly headers = computed(() => columnHeaders(this.fits(), this.matrix()));
 
     constructor() {
         effect(() => {

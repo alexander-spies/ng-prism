@@ -345,7 +345,7 @@ The demo styleguide has an example of each:
 | Card      | `Hover` on `.sg-card--clickable`       | `Clickable`                       | `Basic`: `.sg-card--clickable matches nothing`                                                      |
 | Button    | `Hover` and `Focus visible` on `.btn`  | `Filled`, `Outlined`, `Text`      | `Disabled`: `Hover` reads `.btn has pointer-events: none`, `Focus visible` reads `.btn is disabled` |
 
-A state that fits no variant at all is almost certainly a selector with a typo. The Overview warns once in the console (`[ng-prism] State "<name>" of <Class> fits no variant; check its selectors.`), and the header of its column says `fits 0 of <n>`. The scanner cannot catch this, because it does not render.
+A state that fits no variant at all is almost certainly a selector with a typo. The Overview warns once in the console (`[ng-prism] State "<name>" of <Class> fits no variant; check its selectors.`) and marks the header of its column: `fits 0 of <n>` turns to the attention colour, and the tooltip says the same as the warning. The scanner cannot catch this, because it does not render. An empty state, which forces nothing, is left out of both: it has no selector to check, and the scanner has reported it already.
 
 ### Opting a variant out
 

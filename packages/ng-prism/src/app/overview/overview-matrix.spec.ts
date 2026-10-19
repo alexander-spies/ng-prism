@@ -1,6 +1,6 @@
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import type { StateFit } from '../pseudo/state-fit.js';
-import { buildOverviewMatrix, columnFit, fitKey, fitLabel, type OverviewMatrix, pseudoSignature, statesFittingNowhere } from './overview-matrix.js';
+import { buildOverviewMatrix, columnFit, columnHeaders, fitKey, fitLabel, type OverviewMatrix, pseudoSignature, statesFittingNowhere } from './overview-matrix.js';
 
 const FITS: StateFit = { fits: true };
 const MISFIT: StateFit = { fits: false, reason: '.btn matches nothing' };
@@ -21,9 +21,9 @@ describe('buildOverviewMatrix', () => {
         };
 
         expect(buildOverviewMatrix(config).columns).toEqual([
-            { state: null, title: 'Default', signature: 'no state' },
-            { state: 0, title: 'Hover', signature: 'hover → .btn' },
-            { state: 1, title: 'Pressed', signature: 'hover + active → .btn' }
+            { state: null, title: 'Default', signature: 'no state', forcesState: false },
+            { state: 0, title: 'Hover', signature: 'hover → .btn', forcesState: true },
+            { state: 1, title: 'Pressed', signature: 'hover + active → .btn', forcesState: true }
         ]);
     });
 
@@ -65,17 +65,17 @@ describe('buildOverviewMatrix', () => {
             ]
         };
 
-        expect(buildOverviewMatrix(config).columns.map(({ state, signature }) => [state, signature])).toEqual([
-            [null, 'no state'],
-            [0, 'forces no state'],
-            [1, 'hover → the component']
+        expect(buildOverviewMatrix(config).columns.map(({ state, signature, forcesState }) => [state, signature, forcesState])).toEqual([
+            [null, 'no state', false],
+            [0, 'forces no state', false],
+            [1, 'hover → the component', true]
         ]);
     });
 
     it('has only the Default column for a component without states', () => {
         const matrix = buildOverviewMatrix({ title: 'Button', variants: [{ name: 'Primary' }] });
 
-        expect(matrix.columns).toEqual([{ state: null, title: 'Default', signature: 'no state' }]);
+        expect(matrix.columns).toEqual([{ state: null, title: 'Default', signature: 'no state', forcesState: false }]);
     });
 });
 
@@ -203,5 +203,71 @@ describe('statesFittingNowhere', () => {
 
     it('reports nothing before any cell has answered', () => {
         expect(statesFittingNowhere(new Map(), THREE_BY_THREE)).toEqual([]);
+    });
+
+    it('leaves out a state that forces nothing, which has no selector to check', () => {
+        const matrix = matrixOf({
+            variants: [{ name: 'A' }, { name: 'B' }],
+            states: [
+                { name: 'Gap', pseudo: {} },
+                { name: 'Blank', pseudo: { hover: '' } },
+                { name: 'Typo', pseudo: { hover: '.btm' } }
+            ]
+        });
+        const nothing: StateFit = { fits: false, reason: 'forces no state' };
+        const all = results([
+            [0, 0, nothing],
+            [1, 0, nothing],
+            [0, 1, nothing],
+            [1, 1, nothing],
+            [0, 2, MISFIT],
+            [1, 2, MISFIT]
+        ]);
+
+        expect(statesFittingNowhere(all, matrix)).toEqual([2]);
+    });
+});
+
+describe('columnHeaders', () => {
+    const matrix = matrixOf({
+        variants: [{ name: 'A' }, { name: 'B' }],
+        states: [
+            { name: 'Hover', pseudo: { hover: '.btn' } },
+            { name: 'Typo', pseudo: { hover: '.btm' } },
+            { name: 'Gap', pseudo: {} }
+        ]
+    });
+
+    it('counts the fits of each state column and leaves the Default column without a count', () => {
+        const headers = columnHeaders(results([[0, 0, FITS]]), matrix);
+
+        expect(headers.map(({ column, fit, fitsNowhere }) => [column.title, fit, fitsNowhere])).toEqual([
+            ['Default', null, false],
+            ['Hover', 'fits 1 of 2', false],
+            ['Typo', 'fits 0 of 2', false],
+            ['Gap', 'fits 0 of 2', false]
+        ]);
+    });
+
+    it('marks a column that every cell has answered and none fits, unless its state forces nothing', () => {
+        const nothing: StateFit = { fits: false, reason: 'forces no state' };
+        const headers = columnHeaders(
+            results([
+                [0, 0, FITS],
+                [1, 0, MISFIT],
+                [0, 1, MISFIT],
+                [1, 1, MISFIT],
+                [0, 2, nothing],
+                [1, 2, nothing]
+            ]),
+            matrix
+        );
+
+        expect(headers.map(({ column, fitsNowhere }) => [column.title, fitsNowhere])).toEqual([
+            ['Default', false],
+            ['Hover', false],
+            ['Typo', true],
+            ['Gap', false]
+        ]);
     });
 });

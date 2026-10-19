@@ -1,6 +1,6 @@
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import { type ForcedPseudoStates, PSEUDO_STATES, type PseudoState } from '../../shared/pseudo-state.type.js';
-import { hasTarget } from '../pseudo/pseudo-targets.js';
+import { forcesAnyState, hasTarget } from '../pseudo/pseudo-targets.js';
 import { describeTarget, type StateFit } from '../pseudo/state-fit.js';
 
 /** `state` is the position in `ShowcaseConfig.states`, `null` for the Default column. */
@@ -8,6 +8,8 @@ export interface MatrixColumn {
     state: number | null;
     title: string;
     signature: string;
+    /** Whether the column's state forces anything. `false` for Default and for a slot the scanner could not use. */
+    forcesState: boolean;
 }
 
 /** `variant` is the position in `ShowcaseConfig.variants`; the implicit Default row of a variant-less component is 0. */
@@ -33,8 +35,13 @@ export interface OverviewMatrix {
  */
 export function buildOverviewMatrix(config: ShowcaseConfig): OverviewMatrix {
     const columns: MatrixColumn[] = [
-        { state: null, title: 'Default', signature: 'no state' },
-        ...(config.states ?? []).map((state, index) => ({ state: index, title: state.name, signature: pseudoSignature(state.pseudo) }))
+        { state: null, title: 'Default', signature: 'no state', forcesState: false },
+        ...(config.states ?? []).map((state, index) => ({
+            state: index,
+            title: state.name,
+            signature: pseudoSignature(state.pseudo),
+            forcesState: forcesAnyState(state.pseudo)
+        }))
     ];
     const variants = config.variants ?? [];
     const rows: MatrixRow[] =
@@ -103,21 +110,46 @@ export function columnFit(results: ReadonlyMap<string, StateFit>, matrix: Overvi
 }
 
 /**
- * The states whose column is complete and fits nowhere, by index.
+ * The states whose column is complete and fits nowhere, by index: almost
+ * certainly a selector with a typo.
  *
  * A column that is still waiting for a cell, or whose cell failed to render and
  * so never answers, is not complete: a state is only called misplaced once every
  * cell has had its say. A state no variant is combined with has no cell to
- * judge it, so it is not reported either.
+ * judge it, so it is not reported either. Nor is a state that forces nothing (a
+ * slot the scanner could not use): it fits nowhere by construction, has no
+ * selector to check, and the scanner has reported it already.
  *
  * Stateless: the caller keeps track of what it already reported.
  */
 export function statesFittingNowhere(results: ReadonlyMap<string, StateFit>, matrix: OverviewMatrix): number[] {
     return matrix.columns.flatMap((column) => {
-        if (column.state === null) return [];
+        if (column.state === null || !column.forcesState) return [];
 
         const { fits, eligible, complete } = columnFit(results, matrix, column.state);
 
         return eligible > 0 && complete && fits === 0 ? [column.state] : [];
+    });
+}
+
+/** One column header of the matrix. */
+export interface ColumnHeader {
+    column: MatrixColumn;
+    /** `fits x of y`, `null` for the Default column. */
+    fit: string | null;
+    /** The state is one of {@link statesFittingNowhere}. */
+    fitsNowhere: boolean;
+}
+
+/** The column headers with their fit counts, and whether a state fits no variant, as far as the cells have answered. */
+export function columnHeaders(results: ReadonlyMap<string, StateFit>, matrix: OverviewMatrix): ColumnHeader[] {
+    const nowhere = new Set(statesFittingNowhere(results, matrix));
+
+    return matrix.columns.map((column) => {
+        if (column.state === null) return { column, fit: null, fitsNowhere: false };
+
+        const { fits, eligible } = columnFit(results, matrix, column.state);
+
+        return { column, fit: fitLabel(fits, eligible), fitsNowhere: nowhere.has(column.state) };
     });
 }
