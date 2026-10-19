@@ -118,7 +118,7 @@ variants: [
 ],
 ```
 
-A component that declares [`states`](guide/variants.md#states) gets the same without a variant per state. Each state is combined with every variant, and every combination is a capture of its own, addressed with `state=` next to `variant=`:
+A component that declares [`states`](guide/variants.md#states) gets the same without a variant per state. Each state is combined with every variant, and every combination the state fits is a capture of its own, addressed with `state=` next to `variant=`. A combination it does not fit is reported as `excluded`, see [A state that does not fit](#a-state-that-does-not-fit):
 
 ```typescript
 @Showcase({

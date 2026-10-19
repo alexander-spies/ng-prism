@@ -339,11 +339,11 @@ The reason shows up where you look at the combination: an empty, dashed cell in 
 
 The demo styleguide has an example of each:
 
-| Component | State                                  | Fits                              | Does not fit                                                                                        |
-| --------- | -------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Chip      | `Remove hovered` on `.sg-chip__remove` | `Removable`, `Selected Removable` | `Default`: `.sg-chip__remove matches nothing`                                                       |
-| Card      | `Hover` on `.sg-card--clickable`       | `Clickable`                       | `Basic`: `.sg-card--clickable matches nothing`                                                      |
-| Button    | `Hover` and `Focus visible` on `.btn`  | `Filled`, `Outlined`, `Text`      | `Disabled`: `Hover` reads `.btn has pointer-events: none`, `Focus visible` reads `.btn is disabled` |
+| Component | State                                  | Fits                                                                         | Does not fit                                                                                        |
+| --------- | -------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Chip      | `Remove hovered` on `.sg-chip__remove` | `Removable`, `Selected Removable`                                            | `Default`: `.sg-chip__remove matches nothing`                                                       |
+| Card      | `Hover` on `.sg-card--clickable`       | `Clickable`                                                                  | `Basic`: `.sg-card--clickable matches nothing`                                                      |
+| Button    | `Hover` and `Focus visible` on `.btn`  | every variant except `Disabled` (`Full width` opts out with `states: false`) | `Disabled`: `Hover` reads `.btn has pointer-events: none`, `Focus visible` reads `.btn is disabled` |
 
 A state that fits no variant at all is almost certainly a selector with a typo. The Overview warns once in the console (`[ng-prism] State "<name>" of <Class> fits no variant; check its selectors.`) and marks the header of its column: `fits 0 of <n>` turns to the attention colour, and the tooltip says the same as the warning. The scanner cannot catch this, because it does not render. An empty state, which forces nothing, is left out of both: it has no selector to check, and the scanner has reported it already.
 
@@ -367,9 +367,9 @@ The active state is part of the address of what you see, next to the variant, no
 - It is in the URL as `state`, see [State Preservation](guide/url-state.md), and it applies in capture mode.
 - The Controls stay usable. Change an input while a state is on and you see the component with that input in that state.
 
-A chip for a state that does not fit the shown variant has a dashed border, and its tooltip names the reason, for example `Hover does not fit this variant: .btn has pointer-events: none`. You can still pick it. It stays selected and forces nothing until the variant has a target for it, say after the `removable` control of a chip is switched on, and from then on it applies. The component head counts what is declared: `9 variants · 3 states`.
+A chip for a state that does not fit the shown variant has a dashed border, and its tooltip names the reason, for example `Hover does not fit this variant: .btn has pointer-events: none`. You can still pick it. It stays selected and forces nothing until the variant has a target for it, say after the `removable` control of a chip is switched on, and from then on it applies. The info popover behind the ⓘ in the component head counts what is declared: `9 variants · 3 states`.
 
-The row below the chips has the single toggles, `:hover` to `:focus-within`, see [Forcing a state while browsing](#forcing-a-state-while-browsing). The pseudo-classes of the active state count as declared there: they carry the tinted border and can be switched off one by one. Picking another state resets the toggles, as picking another variant does. The toggles are not subject to the fit rule.
+The row below the chips has the single toggles, `:hover` to `:focus-within`, see [Forcing a state while browsing](#forcing-a-state-while-browsing). While the active state fits the shown variant, its pseudo-classes count as declared there: they carry the tinted border and can be switched off one by one. While it does not fit, a toggle forces its pseudo-class on the whole component, like any other toggle. Picking another state resets the toggles, as picking another variant does. The toggles are not subject to the fit rule.
 
 ### States in a screenshot runner
 
@@ -452,7 +452,7 @@ Below the chips for the component's [states](#showing-a-state-while-browsing), t
 
 ### Under visual regression
 
-A forced state is part of the variant, so a screenshot runner captures it without a change on its side: `data-prism-rendered` only appears once the states are in place. Focus rings are usually drawn outside the component's box, so capture mode leaves room around variants that force a state. See [Forced pseudo states](guide/visual-regression.md#forced-pseudo-states). A [component state](#states) is addressed with `state=`, see [States in a screenshot runner](#states-in-a-screenshot-runner).
+A forced state is part of the variant, so a screenshot runner captures it without a change on its side: `data-prism-rendered` only appears once the states are in place. Focus rings are usually drawn outside the component's box, so capture mode leaves room around every capture that forces a state, through the variant's own `pseudo` or through a [component state](#states) that fits. See [Forced pseudo states](guide/visual-regression.md#forced-pseudo-states). A [component state](#states) is addressed with `state=`, see [States in a screenshot runner](#states-in-a-screenshot-runner).
 
 ## Overview: All Variants at Once
 
