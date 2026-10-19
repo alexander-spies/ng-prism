@@ -195,11 +195,42 @@ describe('PrismPseudoStateService', () => {
         expect(service.isForced('hover')).toBe(false);
     });
 
+    it("stops counting the active state's pseudo-classes as declared while it does not fit", () => {
+        const { service, renderer, activate } = setUp();
+
+        activate(makeComponent([{ name: 'Focused', pseudo: FOCUSED }], 'ButtonComponent', [HOVERED]));
+        renderer.selectState(0);
+        service.canvasFit.set({ fits: false, reason: '.btn matches nothing' });
+        expect(service.isDeclared('hover')).toBe(false);
+        expect(service.isDeclared('focus-visible')).toBe(true);
+
+        service.canvasFit.set({ fits: true });
+        expect(service.isDeclared('hover')).toBe(true);
+    });
+
+    it('a toggle on a class only the unfitting active state declares forces it', () => {
+        const { service, renderer, activate } = setUp();
+
+        activate(makeComponent([{ name: 'Plain' }], 'ButtonComponent', [HOVERED]));
+        renderer.selectState(0);
+        TestBed.flushEffects();
+        service.canvasFit.set({ fits: false, reason: '.btn matches nothing' });
+        service.toggle('hover');
+        expect(service.layers().base).toEqual({ hover: true });
+        expect(service.layers().state).toEqual(HOVERED.pseudo);
+        expect(service.isForced('hover')).toBe(true);
+
+        service.toggle('hover');
+        expect(service.override()).toEqual({});
+        expect(service.isForced('hover')).toBe(false);
+    });
+
     it('switches a state class off from the tools menu', () => {
         const { service, renderer, activate } = setUp();
 
         activate(makeComponent([{ name: 'Plain' }], 'ButtonComponent', [HOVERED]));
         renderer.selectState(0);
+        TestBed.flushEffects();
         service.canvasFit.set({ fits: true });
         service.toggle('hover');
         expect(service.override()).toEqual({ hover: false });
@@ -249,6 +280,7 @@ describe('PrismPseudoStateService', () => {
 
         activate(makeComponent([{ name: 'Focused', pseudo: FOCUSED }], 'ButtonComponent', [HOVERED]));
         renderer.selectState(0);
+        TestBed.flushEffects();
         service.toggle('active');
         service.toggle('focus-visible');
         expect(service.override()).not.toEqual({});
@@ -314,6 +346,18 @@ describe('splitLayers', () => {
 
     it("toggling on a class the state declares keeps the state's target", () => {
         expect(splitLayers(null, HOVERED.pseudo, { hover: true })).toEqual({ base: null, state: HOVERED.pseudo });
+    });
+
+    it('toggling on a class an unfitting state declares forces it on the whole component in base', () => {
+        expect(splitLayers(null, HOVERED.pseudo, { hover: true }, false)).toEqual({ base: { hover: true }, state: HOVERED.pseudo });
+    });
+
+    it('toggling on a class the variant declares keeps its target even when the state does not fit', () => {
+        expect(splitLayers({ hover: '.a' }, HOVERED.pseudo, { hover: true }, false)).toEqual({ base: { hover: '.a' }, state: HOVERED.pseudo });
+    });
+
+    it('switching a class off drops it from both layers whether or not the state fits', () => {
+        expect(splitLayers({ hover: '.a' }, HOVERED.pseudo, { hover: false }, false)).toEqual({ base: null, state: null });
     });
 
     it('toggling on an undeclared class forces it on the whole component in base', () => {

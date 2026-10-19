@@ -29,13 +29,22 @@ export interface PseudoLayers {
  * a copy. A state switched on from the menu applies to the whole component
  * (`true`), the way a pointer over it would, and lands in `base`, which the fit
  * rule does not touch. One the variant or the state declares keeps its own
- * target in its own layer. A state switched off leaves both layers. Once the
+ * target in its own layer, except that a state which does not fit
+ * (`stateFits: false`) is not applied, so a class only it declares is forced on
+ * the whole component instead. The state layer itself is the same either way:
+ * the marker still gets it, to see when the state fits again. A state switched
+ * off leaves both layers. Once the
  * toggles have switched off every class the active state declares, its layer is
  * `null`: that is the user's doing, not a state that forces nothing. A state
  * that declares nothing itself (a slot the scanner could not evaluate) stays an
  * empty object, so the marker can report it.
  */
-export function splitLayers(variantPseudo: ForcedPseudoStates | null, statePseudo: ForcedPseudoStates | null, override: PseudoStateOverride): PseudoLayers {
+export function splitLayers(
+    variantPseudo: ForcedPseudoStates | null,
+    statePseudo: ForcedPseudoStates | null,
+    override: PseudoStateOverride,
+    stateFits = true
+): PseudoLayers {
     if (Object.keys(override).length === 0) return { base: variantPseudo, state: statePseudo };
 
     const base: ForcedPseudoStates = {};
@@ -51,7 +60,7 @@ export function splitLayers(variantPseudo: ForcedPseudoStates | null, statePseud
 
         if (fromVariant !== undefined) base[name] = fromVariant;
         if (fromState !== undefined) state[name] = fromState;
-        if (forced && fromVariant === undefined && fromState === undefined) base[name] = true;
+        if (forced && fromVariant === undefined && (fromState === undefined || !stateFits)) base[name] = true;
     }
     const switchedOff = Object.keys(state).length === 0 && Object.keys(statePseudo ?? {}).length > 0;
 
@@ -106,17 +115,20 @@ export class PrismPseudoStateService {
     private readonly _override = signal<PseudoStateOverride>({});
     readonly override = this._override.asReadonly();
 
-    /** What the canvas forces: `declared` and the active state with the user's toggles on top, which capture mode leaves out. */
-    readonly layers = computed<PseudoLayers>(() => splitLayers(this.declared(), this.statePseudo(), this.capture.active() ? {} : this._override()));
-
-    /** The variant's layer: what the canvas forced before states existed, and what it still forces without one. */
-    readonly effective = computed<ForcedPseudoStates | null>(() => this.layers().base);
-
     /**
      * Whether the active state fits the rendered canvas. Written by the
      * renderer from its marker, `null` while no state is applied.
      */
     readonly canvasFit = signal<StateFit | null>(null);
+
+    /** `canvasFit` before the first render counts as fitting; a computed so a changed reason alone does not rebuild `layers`. */
+    private readonly stateFits = computed(() => this.canvasFit()?.fits !== false);
+
+    /** What the canvas forces: `declared` and the active state with the user's toggles on top, which capture mode leaves out. */
+    readonly layers = computed<PseudoLayers>(() => splitLayers(this.declared(), this.statePseudo(), this.capture.active() ? {} : this._override(), this.stateFits()));
+
+    /** The variant's layer: what the canvas forced before states existed, and what it still forces without one. */
+    readonly effective = computed<ForcedPseudoStates | null>(() => this.layers().base);
 
     constructor() {
         effect(() => {
@@ -134,9 +146,14 @@ export class PrismPseudoStateService {
         return base?.[state] !== undefined || (!!this.canvasFit()?.fits && layer?.[state] !== undefined);
     }
 
-    /** Whether the active variant or the active state declares `state`, whether or not it is forced now. */
+    /**
+     * Whether the active variant declares `state`, or the active state does
+     * while it fits. A state that does not fit is not applied, so what it
+     * declares is no longer a default the menu can switch off: switching it on
+     * forces it on the whole component.
+     */
     isDeclared(state: PseudoState): boolean {
-        return this.declared()?.[state] !== undefined || this.statePseudo()?.[state] !== undefined;
+        return this.declared()?.[state] !== undefined || (this.stateFits() && this.statePseudo()?.[state] !== undefined);
     }
 
     /** Flips `state` against what is forced now. Flipping it back to what the variant or state declares drops the toggle. */
