@@ -107,7 +107,7 @@ sync_plugin_peer_deps() {
         p.peerDependencies['@ng-prism/core'] = '$peer_range';
         fs.writeFileSync(path, JSON.stringify(p, null, 2) + '\n');
       }
-    "
+    " || { err "Could not update the @ng-prism/core peer dependency in $pkg/package.json"; exit 1; }
     info "$(basename "$pkg") peer @ng-prism/core -> $peer_range"
   done
 }
@@ -131,23 +131,25 @@ sync_agent_plugin_version() {
   info "Claude Code plugin -> $new_version"
 }
 
-# ─── Bump version across all packages ───
-bump_version() {
-  local bump_type="$1"
-  local old_version clean new_version
+# ─── Version helpers for the bump functions ───
+# The bump functions run inside $(...), where bash clears errexit, so every
+# command in them that can fail carries its own `|| { err ...; exit 1; }`.
+# Exiting the subshell fails the assignment in main, and set -e stops there.
 
-  old_version=$(current_version)
-  # Strip any prerelease suffix (e.g. -beta.0) before bumping
-  clean="${old_version%%-*}"
-
+# Next base version for patch | minor | major, from a version without suffix.
+next_base_version() {
+  local bump_type="$1" clean="$2"
   case "$bump_type" in
-    patch) new_version=$(node -e "const [a,b,c]=process.argv[1].split('.'); console.log([a,b,+c+1].join('.'))" "$clean") ;;
-    minor) new_version=$(node -e "const [a,b]=process.argv[1].split('.'); console.log([a,+b+1,0].join('.'))" "$clean") ;;
-    major) new_version=$(node -e "const [a]=process.argv[1].split('.'); console.log([+a+1,0,0].join('.'))" "$clean") ;;
+    patch) node -e "const [a,b,c]=process.argv[1].split('.'); console.log([a,b,+c+1].join('.'))" "$clean" ;;
+    minor) node -e "const [a,b]=process.argv[1].split('.'); console.log([a,+b+1,0].join('.'))" "$clean" ;;
+    major) node -e "const [a]=process.argv[1].split('.'); console.log([+a+1,0,0].join('.'))" "$clean" ;;
+    *) err "Invalid bump type: $bump_type"; return 1 ;;
   esac
+}
 
-  header "Bumping $old_version to $new_version"
-
+# Writes the version into the package.json of every package in PACKAGES.
+set_package_versions() {
+  local new_version="$1" pkg
   for pkg in "${PACKAGES[@]}"; do
     node -e "
       const fs = require('fs');
@@ -155,9 +157,25 @@ bump_version() {
       const p = JSON.parse(fs.readFileSync(path, 'utf-8'));
       p.version = '$new_version';
       fs.writeFileSync(path, JSON.stringify(p, null, 2) + '\n');
-    "
+    " || { err "Could not update $pkg/package.json"; exit 1; }
     info "$(basename "$pkg") -> $new_version"
   done
+}
+
+# ─── Bump version across all packages ───
+bump_version() {
+  local bump_type="$1"
+  local old_version clean new_version
+
+  old_version=$(current_version) || { err "Could not read the current version"; exit 1; }
+  # Strip any prerelease suffix (e.g. -beta.0) before bumping
+  clean="${old_version%%-*}"
+
+  new_version=$(next_base_version "$bump_type" "$clean") || { err "Could not compute the next $bump_type version from $clean"; exit 1; }
+
+  header "Bumping $old_version to $new_version"
+
+  set_package_versions "$new_version"
 
   sync_plugin_peer_deps "$new_version"
   sync_agent_plugin_version "$new_version"
@@ -171,7 +189,7 @@ bump_version() {
 bump_beta_version() {
   local mode="$1"
   local old_version new_version
-  old_version=$(current_version)
+  old_version=$(current_version) || { err "Could not read the current version"; exit 1; }
 
   if [[ "$mode" == "iterate" ]]; then
     if [[ ! "$old_version" =~ -beta\.([0-9]+)$ ]]; then
@@ -185,27 +203,13 @@ bump_beta_version() {
     # Strip any existing prerelease suffix before bumping base
     local clean="${old_version%%-*}"
     local base
-    case "$mode" in
-      patch) base=$(node -e "const [a,b,c]=process.argv[1].split('.'); console.log([a,b,+c+1].join('.'))" "$clean") ;;
-      minor) base=$(node -e "const [a,b]=process.argv[1].split('.'); console.log([a,+b+1,0].join('.'))" "$clean") ;;
-      major) base=$(node -e "const [a]=process.argv[1].split('.'); console.log([+a+1,0,0].join('.'))" "$clean") ;;
-      *) err "Invalid beta mode: $mode"; exit 1 ;;
-    esac
+    base=$(next_base_version "$mode" "$clean") || { err "Could not compute the next $mode version from $clean"; exit 1; }
     new_version="${base}-beta.0"
   fi
 
   header "Bumping $old_version to $new_version (beta)"
 
-  for pkg in "${PACKAGES[@]}"; do
-    node -e "
-      const fs = require('fs');
-      const path = './$pkg/package.json';
-      const p = JSON.parse(fs.readFileSync(path, 'utf-8'));
-      p.version = '$new_version';
-      fs.writeFileSync(path, JSON.stringify(p, null, 2) + '\n');
-    "
-    info "$(basename "$pkg") -> $new_version"
-  done
+  set_package_versions "$new_version"
 
   sync_plugin_peer_deps "$new_version"
   sync_agent_plugin_version "$new_version"
@@ -217,7 +221,7 @@ bump_beta_version() {
 # ─── Promote beta to stable (drop -beta.N suffix, no version bump) ───
 promote_beta_to_stable() {
   local old_version new_version
-  old_version=$(current_version)
+  old_version=$(current_version) || { err "Could not read the current version"; exit 1; }
 
   if [[ ! "$old_version" =~ -beta\.[0-9]+$ ]]; then
     err "Current version $old_version is not a beta, nothing to promote"
@@ -228,16 +232,7 @@ promote_beta_to_stable() {
 
   header "Promoting $old_version to $new_version (stable)"
 
-  for pkg in "${PACKAGES[@]}"; do
-    node -e "
-      const fs = require('fs');
-      const path = './$pkg/package.json';
-      const p = JSON.parse(fs.readFileSync(path, 'utf-8'));
-      p.version = '$new_version';
-      fs.writeFileSync(path, JSON.stringify(p, null, 2) + '\n');
-    "
-    info "$(basename "$pkg") -> $new_version"
-  done
+  set_package_versions "$new_version"
 
   sync_plugin_peer_deps "$new_version"
   sync_agent_plugin_version "$new_version"
@@ -352,7 +347,24 @@ publish_all_beta() {
   done
 }
 
-# ─── Git tag + push (beta: uses current branch, not main) ───
+# ─── Release commit ───
+# A failing commit (a pre-commit hook, say) stops the release before the tag,
+# which would otherwise land on the previous commit.
+commit_release() {
+  local version="$1"
+
+  git add -A
+  if git diff --cached --quiet; then
+    info "Nothing to commit, tagging the current HEAD"
+    return
+  fi
+  git commit -m "release: v$version" || {
+    err "git commit failed, so v$version is not tagged. The packages are already published: fix the commit, then tag and push by hand."
+    exit 1
+  }
+}
+
+# ─── Git tag + push (beta) ───
 tag_and_push_beta() {
   local version="$1"
   local current_branch
@@ -360,8 +372,7 @@ tag_and_push_beta() {
 
   header "Git tag + push (beta, branch: $current_branch)"
 
-  git add -A
-  git commit -m "release: v$version" || true
+  commit_release "$version"
   git tag "v$version" -m "Beta release v$version"
 
   echo ""
@@ -411,22 +422,23 @@ create_github_prerelease() {
 # ─── Git tag + push + GitHub release ───
 tag_and_push() {
   local version="$1"
+  local current_branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
 
-  header "Git tag + push"
+  header "Git tag + push (branch: $current_branch)"
 
-  git add -A
-  git commit -m "release: v$version" || true
+  commit_release "$version"
   git tag "v$version" -m "Release v$version"
 
   echo ""
-  read -rp "  Push to origin? (y/n) " answer
+  read -rp "  Push to origin/$current_branch with tag v$version? (y/n) " answer
   if [[ "$answer" == "y" ]]; then
-    git push origin main --tags
-    ok "Pushed v$version to origin"
+    git push origin "$current_branch" --tags
+    ok "Pushed v$version to origin/$current_branch"
 
     create_github_release "$version"
   else
-    warn "Skipped push. Run manually: git push origin main --tags"
+    warn "Skipped push. Run manually: git push origin $current_branch --tags"
   fi
 }
 
