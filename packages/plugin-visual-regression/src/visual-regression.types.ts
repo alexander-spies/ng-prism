@@ -47,7 +47,7 @@ export interface VrtVariantResult {
      * exactly as before.
      */
     stateIndex?: number;
-    /** The state's `name`. Optional, the panel falls back to `State <stateIndex>`. */
+    /** The state's `name`. Optional, the panel falls back to `State <stateIndex + 1>`, the name the scanner gives a state without one. */
     stateName?: string;
     status: VrtStatus;
     width?: number;

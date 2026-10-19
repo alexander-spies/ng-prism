@@ -81,7 +81,7 @@ export default defineConfig({
 
 Results are matched to components by `className`. All three image paths are optional and the panel degrades gracefully: baseline + current gives a wipe comparison, baseline + diff falls back to comparing against the diff mask, and a single image is shown on its own.
 
-`stateIndex` and `stateName` are optional. A component that declares `states` in `@Showcase` is captured once per variant and state: write one entry for each, with the `variantIndex` of the variant and the `stateIndex` of the state (the `?state=` value, counting from 0). The panel lists the row as `<variant> × <state>`, falling back to `State <stateIndex>` without a `stateName`, and sorts it after the variant's own entry. Leave both fields out for the variant on its own; a report without them renders as before.
+`stateIndex` and `stateName` are optional. A component that declares `states` in `@Showcase` is captured once per variant and state: write one entry for each, with the `variantIndex` of the variant and the `stateIndex` of the state (the `?state=` value, counting from 0). The panel lists the row as `<variant> × <state>`, falling back to `State <stateIndex + 1>` without a `stateName` (the name the scanner gives a state declared without one), and sorts it after the variant's own entry. Leave both fields out for the variant on its own; a report without them renders as before.
 
 `status: "new"` (a variant with no baseline yet) renders as a **neutral** state, never as a failure.
 

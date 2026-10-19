@@ -71,13 +71,15 @@ export function rowKey(result: VrtVariantResult): string {
  * entry is a capture in one (`Outlined × Hover`).
  *
  * The variant part falls back as before, to the title and then to
- * `Variant <index>`. A state without a name reads `State <index>`.
+ * `Variant <index>`. A state without a name reads `State <index + 1>`, the
+ * name the scanner gives a state declared without one, so the row and the
+ * Overview column agree.
  */
 export function rowLabel(result: VrtVariantResult): string {
     const variant = result.variantName ?? result.title ?? `Variant ${result.variantIndex}`;
 
     if (typeof result.stateIndex !== 'number') return variant;
-    return `${variant} × ${result.stateName ?? `State ${result.stateIndex}`}`;
+    return `${variant} × ${result.stateName ?? `State ${result.stateIndex + 1}`}`;
 }
 
 /** Counts and the worst diff, derived from the variants already in `meta`. */

@@ -323,7 +323,8 @@ describe('rowLabel', () => {
         expect(label).toBe('Outlined × Hover');
     });
 
-    it('falls back to the state index without a name', () => {
-        expect(rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, stateIndex: 1, status: 'unchanged' })).toBe('Outlined × State 1');
+    it('falls back to the name the scanner gives a state without one, counting from 1', () => {
+        expect(rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, stateIndex: 0, status: 'unchanged' })).toBe('Outlined × State 1');
+        expect(rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, stateIndex: 1, status: 'unchanged' })).toBe('Outlined × State 2');
     });
 });

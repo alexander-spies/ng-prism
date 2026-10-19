@@ -111,7 +111,7 @@ NEEDS REVIEW · 2
   ┃ NEW
 ```
 
-The state part is the entry's `stateName`. An entry that carries a `stateIndex` but no `stateName` reads `State <stateIndex>`, the same way a variant without a name reads `Variant <variantIndex>`.
+The state part is the entry's `stateName`. An entry that carries a `stateIndex` but no `stateName` reads `State <stateIndex + 1>`, the name the scanner gives a state declared without one, so the row reads like the state's column in the Overview: `State 1` above is `stateIndex` 0.
 
 Each row is its own entry in the report and counts on its own: in the summary bar, in the group counts and in the tab badge. A state that does not fit a variant (the render marker says [why](guide/external-tooling.md#a-state-that-does-not-apply)) is reported as `excluded` with the runner's `reason`, like any other capture the runner skipped.
 
@@ -164,7 +164,7 @@ Your runner writes this file; the plugin reads it.
 | Field        | Required | Purpose                                                                                              |
 | ------------ | -------- | ---------------------------------------------------------------------------------------------------- |
 | `stateIndex` | no       | The `?state=` value the capture was taken with: the position of the state in `@Showcase({ states })` |
-| `stateName`  | no       | The state's `name`, shown in the row label. Without it the row reads `State <stateIndex>`            |
+| `stateName`  | no       | The state's `name`, shown in the row label. Without it the row reads `State <stateIndex + 1>`        |
 
 A runner that captures component-level states (`@Showcase({ states })`, listed in `__PRISM_MANIFEST__`, see [A worked example](guide/visual-regression.md#a-worked-example)) writes one entry per variant and state, with the `variantIndex` of the variant and the `stateIndex` of the state. Leave both fields out for the variant on its own: `variantIndex` alone identifies it, and every report written before states existed stays valid. `stateIndex` counts from 0, like `variantIndex`, and `0` is a real state.
 
