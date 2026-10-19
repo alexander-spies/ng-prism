@@ -145,3 +145,12 @@
 .prism-toolmenu__row button.is-rec {
     border-color: color-mix(in srgb, var(--prism-primary) 30%, transparent);
 }
+
+/* A state that does not fit the shown variant: still selectable, but nothing shows. The tooltip names why. */
+.prism-toolmenu__row button.is-na {
+    border-style: dashed;
+}
+
+.prism-toolmenu__row button.is-na:not(.is-on) {
+    color: var(--prism-text-ghost);
+}
