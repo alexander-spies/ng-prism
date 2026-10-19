@@ -324,6 +324,90 @@ describe('runPrismPipeline multi-entry-point integration', () => {
     });
 });
 
+describe('runPrismPipeline entry point resolution', () => {
+    let tmp: string;
+    let warn: jest.SpyInstance;
+
+    beforeEach(() => {
+        warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+        if (tmp && existsSync(tmp)) {
+            rmSync(tmp, { recursive: true, force: true });
+        }
+    });
+
+    const options = {
+        libraryImportPath: 'my-lib',
+        prismProject: 'my-lib-prism',
+        configFile: 'ng-prism.config.ts'
+    };
+
+    function writeBadgeComponent(dir: string): void {
+        writeFileSync(
+            join(dir, 'badge.component.ts'),
+            [
+                "import { Component, input } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                "@Showcase({ title: 'Badge', variants: [{ name: 'Default' }] })",
+                "@Component({ selector: 'ui-badge', standalone: true, template: '<span></span>' })",
+                'export class BadgeComponent {',
+                "    label = input<string>('');",
+                '}'
+            ].join('\n'),
+            'utf-8'
+        );
+    }
+
+    it('scans the primary entry file of a library directory without secondary entry points', async () => {
+        tmp = createTempWorkspace();
+        writeFileSync(join(tmp, 'lib', 'ng-package.json'), JSON.stringify({ dest: '../dist/my-lib', lib: { entryFile: './public-api.ts' } }), 'utf-8');
+
+        const fromFile = await runPrismPipeline({ ...options, entryPoint: 'lib/public-api.ts' }, createMockContext(tmp), createPipelineState());
+        const fromDirectory = await runPrismPipeline({ ...options, entryPoint: 'lib' }, createMockContext(tmp), createPipelineState());
+
+        expect(fromDirectory.componentCount).toBeGreaterThan(0);
+        expect(fromDirectory.componentCount).toBe(fromFile.componentCount);
+    });
+
+    it('scans the primary entry point next to the secondary ones', async () => {
+        tmp = createMultiEntryWorkspace();
+        writeBadgeComponent(join(tmp, 'lib'));
+        writeFileSync(join(tmp, 'lib', 'public-api.ts'), "export { BadgeComponent } from './badge.component.js';\n", 'utf-8');
+
+        const result = await runPrismPipeline({ ...options, libraryImportPath: 'multi-entry-lib', entryPoint: 'lib' }, createMockContext(tmp), createPipelineState());
+
+        expect(result.componentCount).toBe(3);
+        expect(readManifest(tmp)).toContain("from 'multi-entry-lib';");
+        expect(readManifest(tmp)).toContain('type: BadgeComponent,');
+    });
+
+    it('keeps a component the primary entry point re-exports under its secondary entry point, without a warning', async () => {
+        tmp = createMultiEntryWorkspace();
+        writeFileSync(join(tmp, 'lib', 'public-api.ts'), "export * from './atoms/pill/public-api.js';\n", 'utf-8');
+
+        const result = await runPrismPipeline({ ...options, libraryImportPath: 'multi-entry-lib', entryPoint: 'lib' }, createMockContext(tmp), createPipelineState());
+
+        expect(result.componentCount).toBe(2);
+        expect(readManifest(tmp)).toContain("from 'multi-entry-lib/atoms/pill'");
+        expect(readManifest(tmp)).not.toContain("from 'multi-entry-lib';");
+        expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('multiple entry points'));
+    });
+
+    it('warns when the entryPoint resolves to no entry file at all', async () => {
+        tmp = createTempWorkspace();
+
+        const result = await runPrismPipeline({ ...options, entryPoint: 'lib' }, createMockContext(tmp), createPipelineState());
+
+        expect(result.componentCount).toBe(0);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('⚠ ng-prism: entryPoint "lib" resolves to no entry file'));
+    });
+});
+
 describe('createPipelineState', () => {
     it('should return independent state objects', () => {
         const a = createPipelineState();

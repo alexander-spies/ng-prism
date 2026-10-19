@@ -39,7 +39,7 @@ export function createScanner(options: CreateScannerOptions): Scanner {
 
 ## Entry Point Discovery
 
-The pipeline accepts either a directory or a file as `entryPoint`. Both lead to the same discovery of secondary entry points; a file is first resolved upward to its containing library. They differ only for a library without secondary entry points: a file is then scanned directly, a directory yields no entry point at all.
+The pipeline accepts either a directory or a file as `entryPoint`. Both lead to the same discovery of secondary entry points; a file is first resolved upward to its containing library. After the secondary entry points comes the primary one: a file `entryPoint` is the primary entry file itself, a directory names it as `lib.entryFile` in its `ng-package.json` (ng-packagr's default `src/public_api.ts` when the field is missing). When neither yields an entry file, the pipeline warns `entryPoint "<path>" resolves to no entry file`.
 
 ### Directory entryPoint
 
@@ -47,12 +47,14 @@ If `entryPoint` is a directory, `discoverSecondaryEntryPoints()` walks it recurs
 
 ```
 packages/my-lib/
-  public-api.ts                  ← primary (ng-package.json with `dest`, ignored by discovery)
+  public-api.ts                  ← primary (ng-package.json with `dest`, scanned last)
   atoms/ng-package.json          → 'my-lib/atoms'
   molecules/ng-package.json      → 'my-lib/molecules'
 ```
 
-Each secondary entry point gets its own `Scanner` instance stored in `PrismPipelineState.scanners`. Only the entry points whose files changed are re-scanned.
+All entry points share one `Scanner`, and with it one `ts.Program`, stored in `PrismPipelineState.scanner`. It is rebuilt when the set of entry files changes; otherwise TypeScript reuses the unchanged source files on a rescan.
+
+The primary entry point is scanned last and marked `primary`. A component it re-exports from a secondary entry point keeps the secondary's import path, without the "exported by multiple entry points" notice that other duplicates get.
 
 ### File entryPoint (auto-detected library root)
 
@@ -66,7 +68,7 @@ libraryRoot = "projects/my-lib"
 [my-lib/atoms, my-lib/molecules, ...]
 ```
 
-If no `ng-package.json` is found above the file, or if discovery returns no entries (e.g. for a primary-only library without secondaries), the pipeline falls back to scanning the configured file directly, which preserves back-compat for non-ng-packagr setups. A directory `entryPoint` has no such fallback: for a primary-only library the manifest stays empty, without a warning. `ng add` writes the library directory, so such a library needs its `entryPoint` changed to the barrel file.
+If no `ng-package.json` is found above the file, the file is the only entry point, which keeps non-ng-packagr setups working. Up to 22.5.0 the primary entry point was only scanned as this fallback: with secondary entry points it was skipped, and a directory `entryPoint` without them found no component.
 
 ## How Decorators Are Extracted
 

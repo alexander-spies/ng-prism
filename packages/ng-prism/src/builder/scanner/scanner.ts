@@ -62,17 +62,23 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             const diagnostics: string[] = [];
             const notices = new Set<string>();
 
-            for (const { exports, importPath } of entries) {
+            const fromPrimary = new Set<ScannedComponent>();
+
+            for (const { exports, importPath, primary } of entries) {
                 const components = scanComponents(exports, checker, diagnostics, notices);
 
-                for (const c of components) c.importPath = importPath;
+                for (const c of components) {
+                    c.importPath = importPath;
+                    if (primary) fromPrimary.add(c);
+                }
                 allComponents.push(...components);
             }
 
             // Dedupe by (filePath, className): if a component class is re-exported from
             // multiple entry points (e.g. atoms/button + barrel index.ts), we keep the first
             // occurrence. The duplicate would otherwise produce duplicate imports in the
-            // generated manifest and a runtime collision in the Prism shell.
+            // generated manifest and a runtime collision in the Prism shell. The primary
+            // entry point comes last and re-exporting its secondaries is normal there.
             const seen = new Set<string>();
             const unique: ScannedComponent[] = [];
 
@@ -80,6 +86,7 @@ export function createScanner(options: CreateScannerOptions): Scanner {
                 const key = `${c.filePath}::${c.className}`;
 
                 if (seen.has(key)) {
+                    if (fromPrimary.has(c)) continue;
                     console.warn(
                         `⚠ ng-prism: ${c.className} is exported by multiple entry points; ` +
                             `keeping the first occurrence (importPath: ${unique.find((u) => u.className === c.className && u.filePath === c.filePath)?.importPath}).`

@@ -44,10 +44,11 @@ What it adds, without overwriting existing files or path mappings:
 - `ng-prism-cache/` in `.gitignore`: the generated manifest lives there, is rebuilt on every run and never edited
 - the script `strip-showcase` and the devDependencies `highlight.js` and `ngx-highlightjs`
 
-**Check `entryPoint` right after `ng add`.** A library without secondary entry points (no `ng-package.json` without
-`dest` below its root) needs `entryPoint` to name its barrel file, the `lib.entryFile` of its `ng-package.json` (e.g.
-`projects/<lib>/src/public-api.ts`), on both targets. With the directory, 22.5.0 finds no component and doesn't warn:
-the log says `Generated manifest with 0 component(s)`.
+**Up to 22.5.0, check `entryPoint` right after `ng add`.** There a library without secondary entry points (no
+`ng-package.json` without `dest` below its root) needs `entryPoint` to name its barrel file, the `lib.entryFile` of its
+`ng-package.json` (e.g. `projects/<lib>/src/public-api.ts`), on both targets. With the directory, those versions find
+no component and don't warn: the log says `Generated manifest with 0 component(s)`. Later versions read the barrel
+from the directory's `ng-package.json`.
 
 Run it with `ng run <lib>:prism` (dev server, rescans on change) or `ng run <lib>:prism-build` (static build); in Nx
 with `npx nx run <lib>:prism`. Target options: `entryPoint` (library directory or its barrel, required), `prismProject`

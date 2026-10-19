@@ -3,6 +3,8 @@ import ts from 'typescript';
 export interface EntryPointInput {
     entryFile: string;
     importPath: string;
+    /** The library's primary entry point. A component it re-exports from a secondary one keeps that one, silently. */
+    primary?: boolean;
 }
 
 export interface ResolvedEntryPoint extends EntryPointInput {
@@ -35,21 +37,23 @@ export function resolveEntryPointExports(
     );
     const checker = program.getTypeChecker();
 
-    const entries: ResolvedEntryPoint[] = entryPoints.map(({ entryFile, importPath }) => {
+    const entries: ResolvedEntryPoint[] = entryPoints.map((entryPoint) => {
+        const { entryFile } = entryPoint;
+
         try {
             const sourceFile = program.getSourceFile(entryFile);
 
             if (!sourceFile) {
                 console.warn(`⚠ ng-prism: source file not found for entry point ${entryFile}, skipping.`);
-                return { entryFile, importPath, exports: [] };
+                return { ...entryPoint, exports: [] };
             }
             const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
             const exports = moduleSymbol ? checker.getExportsOfModule(moduleSymbol) : [];
 
-            return { entryFile, importPath, exports };
+            return { ...entryPoint, exports };
         } catch (err) {
             console.error(`⚠ ng-prism: failed to resolve exports for ${entryFile}: ${err instanceof Error ? err.message : String(err)}`);
-            return { entryFile, importPath, exports: [] };
+            return { ...entryPoint, exports: [] };
         }
     });
 

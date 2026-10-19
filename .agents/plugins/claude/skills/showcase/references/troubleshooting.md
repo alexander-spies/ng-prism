@@ -51,6 +51,8 @@ Same prefix, but they don't count for `strictShowcase`.
   the base class comes from a compiled package, so its inputs are missing from the manifest and variants can't set them.
 - **`<Class> is exported by multiple entry points; keeping the first occurrence (importPath: …).`**: export the class
   from one entry point.
+- **`entryPoint "<path>" resolves to no entry file: …`**: the `entryPoint` directory has no `ng-package.json` with an
+  existing `lib.entryFile`, and no secondary entry points. Point `entryPoint` at the library's barrel file.
 - **`source file not found for entry point <file>, skipping.`**: `lib.entryFile` in an `ng-package.json` points to a
   file that doesn't exist.
 - **`failed to resolve exports for <file>: <message>`** (an error): the entry file doesn't compile; fix what the message
@@ -83,13 +85,13 @@ Same prefix, but they don't count for `strictShowcase`.
 
 Check the log line `ng-prism: Generated manifest with N component(s)` first, then:
 
-1. `0 component(s)` and the `entryPoint` of the `prism` target names the library directory? Without secondary entry
-   points that finds nothing in 22.5.0. Point `entryPoint` (on `prism` and `prism-build`) at the barrel file, the
+1. `0 component(s)` and the `entryPoint` of the `prism` target names the library directory? Up to 22.5.0 that finds
+   nothing without secondary entry points. Point `entryPoint` (on `prism` and `prism-build`) at the barrel file, the
    `lib.entryFile` of the library's `ng-package.json`, e.g. `projects/<lib>/src/public-api.ts`.
 2. Is the class exported by the entry point the `prism` target scans (its `entryPoint` option), directly or through
    `export *`?
-3. Does the library have secondary entry points (`ng-package.json` files without `dest`)? Then only those are scanned:
-   export the component from one of them.
+3. Up to 22.5.0: does the library have secondary entry points (`ng-package.json` files without `dest`)? Then only those
+   are scanned: export the component from one of them.
 4. Is the decorator written `@Showcase({ … })`, imported under that name, with an argument? An aliased import or
    `@Showcase()` without an argument is skipped without a warning.
 5. Did the log warn about a missing `title` or a config that "cannot be evaluated statically, so the component is

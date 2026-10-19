@@ -31,10 +31,10 @@ package is right:
    compiled package (`.d.ts`) are readable only as plain literals. `defineConfig({ strictShowcase: true })` in
    `ng-prism.config.ts` turns every dropped value into a build error.
 2. **The component must be exported by the library's entry point.** The builder scans what the `entryPoint` of the
-   library's `prism` target exports, `export *` included. Every `ng-package.json` without `dest` below the library is a
-   secondary entry point; when there are any, only those are scanned, not the primary entry file. Without secondary
-   entry points, `entryPoint` has to name the barrel file (e.g. `projects/<lib>/src/public-api.ts`): in 22.5.0 a
-   library directory there finds no component at all, without a warning.
+   library's `prism` target exports, `export *` included: every secondary entry point (an `ng-package.json` without
+   `dest` below the library), then the primary one. Up to 22.5.0 the primary entry file is skipped when secondary entry
+   points exist, and without them a library directory as `entryPoint` finds no component at all, without a warning:
+   there, name the barrel file (e.g. `projects/<lib>/src/public-api.ts`).
 3. **`title` is required.** Without it the component is skipped with a warning.
 4. **Signal inputs.** `input()`, `input.required()` and `model()` work; `@Input()` is read only partly and warns. The
    keys under a variant's `inputs` are the class member names. Write `@Showcase<ButtonComponent>({ … })` to get the

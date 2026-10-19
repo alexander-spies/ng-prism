@@ -7,7 +7,7 @@ import { checkA11yThresholds, DEFAULT_A11Y_REPORT_PATH, readA11yForComponents, r
 import { loadConfig } from '../config-loader/config-loader.js';
 import { generateRuntimeManifest } from '../manifest/runtime-manifest.generator.js';
 import { runPluginHooks } from '../plugin-runner/plugin-runner.js';
-import { discoverSecondaryEntryPoints } from '../scanner/entry-point-discovery.js';
+import { discoverSecondaryEntryPoints, findPrimaryEntryFile } from '../scanner/entry-point-discovery.js';
 import type { EntryPointInput } from '../scanner/entry-point.scanner.js';
 import { createScanner, type Scanner, type ScanResult } from '../scanner/scanner.js';
 
@@ -193,19 +193,21 @@ function resolveEntryPoints(workspaceRoot: string, options: PrismPipelineOptions
 
     const discovered = libraryRoot ? discoverSecondaryEntryPoints(libraryRoot, options.libraryImportPath) : [];
 
-    // Fallback to a direct file scan when:
-    //  - the entry is a file and no ng-package.json was found above it, OR
-    //  - the entry is a file with an ng-package.json above it but discovery found nothing
-    //    (e.g. primary-only library, root ng-package.json carries `dest`).
+    // The primary entry point is scanned after the secondary ones: a file entryPoint is
+    // the primary itself, a directory names it in its ng-package.json. A root
+    // ng-package.json without `dest` is already among the discovered ones.
+    const primaryEntryFile = entryIsDirectory ? findPrimaryEntryFile(absoluteEntryPoint) : absoluteEntryPoint;
     const entryPoints: EntryPointInput[] =
-        discovered.length === 0 && !entryIsDirectory
-            ? [
-                  {
-                      entryFile: absoluteEntryPoint,
-                      importPath: options.libraryImportPath
-                  }
-              ]
+        primaryEntryFile && !discovered.some((e) => e.entryFile === primaryEntryFile)
+            ? [...discovered, { entryFile: primaryEntryFile, importPath: options.libraryImportPath, primary: true }]
             : discovered;
+
+    if (entryPoints.length === 0) {
+        console.warn(
+            `⚠ ng-prism: entryPoint "${options.entryPoint}" resolves to no entry file: no ng-package.json with a lib.entryFile ` +
+                `that exists, and no secondary entry points below it. Point entryPoint at the library's barrel file.`
+        );
+    }
 
     return { entryPoints, compilerOptions };
 }
