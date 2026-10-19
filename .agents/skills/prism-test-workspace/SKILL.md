@@ -23,7 +23,7 @@ On a fresh clone, when `test-workspace/node_modules` is missing, or after adding
 
 A serve that crashed and still holds the port: `npm run test:workspace:kill`.
 
-Ask before running `test:workspace:clean` or `test:workspace:reset`. They delete `test-workspace/node_modules`, `package-lock.json` and `ng-prism.config.ts`, and revert `angular.json` and `package.json` to their git state. `ng-prism.config.ts` is gitignored and set up by hand, so leave it as you find it; `ng-prism.config.example.ts` is the committed reference.
+Ask before running `test:workspace:clean` or `test:workspace:reset`. They delete `test-workspace/node_modules`, `package-lock.json` and `ng-prism.config.ts`, and revert `angular.json` and `package.json` to their git state. `ng-prism.config.ts` is gitignored, and `test:workspace:install` copies `ng-prism.config.example.ts` when it is missing; leave an existing one as you find it.
 
 ## Check the change
 

@@ -59,9 +59,12 @@ package is right:
 9. **States an input can't reach** (hover, active, focus, focus-visible, focus-within) go into a variant's `pseudo`:
    `true` for every element of the component, or a selector (or a list) for specific ones, e.g.
    `pseudo: { 'focus-visible': '.btn' }`. The component's own CSS draws the state.
-10. **Custom templates, mock data or several components together make a component page**: registered with
-    `componentPage({ title, … })` in the `componentPages` option of `providePrism` in the styleguide app's `main.ts`,
-    linked with `@Showcase({ renderPage: '<exact page title>' })`. Variant tabs and controls keep working on it.
+10. **Custom templates, mock data or several components together make a component page**: a
+    `{ title, component, … }` entry in `componentPages`, the third argument of
+    `providePrism(manifest, config, { componentPages })` in the styleguide app's `main.ts`, linked with
+    `@Showcase({ renderPage: '<exact page title>' })`. The variant tabs and controls stay, but their values reach the
+    page only if it injects `PrismRendererService` from `@ng-prism/core` and reads `inputValues()` and
+    `activeVariantIndex()`.
 
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is

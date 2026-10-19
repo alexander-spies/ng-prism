@@ -13,7 +13,8 @@ or builds the app around them.
 Read `version` in `node_modules/@ng-prism/core/package.json`. Where this skill and the installed package disagree, the
 package is right:
 
-- `NgPrismConfig`, with JSDoc on every field: `node_modules/@ng-prism/core/dist/plugin/plugin.types.d.ts`.
+- `NgPrismConfig`, the authoritative field list (only some fields carry JSDoc, the guides cover the rest):
+  `node_modules/@ng-prism/core/dist/plugin/plugin.types.d.ts`.
 - A field this skill names that those typings don't have is newer than the installed version: don't use it, suggest an
   update at most.
 - Guides: `https://ng-prism.github.io/ng-prism/`, served as raw Markdown you can fetch directly, e.g.
@@ -102,9 +103,10 @@ itself. Keep the core and every plugin on the same version: plugins require `@ng
 | `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker             |
 
 - **Figma:** the embed shows when the component sets `meta: { figma: '<Figma URL with node-id>' }` as a string on
-  `@Showcase` itself. The Design Diff compares variants that set their own `meta.figma` (a URL or `{ url, nodeId? }`).
-  It calls the Figma API from the browser, so `accessToken` becomes part of the styleguide app: never deploy a
-  styleguide built with a personal token where others can open it.
+  `@Showcase` itself. The Design Diff panel appears once a variant sets `meta.figma`: a URL with `node-id`, or
+  `{ url, nodeId }`; a variant without its own value falls back to the component's `meta.figma`. It calls the Figma
+  API from the browser, so `accessToken` becomes part of the styleguide app: never deploy a styleguide built with a
+  personal token where others can open it.
 - **Coverage** reads `coverage/coverage-summary.json` (Istanbul's `json-summary` reporter) at build time.
 - **Visual regression** reads `vrt-report.json`, written by your own screenshot runner (`guide/visual-regression.md`).
 
@@ -136,7 +138,8 @@ In Nx, a target with `"command": "npx ng-prism-strip dist/<path>"` and `"depends
   a deprecation first and the removal in the next major. 22.x supports Angular 20 to 22.
 - Update the core and all plugins in one call: `ng update @ng-prism/core @ng-prism/plugin-jsdoc …`.
 - The migrations to v22 (manifest moved to `ng-prism-cache/`, `.ng-prism/` renamed) read `angular.json` only; in an Nx
-  workspace apply them by hand following `guide/migration-v22.md`. They need Angular CLI 22 and Node 22 or newer.
+  workspace apply them by hand following `guide/migration-v22.md`. They need Angular CLI 22 and a Node version it
+  supports.
 
 ## Guides
 
