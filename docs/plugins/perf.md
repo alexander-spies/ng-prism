@@ -21,19 +21,14 @@ This installs the package and registers `perfPlugin()` in your `ng-prism.config.
 ## Configuration
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 import { perfPlugin } from '@ng-prism/plugin-perf';
 
 export default defineConfig({
     plugins: [
         perfPlugin({
-            thresholds: {
-                renderWarnMs: 5,
-                renderCritMs: 16,
-                bundleWarnKb: 20,
-                bundleCritKb: 50
-            }
+            bundle: { maxTreeDepth: 5 }
         })
     ]
 });
@@ -41,56 +36,30 @@ export default defineConfig({
 
 ## Options
 
-### `thresholds`
+### `bundle.maxTreeDepth`
 
-Color-coded warning and critical thresholds for each metric:
+How deep the import tree of a component is followed for the bundle estimate. Default: `5`.
 
-| Option         | Default | Description                                              |
-| -------------- | ------- | -------------------------------------------------------- |
-| `renderWarnMs` | `5`     | Render time warning threshold (ms)                       |
-| `renderCritMs` | `16`    | Render time critical threshold (ms), one frame at 60 fps |
-| `bundleWarnKb` | `20`    | Bundle size warning threshold (KB)                       |
-| `bundleCritKb` | `50`    | Bundle size critical threshold (KB)                      |
-| `memoryWarnMb` | `5`     | Memory warning threshold (MB)                            |
-| `memoryLeakMb` | `0.5`   | Memory leak detection threshold per render (MB)          |
+### Deprecated: `thresholds`, `bundle.excludeImports`, `render`, `memory`
 
-### `bundle`
+> **Deprecated since 22.6.0, removed in 23.0.0.** These options have been on `PerfPluginOptions` since the first release, but nothing has ever read them, so setting them never had an effect; the same goes for the `PERF_PLUGIN_CONFIG` token. While one is set, the build prints `⚠ ng-prism: perfPlugin() option "<option>" is deprecated and will be removed in 23.0.0. It has never had an effect; remove it.` Remove them.
 
-```typescript
-perfPlugin({
-    bundle: {
-        maxTreeDepth: 5, // limit import tree analysis depth
-        excludeImports: ['rxjs'] // skip certain packages from analysis
-    }
-});
-```
+The panel colours its values against these built-in thresholds:
 
-### `render`
-
-```typescript
-perfPlugin({
-    render: {
-        bufferSize: 50, // number of samples to keep in the rolling window
-        autoStart: true // start profiling immediately on panel open
-    }
-});
-```
-
-### `memory`
-
-```typescript
-perfPlugin({
-    memory: {
-        gcDelayMs: 200 // delay after forced GC before measuring baseline
-    }
-});
-```
+| Threshold      | Value | Meaning                                                  |
+| -------------- | ----- | -------------------------------------------------------- |
+| `renderWarnMs` | `5`   | Render time warning threshold (ms)                       |
+| `renderCritMs` | `16`  | Render time critical threshold (ms), one frame at 60 fps |
+| `bundleWarnKb` | `20`  | Bundle size warning threshold (KB)                       |
+| `bundleCritKb` | `50`  | Bundle size critical threshold (KB)                      |
+| `memoryWarnMb` | `5`   | Memory warning threshold (MB)                            |
+| `memoryLeakMb` | `0.5` | Memory leak detection threshold per render (MB)          |
 
 ## Metrics
 
 ### Render Panel
 
-Shows timing for the last N renders with a mini sparkline chart. Values are color-coded against the configured thresholds:
+Shows timing for the last N renders with a mini sparkline chart. Values are color-coded against the built-in thresholds:
 
 - Green: within warning threshold
 - Yellow: between warning and critical

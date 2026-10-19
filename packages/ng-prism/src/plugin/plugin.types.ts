@@ -19,7 +19,7 @@ export interface NgPrismPlugin {
     headerWidgets?: HeaderWidgetDefinition[];
     /** Markers contributed to each component's navigation item. */
     navigationDecorations?: NavigationDecorationDefinition[];
-    /** Angular standalone component that wraps each rendered component */
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     wrapComponent?: Type<unknown>;
 }
 
@@ -93,8 +93,9 @@ export interface PanelDefinition {
     overlayComponent?: Type<unknown>;
     loadOverlayComponent?: () => Promise<Type<unknown>>;
     icon?: string;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. Where a panel appears is `placement`. */
     position?: 'bottom' | 'right';
-    /** Where this panel appears: 'addon' (bottom/right tabbar) or 'view' (top view toolbar). Default: 'addon' */
+    /** Where this panel appears: 'addon' (the tab bar below the canvas) or 'view' (top view toolbar). Default: 'addon' */
     placement?: 'addon' | 'view';
     /** Providers injected into a child EnvironmentInjector scoped to this panel */
     providers?: Provider[];
@@ -161,7 +162,10 @@ export interface ScannedComponent {
 }
 
 export interface InputMeta {
+    /** The class member. Variants and controls use this name. */
     name: string;
+    /** The public name Angular binds the input by, when an `alias` makes it differ from `name`. */
+    alias?: string;
     type: 'string' | 'number' | 'boolean' | 'union' | 'array' | 'object' | 'unknown';
     rawType?: string;
     values?: string[];
@@ -171,7 +175,10 @@ export interface InputMeta {
 }
 
 export interface OutputMeta {
+    /** The class member. */
     name: string;
+    /** The public event name, when an `alias` makes it differ from `name`. */
+    alias?: string;
     doc?: string;
 }
 
@@ -256,7 +263,9 @@ export interface NgPrismConfig {
     };
     title?: string;
     subtitle?: string;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     themeStylesheet?: string;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     ui?: {
         header?: Type<unknown>;
         sidebar?: Type<unknown>;
@@ -266,7 +275,9 @@ export interface NgPrismConfig {
         eventsPanel?: Type<unknown>;
         footer?: Type<unknown>;
     };
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     headless?: boolean;
+    /** @deprecated Deprecated since 22.6.0, removed in 23.0.0. It has never had an effect: nothing reads it. */
     appComponent?: Type<unknown>;
     /** When false, disables URL state sync (default: true). */
     urlState?: boolean;

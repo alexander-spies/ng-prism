@@ -46,7 +46,7 @@ describe('coveragePlugin', () => {
 
         expect(panel.id).toBe('coverage');
         expect(panel.label).toBe('Coverage');
-        expect(panel.position).toBe('bottom');
+        expect(panel.position).toBeUndefined();
         expect(panel.loadComponent).toBeDefined();
         expect(panel.component).toBeUndefined();
     });

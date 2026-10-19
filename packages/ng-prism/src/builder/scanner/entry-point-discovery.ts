@@ -13,6 +13,24 @@ export function discoverSecondaryEntryPoints(libraryRoot: string, baseImportPath
     return entryPoints;
 }
 
+/** ng-packagr's default for `lib.entryFile`. */
+const NG_PACKAGR_DEFAULT_ENTRY_FILE = 'src/public_api.ts';
+
+/**
+ * The primary entry file of the library at `libraryRoot`: `lib.entryFile` of its
+ * own `ng-package.json`, or `undefined` when there is no such file.
+ */
+export function findPrimaryEntryFile(libraryRoot: string): string | undefined {
+    const ngPackagePath = join(libraryRoot, 'ng-package.json');
+
+    if (!existsSync(ngPackagePath)) return undefined;
+
+    const ngPackage = JSON.parse(readFileSync(ngPackagePath, 'utf-8'));
+    const entryFilePath = join(libraryRoot, ngPackage.lib?.entryFile ?? NG_PACKAGR_DEFAULT_ENTRY_FILE);
+
+    return existsSync(entryFilePath) ? entryFilePath : undefined;
+}
+
 function findNgPackageJsons(dir: string, libraryRoot: string, baseImportPath: string, result: DiscoveredEntryPoint[]): void {
     const isLibraryRoot = dir === libraryRoot;
     const ngPackagePath = join(dir, 'ng-package.json');

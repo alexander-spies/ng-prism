@@ -63,7 +63,7 @@ ng run my-lib:prism
 
 - [Installation & Setup](guide/installation.md): add ng-prism to an existing workspace in two minutes
 - [Your First Showcase](guide/first-showcase.md): annotate a component step by step
-- [Configuration](guide/configuration.md): the `prism.config.ts` reference
+- [Configuration](guide/configuration.md): the `ng-prism.config.ts` reference
 
 ## Official Plugins
 

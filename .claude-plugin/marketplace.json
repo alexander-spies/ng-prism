@@ -1,0 +1,14 @@
+{
+    "name": "ng-prism",
+    "description": "Claude Code plugins for ng-prism, the Angular-native component showcase.",
+    "owner": {
+        "name": "ng-prism"
+    },
+    "plugins": [
+        {
+            "name": "ng-prism",
+            "description": "Teach Claude Code to use ng-prism in an Angular library: write and verify @Showcase configs, set up and configure ng-prism, and write ng-prism plugins.",
+            "source": "./.agents/plugins/claude"
+        }
+    ]
+}

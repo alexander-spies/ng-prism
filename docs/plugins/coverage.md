@@ -22,7 +22,7 @@ This installs the package and registers `coveragePlugin()` in your `ng-prism.con
 ## Configuration
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 import { coveragePlugin } from '@ng-prism/plugin-coverage';
 

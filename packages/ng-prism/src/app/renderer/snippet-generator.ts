@@ -48,7 +48,7 @@ export function generateSnippet(
         // that defaults to `true` has to show its explicit `false`.
         if (input.defaultValue === undefined && typeof value === 'boolean' && !value) continue;
 
-        pushAttribute(attributes, input.name, value);
+        pushAttribute(attributes, input.alias ?? input.name, value);
     }
 
     for (const [name, value] of Object.entries(values)) {
@@ -145,7 +145,7 @@ function generateDirectiveSnippet(
         // that defaults to `true` has to show its explicit `false`.
         if (input.defaultValue === undefined && typeof value === 'boolean' && !value) continue;
 
-        pushAttribute(attributes, input.name, value);
+        pushAttribute(attributes, input.alias ?? input.name, value);
     }
 
     for (const [name, value] of Object.entries(values)) {
@@ -156,7 +156,9 @@ function generateDirectiveSnippet(
     }
 
     const projectedContent = content ?? (typeof values['__prismContent__'] === 'string' ? (values['__prismContent__'] as string) : undefined);
-    const allAttrs = [...hostAttrs, directiveAttr, ...attributes].join(' ');
+    // An input aliased to the directive's own selector already puts the directive on the host.
+    const selectorAttrs = attributes.some((a) => a.startsWith(`${directiveAttr}=`) || a.startsWith(`[${directiveAttr}]=`)) ? [] : [directiveAttr];
+    const allAttrs = [...hostAttrs, ...selectorAttrs, ...attributes].join(' ');
     const contentHtml = resolveContentHtml(projectedContent);
 
     if (!contentHtml) {
@@ -164,7 +166,7 @@ function generateDirectiveSnippet(
         const singleLine = `<${tag} ${allAttrs} />`;
 
         if (singleLine.length <= 80) return singleLine;
-        const indented = [...hostAttrs, directiveAttr, ...attributes].map((a) => `  ${a}`).join('\n');
+        const indented = [...hostAttrs, ...selectorAttrs, ...attributes].map((a) => `  ${a}`).join('\n');
 
         return `<${tag}\n${indented} />`;
     }
@@ -175,7 +177,7 @@ function generateDirectiveSnippet(
 
     if (singleLine.length <= 80) return singleLine;
 
-    const allAttrsList = [...hostAttrs, directiveAttr, ...attributes];
+    const allAttrsList = [...hostAttrs, ...selectorAttrs, ...attributes];
 
     if (allAttrsList.length <= 2) {
         return `${openTag}\n  ${contentHtml}\n${closeTag}`;

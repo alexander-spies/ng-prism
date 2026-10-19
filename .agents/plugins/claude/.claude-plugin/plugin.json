@@ -1,0 +1,11 @@
+{
+    "name": "ng-prism",
+    "description": "Teach Claude Code to use ng-prism in an Angular library: write and verify @Showcase configs, set up and configure ng-prism, and write ng-prism plugins.",
+    "version": "22.5.0",
+    "author": {
+        "name": "ng-prism"
+    },
+    "homepage": "https://ng-prism.github.io/ng-prism/",
+    "repository": "https://github.com/ng-prism/ng-prism",
+    "license": "MIT"
+}

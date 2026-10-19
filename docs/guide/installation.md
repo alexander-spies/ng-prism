@@ -14,12 +14,13 @@ The fastest path is the `ng add` schematic. It creates a showcase app project, w
 ng add @ng-prism/core
 ```
 
-The schematic prompts for:
+The schematic prompts for the library project unless you pass `--project`. The other two options are flags only:
 
-| Prompt            | Default             | Description                                       |
-| ----------------- | ------------------- | ------------------------------------------------- |
-| Library project   | _(first lib found)_ | The library whose components you want to showcase |
-| Showcase app name | `{lib}-prism`       | Name of the generated Angular app project         |
+| Option       | Default                | Description                                                                                        |
+| ------------ | ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `--project`  | _(prompted, required)_ | The library whose components you want to showcase. The showcase app is named `<project>-prism`.    |
+| `--port`     | `4400`                 | Dev server port, written to the library's `prism` target and to the showcase app's `serve` target. |
+| `--zoneless` | `false`                | Bootstraps the showcase app with `provideZonelessChangeDetection()` and without `zone.js`.         |
 
 After running, your workspace contains:
 
@@ -157,16 +158,16 @@ The schematic adds two targets to the library project in `angular.json`:
 
 ### Builder Options
 
-| Option              | Required      | Description                                                                                                                                                                                                                                                                             |
-| ------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `entryPoint`        | Yes           | Path to the library directory (recommended) or to its barrel `public-api.ts` file. When pointed at a file, the pipeline walks upward to find the nearest `ng-package.json` and treats that directory as the library root, so secondary entry points are still discovered automatically. |
-| `prismProject`      | Yes           | Angular project name for the generated showcase app                                                                                                                                                                                                                                     |
-| `libraryProject`    | No            | Angular project name of the library being showcased. Only used as a fallback for `libraryImportPath`                                                                                                                                                                                    |
-| `libraryImportPath` | No            | Override the import path used in the generated manifest (defaults to `libraryProject`)                                                                                                                                                                                                  |
-| `configFile`        | No            | Path to your config file (default: `ng-prism.config.ts` at workspace root)                                                                                                                                                                                                              |
-| `port`              | No            | Dev server port for `:serve` (default: `4400`)                                                                                                                                                                                                                                          |
-| `outputPath`        | `:build` only | Output directory for the production build                                                                                                                                                                                                                                               |
-| `cacheDir`          | No            | Override directory for the generated `prism-manifest.ts`. Default: `<workspaceRoot>/ng-prism-cache/<prismProject>/`. Relative paths resolve against `workspaceRoot`. Useful for CI sandboxes.                                                                                           |
+| Option              | Required      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entryPoint`        | Yes           | Path to the library directory or to its barrel file (e.g. `projects/my-lib/src/public-api.ts`). ng-prism scans the secondary entry points below the library root (every `ng-package.json` without `dest`), then the primary one: the file you name, or the `lib.entryFile` of the directory's `ng-package.json`. A file is first resolved upward to the nearest `ng-package.json`. Up to 22.5.0 a directory without secondary entry points found no component, and with secondary entry points the primary one was skipped. |
+| `prismProject`      | Yes           | Angular project name for the generated showcase app                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `libraryProject`    | No            | Angular project name of the library being showcased. Only used as a fallback for `libraryImportPath`                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `libraryImportPath` | No            | Override the import path used in the generated manifest (defaults to `libraryProject`)                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `configFile`        | No            | Path to your config file (default: `ng-prism.config.ts` at workspace root)                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `port`              | No            | Dev server port for `:serve` (default: `4400`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `outputPath`        | `:build` only | Output directory for the production build                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `cacheDir`          | No            | Cache root for the generated manifest, which goes to `<cacheDir>/<prismProject>/prism-manifest.ts`. Default: `<workspaceRoot>/ng-prism-cache`. Relative paths resolve against `workspaceRoot`. The `prism-manifest/*` path mapping in `tsconfig` has to point there too. Useful for CI sandboxes.                                                                                                                                                                                                                           |
 
 ## Showcase App Target Configuration
 
@@ -255,7 +256,7 @@ npm install @ng-prism/core
 
 **2. Create a showcase app project** in your workspace (a standard Angular app is fine).
 
-**3. Create `prism.config.ts`** in the showcase app:
+**3. Create `ng-prism.config.ts`** at the workspace root:
 
 ```typescript
 import { defineConfig } from '@ng-prism/core';
@@ -271,26 +272,27 @@ export default defineConfig({
 import { bootstrapApplication } from '@angular/platform-browser';
 import { PrismShellComponent, providePrism } from '@ng-prism/core';
 import { PRISM_RUNTIME_MANIFEST } from 'prism-manifest/my-lib-prism'; // generated by the builder into ng-prism-cache/my-lib-prism/
-import config from './prism.config.js';
+import config from 'ng-prism.config';
 
 bootstrapApplication(PrismShellComponent, {
     providers: [providePrism(PRISM_RUNTIME_MANIFEST, config)]
 });
 ```
 
-The import specifier `prism-manifest/<prism-project>` is resolved via a wildcard path mapping in `tsconfig.json`:
+`main.ts` imports the config and the manifest through two path mappings in `tsconfig.json`; `prism-manifest/*` is a wildcard over the prism projects:
 
 ```jsonc
 {
     "compilerOptions": {
         "paths": {
+            "ng-prism.config": ["./ng-prism.config.ts"],
             "prism-manifest/*": ["./ng-prism-cache/*/prism-manifest.ts"]
         }
     }
 }
 ```
 
-The schematic adds both the path mapping and a workspace-wide `ng-prism-cache/` entry in `.gitignore` automatically.
+The schematic adds these path mappings and a workspace-wide `ng-prism-cache/` entry in `.gitignore` automatically.
 
 **5. Add builder targets** to `angular.json` as shown in the [Builder Targets](#angular-builder-targets) section above. In an Nx workspace they go into the library's `project.json` under `targets`, with `executor` instead of `builder` (see [Nx Workspaces](#nx-workspaces)).
 

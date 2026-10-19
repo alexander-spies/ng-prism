@@ -57,7 +57,7 @@
                         @for (inp of inputs(); track inp.name) {
                             <tr [class.prism-jsdoc-panel__row--deprecated]="isMemberDeprecated(inp.name)">
                                 <td class="prism-jsdoc-panel__cell--name">
-                                    <code>{{ inp.name }}</code>
+                                    <code>{{ inp.alias ?? inp.name }}</code>
                                     @if (isMemberDeprecated(inp.name)) {
                                         <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
                                     }
@@ -110,7 +110,7 @@
                         @for (out of outputs(); track out.name) {
                             <tr [class.prism-jsdoc-panel__row--deprecated]="isMemberDeprecated(out.name)">
                                 <td class="prism-jsdoc-panel__cell--name">
-                                    <code>{{ out.name }}</code>
+                                    <code>{{ out.alias ?? out.name }}</code>
                                     @if (isMemberDeprecated(out.name)) {
                                         <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
                                     }

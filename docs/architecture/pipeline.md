@@ -22,16 +22,16 @@ Atomic write  (skip if unchanged)
 
 ### 1. Config Load
 
-`loadConfig()` uses `ts.transpileModule()` to compile `prism.config.ts` to an `.mjs` file in a temp directory, imports it via `import(pathToFileURL(...))`, and cleans up the temp file. This avoids spawning a separate `tsc` process and works with TypeScript config syntax.
+`loadConfig()` uses `ts.transpileModule()` to compile `ng-prism.config.ts` to a temporary `.mjs` file next to the config (`ng-prism.config.<timestamp>-<random>.tmp.mjs`), imports it via `import(pathToFileURL(...))`, and deletes the temp file afterwards, also when the import fails. Because the file sits next to the config, the config's imports resolve from the config's own directory. This avoids spawning a separate `tsc` process and works with TypeScript config syntax. Right after loading, `describeDeprecatedOptions()` checks the config and its plugins for options that are deprecated, and the pipeline prints one `⚠ ng-prism:` notice for each.
 
 ### 2. Entry Point Scan
 
 `scanEntryPoints()` resolves the library root and then dispatches to `discoverSecondaryEntryPoints()`:
 
-- **Directory:** used as the library root directly
-- **File:** `findLibraryRoot()` walks upward to the nearest `ng-package.json` and uses that directory as the library root. If no `ng-package.json` is found above the file, or if discovery returns no entries, the pipeline falls back to scanning the file directly (back-compat for non-ng-packagr setups).
+- **Directory:** used as the library root directly; its `ng-package.json` names the primary entry file (`findPrimaryEntryFile()`)
+- **File:** `findLibraryRoot()` walks upward to the nearest `ng-package.json` and uses that directory as the library root. The file itself is the primary entry file. Without an `ng-package.json` above it, it is the only entry point (back-compat for non-ng-packagr setups).
 
-Discovery returns one entry per `ng-package.json` (excluding the primary `dest`-rooted one). All discovered entry points are fed into a single `Scanner` instance that is cached on `PrismPipelineState.scanner`. The import path attached to each scanned component (`my-lib`, `my-lib/atoms`, ...) is derived from the entry-point's relative directory.
+Discovery returns one entry per `ng-package.json` (excluding the primary `dest`-rooted one), and the primary entry point is appended last, marked `primary`. A component the primary re-exports from a secondary entry point keeps the secondary's import path. When the list stays empty, the pipeline warns that `entryPoint` resolves to no entry file. All entry points are fed into a single `Scanner` instance that is cached on `PrismPipelineState.scanner`. The import path attached to each scanned component (`my-lib`, `my-lib/atoms`, ...) is derived from the entry-point's relative directory.
 
 On rebuild, the same `Scanner` instance is reused. It passes the previous `ts.Program` to `ts.createProgram()` as `oldProgram`, together with a compiler host that returns the already parsed `SourceFile` of every unchanged file, so only changed files are re-parsed (see [How the Scanner Works](architecture/scanner.md#incremental-builds-the-createscanner-factory)). See [PrismPipelineState](#prismpipelinestate-scanner-reuse-across-rebuilds) below for how the cached scanner is invalidated when the entry-point set itself changes.
 

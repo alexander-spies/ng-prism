@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import type { InputMeta, OutputMeta } from '../../plugin/plugin.types.js';
-import { evaluateStatic, findDecorator, getDecoratorArgument, getJsDocComment } from './ast-utils.js';
+import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, getJsDocComment } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
 
 /**
@@ -77,6 +77,7 @@ function readInput(
 
     if (inputDecorator) {
         const required = isDecoratorInputRequired(inputDecorator);
+        const alias = readAlias(getDecoratorArgument(inputDecorator), name, checker);
         const defaultValue = readInitialValue(member, checker);
         const doc = getJsDocComment(member, checker);
         const instantiated = subclass && usesTypeParameters(member.type ?? member.initializer, owner, checker) ? getInstantiatedType(name, subclass, checker) : undefined;
@@ -84,6 +85,7 @@ function readInput(
 
         return {
             name,
+            ...(alias && { alias }),
             type,
             rawType,
             required,
@@ -98,6 +100,8 @@ function readInput(
     if (!signalCall) return undefined;
 
     const required = isSignalInputRequired(signalCall);
+    // `input(initial, options)`, but `input.required(options)`.
+    const alias = readAlias(signalCall.arguments[required ? 0 : 1], name, checker);
     const defaultValue = readInitialValue(member, checker);
     const doc = getJsDocComment(member, checker);
     const declaredType = signalCall.typeArguments?.[0] ?? signalCall.arguments[0];
@@ -108,6 +112,7 @@ function readInput(
 
     return {
         name,
+        ...(alias && { alias }),
         type,
         rawType,
         required,
@@ -115,6 +120,19 @@ function readInput(
         ...(defaultValue !== undefined && { defaultValue }),
         ...(doc && { doc })
     };
+}
+
+/**
+ * The `alias` of an input or output, from a decorator argument (`'x'` or
+ * `{ alias: 'x' }`) or the options of `input()`, `model()` and `output()`.
+ * It counts when the builder can evaluate it statically to a string (a literal
+ * or a constant) that differs from the member name.
+ */
+function readAlias(arg: ts.Expression | undefined, name: string, checker: ts.TypeChecker): string | undefined {
+    const value = arg ? evaluateExpression(arg, checker) : undefined;
+    const alias = typeof value === 'object' && value !== null ? (value as Record<string, unknown>)['alias'] : value;
+
+    return typeof alias === 'string' && alias !== name ? alias : undefined;
 }
 
 /**
@@ -134,12 +152,17 @@ export function extractOutputs(classDecl: ts.ClassDeclaration, checker: ts.TypeC
             const name = member.name && ts.isIdentifier(member.name) ? member.name.text : undefined;
 
             if (!name || seen.has(name)) continue;
-            if (!findDecorator(member, 'Output') && !isOutputSignal(member)) continue;
+
+            const outputDecorator = findDecorator(member, 'Output');
+
+            if (!outputDecorator && !isOutputSignal(member)) continue;
 
             const doc = getJsDocComment(member, checker);
+            const options = outputDecorator ? getDecoratorArgument(outputDecorator) : (member.initializer as ts.CallExpression).arguments[0];
+            const alias = readAlias(options, name, checker);
 
             seen.add(name);
-            outputs.push({ name, ...(doc && { doc }) });
+            outputs.push({ name, ...(alias && { alias }), ...(doc && { doc }) });
         }
     }
 

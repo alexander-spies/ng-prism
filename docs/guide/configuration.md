@@ -1,9 +1,9 @@
 # Configuration
 
-ng-prism is configured through a `prism.config.ts` file in your showcase app. The file exports a default `NgPrismConfig` object created with `defineConfig()`.
+ng-prism is configured through an `ng-prism.config.ts` file at the workspace root (the builders' `configFile` option can point elsewhere). The file exports a default `NgPrismConfig` object created with `defineConfig()`.
 
 ```typescript
-// projects/my-lib-prism/prism.config.ts
+// ng-prism.config.ts (workspace root)
 import { defineConfig } from '@ng-prism/core';
 import { jsDocPlugin } from '@ng-prism/plugin-jsdoc';
 
@@ -33,9 +33,9 @@ The most commonly used fields:
 | `pages`           | `StyleguidePage[]`       | Config-declared custom pages                                          |
 | `appProviders`    | `Provider[]`             | Angular providers added to the Prism app bootstrap                    |
 | `theme`           | `Record<string, string>` | CSS custom property overrides                                         |
-| `themeStylesheet` | `string`                 | Path to a custom SCSS file loaded by the Prism app                    |
-| `ui`              | object                   | Replace individual UI sections with custom components                 |
-| `headless`        | `boolean`                | _Reserved, not yet implemented._ Strips all built-in chrome           |
+| `themeStylesheet` | `string`                 | _Deprecated since 22.6.0, never had an effect._                       |
+| `ui`              | object                   | _Deprecated since 22.6.0, never had an effect._                       |
+| `headless`        | `boolean`                | _Deprecated since 22.6.0, never had an effect._                       |
 | `urlState`        | `boolean`                | Disable URL state sync (default: `true`)                              |
 | `buildInfo`       | `object`                 | Show version / git hash pill in header                                |
 | `strictShowcase`  | `boolean`                | Fail the build when a `@Showcase` value is dropped (default: `false`) |

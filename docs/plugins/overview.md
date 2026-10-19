@@ -1,17 +1,16 @@
 # Plugin Overview
 
-Plugins extend ng-prism with additional panels, controls, and build-time data extraction. They are registered in your `prism.config.ts` and activated automatically during both the build pipeline and at runtime.
+Plugins extend ng-prism with additional panels, controls, and build-time data extraction. They are registered in your `ng-prism.config.ts` and activated automatically during both the build pipeline and at runtime.
 
 ## What Plugins Can Do
 
-| Capability           | Description                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `panels`             | Add new tabs to the addon panel area (bottom / right) or the view toolbar                            |
-| `controls`           | Register custom input controls for specific TypeScript types                                         |
-| `wrapComponent`      | Wrap each rendered component with an Angular component (e.g. for context providers or overlay hosts) |
-| `onComponentScanned` | Enrich `ScannedComponent` data at build time (e.g. extract JSDoc, inject external metadata)          |
-| `onPageScanned`      | Enrich `StyleguidePage` data at build time                                                           |
-| `onManifestReady`    | Transform the final manifest before it is written to disk                                            |
+| Capability           | Description                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `panels`             | Add new tabs to the addon panel area or the view toolbar                                    |
+| `controls`           | Register custom input controls for specific TypeScript types                                |
+| `onComponentScanned` | Enrich `ScannedComponent` data at build time (e.g. extract JSDoc, inject external metadata) |
+| `onPageScanned`      | Enrich `StyleguidePage` data at build time                                                  |
+| `onManifestReady`    | Transform the final manifest before it is written to disk                                   |
 
 ## Installing Plugins
 
@@ -28,7 +27,7 @@ Re-running is safe, because already-registered plugins are skipped.
 If you prefer to wire things up manually, install the package and add the plugin factory to your config:
 
 ```typescript
-// prism.config.ts
+// ng-prism.config.ts
 import { defineConfig } from '@ng-prism/core';
 import { jsDocPlugin } from '@ng-prism/plugin-jsdoc';
 import { figmaPlugin } from '@ng-prism/plugin-figma';

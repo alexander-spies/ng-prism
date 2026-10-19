@@ -339,6 +339,21 @@ describe('directive wrapper generation', () => {
         expect(source).toContain('(highlighted)="highlighted.emit($event)"');
     });
 
+    it('binds aliased directive inputs and outputs by their public names, keeping the wrapper members', () => {
+        const aliased: ScannedComponent = {
+            ...HIGHLIGHT,
+            inputs: [{ name: 'highlightColor', alias: 'appHighlightColor', type: 'string', defaultValue: 'yellow', required: false }],
+            outputs: [{ name: 'highlighted', alias: 'appHighlighted' }]
+        };
+
+        const source = generateRuntimeManifest({ components: [aliased], libraryImportPath: 'my-lib' });
+
+        expect(source).toContain('[appHighlightColor]="highlightColor()"');
+        expect(source).toContain('(appHighlighted)="highlighted.emit($event)"');
+        expect(source).toContain('highlightColor = input(');
+        expect(source).not.toContain('[highlightColor]=');
+    });
+
     it('should generate signal input declarations on the wrapper class', () => {
         const source = generateRuntimeManifest({
             components: [HIGHLIGHT],

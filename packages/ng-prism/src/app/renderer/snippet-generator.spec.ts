@@ -158,7 +158,27 @@ describe('generateSnippet', () => {
         expect(result).toBe('<lib-button variant="outlined" />');
     });
 
+    it('writes an aliased input under its alias, the name a template uses', () => {
+        const inputs = [meta({ name: 'size', alias: 'buttonSize' })];
+
+        expect(generateSnippet('lib-button', inputs, { size: 'lg' })).toBe('<lib-button buttonSize="lg" />');
+    });
+
     describe('directive snippets', () => {
+        it('writes an aliased directive input under its alias', () => {
+            const inputs = [meta({ name: 'color', alias: 'appHighlightColor' })];
+            const result = generateSnippet('[appHighlight]', inputs, { color: 'red' }, undefined, undefined, { host: '<div>' });
+
+            expect(result).toBe('<div appHighlight appHighlightColor="red" />');
+        });
+
+        it('writes an input aliased to the directive selector once, with its value', () => {
+            const inputs = [meta({ name: 'color', alias: 'appHighlight' })];
+            const result = generateSnippet('[appHighlight]', inputs, { color: 'red' }, undefined, undefined, { host: '<div>' });
+
+            expect(result).toBe('<div appHighlight="red" />');
+        });
+
         it('should render directive on host element', () => {
             const inputs = [meta({ name: 'highlightColor' })];
             const result = generateSnippet('[appHighlight]', inputs, { highlightColor: 'yellow' }, undefined, 'Hover me', { host: '<span class="demo-text">' });

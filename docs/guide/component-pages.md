@@ -46,7 +46,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { PrismShellComponent, providePrism } from '@ng-prism/core';
 import { componentPage } from '@ng-prism/core';
 import { PRISM_RUNTIME_MANIFEST } from 'prism-manifest/my-lib-prism';
-import config from './prism.config.js';
+import config from 'ng-prism.config';
 import { ButtonPatternsPageComponent } from './pages/button-patterns.page.js';
 
 bootstrapApplication(PrismShellComponent, {
@@ -138,7 +138,7 @@ export class DataTableDemoComponent {
 
 ## Custom Pages via Config
 
-For pages that don't require Angular components (e.g. static data rendered by a shared page template), use `CustomPage` entries in `prism.config.ts`:
+For pages that don't require Angular components (e.g. static data rendered by a shared page template), use `CustomPage` entries in `ng-prism.config.ts`:
 
 ```typescript
 import { defineConfig } from '@ng-prism/core';

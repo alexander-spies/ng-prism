@@ -180,7 +180,7 @@ The limit: capture mode cannot make room the window does not have. The canvas is
 
 Your component is instantiated with the same inputs, in the same injector, at the same zoom, in the same document. The shell regions capture mode drops are removed from layout but stay mounted, and nothing about the component's own box depends on them. A view with no canvas at all (a [component page](guide/component-pages.md), a plugin view panel) renders as usual; the guarantee is about the canvas, and blanking the shell around a page would only produce an empty screenshot.
 
-To strip the shell for embedding instead of screenshots, see [Custom UI Sections](guide/custom-ui.md).
+There is no mode that strips the shell for embedding: `headless` was planned for that, never had an effect and is deprecated (see [Custom UI Sections](guide/custom-ui.md)).
 
 ## Related
 

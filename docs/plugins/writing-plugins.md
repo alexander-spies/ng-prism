@@ -16,7 +16,7 @@ interface NgPrismPlugin {
     // Runtime contributions (run in the browser)
     panels?: PanelDefinition[];
     controls?: ControlDefinition[];
-    wrapComponent?: Type<unknown>;
+    wrapComponent?: Type<unknown>; // deprecated, no effect
 }
 ```
 
@@ -94,7 +94,6 @@ panels: [
     id: 'my-panel',
     label: 'My Panel',
     loadComponent: () => import('./my-panel.component.js').then(m => m.MyPanelComponent),
-    position: 'bottom',
     placement: 'addon',
   },
 ],
@@ -119,13 +118,7 @@ The Controls panel checks registered `ControlDefinition` entries in plugin regis
 
 ### `wrapComponent`
 
-A standalone Angular component rendered as a wrapper around every showcased component. Use for context providers (theme, mock services) that must be rendered in the component tree, or for overlay host components.
-
-```typescript
-wrapComponent: MyThemeWrapperComponent,
-```
-
-The wrapper receives no inputs. Use `inject()` to access services.
+> **Deprecated since 22.6.0, removed in 23.0.0.** `wrapComponent` has been on `NgPrismPlugin` since the first release, but nothing has ever read it, so setting it never had an effect. While a plugin sets it, the build prints a notice; remove it. A component that needs providers gets them from `defineConfig({ appProviders })` or a [component page](guide/component-pages.md).
 
 ## Header and Panel Widgets
 
@@ -188,18 +181,18 @@ Registered like any other `headerWidgets` entry; see [`HeaderWidgetDefinition`](
 
 ## PanelDefinition Fields
 
-| Field                  | Type                  | Description                                                        |
-| ---------------------- | --------------------- | ------------------------------------------------------------------ |
-| `id`                   | `string`              | Unique panel identifier                                            |
-| `label`                | `string`              | Tab label                                                          |
-| `component`            | `Type<unknown>`       | Static panel component                                             |
-| `loadComponent`        | `() => Promise<Type>` | Lazy-loaded panel component (use when importing browser-only APIs) |
-| `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                           |
-| `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                         |
-| `icon`                 | `string`              | Icon name (optional)                                               |
-| `position`             | `'bottom' \| 'right'` | Panel area placement                                               |
-| `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                |
-| `providers`            | `Provider[]`          | Providers scoped to this panel's injector                          |
+| Field                  | Type                  | Description                                                                                              |
+| ---------------------- | --------------------- | -------------------------------------------------------------------------------------------------------- |
+| `id`                   | `string`              | Unique panel identifier                                                                                  |
+| `label`                | `string`              | Tab label                                                                                                |
+| `component`            | `Type<unknown>`       | Static panel component                                                                                   |
+| `loadComponent`        | `() => Promise<Type>` | Lazy-loaded panel component (use when importing browser-only APIs)                                       |
+| `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                                                                 |
+| `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                                                               |
+| `icon`                 | `string`              | Icon name (optional)                                                                                     |
+| `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._ |
+| `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                      |
+| `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                |
 
 > **Note:** Always use `loadComponent` rather than `component` if your panel component imports anything from `@angular/platform-browser` or any other browser-only package. The config file is loaded in Node.js during the build, and a static import of a browser component crashes the builder.
 
@@ -217,7 +210,6 @@ export function myNotesPlugin(): NgPrismPlugin {
                 id: 'notes',
                 label: 'Notes',
                 loadComponent: () => import('./notes-panel.component.js').then((m) => m.NotesPanelComponent),
-                position: 'bottom',
                 placement: 'addon'
             }
         ]

@@ -8,6 +8,7 @@
     - [Configuration](guide/configuration.md)
     - [Publishing Libraries](guide/library-publishing.md)
     - [Migrating to v22](guide/migration-v22.md)
+    - [AI Coding Agents](guide/ai-agents.md)
 
 - **Core Concepts**
 
@@ -25,7 +26,6 @@
 - **Customization**
 
     - [Theming](guide/theming.md)
-    - [Custom UI Sections](guide/custom-ui.md)
     - [State Preservation](guide/url-state.md)
 
 - **External Tooling**

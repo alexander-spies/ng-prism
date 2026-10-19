@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { discoverSecondaryEntryPoints } from './entry-point-discovery.js';
+import { discoverSecondaryEntryPoints, findPrimaryEntryFile } from './entry-point-discovery.js';
 
 function createTempDir(): string {
     return mkdtempSync(join(tmpdir(), 'ng-prism-discovery-'));
@@ -125,5 +125,41 @@ describe('discoverSecondaryEntryPoints', () => {
         const result = discoverSecondaryEntryPoints(tmp, 'my-lib');
 
         expect(result).toEqual([]);
+    });
+});
+
+describe('findPrimaryEntryFile', () => {
+    let tmp: string;
+
+    afterEach(() => {
+        if (tmp) rmSync(tmp, { recursive: true, force: true });
+    });
+
+    it('reads lib.entryFile from the root ng-package.json', () => {
+        tmp = createTempDir();
+        writeJson(tmp, 'ng-package.json', { dest: '../../dist/my-lib', lib: { entryFile: './src/public-api.ts' } });
+        mkdirSync(join(tmp, 'src'));
+        writeFileSync(join(tmp, 'src', 'public-api.ts'), 'export {}');
+
+        expect(findPrimaryEntryFile(tmp)).toBe(join(tmp, 'src', 'public-api.ts'));
+    });
+
+    it("falls back to ng-packagr's default entry file", () => {
+        tmp = createTempDir();
+        writeJson(tmp, 'ng-package.json', { dest: '../../dist/my-lib' });
+        mkdirSync(join(tmp, 'src'));
+        writeFileSync(join(tmp, 'src', 'public_api.ts'), 'export {}');
+
+        expect(findPrimaryEntryFile(tmp)).toBe(join(tmp, 'src', 'public_api.ts'));
+    });
+
+    it('returns undefined without an ng-package.json or an existing entry file', () => {
+        tmp = createTempDir();
+
+        expect(findPrimaryEntryFile(tmp)).toBeUndefined();
+
+        writeJson(tmp, 'ng-package.json', { dest: '../../dist/my-lib', lib: { entryFile: 'missing.ts' } });
+
+        expect(findPrimaryEntryFile(tmp)).toBeUndefined();
     });
 });

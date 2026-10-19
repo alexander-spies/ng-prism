@@ -458,3 +458,51 @@ describe('extractInputs and extractOutputs with base classes', () => {
         expect(inputNames('MixinComponent')).toEqual(['tracked']);
     });
 });
+
+describe('extractInputs and extractOutputs with aliases', () => {
+    let checker: ts.TypeChecker;
+    let classDecl: ts.ClassDeclaration;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'aliased-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        classDecl = getClassDeclaration(result.entries[0].exports, 'AliasedInputsComponent', checker);
+    });
+
+    it('records the alias of signal inputs and models next to the member name', () => {
+        const byName = new Map(extractInputs(classDecl, checker).map((i) => [i.name, i]));
+
+        expect(byName.get('size')?.alias).toBe('buttonSize');
+        expect(byName.get('label')?.alias).toBe('text');
+        expect(byName.get('count')?.alias).toBe('value');
+    });
+
+    it('records the alias of @Input() in both forms', () => {
+        const byName = new Map(extractInputs(classDecl, checker).map((i) => [i.name, i]));
+
+        expect(byName.get('legacy')?.alias).toBe('legacyName');
+        expect(byName.get('legacyObj')?.alias).toBe('legacyObject');
+    });
+
+    it('reads an alias from a constant', () => {
+        const byName = new Map(extractInputs(classDecl, checker).map((i) => [i.name, i]));
+
+        expect(byName.get('fromConst')?.alias).toBe('constSize');
+        expect(byName.get('legacyConst')?.alias).toBe('constLegacy');
+    });
+
+    it('leaves out an alias that is missing or equals the member name', () => {
+        const byName = new Map(extractInputs(classDecl, checker).map((i) => [i.name, i]));
+
+        expect(byName.get('plain')).not.toHaveProperty('alias');
+        expect(byName.get('sameName')).not.toHaveProperty('alias');
+    });
+
+    it('records the alias of outputs', () => {
+        const outputs = extractOutputs(classDecl, checker);
+
+        expect(outputs).toEqual([{ name: 'closed', alias: 'dismissed' }, { name: 'legacyEmitter', alias: 'legacyChange' }, { name: 'opened' }]);
+    });
+});

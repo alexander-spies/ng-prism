@@ -120,7 +120,7 @@ describe('visualRegressionPlugin', () => {
             const panel = visualRegressionPlugin().panels![0];
 
             expect(panel.id).toBe('visual-regression');
-            expect(panel.position).toBe('bottom');
+            expect(panel.position).toBeUndefined();
             expect(panel.loadComponent).toBeDefined();
             expect(panel.component).toBeUndefined();
         });

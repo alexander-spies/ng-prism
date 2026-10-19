@@ -53,20 +53,22 @@ Every scan still walks the exports of every entry point. Next to parsing, that w
 
 ## Entry Point Discovery
 
-The pipeline accepts either a directory or a file as `entryPoint`. The resolution works the same way for both. The file form is just a convenience that gets resolved upward to its containing library.
+The pipeline accepts either a directory or a file as `entryPoint`. Both lead to the same discovery of secondary entry points; a file is first resolved upward to its containing library. After the secondary entry points comes the primary one: a file `entryPoint` is the primary entry file itself, a directory names it as `lib.entryFile` in its `ng-package.json` (ng-packagr's default `src/public_api.ts` when the field is missing). When neither yields an entry file, the pipeline warns `entryPoint "<path>" resolves to no entry file`.
 
-### Directory with secondary entry points (recommended)
+### Directory entryPoint
 
 If `entryPoint` is a directory, `discoverSecondaryEntryPoints()` walks it recursively looking for `ng-package.json` files. For each `ng-package.json` that does not have a `dest` field (i.e. a secondary entry point, since `dest` is conventionally only set on the primary), the scanner reads `lib.entryFile` (default: `public-api.ts`) and derives the import path from the relative directory name.
 
 ```
 packages/my-lib/
-  public-api.ts                  ← primary (ng-package.json with `dest`, ignored by discovery)
+  public-api.ts                  ← primary (ng-package.json with `dest`, scanned last)
   atoms/ng-package.json          → 'my-lib/atoms'
   molecules/ng-package.json      → 'my-lib/molecules'
 ```
 
-All secondary entry points share one `Scanner` and one `ts.Program`, cached on `PrismPipelineState.scanner`. Every rebuild scans all of them again (see [Incremental Builds](#incremental-builds-the-createscanner-factory)).
+All entry points, the primary one included, share one `Scanner` and one `ts.Program`, cached on `PrismPipelineState.scanner`. The scanner is recreated when the set of entry files changes. Every rebuild scans all of them again (see [Incremental Builds](#incremental-builds-the-createscanner-factory)).
+
+The primary entry point is scanned last and marked `primary`. A component it re-exports from a secondary entry point keeps the secondary's import path, without the "exported by multiple entry points" notice that other duplicates get.
 
 ### File entryPoint (auto-detected library root)
 
@@ -80,7 +82,7 @@ libraryRoot = "projects/my-lib"
 [my-lib/atoms, my-lib/molecules, ...]
 ```
 
-If no `ng-package.json` is found above the file, or if discovery returns no entries (e.g. for a primary-only library without secondaries), the pipeline falls back to scanning the configured file directly, which preserves back-compat for non-ng-packagr setups.
+If no `ng-package.json` is found above the file, the file is the only entry point, which keeps non-ng-packagr setups working. Up to 22.5.0 the primary entry point was only scanned as this fallback: with secondary entry points it was skipped, and a directory `entryPoint` without them found no component.
 
 ## How Decorators Are Extracted
 
@@ -165,6 +167,10 @@ Detected by checking whether the property initializer is a call expression whose
 ### Decorator inputs: `@Input()`
 
 Detected by `findDecorator(member, 'Input')`. The `required` field is read from `@Input({ required: true })`.
+
+### Aliases
+
+An input or output declared with an alias keeps its member name as `name` and gets the alias as `alias`. The extractor reads it from the options of `input()`, `input.required()`, `model()`, `model.required()` and `output()` (`{ alias: 'x' }`), and from `@Input('x')`, `@Input({ alias: 'x' })` and `@Output('x')`. The value is evaluated statically, so a string literal or a constant counts; an alias the builder can't evaluate, or one equal to the member name, is left out. Variants and controls keep using `name`; the renderer binds `alias ?? name` with `setInput`, and the directive wrapper binds the alias on the host element.
 
 ### Type mapping
 

@@ -19,7 +19,7 @@ describe('perfPlugin', () => {
 
         expect(panel.id).toBe('perf');
         expect(panel.label).toBe('Performance');
-        expect(panel.position).toBe('bottom');
+        expect(panel.position).toBeUndefined();
         expect(panel.loadComponent).toBeDefined();
     });
 
@@ -36,12 +36,30 @@ describe('perfPlugin', () => {
         expect(panel.providers).toBeUndefined();
     });
 
-    it('should accept custom options', () => {
-        const plugin = perfPlugin({
-            thresholds: { bundleWarnKb: 30 },
-            bundle: { maxTreeDepth: 3 }
-        });
+    it('accepts maxTreeDepth without a notice', () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-        expect(plugin.name).toBe('@ng-prism/plugin-perf');
+        try {
+            expect(perfPlugin({ bundle: { maxTreeDepth: 3 } }).name).toBe('@ng-prism/plugin-perf');
+            expect(warn).not.toHaveBeenCalled();
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('names every deprecated option that is set', () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            perfPlugin({ thresholds: { bundleWarnKb: 30 }, bundle: { excludeImports: ['rxjs'] }, render: { bufferSize: 10 }, memory: { gcDelayMs: 5 } });
+
+            expect(warn.mock.calls.map(([message]) => message)).toEqual(
+                ['thresholds', 'bundle.excludeImports', 'render', 'memory'].map(
+                    (option) => `⚠ ng-prism: perfPlugin() option "${option}" is deprecated and will be removed in 23.0.0. It has never had an effect; remove it.`
+                )
+            );
+        } finally {
+            warn.mockRestore();
+        }
     });
 });

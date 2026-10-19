@@ -21,7 +21,7 @@ describe('figmaPlugin', () => {
 
         expect(panel.id).toBe('figma');
         expect(panel.label).toBe('Figma');
-        expect(panel.position).toBe('bottom');
+        expect(panel.position).toBeUndefined();
         expect(panel.component).toBe(FigmaPanelComponent);
     });
 
@@ -52,7 +52,7 @@ describe('figmaPlugin', () => {
 
         expect(panel.id).toBe('figma-diff');
         expect(panel.label).toBe('Design Diff');
-        expect(panel.position).toBe('bottom');
+        expect(panel.position).toBeUndefined();
         expect(panel.loadComponent).toBeInstanceOf(Function);
     });
 

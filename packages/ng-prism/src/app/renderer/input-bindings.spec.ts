@@ -1,5 +1,5 @@
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
-import { buildKnownInputs, PRISM_CONTENT_INPUT } from './known-inputs.js';
+import { buildInputBindings, PRISM_CONTENT_INPUT } from './input-bindings.js';
 
 function makeComp(
     overrides: Partial<{
@@ -24,37 +24,38 @@ function makeComp(
     };
 }
 
-describe('buildKnownInputs', () => {
-    it('returns the set of declared input names for a component', () => {
+describe('buildInputBindings', () => {
+    it('maps every declared input of a component to the name setInput takes', () => {
         const comp = makeComp({
             inputs: [
                 { name: 'label', type: 'string', required: false },
-                { name: 'disabled', type: 'boolean', required: false }
+                { name: 'size', alias: 'buttonSize', type: 'string', required: false }
             ]
         });
 
-        const known = buildKnownInputs(comp);
+        const bindings = buildInputBindings(comp);
 
-        expect(known.has('label')).toBe(true);
-        expect(known.has('disabled')).toBe(true);
-        expect(known.has(PRISM_CONTENT_INPUT)).toBe(false);
+        expect([...bindings]).toEqual([
+            ['label', 'label'],
+            ['size', 'buttonSize']
+        ]);
     });
 
-    it('adds __prismContent__ for directives so the synthetic content input is not filtered out', () => {
+    it('keeps member names for a directive, whose generated host declares the inputs under them', () => {
         const comp = makeComp({
             isDirective: true,
-            inputs: [{ name: 'tooltipText', type: 'string', required: false }]
+            inputs: [{ name: 'tooltipText', alias: 'libTooltip', type: 'string', required: false }]
         });
 
-        const known = buildKnownInputs(comp);
+        const bindings = buildInputBindings(comp);
 
-        expect(known.has('tooltipText')).toBe(true);
-        expect(known.has(PRISM_CONTENT_INPUT)).toBe(true);
+        expect(bindings.get('tooltipText')).toBe('tooltipText');
+        expect(bindings.get(PRISM_CONTENT_INPUT)).toBe(PRISM_CONTENT_INPUT);
     });
 
     it('does not add __prismContent__ for non-directive components', () => {
         const comp = makeComp({ isDirective: false });
 
-        expect(buildKnownInputs(comp).has(PRISM_CONTENT_INPUT)).toBe(false);
+        expect(buildInputBindings(comp).has(PRISM_CONTENT_INPUT)).toBe(false);
     });
 });

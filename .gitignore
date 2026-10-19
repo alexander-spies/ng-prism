@@ -69,3 +69,28 @@ ng-prism-cache/
 
 # Local scratch directory of agent tooling
 .superpowers/
+
+# AI agent config: project skills live in .agents/skills (Codex and Copilot read it natively),
+# .claude/skills holds one relative symlink per skill for Claude Code. Only the prism-* skills and agents
+# are tracked; personal skills and agents without the prefix, settings, specs, ADRs etc. stay local.
+# .agents/plugins/claude is the Claude Code plugin for ng-prism users; .claude-plugin/ makes the repo its marketplace.
+# No trailing slash on the .claude/skills entry: git stores the symlinks as files, not directories.
+!/.agents
+/.agents/*
+!/.agents/plugins
+!/.agents/skills
+/.agents/skills/*
+!/.agents/skills/prism-*
+!/.claude
+/.claude/*
+!/.claude/skills
+/.claude/skills/*
+!/.claude/skills/prism-*
+!/.claude/agents
+/.claude/agents/*
+!/.claude/agents/prism-*.md
+/.agents/**/.DS_Store
+/.claude/**/.DS_Store
+# CLAUDE.md is a symlink to AGENTS.md and shared (overrides a global ignore); personal notes go into CLAUDE.local.md
+!/CLAUDE.md
+CLAUDE.local.md

@@ -26,7 +26,7 @@ This project adheres to the [Contributor Covenant](CODE_OF_CONDUCT.md). By parti
 
 ### Prerequisites
 
-- **Node.js** >= 20
+- **Node.js** ^22.22.3, ^24.15.0 or >= 26 (the range Angular 22 requires; CI runs on 22)
 - **npm** >= 10
 - **Git**
 
@@ -95,8 +95,8 @@ ng-prism is an Nx 22 monorepo using npm workspaces. All packages live under `pac
 
 | Dependency | Version | Purpose                              |
 | ---------- | ------- | ------------------------------------ |
-| Angular    | 21      | Framework                            |
-| TypeScript | 5.9     | Language                             |
+| Angular    | 22      | Framework                            |
+| TypeScript | 6.0     | Language                             |
 | Nx         | 22      | Monorepo tooling, task orchestration |
 | Jest + SWC | 30      | Testing                              |
 
@@ -115,7 +115,7 @@ The `test-workspace/` directory is a real Angular workspace used as a live demo 
 
 `test-workspace/ng-prism.config.ts` configures plugins, theme, and other Prism options. It is gitignored because it is environment/setup specific. The schematic that ships with `@ng-prism/core` creates a minimal version, and contributors may add or remove plugins as they like.
 
-`test-workspace/ng-prism.config.example.ts` is committed as a reference. It enables all five official plugins (figma, jsdoc, perf, coverage, box-model). The `test:workspace:install` script copies it to `ng-prism.config.ts` on first run if the latter doesn't exist.
+`test-workspace/ng-prism.config.example.ts` is committed as a reference. It enables all six official plugins (figma, jsdoc, perf, coverage, box-model, visual-regression). The `test:workspace:install` script copies it to `ng-prism.config.ts` on first run if the latter doesn't exist.
 
 #### Scripts reference
 
@@ -194,8 +194,7 @@ ng-prism/
 │   └── plugin-visual-regression/  # @ng-prism/plugin-visual-regression
 ├── test-workspace/            # Integration test workspace
 ├── docs/                      # Documentation (docsify)
-├── scripts/                   # Build & publish scripts
-└── SPEC.md                    # Product specification (source of truth)
+└── scripts/                   # Build & publish scripts
 ```
 
 ## Development Workflow
@@ -284,11 +283,13 @@ virtual `.html` files, which is why they match the template rules above.
 
 \* `scripts/**/*.mjs` is linted too, with plain `eslint:recommended`, no Angular or
 `@stylistic` rules, since it's Node code with no browser or Angular surface.
-The same applies to `test-workspace/*.mjs`, the two measurement scripts.
+The same applies to `test-workspace/*.mjs`, the two measurement scripts, and to
+the helper scripts under `.agents/`: the ones agent skills ship next to their
+`SKILL.md` and the screenshot script of the Claude Code plugin.
 Nothing infers a `lint` target for the workspace root automatically (Nx only
 does that for a root project with a standalone `src`/`lib`), so it runs from
 an explicit `lint` target declared on `ng-prism-workspace` in `package.json`'s
-`nx.targets`, scoped to `eslint scripts jest.config.ts`, which is also how
+`nx.targets`, scoped to `eslint scripts jest.config.ts .agents`, which is also how
 `jest.config.ts` itself ends up linted. `nx run-many -t lint` picks it up like
 any other project's `lint` target, so `npm run lint`, `npm run check`, and CI
 all reach it.
@@ -523,7 +524,6 @@ ng-prism has a plugin architecture. Plugins live under `packages/plugin-*/` and 
 | -------------------- | ------- | --------------------------- |
 | `onComponentScanned` | Build   | Enrich component metadata   |
 | `onPageScanned`      | Build   | Modify or add pages         |
-| `wrapComponent`      | Runtime | Wrap rendered components    |
 | `panels`             | Runtime | Add custom panels to the UI |
 
 ### Plugin Conventions

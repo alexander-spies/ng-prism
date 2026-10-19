@@ -1,0 +1,4 @@
+# CLAUDE.md is a symlink to AGENTS.md. Prettier refuses a symlink named on its
+# command line, so nx format:check (which passes the changed files explicitly)
+# would fail on every branch that touches it. AGENTS.md is formatted as usual.
+/CLAUDE.md

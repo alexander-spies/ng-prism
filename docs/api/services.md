@@ -1,6 +1,6 @@
 # Runtime Services
 
-All services are provided in `root` and injectable anywhere in the Prism app or in your custom UI components. Import from `ng-prism`.
+All services are provided in `root` and injectable anywhere in the Prism app, for example in component pages and plugin components. Import from `@ng-prism/core`.
 
 ---
 
@@ -179,17 +179,7 @@ Schema version, corrupted JSON, quota-exceeded errors, and a missing `sessionSto
 
 Disabled via `NgPrismConfig.persistState = false`. See [State Preservation](guide/url-state.md).
 
-When using a custom `appComponent`, call both init methods, URL first, then persistence:
-
-```typescript
-@Component({ ... })
-export class MyShellComponent {
-  constructor() {
-    inject(PrismUrlStateService).init();
-    inject(PrismPersistenceService).init();
-  }
-}
-```
+`PrismShellComponent` calls both init methods, URL state first, then persistence.
 
 ---
 

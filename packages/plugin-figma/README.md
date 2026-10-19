@@ -109,9 +109,13 @@ const plugin = figmaPlugin();
 | `accessToken` | `string`  | -       | Figma personal access token used to fetch node images via the REST API. Only read by the Design Diff panel. |
 
 ```typescript
-figmaPlugin({ designDiff: true, accessToken: process.env['FIGMA_TOKEN'] });
+import { FIGMA_TOKEN } from './figma-token.local.ts'; // gitignored: export const FIGMA_TOKEN = 'figd_…';
+
+figmaPlugin({ designDiff: true, accessToken: FIGMA_TOKEN });
 // plugin.panels === [{ id: 'figma', ... }, { id: 'figma-diff', label: 'Design Diff', ... }]
 ```
+
+`ng-prism.config.ts` also runs in the browser, so `process.env` is not available there. Keep the token in a gitignored `.ts` file next to the config, import it with the `.ts` extension (Node 22.18 or newer), and add `"rewriteRelativeImportExtensions": true` to the styleguide app's `tsconfig.app.json`. The token ends up in the styleguide bundle: never deploy a styleguide built with a personal token where others can open it. See the [Figma plugin guide](https://ng-prism.github.io/ng-prism/#/plugins/figma) for the details.
 
 `accessToken` alone does not enable the panel. The two options are independent, so a token
 in your config never surfaces a tab you did not ask for. Enabling `designDiff` without a token

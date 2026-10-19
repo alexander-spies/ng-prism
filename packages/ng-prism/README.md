@@ -72,6 +72,8 @@ ng run my-lib:prism
 
 Open `http://localhost:4400`. Your component appears in the sidebar with live controls, code snippets, and variant tabs.
 
+Using Claude Code? The [ng-prism plugin](https://ng-prism.github.io/ng-prism/#/guide/ai-agents) teaches it to write showcases, check them in the browser and set up ng-prism.
+
 ## Configuration
 
 ```typescript
