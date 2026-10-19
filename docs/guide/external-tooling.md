@@ -156,7 +156,7 @@ The attribute is absent when no state is active, and when the state fits. Otherw
 | `<target> is inert`                 | A `focus` or `focus-visible` state, and no match can take focus, none being disabled but all under `[inert]` within the component. |
 | `<target> has pointer-events: none` | A `hover` or `active` state, and every match, and everything inside it, ignores the pointer.                                       |
 
-When a state forces several pseudo-classes, the reason names the first one that cannot be reached. The state fits only if each of them can.
+When a state forces several pseudo-classes, the reason names the first one that cannot be reached. The state fits only if each of them can. For a `focus` or `focus-visible` state on `the component`, the matches are what in it could take focus at all (a button, a field, a link with `href`, `[tabindex]` and the like), so a component whose only button is disabled reads `the component is disabled`.
 
 The answer is the one at the moment the marker appears. The app keeps the attribute current while you browse it, because it checks the state again whenever the component's DOM changes, but a runner should read it once, together with the marker, and capture on that state. A target that renders only later, behind `@defer` or after an HTTP call, is not part of that moment, and the state reads as `<target> matches nothing`. That is the same limit every capture has for content that is not there yet; see the note above on the marker meaning "instantiated".
 

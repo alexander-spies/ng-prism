@@ -69,12 +69,13 @@ package is right:
       one-off mix of targets, e.g. `{ name: 'Typing', inputs: { value: 'Hello' }, pseudo: { focus: '.field__input' } }`.
       `pseudo` forces exactly what it says, with no fit rule.
     - **A state fits a variant only where the browser could put the component in it.** Every pseudo-class of the state
-      needs a target that exists, and a focus target must not be `:disabled` or under `[inert]`, a hover or active
-      target must take the pointer (not `pointer-events: none`). Otherwise nothing is forced and the cell is shown as
-      not fitting, with the reason: `<target> matches nothing`, `<target> is disabled`, `<target> is inert`,
-      `<target> has pointer-events: none`. That is intended, for example a remove-button state on a chip without that
-      button, so don't widen the selector to make it fit. A state that fits no variant at all is usually a typo in its
-      selector; the Overview warns about it in the browser console.
+      needs a target that exists, and a focus target must not be `:disabled` or under `[inert]` (for `true`: one of the
+      component's focusable elements, if it has any), a hover or active target must take the pointer (not
+      `pointer-events: none`). Otherwise nothing is forced and the cell is shown as not fitting, with the reason:
+      `<target> matches nothing`, `<target> is disabled`, `<target> is inert`, `<target> has pointer-events: none`.
+      That is intended, for example a remove-button state on a chip without that button, so don't widen the selector to
+      make it fit. A state that fits no variant at all is usually a typo in its selector; the Overview warns about it in
+      the browser console.
 10. **Custom templates, mock data or several components together make a component page**: a
     `{ title, component, … }` entry in `componentPages`, the third argument of
     `providePrism(manifest, config, { componentPages })` in the styleguide app's `main.ts`, linked with

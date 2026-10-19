@@ -176,6 +176,56 @@ describe('state-fit', () => {
             expect(evaluateStateFit(root, { 'focus-visible': true })).toEqual({ fits: true });
         });
 
+        describe('focus on the whole component', () => {
+            it.each(['focus', 'focus-visible'] as const)('does not fit %s when the only focusable element is disabled', (state) => {
+                const root = mount('<lib-button><button class="btn" disabled><span class="btn__label">Save</span></button></lib-button>');
+
+                expect(evaluateStateFit(root, { [state]: true })).toEqual(fitsNot('the component is disabled'));
+            });
+
+            it('does not fit when the only focusable element is inert', () => {
+                const root = mount('<lib-dialog><div inert><button></button></div><p>Text</p></lib-dialog>');
+
+                expect(evaluateStateFit(root, { 'focus-visible': true })).toEqual(fitsNot('the component is inert'));
+            });
+
+            it('counts a host that takes focus through tabindex', () => {
+                const root = mount('<lib-card tabindex="0"><button disabled></button></lib-card>');
+
+                expect(evaluateStateFit(root, { focus: true })).toEqual({ fits: true });
+            });
+
+            it.each([
+                ['a link', '<a href="#">x</a>'],
+                ['a field', '<input />'],
+                ['an editable region', '<div contenteditable="true"></div>'],
+                ['a summary', '<details><summary>More</summary></details>']
+            ])('fits when %s next to the disabled button can take focus', (_, html) => {
+                const root = mount(`<lib-row><button disabled></button>${html}</lib-row>`);
+
+                expect(evaluateStateFit(root, { 'focus-visible': true })).toEqual({ fits: true });
+            });
+
+            it('does not count a link without href or a region that is not editable', () => {
+                const root = mount('<lib-row><a>x</a><div contenteditable="false"></div><button disabled></button></lib-row>');
+
+                expect(evaluateStateFit(root, { focus: true })).toEqual(fitsNot('the component is disabled'));
+            });
+
+            it('falls back to every element when nothing in the component is focusable', () => {
+                const root = mount('<lib-badge><span class="badge__count">3</span></lib-badge>');
+
+                expect(evaluateStateFit(root, { 'focus-visible': true })).toEqual({ fits: true });
+            });
+
+            it('leaves a selector and the other pseudo-classes with true as they were', () => {
+                const root = mount('<lib-form><div class="wrap"><button disabled></button></div></lib-form>');
+
+                expect(evaluateStateFit(root, { focus: '.wrap' })).toEqual({ fits: true });
+                expect(evaluateStateFit(root, { hover: true, active: true, 'focus-within': true })).toEqual({ fits: true });
+            });
+        });
+
         it('ignores an empty selector like the marker does', () => {
             const root = mount('<lib-button><button class="btn"></button></lib-button>');
 

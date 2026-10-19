@@ -60,6 +60,23 @@ export function reachableTargets(root: Element, state: PseudoState, elements: It
     }
 }
 
+/** What can take focus at all, whether or not it is disabled or inert now. */
+const FOCUSABLE = 'button, input, select, textarea, a[href], area[href], summary, iframe, [tabindex], [contenteditable]:not([contenteditable="false"])';
+
+/**
+ * The targets the fit of `state` is decided on. For focus on the whole
+ * component (`true`) that is what could take focus at all: the host is never
+ * `:disabled`, so a component whose only focusable element is disabled would
+ * otherwise fit, and show the plain default under a focus label. A component
+ * with nothing focusable in it keeps every element, as before.
+ */
+function fitCandidates(state: PseudoState, target: PseudoTarget, targets: Set<Element>): Set<Element> {
+    if (target !== true || (state !== 'focus' && state !== 'focus-visible')) return targets;
+    const focusable = Array.from(targets).filter((el) => el.matches(FOCUSABLE));
+
+    return focusable.length > 0 ? new Set(focusable) : targets;
+}
+
 /** Why `elements`, all of them unreachable for `state`, are: the first applicable of disabled, inert and pointer-events. */
 function unreachableReason(state: PseudoState, elements: Set<Element>): string {
     if (state === 'hover' || state === 'active') return 'has pointer-events: none';
@@ -69,7 +86,9 @@ function unreachableReason(state: PseudoState, elements: Set<Element>): string {
 /**
  * Fits when every pseudo-class of `pseudo` has at least one reachable target
  * under `root`. The reason names the first pseudo-class, in
- * {@link PSEUDO_STATES} order, that does not.
+ * {@link PSEUDO_STATES} order, that does not. Focus on the whole component is
+ * decided on what could take focus ({@link fitCandidates}); which elements get
+ * the class is not affected.
  */
 export function evaluateStateFit(root: Element, pseudo: ForcedPseudoStates): StateFit {
     if (!forcesAnyState(pseudo)) return { fits: false, reason: 'forces no state' };
@@ -84,7 +103,9 @@ export function evaluateStateFit(root: Element, pseudo: ForcedPseudoStates): Sta
         const label = describeTarget(target);
 
         if (targets.size === 0) return { fits: false, reason: `${label} matches nothing` };
-        if (reachableTargets(root, state, targets).length === 0) return { fits: false, reason: `${label} ${unreachableReason(state, targets)}` };
+        const candidates = fitCandidates(state, target, targets);
+
+        if (reachableTargets(root, state, candidates).length === 0) return { fits: false, reason: `${label} ${unreachableReason(state, candidates)}` };
     }
     return { fits: true };
 }
