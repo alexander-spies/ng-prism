@@ -8,25 +8,52 @@ and configure ng-prism, and how to write a plugin.
 ## Install
 
 There is nothing to clone. Claude Code fetches the plugin from this repository on GitHub. From a shell, one command adds
-the marketplace and installs the plugin:
+the marketplace and installs the plugin (Claude Code 2.1.292 or later):
 
 ```bash
 claude plugin install ng-prism --marketplace ng-prism/ng-prism
 ```
 
-In a Claude Code session it takes two:
+On an older version it takes two:
 
+```bash
+claude plugin marketplace add ng-prism/ng-prism
+claude plugin install ng-prism@ng-prism
 ```
-/plugin marketplace add ng-prism/ng-prism
-/plugin install ng-prism@ng-prism
-```
+
+In a Claude Code session, run the same two as `/plugin marketplace add ng-prism/ng-prism` and
+`/plugin install ng-prism@ng-prism`.
 
 ### For the whole team
 
-Add `--scope project` to the install, and the plugin is enabled for the repository in the project's
-`.claude/settings.json`, which you commit. That enables it, but it doesn't install it on anyone else's machine. Every
-teammate runs the install with `--scope project` once, and from then on the plugin loads whenever they work in that
-repository.
+Run the two commands in the repository with `--scope project`:
+
+```bash
+claude plugin marketplace add ng-prism/ng-prism --scope project
+claude plugin install ng-prism@ng-prism --scope project
+```
+
+They write the marketplace and the plugin into the project's `.claude/settings.json`, which you commit:
+
+```json
+{
+    "extraKnownMarketplaces": {
+        "ng-prism": {
+            "source": { "source": "github", "repo": "ng-prism/ng-prism" }
+        }
+    },
+    "enabledPlugins": {
+        "ng-prism@ng-prism": true
+    }
+}
+```
+
+When a teammate opens the repository in Claude Code and trusts the folder, Claude Code offers to add the marketplace and
+install the plugin. The one-command install doesn't work for this: it declares the marketplace in your user settings
+even with `--scope project`, so your teammates' Claude Code wouldn't know where the plugin comes from.
+
+Add `"autoUpdate": true` next to `source` in the marketplace entry, and everyone gets new plugin versions without
+running an update.
 
 ## What it covers
 
@@ -52,5 +79,6 @@ The skills read the version of `@ng-prism/core` in your `node_modules` and treat
 reference. A field the skill names but your version doesn't have yet is left alone.
 
 The plugin's version follows the ng-prism releases. Plugins from marketplaces other than the official ones don't update
-automatically by default, so fetch a new version with `claude plugin update ng-prism@ng-prism` (or `/plugin` in a
-session). A running session keeps the old version until you run `/reload-plugins` or start a new one.
+automatically by default. Fetch a new version with `claude plugin update ng-prism@ng-prism`, or turn on auto-update for
+the `ng-prism` marketplace in `/plugin` under **Marketplaces**. A running session keeps the old version until you run
+`/reload-plugins` or start a new one.
