@@ -2,8 +2,8 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { enablePrismHmr, PrismShellComponent, providePrism } from '@ng-prism/core';
 import config from 'ng-prism.config';
 import { PRISM_RUNTIME_MANIFEST } from 'prism-manifest/test-lib-prism';
-import { ButtonTooltipPageComponent } from '../../test-lib/src/lib/directives/tooltip/button-tooltip-page.component';
 import { ButtonPatternsPageComponent } from './pages/button-patterns-page.component';
+import { ButtonTooltipPageComponent } from './pages/button-tooltip-page.component';
 import { DesignTokensPageComponent } from './pages/design-tokens-page.component';
 import { GettingStartedPageComponent } from './pages/getting-started-page.component';
 

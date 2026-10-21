@@ -1,0 +1,147 @@
+/*
+ * The frame every demo page shares: header, sections, cards, code and the
+ * stage live components render on. Colours come from the styleguide's theme
+ * tokens, so the pages follow its dark and light theme. Each page lists this
+ * file first in styleUrls and adds its own rules in styles.
+ */
+
+:host {
+    display: block;
+}
+
+.doc-page {
+    max-width: 880px;
+    padding: 8px 0 56px;
+    margin: 0 auto;
+    font-family: var(--prism-font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--prism-text-2);
+}
+
+.doc-header {
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--prism-border);
+}
+
+.doc-eyebrow {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--prism-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.doc-title {
+    margin: 0 0 12px;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--prism-text);
+    letter-spacing: -0.02em;
+}
+
+.doc-lead {
+    max-width: 640px;
+    margin: 0;
+    font-size: 15px;
+}
+
+.doc-section {
+    margin-bottom: 48px;
+}
+
+.doc-section--tight {
+    margin-bottom: 24px;
+}
+
+.doc-section__title {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--prism-text);
+    letter-spacing: -0.01em;
+}
+
+.doc-section__lead {
+    max-width: 640px;
+    margin: 0 0 20px;
+    color: var(--prism-text-muted);
+}
+
+.doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--doc-grid-min, 240px), 1fr));
+    gap: 16px;
+}
+
+.doc-card {
+    padding: 20px;
+    background: var(--prism-bg-surface);
+    border: 1px solid var(--prism-border);
+    border-radius: 10px;
+}
+
+.doc-card__title {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--prism-text);
+}
+
+.doc-card__text {
+    margin: 0 0 16px;
+}
+
+.doc-label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--prism-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.doc-page code {
+    font-family: var(--prism-font-mono);
+    font-size: 0.9em;
+}
+
+/* The chip is for code in running text; code in tables and captions stays plain. */
+.doc-page :is(p, li, h1, h2, h3) > code {
+    padding: 1px 6px;
+    color: var(--prism-text);
+    background: var(--prism-input-bg);
+    border-radius: 4px;
+}
+
+.doc-code {
+    padding: 14px 16px;
+    margin: 0;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--prism-text);
+    background: var(--prism-bg-elevated);
+    border: 1px solid var(--prism-border);
+    border-radius: 8px;
+}
+
+/* The library's components are drawn for light surfaces, so they render on
+   the fixed light ground of the canvas' bg: 'light' in both themes. */
+.doc-stage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    padding: 28px;
+    background: var(--prism-void-light);
+    border: 1px solid var(--prism-border-strong);
+    border-radius: 8px;
+}
+
+.doc-stage + .doc-code {
+    margin-top: 12px;
+}
