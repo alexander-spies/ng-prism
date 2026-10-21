@@ -8,6 +8,7 @@ import { getClassHierarchy } from './class-hierarchy.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
 import { describeValue, readPseudoStates } from './pseudo-states.js';
 import { classifyShowcaseClass } from './service/angular-decorators.js';
+import { findSetupProperty } from './service/setup.reader.js';
 import {
     describeDeprecatedProviders,
     describeLegacyServiceComponent,
@@ -158,13 +159,6 @@ function hasDecoratorInputs(classDecl: ts.ClassDeclaration): boolean {
         if (findDecorator(member, 'Input')) return true;
     }
     return false;
-}
-
-/** Only the literal: a `setup` that arrives through a spread or a constant is dropped without a word. */
-function findSetupProperty(arg: ts.Expression): ts.ObjectLiteralElementLike | undefined {
-    if (!ts.isObjectLiteralExpression(arg)) return undefined;
-
-    return arg.properties.find((p) => p.name !== undefined && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === 'setup');
 }
 
 /**

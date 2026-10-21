@@ -81,6 +81,31 @@ export function describeSetupOnComponent(className: string, node: ts.Node): stri
     return `${className} › setup (${location(node)}) only applies to services (@Injectable or @Service); it was dropped.`;
 }
 
+/**
+ * `setup` has to be readable without running anything: an arrow function whose
+ * body is an array literal. Anything else drops the whole field, since there is
+ * no telling which entries it would have listed.
+ */
+export function describeInvalidSetup(className: string, node: ts.Node): string {
+    return (
+        `${className} › setup — "${excerpt(node)}" (${location(node)}) must be an arrow function returning an array literal, ` +
+        `e.g. setup: () => [provideX]; setup was dropped.`
+    );
+}
+
+/** The styleguide shows where to import a `setup` entry from, which it only knows for what a library entry point exports. */
+export function describeSetupEntryNotExported(className: string, index: number, node: ts.Node): string {
+    return (
+        `${className} › setup[${index}] — "${excerpt(node)}" (${location(node)}) is not exported from any library entry point, ` +
+        `so the styleguide cannot show where to import it from; it was dropped.`
+    );
+}
+
+/** A `setup` entry stands for a provider function or an InjectionToken; a class, a plain value or a call is neither. */
+export function describeSetupEntryNotSupported(className: string, index: number, node: ts.Node): string {
+    return `${className} › setup[${index}] — "${excerpt(node)}" (${location(node)}) is neither a function nor an InjectionToken; it was dropped.`;
+}
+
 /** A variant or a state is named by its `name` as well as its index, since that is what the styleguide shows. */
 function formatShowcasePath(path: EvaluationPath, config: ts.Expression): string {
     const [head, index, ...rest] = path;
