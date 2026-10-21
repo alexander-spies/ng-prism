@@ -17,7 +17,8 @@ export function generateServiceUsage(service: ScannedService): string {
         blocks.push(['// app.config.ts', `providers: [${api.setup.map(providerEntry).join(', ')}]`]);
     }
 
-    if (provision === 'manual' && !api.setup.length) {
+    // A setup function of a service provided by hand normally provides it; a token never does.
+    if (provision === 'manual' && !api.setup.some((entry) => entry.kind === 'function')) {
         blocks.push([
             '// the component that uses it',
             `@Component({ …, providers: [${className}] })`,

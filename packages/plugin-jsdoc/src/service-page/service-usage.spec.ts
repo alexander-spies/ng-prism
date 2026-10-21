@@ -85,8 +85,27 @@ describe('generateServiceUsage', () => {
         );
     });
 
-    it('leaves the providers entry out for a manual service with setup', () => {
+    it('leaves the providers entry out for a manual service with a setup function', () => {
         expect(generateServiceUsage(makeService({ provision: 'manual' }))).toBe(AUTO_USAGE);
+    });
+
+    it('keeps the providers entry for a manual service whose setup has tokens only, as a token never provides it', () => {
+        const manual = makeService({ className: 'ManualService', provision: 'manual' }, [TOAST_LABELS]);
+
+        expect(generateServiceUsage(manual)).toBe(
+            [
+                "import { ManualService, TOAST_LABELS } from 'fixture/toast';",
+                '',
+                '// app.config.ts',
+                'providers: [{ provide: TOAST_LABELS, useValue: … }]',
+                '',
+                '// the component that uses it',
+                '@Component({ …, providers: [ManualService] })',
+                'export class MyComponent {',
+                '    private readonly manualService = inject(ManualService);',
+                '}'
+            ].join('\n')
+        );
     });
 
     it('groups imports by entry point', () => {
