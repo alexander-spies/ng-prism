@@ -140,7 +140,7 @@ All three callers pass the checker. They treat a drop differently:
 
 A service is a class with `@Showcase` and `@Injectable` or `@Service`. `component.scanner.ts` and `service.scanner.ts` split the `@Showcase` classes between them, so a service is in `ScanResult.services` and never in `components`: the component list, `onComponentScanned` and the discovery manifest keep their contents. The code is in `builder/scanner/service/`.
 
-### Telling a service from a component
+### Telling a service or pipe from a component
 
 `classifyShowcaseClass()` in `service/angular-decorators.ts` returns one of four kinds. It looks at the decorators in this order, `@Component` or `@Directive`, then `@Pipe`, then `@Service` or `@Injectable`, and the first it finds decides, so a class with `@Pipe` and `@Injectable` is a pipe:
 

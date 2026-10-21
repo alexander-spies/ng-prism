@@ -154,10 +154,10 @@ Generated from the scanned API, so it says nothing about values:
 
 `transform()` is the only member a pipe page lists; properties and other methods do not appear. Each signature is one row, with its parameters as declared (type, optional, default, rest) and the `@param` text under each, the return type and the description.
 
-- **Overloads.** Every overload signature gets its own row, with its own parameters and return type. The implementation signature is left out when there are overloads, since a template cannot call it.
+- **Overloads.** Every overload signature gets its own row, with its own parameters and return type. The implementation signature is left out when there are overloads, since a template cannot call it. For a base that only exists as a `.d.ts` (e.g. `DatePipe`), every declared signature is listed, including a catch-all one.
 - **Documentation per overload.** An overload with a doc block of its own keeps it. One without takes the doc block of the implementation, then the one of the first documented overload, then the one of a `transform()` of the nearest base class that has one. From another overload it takes the description and the `@param` texts but not the tags: `@deprecated`, `@since`, `@see` and `@example` are about the overload that carries them, so the overload that replaces a deprecated one is not marked deprecated with it. Angular's own pipes document only the first overload, many libraries only the implementation: both give every row a description.
 - **No type annotations.** A `transform(value, count)` without them shows the types the compiler infers, `any` where TypeScript sees `any`.
-- **Base classes.** A pipe without a `transform()` of its own takes it from the nearest base class, also one that only exists as a declaration, such as `class LocalDatePipe extends DatePipe {}` with `DatePipe` from `@angular/common`. Types from another package stay text without a card. Where no class in the chain has a `transform()`, the section stays empty, without a warning.
+- **Base classes.** A pipe without a `transform()` of its own takes it from the nearest base class, also one that only exists as a declaration, such as `class LocalDatePipe extends DatePipe {}` with `DatePipe` from `@angular/common`. Types from another package stay text without a card. Where no class in the chain has a `transform()`, the section is left out, without a warning.
 
 The class description is the pipe's own JSDoc. A pipe without one does not take the description of its base class.
 
@@ -191,7 +191,7 @@ A class with `@Showcase` and `@Pipe` was shown as a component before pipes had a
 For a pipe declared in an NgModule (`standalone: false`) the notice says what happens instead, since such a pipe is not shown at all from 23.0.0:
 
 ```
-⚠ ng-prism: LegacyPagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.
+⚠ ng-prism: NgModulePagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.
 ```
 
 This rule is checked before anything is said about the pipe itself: a pipe with `standalone: false` or an unreadable `name` that has `renderPage` keeps its page in 22.x, and gets one of these notices rather than the warnings below. Both are notices, so `strictShowcase` ignores them. To switch such a class to a pipe page now, remove those fields and move its demo to a [component page](guide/component-pages.md).
@@ -212,7 +212,8 @@ A pipe takes the `setup` warnings of services as well, see [Warnings](guide/show
 - **Experimental data model.** The shape of the extracted API (`PipeApi` and the `Api*` types below it) is experimental until 23.0.0 and may change in a 22.x minor release. The upper fields of `ScannedPipe` and `RuntimePipe`, the `onPipeScanned` hook and `PanelDefinition.appliesTo` are stable. See [Type Reference](api/types.md#scannedpipe).
 - **Only `transform()`.** No other member of the pipe class is listed, and none contributes a type card.
 - **`@returns` text** is not shown, as for services. The return type comes from the code.
-- **Generic type parameters** are not listed.
+- **Generic type parameters** are not listed. A `transform()` inherited from a generic base class shows the base's type parameters (`value: T`).
+- **`transform` as a property.** A `transform` written as a property holding an arrow function is not read: the Transform section is left out and the template line has no arguments.
 - **No live demo.** There is no playground and no evaluated input or output. The `@example` is the place to show a result.
 - **No NgModule pipes.** See [What counts as a pipe](#what-counts-as-a-pipe).
 - **Renamed types and setup exports** behave as on the services page, see [Limits](guide/showcasing-services.md#limits).
