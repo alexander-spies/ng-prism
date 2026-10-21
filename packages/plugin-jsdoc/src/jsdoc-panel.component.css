@@ -231,37 +231,37 @@
     color: var(--prism-text-muted);
 }
 
-.prism-jsdoc-panel__description :first-child {
+:host ::ng-deep .prism-jsdoc-panel__description :first-child {
     margin-top: 0;
 }
 
-.prism-jsdoc-panel__description :last-child {
+:host ::ng-deep .prism-jsdoc-panel__description :last-child {
     margin-bottom: 0;
 }
 
-.prism-jsdoc-panel__description p {
+:host ::ng-deep .prism-jsdoc-panel__description p {
     margin: 0 0 8px;
     line-height: 1.7;
 }
 
-.prism-jsdoc-panel__description h1,
-.prism-jsdoc-panel__description h2,
-.prism-jsdoc-panel__description h3 {
+:host ::ng-deep .prism-jsdoc-panel__description h1,
+:host ::ng-deep .prism-jsdoc-panel__description h2,
+:host ::ng-deep .prism-jsdoc-panel__description h3 {
     margin: 18px 0 8px;
     font-weight: 600;
     line-height: 1.3;
     color: var(--prism-text);
 }
 
-.prism-jsdoc-panel__description h1 {
+:host ::ng-deep .prism-jsdoc-panel__description h1 {
     font-size: 18px;
 }
 
-.prism-jsdoc-panel__description h2 {
+:host ::ng-deep .prism-jsdoc-panel__description h2 {
     font-size: 15px;
 }
 
-.prism-jsdoc-panel__description h3 {
+:host ::ng-deep .prism-jsdoc-panel__description h3 {
     font-size: 11px;
     font-weight: 700;
     color: var(--prism-text-ghost);
@@ -269,33 +269,33 @@
     letter-spacing: 0.08em;
 }
 
-.prism-jsdoc-panel__description ul,
-.prism-jsdoc-panel__description ol {
+:host ::ng-deep .prism-jsdoc-panel__description ul,
+:host ::ng-deep .prism-jsdoc-panel__description ol {
     padding-left: 20px;
     margin: 0 0 8px;
 }
 
-.prism-jsdoc-panel__description li {
+:host ::ng-deep .prism-jsdoc-panel__description li {
     margin: 2px 0;
     line-height: 1.6;
 }
 
-.prism-jsdoc-panel__description a {
+:host ::ng-deep .prism-jsdoc-panel__description a {
     color: var(--prism-primary);
     text-decoration: none;
 }
 
-.prism-jsdoc-panel__description a:hover {
+:host ::ng-deep .prism-jsdoc-panel__description a:hover {
     text-decoration: underline;
 }
 
-.prism-jsdoc-panel__description strong {
+:host ::ng-deep .prism-jsdoc-panel__description strong {
     font-weight: 600;
     color: var(--prism-text);
 }
 
-.prism-jsdoc-panel__description code,
-.prism-jsdoc-panel__cell--doc code {
+:host ::ng-deep .prism-jsdoc-panel__description code,
+:host ::ng-deep .prism-jsdoc-panel__cell--doc code {
     padding: 1px 5px;
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
@@ -304,7 +304,7 @@
     border-radius: var(--radius-xs);
 }
 
-.prism-jsdoc-panel__description pre {
+:host ::ng-deep .prism-jsdoc-panel__description pre {
     padding: 0;
     margin: 0 0 8px;
     overflow: auto;
@@ -313,7 +313,7 @@
     border-radius: 8px;
 }
 
-.prism-jsdoc-panel__description pre code {
+:host ::ng-deep .prism-jsdoc-panel__description pre code {
     display: block;
     padding: 8px 12px;
     font-family: var(--font-mono);
@@ -323,7 +323,7 @@
     background: none;
 }
 
-.prism-jsdoc-panel__description blockquote {
+:host ::ng-deep .prism-jsdoc-panel__description blockquote {
     padding: 4px 12px;
     margin: 0 0 8px;
     color: var(--prism-text-2);
