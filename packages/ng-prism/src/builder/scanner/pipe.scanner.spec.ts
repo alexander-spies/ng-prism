@@ -1,5 +1,6 @@
 import path, { relative } from 'node:path';
 import ts from 'typescript';
+import { getDecoratorArgument } from './ast-utils.js';
 import { scanComponents } from './component.scanner.js';
 import { resolveEntryPointExports } from './entry-point.scanner.js';
 import { scanPipes } from './pipe.scanner.js';
@@ -44,17 +45,36 @@ describe('scanPipes', () => {
         return scanPipes(entries[0].exports, checker, { exportIndex, diagnostics, notices });
     }
 
-    /** Where the `@Pipe` of a fixture class is, as a diagnostic names it. */
-    function pipeLocation(className: string): string {
+    function pipeDecorator(className: string): ts.Decorator {
         const symbol = entries[0].exports.find((sym) => sym.name === className);
         const decl = symbol && (symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol).declarations?.find(ts.isClassDeclaration);
         const decorator = decl && findAngularCoreDecorator(decl, 'Pipe', checker);
 
         if (!decorator) throw new Error(`fixture class ${className} has no @Pipe`);
 
-        const { line, character } = decorator.getSourceFile().getLineAndCharacterOfPosition(decorator.getStart());
+        return decorator;
+    }
 
-        return `${relative(process.cwd(), decorator.getSourceFile().fileName)}:${line + 1}:${character + 1}`;
+    /** Where a node is, as a diagnostic names it. */
+    function locationOf(node: ts.Node): string {
+        const { line, character } = node.getSourceFile().getLineAndCharacterOfPosition(node.getStart());
+
+        return `${relative(process.cwd(), node.getSourceFile().fileName)}:${line + 1}:${character + 1}`;
+    }
+
+    /** Where the `@Pipe` of a fixture class is. */
+    function pipeLocation(className: string): string {
+        return locationOf(pipeDecorator(className));
+    }
+
+    /** Where the `name` property in the `@Pipe({ … })` of a fixture class is. */
+    function pipeNameLocation(className: string): string {
+        const arg = getDecoratorArgument(pipeDecorator(className));
+        const name = arg && ts.isObjectLiteralExpression(arg) ? arg.properties.find((prop) => prop.name?.getText() === 'name') : undefined;
+
+        if (!name) throw new Error(`fixture class ${className} has no name in its @Pipe literal`);
+
+        return locationOf(name);
     }
 
     it('scans TimeAgoPipe into a ScannedPipe', () => {
@@ -111,12 +131,20 @@ describe('scanPipes', () => {
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('NgModulePipe › @Pipe'));
     });
 
-    it('reports and drops a pipe whose name cannot be read', () => {
+    it('reports and drops a pipe whose name cannot be read, pointing at the name', () => {
         const diagnostics: string[] = [];
         const classes = scan(diagnostics).map((p) => p.className);
 
         expect(classes).not.toContain('DynamicNamePipe');
-        expect(diagnostics).toContain(`DynamicNamePipe › @Pipe name (${pipeLocation('DynamicNamePipe')}) cannot be evaluated statically, so the pipe was dropped.`);
+        expect(diagnostics).toContain(`DynamicNamePipe › @Pipe name (${pipeNameLocation('DynamicNamePipe')}) cannot be evaluated statically, so the pipe was dropped.`);
+    });
+
+    it('points at the @Pipe when its argument is no literal with a name', () => {
+        const diagnostics: string[] = [];
+        const classes = scan(diagnostics).map((p) => p.className);
+
+        expect(classes).not.toContain('DynamicOptionsPipe');
+        expect(diagnostics).toContain(`DynamicOptionsPipe › @Pipe name (${pipeLocation('DynamicOptionsPipe')}) cannot be evaluated statically, so the pipe was dropped.`);
     });
 
     it('reports what it drops once, however many times the entry point is scanned', () => {

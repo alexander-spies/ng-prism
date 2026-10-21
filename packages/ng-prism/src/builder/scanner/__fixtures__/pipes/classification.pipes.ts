@@ -7,6 +7,8 @@ let dynamicPure = true;
 dynamicName = dynamicName.trim();
 dynamicPure = !dynamicPure;
 
+const dynamicOptions = { name: dynamicName };
+
 @Showcase({ title: 'Standalone' })
 @Pipe({ name: 'standalone' })
 export class StandalonePipe implements PipeTransform {
@@ -67,6 +69,14 @@ export class DynamicNamePipe implements PipeTransform {
 @Showcase({ title: 'Dynamic purity' })
 @Pipe({ name: 'dynamicPure', pure: dynamicPure })
 export class DynamicPurePipe implements PipeTransform {
+    transform(value: string): string {
+        return value;
+    }
+}
+
+@Showcase({ title: 'Dynamic options' })
+@Pipe(dynamicOptions)
+export class DynamicOptionsPipe implements PipeTransform {
     transform(value: string): string {
         return value;
     }

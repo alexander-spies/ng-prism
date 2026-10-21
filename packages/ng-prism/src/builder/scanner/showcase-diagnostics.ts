@@ -1,6 +1,6 @@
 import { relative } from 'node:path';
 import ts from 'typescript';
-import { evaluateExpression, type EvaluationPath, type UnevaluableIssue, type UnresolvedReference } from './ast-utils.js';
+import { evaluateExpression, type EvaluationPath, getDecoratorArgument, type UnevaluableIssue, type UnresolvedReference } from './ast-utils.js';
 import type { UnreadableBase } from './class-hierarchy.js';
 
 const MAX_EXCERPT_LENGTH = 60;
@@ -95,9 +95,16 @@ export function describePipeNotStandalone(className: string, node: ts.Node): str
     return `${className} › @Pipe (${location(node)}) is declared with standalone: false; ng-prism shows standalone pipes only, so it was dropped.`;
 }
 
-/** The name is what a template calls the pipe by; without it the pipe has no usage to show. */
-export function describePipeNameUnreadable(className: string, node: ts.Node): string {
-    return `${className} › @Pipe name (${location(node)}) cannot be evaluated statically, so the pipe was dropped.`;
+/**
+ * The name is what a template calls the pipe by; without it the pipe has no
+ * usage to show. It points at the `name` property of the `@Pipe({ … })`
+ * literal if there is one, else at the decorator.
+ */
+export function describePipeNameUnreadable(className: string, decorator: ts.Decorator): string {
+    const arg = getDecoratorArgument(decorator);
+    const name = arg && ts.isObjectLiteralExpression(arg) ? findProperty(arg, 'name') : undefined;
+
+    return `${className} › @Pipe name (${location(name ?? decorator)}) cannot be evaluated statically, so the pipe was dropped.`;
 }
 
 /** `setup` lists what configures a service or a pipe; a component has no use for it, and says so instead of silently ignoring it. */

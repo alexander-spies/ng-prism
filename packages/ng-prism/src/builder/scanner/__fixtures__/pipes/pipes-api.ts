@@ -1,4 +1,14 @@
-export { DynamicNamePipe, DynamicPurePipe, ImpurePipe, InjectablePipe, LegacyPagePipe, NgModulePagePipe, NgModulePipe, StandalonePipe } from './classification.pipes.js';
+export {
+    DynamicNamePipe,
+    DynamicOptionsPipe,
+    DynamicPurePipe,
+    ImpurePipe,
+    InjectablePipe,
+    LegacyPagePipe,
+    NgModulePagePipe,
+    NgModulePipe,
+    StandalonePipe
+} from './classification.pipes.js';
 export { DeprecatedOverloadPipe, FirstDocumentedPipe, ImplementationDocumentedPipe, OverloadAndImplementationDocumentedPipe } from './doc-fallback.pipes.js';
 export { ExtraMembersPipe, type HighlightMatch } from './extra-members.pipe.js';
 export { InheritedTransformPipe, TruncateBase } from './inherited-transform.pipe.js';
