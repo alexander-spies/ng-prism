@@ -29,8 +29,8 @@ const LIFECYCLE_HOOKS = new Set([
 ]);
 
 type Accessor = ts.GetAccessorDeclaration | ts.SetAccessorDeclaration;
-type NamedMember = ts.PropertyDeclaration | ts.MethodDeclaration | Accessor;
-type PropertyLike = ts.PropertyDeclaration | ts.PropertySignature | Accessor;
+type NamedMember = ts.PropertyDeclaration | ts.MethodDeclaration | Accessor | ts.ParameterPropertyDeclaration;
+type PropertyLike = ts.PropertyDeclaration | ts.PropertySignature | Accessor | ts.ParameterPropertyDeclaration;
 
 /** A type as written, or as the checker prints it when there is nothing written. Whitespace is collapsed, so a multi-line literal type stays on one line. */
 export function readTypeText(checker: ts.TypeChecker, typeNode: ts.TypeNode | undefined, type: ts.Type): string {
@@ -53,6 +53,8 @@ export function textOnlyResolver(checker: ts.TypeChecker): TypeRefResolver {
  *
  * Left out: `private`, `protected` and `#` members, names with a `_` prefix,
  * lifecycle hooks, the constructor, statics and what is tagged `@internal`.
+ * The constructor's parameter properties (`constructor(readonly id: string)`)
+ * are properties, in the constructor's place, described by its `@param`.
  * Methods are listed with or without JSDoc. A redeclaration without JSDoc of
  * its own keeps its signature, but takes description, tags and `@param` texts
  * from the nearest base class member of that name that has them.
@@ -68,11 +70,11 @@ export function extractMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeC
             if (declared.has(name)) continue;
 
             // The doc block sits on one of them: the first overload, or the getter or the setter.
-            const declaration = group.find(isDocumented) ?? group[0];
+            const declaration = group.find(hasOwnDocs) ?? group[0];
 
             if (!isPublicApi(name, group, declaration)) continue;
 
-            const docs = isDocumented(declaration) ? declaration : (findInheritedDocs(levels.slice(level + 1), name) ?? declaration);
+            const docs = hasOwnDocs(declaration) ? declaration : (findInheritedDocs(levels.slice(level + 1), name) ?? declaration);
 
             if (ts.isMethodDeclaration(declaration)) methods.push(extractMethod(name, declaration, docs, checker, types));
             else properties.push(extractProperty(name, group as PropertyLike[], declaration, docs, checker, types));
@@ -114,22 +116,39 @@ export function extractObjectTypeMembers(type: ts.Type, checker: ts.TypeChecker,
     return { properties, methods };
 }
 
-/** The named instance members of a class by name: a getter and its setter, or the overloads of a method, share one entry. */
+/**
+ * The named instance members of a class by name, in source order: a getter and
+ * its setter, or the overloads of a method, share one entry. The parameter
+ * properties of the constructor come in where the constructor stands.
+ */
 function groupByName(classDecl: ts.ClassDeclaration): Map<string, NamedMember[]> {
     const groups = new Map<string, NamedMember[]>();
+    const add = (name: string, member: NamedMember) => groups.set(name, [...(groups.get(name) ?? []), member]);
 
     for (const member of classDecl.members) {
+        if (ts.isConstructorDeclaration(member)) {
+            for (const param of member.parameters) {
+                if (ts.isParameterPropertyDeclaration(param, member)) add(param.name.text, param);
+            }
+            continue;
+        }
         if (!(ts.isPropertyDeclaration(member) || ts.isMethodDeclaration(member) || ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member))) continue;
         if (hasModifier(member, ts.SyntaxKind.StaticKeyword)) continue;
 
         const name = getMemberName(member);
 
-        if (name === undefined) continue;
-
-        groups.set(name, [...(groups.get(name) ?? []), member]);
+        if (name !== undefined) add(name, member);
     }
 
     return groups;
+}
+
+/**
+ * Whether a member is documented where it is declared: by a doc block of its
+ * own, or, for a parameter property, by the constructor's `@param` for it.
+ */
+function hasOwnDocs(member: NamedMember): boolean {
+    return isDocumented(member) || (ts.isParameter(member) && readParamDescriptions(member.parent).has(member.name.text));
 }
 
 function isPublicApi(name: string, group: NamedMember[], declaration: NamedMember): boolean {
@@ -143,7 +162,7 @@ function isPublicApi(name: string, group: NamedMember[], declaration: NamedMembe
 /** The documented declaration of a name in the nearest of the given base classes that has one. */
 function findInheritedDocs(levels: Map<string, NamedMember[]>[], name: string): NamedMember | undefined {
     for (const groups of levels) {
-        const documented = groups.get(name)?.find(isDocumented);
+        const documented = groups.get(name)?.find(hasOwnDocs);
 
         if (documented) return documented;
     }
@@ -155,7 +174,7 @@ function findInheritedDocs(levels: Map<string, NamedMember[]>[], name: string): 
 function extractProperty(name: string, group: PropertyLike[], declaration: PropertyLike, docs: ts.Node, checker: ts.TypeChecker, types: TypeRefResolver): ApiProperty {
     const getter = group.find(ts.isGetAccessorDeclaration);
     const setter = group.find(ts.isSetAccessorDeclaration);
-    const isField = ts.isPropertyDeclaration(declaration) || ts.isPropertySignature(declaration);
+    const isField = ts.isPropertyDeclaration(declaration) || ts.isPropertySignature(declaration) || ts.isParameter(declaration);
     // A property reads its type from the getter, and from the setter's parameter when there is none.
     const typeNode = isField ? declaration.type : (getter?.type ?? setter?.parameters[0]?.type);
     const property: ApiProperty = {
@@ -167,7 +186,9 @@ function extractProperty(name: string, group: PropertyLike[], declaration: Prope
 
     if (isField && declaration.questionToken) property.optional = true;
 
-    const description = readDescription(docs);
+    // A parameter property has its text in the constructor's `@param`, unless it carries a block of its own.
+    const description =
+        readDescription(docs) ?? (ts.isParameter(docs) && ts.isIdentifier(docs.name) ? readParamDescriptions(docs.parent).get(docs.name.text) : undefined);
 
     if (description) property.description = description;
 

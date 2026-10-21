@@ -283,6 +283,61 @@ describe('member extractor', () => {
             expect(methods.map((m) => m.name)).toEqual(['own', 'fromB', 'fromA']);
         });
 
+        it('lists constructor parameter properties where the constructor sits', () => {
+            const { properties, methods } = extract(
+                [
+                    "class Base { label = ''; }",
+                    'class Subject extends Base {',
+                    '  first = 1;',
+                    '  /**',
+                    '   * Makes one.',
+                    '   *',
+                    '   * @param id - The id.',
+                    '   * @param count How many.',
+                    '   */',
+                    "  constructor(public readonly id: string, protected secret: string, private hidden: number, override label = 'x', readonly count?: number, plain = 2) {",
+                    '    super();',
+                    '  }',
+                    '  last(): void {}',
+                    '}'
+                ].join('\n')
+            );
+
+            expect(properties).toEqual([
+                { name: 'first', type: { text: 'number' }, readonly: false, tags: {} },
+                { name: 'id', type: { text: 'string' }, readonly: true, description: 'The id.', tags: {} },
+                { name: 'label', type: { text: 'string' }, readonly: false, tags: {} },
+                { name: 'count', type: { text: 'number' }, readonly: true, optional: true, description: 'How many.', tags: {} }
+            ]);
+            expect(methods.map((m) => m.name)).toEqual(['last']);
+        });
+
+        it('takes constructor parameter properties from a base class', () => {
+            const { properties } = extract(['class Base {', '  constructor(readonly id: string) {}', '}', 'class Subject extends Base {', '  own = 1;', '}'].join('\n'));
+
+            expect(properties.map((p) => [p.name, p.readonly])).toEqual([
+                ['own', false],
+                ['id', true]
+            ]);
+        });
+
+        it('prefers the @param text of a parameter property over the docs of the base member it redeclares', () => {
+            const { properties } = extract(
+                [
+                    'class Base {',
+                    '  /** From the base. */',
+                    "  label = '';",
+                    '}',
+                    'class Subject extends Base {',
+                    '  /** @param label Own text. */',
+                    '  constructor(override readonly label: string) { super(); }',
+                    '}'
+                ].join('\n')
+            );
+
+            expect(properties).toEqual([{ name: 'label', type: { text: 'string' }, readonly: true, description: 'Own text.', tags: {} }]);
+        });
+
         it('skips the this parameter', () => {
             const { methods } = extract(`class Subject { run(this: Subject, value: string): void {} }`);
 

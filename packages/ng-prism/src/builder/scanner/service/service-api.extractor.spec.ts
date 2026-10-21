@@ -128,6 +128,7 @@ describe('service API extractor', () => {
         expect(action).toMatchObject({ id: 'ToastAction', kind: 'interface', description: 'A button inside the toast.' });
         expect(action.properties!.map((p) => p.name)).toEqual(['label', 'handler']);
         expect(ref.kind).toBe('class');
+        expect(ref.properties).toEqual([{ name: 'id', type: { text: 'string' }, readonly: true, description: 'Identifies the toast on screen.', tags: {} }]);
         expect(ref.methods!.map((m) => m.name)).toEqual(['dismiss']);
         expect(typeOf(toast, 'ToastPosition')).toMatchObject({ kind: 'type', union: ["'top-right'", "'bottom-right'"] });
         expect(typeOf(toast, 'ToastLevel')).toMatchObject({
