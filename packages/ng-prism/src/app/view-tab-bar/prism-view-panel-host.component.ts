@@ -2,7 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { Component, computed, createEnvironmentInjector, effect, EnvironmentInjector, inject, OnDestroy, signal, type Type } from '@angular/core';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
-import { panelInputsFor } from './panel-inputs.js';
+import { activeViewPanel, panelInputsFor } from './panel-inputs.js';
 
 @Component({
     selector: 'prism-view-panel-host',
@@ -19,7 +19,9 @@ export class PrismViewPanelHostComponent implements OnDestroy {
     private readonly allViewPanels = this.panelService.viewPanels;
 
     protected readonly resolvedComponent = signal<Type<unknown> | null>(null);
-    private readonly activePanel = computed(() => this.allViewPanels().find((p) => p.id === this.panelService.activeViewId()));
+    private readonly activePanel = computed(() =>
+        activeViewPanel(this.allViewPanels(), this.panelService.activeViewId(), this.nav.activeService() ? 'service' : 'component')
+    );
 
     protected readonly panelInputs = computed(() => panelInputsFor(this.activePanel(), this.nav.activeComponent(), this.nav.activeService()));
 

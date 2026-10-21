@@ -11,6 +11,7 @@ import { A11yAuditService } from '../a11y/a11y-audit.service.js';
 import { resolveA11yThresholds } from '../a11y/a11y-thresholds.js';
 import type { A11yCoreConfig, A11yManifestMeta } from '../a11y/a11y.types.js';
 import { BUILTIN_PANELS } from '../builtin-panels.js';
+import { addonPanelsFor } from './addon-panels.js';
 import { resolvePanelBadge } from './panel-badge.js';
 
 type RenderedPanelEntry = {
@@ -68,13 +69,9 @@ export class PrismPanelHostComponent {
 
     private readonly builtInPanels = BUILTIN_PANELS;
 
-    protected readonly allPanels = computed(() => {
-        const comp = this.nav.activeComponent();
-        const panels = [...this.builtInPanels.filter((p) => p.placement !== 'view'), ...this.pluginService.addonPanels()];
-
-        if (!comp) return panels;
-        return panels.filter((p) => !p.isVisible || p.isVisible(comp));
-    });
+    protected readonly allPanels = computed(() =>
+        addonPanelsFor([...this.builtInPanels.filter((p) => p.placement !== 'view'), ...this.pluginService.addonPanels()], this.nav.activeComponent())
+    );
 
     protected readonly panelInputs = computed(() => ({
         activeComponent: this.nav.activeComponent()
