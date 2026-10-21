@@ -47,6 +47,7 @@ export default defineConfig({
     - Outputs table (name, description)
     - Supported tags: `@deprecated`, `@since`, `@see`, `@example`
 - Draws the API page of every service with `@Showcase` (since 22.7.0): its properties, methods and setup, a generated usage snippet and the types it reaches, see [Services](https://ng-prism.github.io/ng-prism/#/plugins/jsdoc?id=services)
+- Draws the API page of every pipe with `@Showcase` (since 22.7.0): the template name, purity, every `transform()` signature and setup, a generated usage snippet and the types it reaches, see [Pipes](https://ng-prism.github.io/ng-prism/#/plugins/jsdoc?id=pipes)
 
 ## Markdown Support
 

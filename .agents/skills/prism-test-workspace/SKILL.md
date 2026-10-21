@@ -36,12 +36,14 @@ node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component B
 node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component ButtonComponent --variant 1 --state 0
 node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --component ButtonComponent --shell
 node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --service NotificationService
+node .agents/plugins/claude/skills/showcase/scripts/screenshot.mjs --pipe TimeAgoPipe
 ```
 
 - By default it opens `?component=…&variant=…&capture=1` and screenshots `.demo-wrap`: the component alone, on its declared background, with motion frozen. Use it for anything that changes how a component or variant renders.
 - `--state <index>` captures the variant in one of the component's `states` (0-based, in source order). A state that doesn't fit the variant prints the reason and exits 4 without a PNG.
 - `--shell` takes the whole window without capture mode. Use it for changes to the styleguide's own UI (sidebar, header, panels, canvas tools), which capture mode removes.
 - `--service <ClassName>` captures a service's API page (`?service=…&view=jsdoc`, rendered by the JSDoc plugin from the service's JSDoc) at its full length, without sidebar and header. It waits for `data-prism-service-rendered="<ClassName>"` and the highlighted code blocks. `test-lib`'s demo service is `NotificationService`. Use it for changes to the service scanner or the service page. Services are not in `window.__PRISM_MANIFEST__`, so an unknown name only shows as "Service page never rendered" (exit 1).
+- `--pipe <ClassName>` does the same for a pipe (`?pipe=…&view=jsdoc`, waits for `data-prism-pipe-rendered="<ClassName>"`). `test-lib`'s demo pipe is `TimeAgoPipe`, with two overloads, a `setup` function and a config interface. Use it for changes to the pipe scanner, the usage snippet or the pipe page. An unknown name only shows as "Pipe page never rendered" (exit 1). `--pipe` and `--service` exclude each other and `--component`, `--variant`, `--state` and `--shell` (exit 2).
 - `--url http://localhost:4401` targets `test-ui-kit`; `--out <file>` sets the path (default: the system temp dir).
 
 Variant indexes are 0-based, in `@Showcase` order. The script reads `window.__PRISM_MANIFEST__` first and lists the known components or variants when the one you named doesn't exist. It then waits for the render marker `data-prism-rendered="<ClassName>:<variant>"` (`<ClassName>:<variant>:<state>` with `--state`), prints the URL and the PNG path, and lists browser console errors. Exit codes: 0 saved, 1 not reachable, not found (component, variant or state), never rendered (then it saves the full window for diagnosis) or the screenshot failed, 2 invalid arguments, 3 Playwright or Chromium missing, 4 the state doesn't fit the variant (`data-prism-excluded`). A variant without `bg` or with `bg: 'transparent'` comes back as a PNG with alpha.

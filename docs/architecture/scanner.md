@@ -10,10 +10,10 @@ The scanner is created via `createScanner()` in `src/builder/scanner/scanner.ts`
 const scanner = createScanner({
     entryPoints: [{ entryFile: 'packages/my-lib/src/public-api.ts', importPath: 'my-lib' }]
 });
-const { components, services, diagnostics } = scanner.scan();
+const { components, services, pipes, diagnostics } = scanner.scan();
 ```
 
-Each `scan()` call creates a `ts.Program` with every entry file as a root, resolves the exports of each entry point, and passes them to `scanComponents()` and to `scanServices()`. A `@Showcase` class goes to exactly one of the two, see [Services](#services).
+Each `scan()` call creates a `ts.Program` with every entry file as a root, resolves the exports of each entry point, and passes them to `scanComponents()`, `scanServices()` and `scanPipes()`. A `@Showcase` class goes to exactly one of the three, see [Services](#services) and [Pipes](#pipes).
 
 ## Incremental Builds: the `createScanner()` Factory
 
@@ -86,7 +86,7 @@ If no `ng-package.json` is found above the file, the file is the only entry poin
 
 ## How Decorators Are Extracted
 
-`component.scanner.ts` iterates over exported symbols, calls `findDecorator()` for each class declaration, and checks for `@Showcase`, `@Component`, and `@Directive` decorators. `findShowcasedClass()` is the common start of this and the service scan: it resolves an export to its class and returns it when it carries `@Showcase`.
+`component.scanner.ts` iterates over exported symbols, calls `findDecorator()` for each class declaration, and checks for `@Showcase`, `@Component`, and `@Directive` decorators. `findShowcasedClass()` is the common start of this and the service and pipe scans: it resolves an export to its class and returns it when it carries `@Showcase`.
 
 **`findDecorator(node, name)`** in `ast-utils.ts` walks the node's decorator list and matches by identifier name. It supports both call-expression decorators (`@Component({...})`) and plain identifier decorators.
 
@@ -132,7 +132,7 @@ All three callers pass the checker. They treat a drop differently:
 
 `describeUnevaluable()` in `showcase-diagnostics.ts` turns each `@Showcase` issue into a message: the component, the path (a variant or a state is named by its index and its `name`), the source text, and its `file:line:column` relative to the working directory so terminals and editors can link it.
 
-`scanComponents()` prints each message once as a warning and collects it in a `diagnostics` array. The values it rejects after evaluation (an invalid `bg`, `status` or `canvasLayout`, an unknown `pseudo` state or a `pseudo` target that is neither `true` nor a selector, a missing `title`) go through the same channel, and so does the deprecated `providers` field, as one message for the whole field instead of one per provider. The setup diagnostics of a service (see [Services](#services)) go through the same channel. A deprecated `bg: 'checker'` stays a plain warning, because nothing is lost. `createScanner().scan()` shares one array across all entry points, so a component exported from several of them warns once, and returns it as `ScanResult.diagnostics`. The pipeline throws on a non-empty array when [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on, before plugin hooks run and before a manifest is written.
+`scanComponents()` prints each message once as a warning and collects it in a `diagnostics` array. The values it rejects after evaluation (an invalid `bg`, `status` or `canvasLayout`, an unknown `pseudo` state or a `pseudo` target that is neither `true` nor a selector, a missing `title`) go through the same channel, and so does the deprecated `providers` field, as one message for the whole field instead of one per provider. The setup diagnostics of a service or a pipe (see [Services](#services)) and the two diagnostics of a pipe (see [Pipes](#pipes)) go through the same channel. A deprecated `bg: 'checker'` stays a plain warning, because nothing is lost. `createScanner().scan()` shares one array across all entry points, so a component exported from several of them warns once, and returns it as `ScanResult.diagnostics`. The pipeline throws on a non-empty array when [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on, before plugin hooks run and before a manifest is written.
 
 `readShowcaseStates()` in `showcase-states.ts` reads the component-level `states` list, and it keeps every slot: a state is identified by its position (the URL parameter, the render marker and the discovery manifest all use the index), so an entry it cannot use becomes `{ name, pseudo: {} }`, an empty column in the Overview, instead of being removed and shifting the entries behind it. It reports a `states` value that is no list, an entry that is no object, a missing or empty `name` (the state is then called `State <position>`), a name that repeats an earlier state (only the first one is used), a state without `pseudo`, and whatever `readPseudoStates()` rejects inside a state's `pseudo`, worded with the state's name. An entry `evaluateStatic` could not read at all (`states: [a, buildState(), c]`) is gone from the evaluated list, so `component.scanner.ts` notes the position from the issue's path and `readShowcaseStates()` puts an empty `State <position>` slot back there; the unevaluable message already explains it, so it adds none. An empty list reads as no states and reports nothing. `states` next to `renderPage` is reported and skipped, because a component page has no Overview, and a variant's `states` that is anything but `false` is reported and removed.
 
@@ -142,17 +142,18 @@ A service is a class with `@Showcase` and `@Injectable` or `@Service`. `componen
 
 ### Telling a service from a component
 
-`classifyShowcaseClass()` in `service/angular-decorators.ts` returns one of three kinds:
+`classifyShowcaseClass()` in `service/angular-decorators.ts` returns one of four kinds. It looks at the decorators in this order, `@Component` or `@Directive`, then `@Pipe`, then `@Service` or `@Injectable`, and the first it finds decides, so a class with `@Pipe` and `@Injectable` is a pipe:
 
-| Kind               | When                                                                                                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `component`        | The class has `@Component` or `@Directive` (found by name, as everywhere), or neither `@Injectable` nor `@Service`                                                                   |
-| `legacy-component` | `@Injectable` or `@Service` and a `@Showcase` argument that declares a field only a component can use: `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage` |
-| `service`          | `@Injectable` or `@Service`, and none of those fields                                                                                                                                |
+| Kind               | When                                                                                                                                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `component`        | The class has `@Component` or `@Directive` (found by name, as everywhere), or none of `@Pipe`, `@Injectable` and `@Service`                                                                                                   |
+| `pipe`             | `@Pipe` from `@angular/core` and none of the component-only fields below, also with `@Injectable`. Whether the pipe can be shown is for `scanPipes()` to decide                                                               |
+| `legacy-component` | `@Pipe`, `@Injectable` or `@Service` and a `@Showcase` argument that declares a field only a component can use: `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`. Carries which decorator it was |
+| `service`          | `@Injectable` or `@Service`, and none of those fields                                                                                                                                                                         |
 
-`findAngularCoreDecorator()` finds `Injectable` and `Service` by name and then checks through the checker that the identifier is imported from `@angular/core` under that same name, so a decorator imported under another one (`import { Injectable as Service }`) is not recognised. TypeDI and other libraries have a `@Service()` of their own, and it makes no service. The scanner never imports `Service` from `@angular/core`: Angular 20 has none, and the decorator is recognised in the source alone, so the peer dependency stays `>=20.0.0`.
+`findAngularCoreDecorator()` finds `Injectable`, `Service` and `Pipe` by name and then checks through the checker that the identifier is imported from `@angular/core` under that same name, so a decorator imported under another one (`import { Injectable as Service }`) is not recognised. TypeDI and other libraries have a `@Service()` of their own, and it makes no service. The scanner never imports `Service` from `@angular/core`: Angular 20 has none, and the decorator is recognised in the source alone, so the peer dependency stays `>=20.0.0`.
 
-The `@Showcase` argument is read from the literal and from the evaluated value, since a constant or a spread can bring in a component-only field and a field the evaluator cannot read is still in the literal. A `legacy-component` is scanned as a component, as before services existed, and `scanComponents()` prints a notice through `notify`, not `report`, so it is not a [diagnostic](#diagnostics) and `strictShowcase` does not fail over it. The exception is deprecated since 22.7.0 and ends in 23.0.0.
+The `@Showcase` argument is read from the literal and from the evaluated value, since a constant or a spread can bring in a component-only field and a field the evaluator cannot read is still in the literal. A `legacy-component` is scanned as a component, as before services and pipes existed, and `scanComponents()` prints a notice through `notify`, not `report`, so it is not a [diagnostic](#diagnostics) and `strictShowcase` does not fail over it. The notice for a pipe has two wordings, depending on whether the pipe is declared with `standalone: false`, see [Pipes](#pipes). The exception is deprecated since 22.7.0 and ends in 23.0.0.
 
 ### Provision
 
@@ -167,7 +168,7 @@ The `@Showcase` argument is read from the literal and from the evaluated value, 
 - The symbol is looked up in the export index. An entry no scanned entry point exports has no import path for the usage snippet and is dropped with `describeSetupEntryNotExported`.
 - Only the literal is searched. A `setup` that arrives through a spread or a constant is not found and dropped without a word.
 
-On a component, `scanComponents()` reports `describeSetupOnComponent` and ignores the field.
+On a component, `scanComponents()` reports `describeSetupOnComponent` and ignores the field. Its text says that `setup` only applies to services and pipes.
 
 ### The export index
 
@@ -184,6 +185,22 @@ On a component, `scanComponents()` reports `describeSetupOnComponent` and ignore
 `service-api.extractor.ts` adds the setup entries: the signature and docs of a function, the type of a token, and a config table made of the properties of the first parameter's object type, or of a token's type argument, looked at through `Partial`, `Required` and `Readonly`. A class, an array or a primitive gets no table.
 
 The shape of all of this, `ServiceApi` and the `Api*` types, is experimental until 23.0.0, see [`ServiceApi`](api/types.md#serviceapi).
+
+## Pipes
+
+A pipe is a class with `@Showcase` and `@Pipe`. `pipe.scanner.ts` runs like `scanServices()` and shares its export index, the dedupe across entry points and the `report` and `notify` channels, so a pipe is in `ScanResult.pipes` and never in `components` or `services`. `scanComponents()` and `scanServices()` skip it. The pieces a service already has are reused: `readSetupRefs()` for `setup`, the doc-tag reader, `extractMethod()` for signatures and the type collector.
+
+`readPipeOptions()` in `service/angular-decorators.ts` reads `name`, `pure` and `standalone` from the `@Pipe` metadata through the static evaluator, and guesses nothing that is not there:
+
+- **`name`** is the template name. A source that does not give it as a string constant leaves it out, and `scanPipes()` reports `describePipeNameUnreadable` and drops the pipe.
+- **`standalone`** is only `false` when the metadata says exactly that, since `true` is the default. A pipe with `standalone: false` is reported with `describePipeNotStandalone` and dropped: the usage snippet imports a pipe into a component, which an NgModule pipe does not allow, and finding the module is not attempted.
+- **`pure`** is `true` when the metadata does not say. One that cannot be read (a `let`, a call, a spread that fails) is left out of `ScannedPipe`, which removes the Pure / Impure chip and warns about nothing.
+
+The legacy rule is checked first, before anything is said about the pipe itself: a `@Pipe` class with a component-only field, whatever its `standalone` and `name`, is a `legacy-component` and keeps the page it has today. Only the wording of its notice depends on `standalone`.
+
+`pipe-api.extractor.ts` builds the `PipeApi`. The class's own description and tags come from its doc block, and no description is inherited. The signatures of `transform()` come from the nearest class in the chain that declares one. `getClassChain()` in `class-hierarchy.ts` provides that chain, base classes that only exist as a `.d.ts` included: unlike inputs, whose initializers a declaration has lost, signatures and doc blocks are complete there, so `class LocalDatePipe extends DatePipe {}` shows the `transform()` of `DatePipe`. Within that class, every overload signature (a declaration without a body) becomes one `ApiMethod` and the implementation is dropped; without overloads the one declaration is the entry. A signature without a doc block of its own takes the implementation's, then the first documented signature's, then the first documented `transform()` of the nearest base class that has one. No other member is read and none starts the type collector, which begins at the `transform()` signatures and the setup entries.
+
+The shape of `PipeApi` is experimental until 23.0.0, see [`PipeApi`](api/types.md#pipeapi).
 
 ## Input and Output Extraction
 
@@ -259,3 +276,10 @@ A class is considered a directive (`isDirective: true`) if it has `@Directive` b
 - `showcaseConfig`: the evaluated `@Showcase` argument, reduced to the fields that apply to services
 - `provision`: `'auto'` or `'manual'`
 - `api`: the extracted `ServiceApi`
+
+`scanPipes()` returns `ScannedPipe` objects, in `ScanResult.pipes`:
+
+- `className`, `filePath`, `importPath`
+- `showcaseConfig`: reduced to the same fields as a service's
+- `pipeName`, and `pure` when it is known
+- `api`: the extracted `PipeApi`

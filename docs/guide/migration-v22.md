@@ -320,11 +320,11 @@ None of this affects `ShowcaseConfig`, the manifest format, or any plugin's publ
 
 ## Breaking changes and deprecations in 22.7.0
 
-`22.7.0` adds [services](showcasing-services.md) to the styleguide. Everything else is additive: `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__` and `onComponentScanned` see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. There is one breaking change, and it is a type-level one in application code. The deprecation below changes nothing in 22.x.
+`22.7.0` adds [services](showcasing-services.md) and [pipes](showcasing-pipes.md) to the styleguide. Everything else is additive: `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. There is one breaking change, and it is a type-level one in application code. The deprecation below changes nothing in 22.x.
 
-### Breaking change: NavigationItem has a third kind
+### Breaking change: NavigationItem has two new kinds
 
-`NavigationItem` is exported from `@ng-prism/core` and gains `{ kind: 'service'; data: RuntimeService }`. It only affects code of your own that narrows a `NavigationItem` by `kind` and reads `data`, for example a custom page or a plugin panel reading `PrismNavigationService.activeItem()`. That code needs a `'service'` branch. A plain two-way check now fails to compile, because the other branch is `RuntimeService | StyleguidePage`:
+`NavigationItem` is exported from `@ng-prism/core` and gains `{ kind: 'service'; data: RuntimeService }` and `{ kind: 'pipe'; data: RuntimePipe }`. It only affects code of your own that narrows a `NavigationItem` by `kind` and reads `data`, for example a custom page or a plugin panel reading `PrismNavigationService.activeItem()`. That code needs a `'service'` and a `'pipe'` branch. A plain two-way check now fails to compile, because the other branch is `RuntimeService | RuntimePipe | StyleguidePage`:
 
 ```typescript
 // before 22.7.0
@@ -337,6 +337,7 @@ function label(item: NavigationItem): string {
     switch (item.kind) {
         case 'component':
         case 'service':
+        case 'pipe':
             return item.data.meta.showcaseConfig.title;
         case 'page':
             return item.data.title;
@@ -344,11 +345,13 @@ function label(item: NavigationItem): string {
 }
 ```
 
-The same goes for a `switch` that ends in `never` and for a lookup typed on the union. At runtime nothing changes until your styleguide actually contains a service. The members `PrismNavigationService.activeService` and `selectService()` and the `service` URL parameter are new and change nothing for existing code. See [`NavigationItem`](../api/types.md#navigationitem).
+The same goes for a `switch` that ends in `never` and for a lookup typed on the union. At runtime nothing changes until your styleguide actually contains a service or a pipe. The members `PrismNavigationService.activeService`, `selectService()`, `activePipe` and `selectPipe()` and the `service` and `pipe` URL parameters are new and change nothing for existing code. See [`NavigationItem`](../api/types.md#navigationitem).
 
-### Deprecation: injectables with component-only fields
+### Deprecation: injectables and pipes with component-only fields
 
-**Deprecated since 22.7.0, removed in 23.0.0. Nothing changes in 22.x.** Before services, a class with `@Showcase` and `@Injectable` landed in `components`, and with `renderPage` it had a working page. It keeps that page in 22.x: a class with `@Injectable` or `@Service` that declares `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or `renderPage` stays a component, and the build prints a notice (it does not count for [`strictShowcase`](../api/ng-prism-config.md#strictshowcase)). From 23.0.0 it is shown as a service and those fields are dropped. To switch now, remove the fields, or move the page to a [component page](component-pages.md) and keep the service on its own. See [Showcasing Services: Compatibility until 23.0.0](showcasing-services.md#compatibility-until-2300).
+**Deprecated since 22.7.0, removed in 23.0.0. Nothing changes in 22.x.** Before services and pipes had a page, a class with `@Showcase` and `@Injectable` or `@Pipe` landed in `components`, and with `renderPage` it had a working page. It keeps that page in 22.x: a class with `@Injectable`, `@Service` or `@Pipe` that declares `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or `renderPage` stays a component, and the build prints a notice (it does not count for [`strictShowcase`](../api/ng-prism-config.md#strictshowcase)). From 23.0.0 it is shown as a service or a pipe and those fields are dropped. To switch now, remove the fields, or move the page to a [component page](component-pages.md) and keep the service or pipe on its own. See [Showcasing Services: Compatibility until 23.0.0](showcasing-services.md#compatibility-until-2300) and [Showcasing Pipes: Compatibility until 23.0.0](showcasing-pipes.md#compatibility-until-2300).
+
+A `@Pipe` declared in an NgModule (`standalone: false`) goes one step further. ng-prism shows standalone pipes only, so from 23.0.0 such a pipe with `@Showcase` is dropped with a warning, and one with component-only fields loses its page with it. The notice in 22.x says so: `From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.` Make the pipe standalone and remove the fields to have it shown as a pipe, or move the page to a component page.
 
 ## Related
 

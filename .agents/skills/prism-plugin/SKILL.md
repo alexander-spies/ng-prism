@@ -17,6 +17,8 @@ interface NgPrismPlugin {
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
     // Services (@Showcase + @Injectable/@Service) never reach onComponentScanned; they get this hook (since 22.7.0)
     onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
+    // Pipes (@Showcase + @Pipe) have their own hook and list as well, apart from components and services (since 22.7.0)
+    onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
 
@@ -111,9 +113,10 @@ interface PanelDefinition {
     icon?: string;
     position?: 'bottom' | 'right'; // deprecated since 22.6.0, never had an effect
     placement?: 'addon' | 'view';
-    // Default ['component']. 'service' only counts on a view panel: it gets the input activeService, and the
-    // build keeps services in the manifest only when such a panel exists (read from the Node entry). Since 22.7.0.
-    appliesTo?: readonly ('component' | 'service')[];
+    // Default ['component']. 'service' and 'pipe' only count on a view panel: they give the inputs activeService and
+    // activePipe, and the build keeps services (pipes) in the manifest only when such a panel exists for them, decided
+    // apart (read from the Node entry). Since 22.7.0.
+    appliesTo?: readonly ('component' | 'service' | 'pipe')[];
     providers?: Provider[];
     isVisible?: (component: RuntimeComponent) => boolean; // components only
     badge?: (component: RuntimeComponent) => PanelBadge | null;

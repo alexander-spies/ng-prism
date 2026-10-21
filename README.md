@@ -116,17 +116,17 @@ The details, including Nx targets and how to use the transformer programmaticall
 
 Storybook is a great tool. ng-prism deliberately covers less. It only supports Angular and tries to work the way Angular does.
 
-|                     | Storybook                                                     | ng-prism                                                                                        |
-| ------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Frameworks          | React, Vue, Angular and more                                  | Angular only                                                                                    |
-| Where variants live | Separate `*.stories.ts`                                       | On the component                                                                                |
-| Controls            | Configured via `argTypes` / Compodoc                          | Inferred from `input()` signals                                                                 |
-| Services            | Hand-written MDX page per service, members table via Compodoc | `@Showcase` on the service: API page from its JSDoc, with usage snippet, setup and linked types |
-| Visual regression   | Chromatic (paid SaaS) or community addons                     | Official plugin, works with your own screenshot runner, no SaaS                                 |
-| Accessibility       | `@storybook/addon-a11y`                                       | Built in (axe-core)                                                                             |
-| Design handoff      | Design addons                                                 | Official Figma plugin, with an opt-in pixel diff against the design                             |
-| Interaction tests   | Yes (play functions)                                          | No                                                                                              |
-| Addon ecosystem     | Huge                                                          | Small (official plugins)                                                                        |
+|                     | Storybook                                                             | ng-prism                                                                                                |
+| ------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Frameworks          | React, Vue, Angular and more                                          | Angular only                                                                                            |
+| Where variants live | Separate `*.stories.ts`                                               | On the component                                                                                        |
+| Controls            | Configured via `argTypes` / Compodoc                                  | Inferred from `input()` signals                                                                         |
+| Services and pipes  | Hand-written MDX page per service or pipe, members table via Compodoc | `@Showcase` on the service or pipe: API page from its JSDoc, with usage snippet, setup and linked types |
+| Visual regression   | Chromatic (paid SaaS) or community addons                             | Official plugin, works with your own screenshot runner, no SaaS                                         |
+| Accessibility       | `@storybook/addon-a11y`                                               | Built in (axe-core)                                                                                     |
+| Design handoff      | Design addons                                                         | Official Figma plugin, with an opt-in pixel diff against the design                                     |
+| Interaction tests   | Yes (play functions)                                                  | No                                                                                                      |
+| Addon ecosystem     | Huge                                                                  | Small (official plugins)                                                                                |
 
 Storybook is the better choice if you need several frameworks, its addons or interaction tests right now.
 ng-prism makes sense if you use modern, signal-based Angular and want your showcase to stay in sync with your components without maintaining story files.

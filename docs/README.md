@@ -25,7 +25,8 @@ A lightweight, Angular-native component showcase tool. Annotate your components 
 - **TypeScript Compiler API:** inputs, outputs, and types are extracted at build time instead of through runtime reflection
 - **Component Pages:** register free-form Angular components as styleguide pages alongside `@Showcase` components
 - **Services:** an `@Injectable` or `@Service` with `@Showcase` gets an API page and a usage snippet, read from the code and its JSDoc, drawn by the [JSDoc plugin](plugins/jsdoc.md) (since `22.7.0`)
-- **URL state:** deep-linking via `?component=`, `?service=`, `?variant=`, `?state=`, `?page=`, `?view=` params
+- **Pipes:** a standalone `@Pipe` with `@Showcase` gets the same kind of page, with every `transform()` overload and a template line in its usage snippet (since `22.7.0`)
+- **URL state:** deep-linking via `?component=`, `?service=`, `?pipe=`, `?variant=`, `?state=`, `?page=`, `?view=` params
 - **Zoneless ready:** opt in via `ng add @ng-prism/core --zoneless` for ~30 KB bundle savings
 
 ## Quick Example

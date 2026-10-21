@@ -2,7 +2,7 @@
 
 A service is no component, so there is nothing to render. What a developer who uses your library needs from it is a reference: what it can do, how to bring it in, and what its setup function takes. ng-prism builds that page from the service itself (since `22.7.0`). Put `@Showcase` on a class with `@Injectable` or `@Service`, write JSDoc on what is public, and the service gets its own entry in the sidebar under **Services**, with the API read from the code and a generated usage snippet. No separate documentation files.
 
-A service page has no canvas, no variants and no controls. It is the API page of a component, made for a class that has no template.
+A service page has no canvas, no variants and no controls. It is the API page of a component, made for a class that has no template. A `@Pipe` gets the same kind of page, see [Showcasing Pipes](guide/showcasing-pipes.md).
 
 > **Needs the JSDoc plugin.** The page is drawn by [`@ng-prism/plugin-jsdoc`](plugins/jsdoc.md). Without `jsDocPlugin()` in `ng-prism.config.ts`, nothing shows services, so the build leaves them out and says so once, see [Without the JSDoc plugin](#without-the-jsdoc-plugin).
 
@@ -131,7 +131,7 @@ A class is a service when it
 - is exported from a library entry point that the builder scans, like a component,
 - carries `@Showcase`,
 - carries `@Injectable` or `@Service` imported from `@angular/core`, and
-- carries neither `@Component` nor `@Directive`. A class with one of those stays what it is, whatever else it has.
+- carries none of `@Component`, `@Directive` and `@Pipe`. A class with `@Component` or `@Directive` stays what it is, whatever else it has, and one with `@Pipe` is a [pipe](guide/showcasing-pipes.md), also when it is `@Injectable`.
 
 `@Service` does not exist in Angular 20, and the builder does not need it to: it recognises the decorator in your source and imports nothing from `@angular/core`, so a library on Angular 20 with `@Injectable` works the same. `@ng-prism/core` keeps its peer dependency on `>=20.0.0`.
 
@@ -150,12 +150,12 @@ A service is only listed when you mark it. There is no automatic discovery of ev
 | `tags`                                                                        | Searchable, and shown in the popover                                                                                                           |
 | `status`                                                                      | As for components: a status chip in the head, the dashed-circle marker for `'wip'` and a struck-through name for `'deprecated'` in the sidebar |
 | `meta`                                                                        | For plugins, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned)                                                                 |
-| [`setup`](#setup)                                                             | The functions and tokens that configure the service. Services only                                                                             |
+| [`setup`](#setup)                                                             | The functions and tokens that configure the service. Services and pipes only                                                                   |
 | `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage` | Do not apply: a service has no canvas                                                                                                          |
 
 The fields that do not apply have a consequence until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0), see [Compatibility until 23.0.0](#compatibility-until-2300).
 
-`setup` on a component or a directive is reported and dropped, since a component has no use for it.
+`setup` on a component or a directive is reported and dropped, since a component has no use for it. A [pipe](guide/showcasing-pipes.md) takes `setup` like a service does.
 
 ## How the service is provided
 
@@ -260,7 +260,7 @@ A type is only documented when a scanned entry point exports it and it is not `@
 
 - **Sidebar:** a **Services** section with a plug icon. Categories and order work as for components. The search finds a service by title, class name, category and tag. Navigation decorations (a11y, coverage, VRT) do not apply to services.
 - **Head:** category, title, a status chip, and the details popover, which shows the class name, the description, how the service is provided (`Provided automatically` or `Needs a providers entry`) and the entry point to import it from.
-- **View tabs:** only the panels that declare they apply to services, which today is the **API** tab of the JSDoc plugin. There is no Playground, no Overview and no addon panel area. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services) to add a panel of your own.
+- **View tabs:** only the panels that declare they apply to services, which today is the **API** tab of the JSDoc plugin. There is no Playground, no Overview and no addon panel area. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
 - **URL:** `?service=NotificationService`, see [State Preservation](guide/url-state.md).
 
 ## Without the JSDoc plugin
@@ -275,7 +275,7 @@ It is a notice, not a warning: nothing is wrong with the library, so [`strictSho
 
 ## Compatibility until 23.0.0
 
-> **Deprecated since 22.7.0, removed in 23.0.0.** Until then a class with a component-only field stays a component. See [Deprecation: injectables with component-only fields](guide/migration-v22.md#deprecation-injectables-with-component-only-fields).
+> **Deprecated since 22.7.0, removed in 23.0.0.** Until then a class with a component-only field stays a component. See [Deprecation: injectables and pipes with component-only fields](guide/migration-v22.md#deprecation-injectables-and-pipes-with-component-only-fields).
 
 A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. To keep that working in 22.x, a class with `@Injectable` or `@Service` that declares one of the fields only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) stays a component, as before. The build prints this notice:
 
@@ -293,7 +293,7 @@ The builder prints these while it scans. Each one is printed once per run, and `
 ⚠ ng-prism: <Class> › setup — "<source>" (<file>:<line>:<col>) must be an arrow function returning an array literal, e.g. setup: () => [provideX]; setup was dropped.
 ⚠ ng-prism: <Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is neither a function nor an InjectionToken; it was dropped.
 ⚠ ng-prism: <Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is not exported from any library entry point, so the styleguide cannot show where to import it from; it was dropped.
-⚠ ng-prism: <Class> › setup (<file>:<line>:<col>) only applies to services (@Injectable or @Service); it was dropped.
+⚠ ng-prism: <Class> › setup (<file>:<line>:<col>) only applies to services and pipes (@Injectable, @Service or @Pipe); it was dropped.
 ```
 
 All four are lost values, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) turns them into a build error. The notice for a [legacy component](#compatibility-until-2300) and the hint [without the JSDoc plugin](#without-the-jsdoc-plugin) do not. A `@Showcase` argument that cannot be read at all skips the service, with the same warning as a component. The [Claude Code skill](guide/ai-agents.md) lists each with its fix.
@@ -310,6 +310,7 @@ All four are lost values, so [`strictShowcase`](api/ng-prism-config.md#strictsho
 
 ## See also
 
+- [Showcasing Pipes](guide/showcasing-pipes.md): the same page for a `@Pipe`
 - [`ShowcaseConfig`](api/showcase-config.md#setup): `setup` in the field reference
 - [JSDoc Plugin](plugins/jsdoc.md): the plugin that draws the page
-- [Writing a Plugin](plugins/writing-plugins.md#panels-for-services): panels and hooks for services
+- [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes): panels and hooks for services

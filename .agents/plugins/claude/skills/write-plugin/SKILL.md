@@ -1,6 +1,6 @@
 ---
 name: write-plugin
-description: Use when writing your own ng-prism plugin (NgPrismPlugin from @ng-prism/core/plugin) - build-time hooks (onComponentScanned, onServiceScanned, onPageScanned, onManifestReady), panels (also for service pages) and canvas overlays, custom input controls, header widgets, sidebar navigation decorations - or packaging one for npm. Not for adding an official plugin (skill setup) and not for developing ng-prism itself.
+description: Use when writing your own ng-prism plugin (NgPrismPlugin from @ng-prism/core/plugin) - build-time hooks (onComponentScanned, onServiceScanned, onPipeScanned, onPageScanned, onManifestReady), panels (also for service and pipe pages) and canvas overlays, custom input controls, header widgets, sidebar navigation decorations - or packaging one for npm. Not for adding an official plugin (skill setup) and not for developing ng-prism itself.
 ---
 
 # Writing an ng-prism plugin
@@ -38,8 +38,8 @@ export function notesPlugin(): NgPrismPlugin {
 }
 ```
 
-- `onComponentScanned(component)` runs once per component, `onServiceScanned(service)` once per service (see below),
-  `onPageScanned(page)` once per page from the config's `pages` (not the component pages registered in `main.ts`),
+- `onComponentScanned(component)` runs once per component, `onServiceScanned(service)` once per service and `onPipeScanned(pipe)` once per
+  pipe (see below), `onPageScanned(page)` once per page from the config's `pages` (not the component pages registered in `main.ts`),
   `onManifestReady(manifest)` once at the end.
 - Plugins run in registration order, one after the other, and each gets the previous one's result. Return the changed
   object, a new one, or nothing to keep it as it is; `async` is fine.
@@ -63,32 +63,43 @@ export function notesPlugin(): NgPrismPlugin {
   otherwise the build drops them and logs a hint
   (`ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; …`). `navigationDecorations` are not
   called for services.
+- **Pipes have their own hook and list too** (since 22.7.0). A class with `@Showcase` and `@Pipe` is a pipe: it is in
+  `manifest.pipes`, never in `manifest.components` or `manifest.services`, and neither `onComponentScanned` nor
+  `onServiceScanned` sees it. `onPipeScanned(pipe: ScannedPipe)` works like the service hook. `className`, `filePath`,
+  `importPath`, `showcaseConfig`, `pipeName`, `pure` (absent when it can't be read) and `meta` are stable;
+  **`pipe.api` (`PipeApi`: `transform` signatures, setup, types) is experimental until 23.0.0**, so keep your own
+  data in `pipe.meta`. Pipes reach the manifest, and the hook runs, only when some plugin has a view panel
+  (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services; otherwise the build drops
+  them and logs a hint (`ng-prism: <n> pipe(s) with @Showcase found, but no plugin shows pipes; …`).
+  `navigationDecorations` are not called for pipes.
 - A hook that throws stops the build with `ng-prism: plugin "<name>" failed in <hook> for …`; during `serve`, a failed
   rescan keeps the previous manifest.
 
 ## Runtime contributions
 
-| Field                   | Definition                                                                                                                                          | The component receives                                                                                                                   |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `panels`                | `{ id, label, loadComponent, icon?, placement?: 'addon' \| 'view', appliesTo?, isVisible?, badge?, keepAlive?, providers?, loadOverlayComponent? }` | input `activeComponent: RuntimeComponent \| null`, and `activeService: RuntimeService \| null` for a view panel that applies to services |
-| overlay                 | `loadOverlayComponent` on a panel, drawn over the canvas while that panel is active                                                                 | input `rendererService: PrismRendererService`                                                                                            |
-| `controls`              | `{ matchType: (input: InputMeta) => boolean, component }`                                                                                           | inputs `inputMeta` and `rendererService`                                                                                                 |
-| `headerWidgets`         | `{ id, loadComponent, placement?: 'start' \| 'end', order? }`                                                                                       | nothing                                                                                                                                  |
-| `navigationDecorations` | `{ id, icon, order?, badge: (c) => { variant: 'warn' \| 'danger', label } \| null }`                                                                | (no component)                                                                                                                           |
+| Field                   | Definition                                                                                                                                          | The component receives                                                                                                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `panels`                | `{ id, label, loadComponent, icon?, placement?: 'addon' \| 'view', appliesTo?, isVisible?, badge?, keepAlive?, providers?, loadOverlayComponent? }` | input `activeComponent: RuntimeComponent \| null`, `activeService: RuntimeService \| null` for a view panel that applies to services, `activePipe: RuntimePipe \| null` for one that applies to pipes |
+| overlay                 | `loadOverlayComponent` on a panel, drawn over the canvas while that panel is active                                                                 | input `rendererService: PrismRendererService`                                                                                                                                                         |
+| `controls`              | `{ matchType: (input: InputMeta) => boolean, component }`                                                                                           | inputs `inputMeta` and `rendererService`                                                                                                                                                              |
+| `headerWidgets`         | `{ id, loadComponent, placement?: 'start' \| 'end', order? }`                                                                                       | nothing                                                                                                                                                                                               |
+| `navigationDecorations` | `{ id, icon, order?, badge: (c) => { variant: 'warn' \| 'danger', label } \| null }`                                                                | (no component)                                                                                                                                                                                        |
 
 - Components are standalone. Load panels, overlays and header widgets lazily:
   `loadComponent: () => import('./notes-panel.component').then((m) => m.NotesPanelComponent)`. An eager `component`
   pulls its imports into the file that also runs in Node. Controls only have `component`.
 - `RuntimeComponent.meta` is the whole scanned component, so the user's showcase meta is
   `activeComponent()?.meta.showcaseConfig.meta`.
-- **Panels for services.** `appliesTo: ('component' | 'service')[]` (since 22.7.0) says where a panel appears, default
-  `['component']`. A service page has no canvas and offers only the panels that apply to services, as view tabs: a
-  service panel needs `placement: 'view'`, since there is no addon area. An addon panel shows on component pages only,
-  and only when it applies to `'component'`. The panel component declares
-  `readonly activeService = input<RuntimeService | null>(null)` (and `activeComponent` if it applies to both); it is only
-  given the inputs of the targets it names. `isVisible` and `badge` are called for components only. Declare
+- **Panels for services and pipes.** `appliesTo: ('component' | 'service' | 'pipe')[]` (since 22.7.0) says where a
+  panel appears, default `['component']`. A service or pipe page has no canvas and offers only the panels that apply
+  to it, as view tabs: such a panel needs `placement: 'view'`, since there is no addon area. An addon panel shows on
+  component pages only, and only when it applies to `'component'`. The panel component declares
+  `readonly activeService = input<RuntimeService | null>(null)` and/or
+  `readonly activePipe = input<RuntimePipe | null>(null)` (and `activeComponent` if it applies to components); it is
+  only given the inputs of the targets it names. `isVisible` and `badge` are called for components only. Declare
   `placement` and `appliesTo` in the plugin's Node entry too, not only in `index.browser.ts`: the build reads them from
-  there to decide whether any plugin shows services. The panel reads the API at `activeService()?.meta.api`.
+  there to decide whether any plugin shows services or pipes. The panel reads the API at `activeService()?.meta.api`
+  or `activePipe()?.meta.api`.
 - The selected variant and its inputs: inject `PrismRendererService` from `@ng-prism/core` (`activeVariantIndex()`,
   `inputValues()`, `renderedElement()`, `selectVariant()`, `updateInput()`). `PrismNavigationService.activeComponent`
   is the selection. `PRISM_MANIFEST`, `PRISM_CONFIG` and `ICON_NAMES` (the valid `icon` values) come from
@@ -145,11 +156,12 @@ doesn't reload it.
 
 ## Testing
 
-- Hooks are plain functions: unit-test them with a hand-built `ScannedComponent` or `ScannedService`.
+- Hooks are plain functions: unit-test them with a hand-built `ScannedComponent`, `ScannedService` or `ScannedPipe`.
 - Then run the styleguide (`ng run <lib>:prism`), check the hook's effect in the log and open the panel; the showcase
   skill's screenshot script with `--shell` shows the UI.
 
 ## Guides
 
 - `plugins/writing-plugins.md`, `architecture/plugin-hooks.md`, `api/ng-prism-plugin.md`, `api/services.md`,
-  `api/types.md` (`ScannedService`, `ServiceApi`), `guide/showcasing-services.md`
+  `api/types.md` (`ScannedService`, `ServiceApi`, `ScannedPipe`, `PipeApi`), `guide/showcasing-services.md`,
+  `guide/showcasing-pipes.md`

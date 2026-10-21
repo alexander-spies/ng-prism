@@ -69,16 +69,16 @@ interface ShowcaseConfig<T = unknown> {
     componentOrder?: number; // Position within the category
     section?: string; // Top-level sidebar section. Auto-detected:
     // @Directive -> 'Directives', service -> 'Services',
-    // else 'Components'. Any free-form string creates a new section.
+    // pipe -> 'Pipes', else 'Components'. Any free-form string creates a new section.
     sectionOrder?: number; // Section position. Defaults: Components 0,
-    // Directives 10, Services 20, everything else 100
+    // Directives 10, Services 20, Pipes 30, everything else 100
     variants?: Variant<T>[]; // Predefined demo tabs
     states?: ShowcaseState[]; // Named pseudo states, combined with every
     // variant. Order = index. Not with renderPage
     tags?: string[]; // Search/filter tags
     providers?: Provider[]; // @deprecated since 22.4.0, dropped by the build
     meta?: Record<string, unknown>; // Arbitrary plugin metadata
-    setup?: () => readonly ShowcaseSetupRef[]; // Services only (since 22.7.0):
+    setup?: () => readonly ShowcaseSetupRef[]; // Services and pipes only (since 22.7.0):
     // provide* functions and InjectionTokens, read statically, never called
     bg?: CanvasBg; // Recommended canvas background
     canvasLayout?: CanvasLayout; // Canvas layout for this component

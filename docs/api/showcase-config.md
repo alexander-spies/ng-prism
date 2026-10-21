@@ -36,7 +36,7 @@ interface ShowcaseState {
 }
 ```
 
-`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md) (since `22.7.0`): a page with its API and no canvas. For a service, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only a service takes. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) need a canvas, see [Services](#services) below.
+`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md), and on a class with `@Pipe`, which makes it a [pipe](guide/showcasing-pipes.md) (both since `22.7.0`): a page with its API and no canvas. For a service or a pipe, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only they take. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) need a canvas, see [Services](#services) and [Pipes](#pipes) below.
 
 The optional generic parameter `T` is the component class. When set via `@Showcase<MyComponent>({...})`, variant `inputs` are checked against `Partial<InputsOf<MyComponent>>`, giving you autocomplete on input names and type-checking on values. When omitted, `T` defaults to `unknown` and `inputs` accepts any `Record<string, unknown>`, so existing call sites keep working unchanged. See [Variants: Type-safe inputs](guide/variants.md#type-safe-inputs) for usage and [`InputsOf<T>`](api/types.md#inputsof) for the type mapping rules.
 
@@ -99,7 +99,7 @@ Optional number controlling the sort order of _this component_ within its catego
 
 ### `section`
 
-Optional string that places the component into a top-level sidebar section. Auto-detected when omitted: `'Directives'` for a `@Directive`, `'Components'` for a `@Component`, `'Services'` for a service. Any free-form string creates a new section (e.g. `'Forms'`, `'Utilities'`).
+Optional string that places the component into a top-level sidebar section. Auto-detected when omitted: `'Directives'` for a `@Directive`, `'Components'` for a `@Component`, `'Services'` for a service, `'Pipes'` for a pipe. Any free-form string creates a new section (e.g. `'Forms'`, `'Utilities'`).
 
 ```typescript
 @Showcase({ title: 'Autofocus', section: 'Behavior' })
@@ -111,7 +111,7 @@ export class AutofocusDirective {}
 
 ### `sectionOrder`
 
-Optional number controlling the sort order of this _section_ in the sidebar. Lower numbers appear first. The section's effective order is the minimum `sectionOrder` among its items. Defaults: `Components` 0, `Directives` 10, `Services` 20, custom 100.
+Optional number controlling the sort order of this _section_ in the sidebar. Lower numbers appear first. The section's effective order is the minimum `sectionOrder` among its items. Defaults: `Components` 0, `Directives` 10, `Services` 20, `Pipes` 30, custom 100.
 
 ```typescript
 @Showcase({ title: 'AutofocusDirective', section: 'Behavior', sectionOrder: 5 })
@@ -196,7 +196,7 @@ Use `defineConfig({ appProviders })` instead. For a provider only one component 
 
 ### `setup`
 
-**Services only**, since `22.7.0`. The functions and `InjectionToken` constants that configure the service, as an arrow function that returns them. The styleguide documents each one next to the service: signature, description, `@example` and a table of its options, and the generated usage snippet calls them.
+**Services and pipes only**, since `22.7.0`. The functions and `InjectionToken` constants that configure the service or pipe, as an arrow function that returns them. The styleguide documents each one next to the service or pipe: signature, description, `@example` and a table of its options, and the generated usage snippet calls them.
 
 ```typescript
 @Showcase({
@@ -209,7 +209,7 @@ export class NotificationService {
 }
 ```
 
-`setup` is an arrow function, not a list, so that a reference to a function declared in a file that imports the service back is only touched if the function runs. `@Showcase(...)` is evaluated when the class is defined, in every library build without [`ng-prism-strip`](guide/library-publishing.md), and a direct reference to a `const` of a module that is still loading fails with a `ReferenceError`. ng-prism never calls the function: the builder reads the array literal from the source, and `Showcase()` does nothing at runtime. TypeScript checks the references all the same, and renaming one in the IDE renames it here.
+`setup` is an arrow function, not a list, so that a reference to a function declared in a file that imports the service or pipe back is only touched if the function runs. `@Showcase(...)` is evaluated when the class is defined, in every library build without [`ng-prism-strip`](guide/library-publishing.md), and a direct reference to a `const` of a module that is still loading fails with a `ReferenceError`. ng-prism never calls the function: the builder reads the array literal from the source, and `Showcase()` does nothing at runtime. TypeScript checks the references all the same, and renaming one in the IDE renames it here.
 
 What the builder accepts:
 
@@ -220,7 +220,7 @@ What the builder accepts:
 
 On a component or a directive, `setup` is reported and dropped. The type of an entry is `ShowcaseSetupRef`, exported from `@ng-prism/core`; ng-prism only reads its name, signature and type.
 
-The exact wording of the warnings and everything else about the page is in [Showcasing Services](guide/showcasing-services.md#setup).
+For a pipe it works the same way, with `provideTimeAgo` in `setup: () => [provideTimeAgo]` on a class with `@Pipe({ name: 'timeAgo' })`. The exact wording of the warnings and everything else about the page is in [Showcasing Services](guide/showcasing-services.md#setup) and [Showcasing Pipes](guide/showcasing-pipes.md).
 
 ---
 
@@ -375,7 +375,21 @@ A class with `@Injectable` or `@Service` from `@angular/core` is a [service](gui
 ⚠ ng-prism: ToastService is an @Injectable/@Service with @Showcase and declares variants, renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.
 ```
 
-Remove the fields and move the demo to a [component page](guide/component-pages.md) to make it a service now. The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Deprecation: injectables with component-only fields](guide/migration-v22.md#deprecation-injectables-with-component-only-fields).
+Remove the fields and move the demo to a [component page](guide/component-pages.md) to make it a service now. The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Deprecation: injectables and pipes with component-only fields](guide/migration-v22.md#deprecation-injectables-and-pipes-with-component-only-fields).
+
+---
+
+## Pipes
+
+A class with `@Pipe` from `@angular/core` is a [pipe](guide/showcasing-pipes.md), unless it also has `@Component` or `@Directive`; one with `@Pipe` and `@Injectable` is a pipe. The same fields as for a service apply, and `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` and `renderPage` do nothing there.
+
+**Until 23.0.0 they decide what the class is** (deprecated since 22.7.0, removed in 23.0.0), as for services: a `@Pipe` class that declares one of those fields stays a component, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)):
+
+```
+⚠ ng-prism: LegacyPagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.
+```
+
+A pipe declared in an NgModule (`standalone: false`) is not shown from 23.0.0, so its notice says that instead, see [Showcasing Pipes: Compatibility until 23.0.0](guide/showcasing-pipes.md#compatibility-until-2300). The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Deprecation: injectables and pipes with component-only fields](guide/migration-v22.md#deprecation-injectables-and-pipes-with-component-only-fields).
 
 ---
 

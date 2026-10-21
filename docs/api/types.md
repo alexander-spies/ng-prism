@@ -12,11 +12,12 @@ The in-memory manifest produced after the builder scan and loaded at app bootstr
 interface RuntimeManifest {
     components: RuntimeComponent[];
     services?: RuntimeService[];
+    pipes?: RuntimePipe[];
     pages?: StyleguidePage[];
 }
 ```
 
-`services` is only present when the library has [services](guide/showcasing-services.md) and a plugin shows them. Services are never part of `components`, so code that walks `components` sees the same entries as before services existed.
+`services` and `pipes` are only present when the library has [services](guide/showcasing-services.md) or [pipes](guide/showcasing-pipes.md) and a plugin shows them. Neither is ever part of `components`, so code that walks `components` sees the same entries as before they existed.
 
 ---
 
@@ -141,7 +142,7 @@ interface ApiDocTags {
 
 interface ApiTypeRef {
     text: string; // as written, e.g. 'Signal<boolean>'
-    links?: string[]; // ids of ServiceApi.types entries named in the text
+    links?: string[]; // ids of the api.types entries (ServiceApi or PipeApi) named in the text
 }
 
 interface ApiParam {
@@ -171,7 +172,7 @@ interface ApiProperty {
 }
 
 interface ApiTypeDoc {
-    id: string; // the name, or `${name}@${importPath}` when two reachable types share a name
+    id: string; // the name, or `${name}@${importPath}` when two reachable types share a name; unique within one service or pipe
     name: string;
     kind: 'interface' | 'class' | 'type' | 'enum';
     importPath: string;
@@ -202,12 +203,76 @@ interface ApiSetupEntry {
 
 ---
 
-## PanelTarget
+## RuntimePipe
 
-Where a panel appears, the type of [`PanelDefinition.appliesTo`](api/ng-prism-plugin.md#panels-on-service-pages).
+A single pipe in the runtime manifest. Like a service, it carries data only: the pipe class is never imported into the styleguide.
 
 ```typescript
-type PanelTarget = 'component' | 'service';
+interface RuntimePipe {
+    meta: ScannedPipe;
+}
+```
+
+---
+
+## ScannedPipe
+
+The data the scanner extracts from a `@Showcase`-annotated class with `@Pipe` (since `22.7.0`), see [Showcasing Pipes](guide/showcasing-pipes.md). Plugins receive it in [`onPipeScanned`](api/ng-prism-plugin.md#onpipescanned).
+
+```typescript
+interface ScannedPipe {
+    className: string;
+    filePath: string;
+    importPath?: string;
+    showcaseConfig: ShowcaseConfig;
+    pipeName: string;
+    pure?: boolean;
+    api: PipeApi;
+    meta?: Record<string, unknown>;
+}
+```
+
+| Field            | Description                                                                                                                                                                                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `className`      | TypeScript class name. It is what `?pipe=` addresses                                                                                                                                                                                                  |
+| `filePath`       | Absolute path to the source file. Build time use                                                                                                                                                                                                      |
+| `importPath`     | Import path of the entry point that exports the pipe. Missing when the scanner could not place it                                                                                                                                                     |
+| `showcaseConfig` | The `@Showcase` argument, reduced to the fields that apply to pipes, the same as for a service: `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta`, `status`. `setup` is in `api.setup` |
+| `pipeName`       | The name a template calls the pipe by, from `@Pipe({ name })`                                                                                                                                                                                         |
+| `pure`           | From `@Pipe({ pure })`, `true` when the decorator does not say. Missing when it cannot be read                                                                                                                                                        |
+| `api`            | The extracted API, see [`PipeApi`](#pipeapi). **Experimental**                                                                                                                                                                                        |
+| `meta`           | Plugin-injected metadata                                                                                                                                                                                                                              |
+
+`className`, `filePath`, `importPath`, `showcaseConfig`, `pipeName`, `pure` and `meta` follow semver as they are. The shape of `api` does not, see below.
+
+---
+
+## PipeApi
+
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** Like [`ServiceApi`](#serviceapi), this covers `PipeApi` and every `Api*` type below it.
+
+The documentation of one pipe, as the scanner extracts it. The JSDoc plugin draws the pipe page from it. It shares `ApiDocTags`, `ApiMethod`, `ApiParam`, `ApiSetupEntry` and `ApiTypeDoc` with `ServiceApi`, shown there.
+
+```typescript
+interface PipeApi {
+    description?: string;
+    tags: ApiDocTags;
+    transform: ApiMethod[]; // one entry per overload signature, or the implementation when there are none
+    setup: ApiSetupEntry[];
+    types: ApiTypeDoc[];
+}
+```
+
+`PipeApi`, `ScannedPipe` and `RuntimePipe` are exported from `@ng-prism/core/plugin` (and `@ng-prism/core`). A pipe has no `properties` or `methods`: only `transform()` is read, see [Showcasing Pipes](guide/showcasing-pipes.md#transform).
+
+---
+
+## PanelTarget
+
+Where a panel appears, the type of [`PanelDefinition.appliesTo`](api/ng-prism-plugin.md#panels-on-service-and-pipe-pages).
+
+```typescript
+type PanelTarget = 'component' | 'service' | 'pipe';
 ```
 
 ---
@@ -328,10 +393,14 @@ componentPage({
 Discriminated union used in `PrismNavigationService.sectionTree()` (the items of each category) and `PrismNavigationService.activeItem`.
 
 ```typescript
-type NavigationItem = { kind: 'component'; data: RuntimeComponent } | { kind: 'service'; data: RuntimeService } | { kind: 'page'; data: StyleguidePage };
+type NavigationItem =
+    | { kind: 'component'; data: RuntimeComponent }
+    | { kind: 'service'; data: RuntimeService }
+    | { kind: 'pipe'; data: RuntimePipe }
+    | { kind: 'page'; data: StyleguidePage };
 ```
 
-The `'service'` kind was added in 22.7.0 with [services](guide/showcasing-services.md). It is a public type, so any code that narrows a `NavigationItem` by `kind` and reads `data` needs a `'service'` branch. That includes a plain two-way check: after `item.kind === 'component' ? … : item.data.title`, the `data` in the other branch is a `RuntimeService | StyleguidePage`, and `title` no longer type-checks. See [Breaking change: NavigationItem has a third kind](guide/migration-v22.md#breaking-change-navigationitem-has-a-third-kind) for a before and after.
+The `'service'` and `'pipe'` kinds were added in 22.7.0 with [services](guide/showcasing-services.md) and [pipes](guide/showcasing-pipes.md). It is a public type, so any code that narrows a `NavigationItem` by `kind` and reads `data` needs a branch for each. That includes a plain two-way check: after `item.kind === 'component' ? … : item.data.title`, the `data` in the other branch is a `RuntimeService | RuntimePipe | StyleguidePage`, and `title` no longer type-checks. See [Breaking change: NavigationItem has two new kinds](guide/migration-v22.md#breaking-change-navigationitem-has-two-new-kinds) for a before and after.
 
 ---
 
@@ -573,7 +642,7 @@ When `status` is omitted, no indicator renders. See [`ShowcaseConfig.status`](ap
 
 ## ShowcaseSetupRef
 
-An entry of [`ShowcaseConfig.setup`](api/showcase-config.md#setup): a function or an injection token that configures a service.
+An entry of [`ShowcaseConfig.setup`](api/showcase-config.md#setup): a function or an injection token that configures a service or a pipe.
 
 ```typescript
 type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
@@ -591,8 +660,9 @@ The build-time manifest written to disk by the builder. Contains JSON-serializab
 interface PrismManifest {
     components: ScannedComponent[];
     services?: ScannedService[];
+    pipes?: ScannedPipe[];
     pages?: StyleguidePage[];
 }
 ```
 
-`services` is only present when a plugin shows services, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned). Services are not in `components`.
+`services` and `pipes` are only present when a plugin shows them, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned) and [`onPipeScanned`](api/ng-prism-plugin.md#onpipescanned). Neither is in `components`.

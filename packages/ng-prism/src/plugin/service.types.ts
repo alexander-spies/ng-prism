@@ -24,7 +24,7 @@ export interface ApiDocTags {
 export interface ApiTypeRef {
     /** Display text, e.g. `ToastOptions`, `Signal<boolean>`, `number | null`. */
     text: string;
-    /** Ids of `ServiceApi.types` entries whose names occur in `text`. Omitted when none. */
+    /** Ids of the `types` entries of the `ServiceApi` or `PipeApi` whose names occur in `text`. Omitted when none. */
     links?: string[];
 }
 
@@ -62,7 +62,7 @@ export interface ApiProperty {
 
 /** @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release. */
 export interface ApiTypeDoc {
-    /** Unique within one service: the name, or `${name}@${importPath}` when two reachable types share a name. */
+    /** Unique within one service or pipe: the name, or `${name}@${importPath}` when two reachable types share a name. */
     id: string;
     name: string;
     kind: 'interface' | 'class' | 'type' | 'enum';

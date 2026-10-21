@@ -2,7 +2,7 @@
 
 ng-prism keeps the UI state alive across full-page reloads, which helps a lot during component-driven development. Two layers cooperate:
 
-- **URL** carries shareable state (component or service, variant, state, view, panel tab), so links are bookmarkable and deep-linkable.
+- **URL** carries shareable state (component, service or pipe, variant, state, view, panel tab), so links are bookmarkable and deep-linkable.
 - **sessionStorage** carries per-session ephemeral state (control panel input overrides, a11y sub-tab, perspective) and keeps it off the URL.
 
 After editing a SCSS file in your library and waiting for the dev-server reload, you land back on the same component, same variant, with the same control overrides applied. No more clicking your way back to where you were.
@@ -13,6 +13,7 @@ After editing a SCSS file in your library and waiting for the dev-server reload,
 | ----------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `component` | `?component=ButtonComponent`   | Active component class name                                                                                                                                             |
 | `service`   | `?service=NotificationService` | Active [service](guide/showcasing-services.md) class name. Services have their own parameter, so a tool that sets `?component=` never lands on one                      |
+| `pipe`      | `?pipe=TimeAgoPipe`            | Active [pipe](guide/showcasing-pipes.md) class name. Pipes have their own parameter as well, so neither `?component=` nor `?service=` lands on one                      |
 | `page`      | `?page=Button%20Patterns`      | Active page title (URL-encoded)                                                                                                                                         |
 | `variant`   | `?variant=1`                   | Active variant index (0-based)                                                                                                                                          |
 | `state`     | `?state=1`                     | Active component-level state: the 0-based index into the component's `states`. Written only while a state is active; a value that is no index into `states` is ignored. |
@@ -26,13 +27,14 @@ Example URL:
 http://localhost:4200?component=ButtonComponent&variant=2&view=docs&panel=a11y
 ```
 
-A service page is addressed by `service`, with its view tab in `view`. The API tab of the JSDoc plugin has the id `jsdoc`:
+A service page is addressed by `service` and a pipe page by `pipe`, with the view tab in `view`. The API tab of the JSDoc plugin has the id `jsdoc`:
 
 ```
 http://localhost:4200?service=NotificationService&view=jsdoc
+http://localhost:4200?pipe=TimeAgoPipe&view=jsdoc
 ```
 
-`variant` and `state` mean nothing for a service and are never written for one. When a URL carries both `component` and `service`, `component` wins. A class name that is not a service in the manifest is ignored, like an unknown component.
+`variant` and `state` mean nothing for a service or a pipe and are never written for one. When a URL carries more than one of `component`, `service`, `pipe` and `page`, the first in that order wins. A class name that is not a service or pipe in the manifest is ignored, like an unknown component.
 
 ## Deep-Linking
 

@@ -8,7 +8,7 @@
 - Extracts `@deprecated`, `@since`, `@see`, and `@example` tags
 - Renders tables for `@Input` / `@Output` documentation pulled from individual property JSDoc
 - Renders descriptions and examples as **Markdown** (since `21.13.0`)
-- Draws the page of every [service](guide/showcasing-services.md) with `@Showcase`: its API, a generated usage snippet and the types it reaches (since `22.7.0`)
+- Draws the page of every [service](guide/showcasing-services.md) and [pipe](guide/showcasing-pipes.md) with `@Showcase`: its API, a generated usage snippet and the types it reaches (since `22.7.0`)
 - Works purely at build time, with no runtime parsing of TypeScript source
 
 ## Install
@@ -31,7 +31,7 @@ export default defineConfig({
 });
 ```
 
-The plugin adds an **API** tab to the view tabs of every component that has JSDoc comments, and the same tab is the whole page of a [service](#services).
+The plugin adds an **API** tab to the view tabs of every component that has JSDoc comments, and the same tab is the whole page of a [service](#services) or a [pipe](#pipes).
 
 ## Supported Tags
 
@@ -112,6 +112,25 @@ export interface NotificationConfig {
 The page is made of the sections Usage, Setup, Examples, Properties, Methods and Types, in this order, with an "On this page" list next to it; a section without content is left out. What is read, how `setup` and the usage snippet work and what the page leaves out is in [Showcasing Services](guide/showcasing-services.md).
 
 > The data behind the page (`ScannedService.api`) is experimental until 23.0.0. A plugin that reads it directly should expect it to change in a 22.x minor, see [`ScannedService`](api/types.md#scannedservice).
+
+## Pipes
+
+A class with `@Showcase` and `@Pipe` gets a page of its own under **Pipes** in the sidebar, drawn by the same view panel, which applies to components, services and pipes. As for services, a pipe only shows up when `jsDocPlugin()` from 22.7.0 or newer is in the config. Without it, the build leaves pipes out and prints this once:
+
+```
+ng-prism: 2 pipe(s) with @Showcase found, but no plugin shows pipes; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
+```
+
+The page looks like the one of a service and reads the same JSDoc, with these differences:
+
+- **Meta chips:** `Pipe: <name>` (what a template calls it), `Pure` or `Impure` (left out when the purity cannot be read), then `Since` and `Entry point`.
+- **Usage** shows the imports, the `providers` entries of its `setup`, the component's `imports` entry and a template line such as `{{ value | timeAgo }}`, with the pipe's required arguments after the value.
+- **Transform** replaces Properties and Methods: one row per `transform()` signature, with its parameters, return type and description. Every overload is listed with its own parameters, and the implementation signature is left out when there are overloads. An overload without a doc block takes the one of the implementation, then of the first documented overload, then of a base class.
+- **Nothing else of the class** is listed: properties and other methods do not appear, and add no type cards.
+
+The page is made of the sections Usage, Setup, Examples, Transform and Types, in this order, with an "On this page" list; a section without content is left out. See [Showcasing Pipes](guide/showcasing-pipes.md).
+
+> The data behind the page (`ScannedPipe.api`) is experimental until 23.0.0, see [`ScannedPipe`](api/types.md#scannedpipe).
 
 ## Class Description
 

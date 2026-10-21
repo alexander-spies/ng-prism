@@ -17,6 +17,11 @@ For each service (in scan order, only when a plugin shows services):
   → plugin[1].onServiceScanned(service)
   → ...
 
+For each pipe (in scan order, only when a plugin shows pipes):
+  → plugin[0].onPipeScanned(pipe)
+  → plugin[1].onPipeScanned(pipe)
+  → ...
+
 For each page (in config order):
   → plugin[0].onPageScanned(page)
   → plugin[1].onPageScanned(page)
@@ -96,6 +101,33 @@ onServiceScanned(service) {
 
 **No navigation decorations.** `navigationDecorations` are not called for a service. The `badge()` of a decoration takes a component, and coverage, a11y and visual regression measure what renders.
 
+## `onPipeScanned`
+
+Called once per `@Showcase`-decorated [pipe](guide/showcasing-pipes.md), after the scanner has extracted its API.
+
+```typescript
+onPipeScanned(pipe: ScannedPipe): ScannedPipe | void | Promise<ScannedPipe | void>
+```
+
+The same mutation, return and chaining rules as `onServiceScanned`, and the same error handling: a hook that throws stops the build with `ng-prism: plugin "<name>" failed in onPipeScanned for pipe "<ClassName>": <cause>`.
+
+```typescript
+onPipeScanned(pipe) {
+  return {
+    ...pipe,
+    meta: { ...pipe.meta, myPlugin: { signatures: pipe.api.transform.length } },
+  };
+}
+```
+
+**A separate hook, for the same reason.** A pipe has no inputs, outputs, selector or canvas, and it is not a service either: it has a template name, a purity and `transform()` signatures instead of members and a provision. Its own list and hook keep it away from `onComponentScanned` and `onServiceScanned`, so none of the plugins that implement those is called with one. The JSDoc plugin does not need the hook: its pipe page reads `pipe.api` in the browser.
+
+**It may not run.** Pipes go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services. Without one the pipeline drops them before the hooks, so `onPipeScanned` is not called, and logs a hint, see the services and pipes gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.pipes` only when they were kept.
+
+`pipe.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `pipe.meta`, which is stable, and read `pipe.api` knowing it can change.
+
+**No navigation decorations.** `navigationDecorations` are not called for a pipe either.
+
 ## `onPageScanned`
 
 Called once per `StyleguidePage` after all pages are collected (both `config.pages` entries and Component Pages).
@@ -119,7 +151,7 @@ onPageScanned(page) {
 
 ## `onManifestReady`
 
-Called once with the complete `PrismManifest` after all `onComponentScanned`, `onServiceScanned` and `onPageScanned` hooks have finished.
+Called once with the complete `PrismManifest` after all `onComponentScanned`, `onServiceScanned`, `onPipeScanned` and `onPageScanned` hooks have finished.
 
 ```typescript
 onManifestReady(manifest: PrismManifest): PrismManifest | void | Promise<PrismManifest | void>

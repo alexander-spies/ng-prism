@@ -524,6 +524,7 @@ ng-prism has a plugin architecture. Plugins live under `packages/plugin-*/` and 
 | -------------------- | ------- | ------------------------------------------------------ |
 | `onComponentScanned` | Build   | Enrich component metadata                              |
 | `onServiceScanned`   | Build   | Enrich service metadata (since 22.7.0)                 |
+| `onPipeScanned`      | Build   | Enrich pipe metadata (since 22.7.0)                    |
 | `onPageScanned`      | Build   | Modify or add pages                                    |
 | `onManifestReady`    | Build   | Read or change the whole manifest before it is written |
 | `panels`             | Runtime | Add custom panels to the UI                            |

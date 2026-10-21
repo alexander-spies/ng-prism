@@ -11,6 +11,7 @@ interface NgPrismPlugin {
     // Build-time hooks (run in Node.js)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
     onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
+    onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
 
@@ -59,7 +60,22 @@ onServiceScanned(service) {
 }
 ```
 
-`service.api` holds the extracted API (members, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `importPath`, `showcaseConfig`, `provision` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to services](#panels-for-services), otherwise the build drops the services.
+`service.api` holds the extracted API (members, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `importPath`, `showcaseConfig`, `provision` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to services](#panels-for-services-and-pipes), otherwise the build drops the services.
+
+### `onPipeScanned`
+
+Called once per `@Showcase`-decorated [pipe](guide/showcasing-pipes.md), with the `ScannedPipe`. Same pattern as `onServiceScanned`, and a pipe never goes through that hook or `onComponentScanned`: it has its own list, `manifest.pipes`.
+
+```typescript
+onPipeScanned(pipe) {
+  return {
+    ...pipe,
+    meta: { ...pipe.meta, myPlugin: { signatures: pipe.api.transform.length } },
+  };
+}
+```
+
+`pipe.api` holds the extracted API (`transform` signatures, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `pipeName`, `pure`, `importPath`, `showcaseConfig` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to pipes](#panels-for-services-and-pipes), otherwise the build drops the pipes. Services and pipes are decided apart: a panel for services alone does not keep the pipes.
 
 ### `onPageScanned`
 
@@ -117,9 +133,9 @@ panels: [
 
 See [PanelDefinition](api/ng-prism-plugin.md#paneldefinition) for all fields.
 
-#### Panels for services
+#### Panels for services and pipes
 
-A [service](guide/showcasing-services.md) page (since `22.7.0`) has no canvas, so it offers only the view panels that say they apply to services. Without `appliesTo` (since `22.7.0`), a panel is a component panel and does not appear there.
+A [service](guide/showcasing-services.md) or [pipe](guide/showcasing-pipes.md) page (since `22.7.0`) has no canvas, so it offers only the view panels that say they apply to it. Without `appliesTo` (since `22.7.0`), a panel is a component panel and does not appear there.
 
 ```typescript
 panels: [
@@ -133,11 +149,11 @@ panels: [
 ],
 ```
 
-- `appliesTo: ['component']` is the default, `['service']` is for services only and `['component', 'service']` for both.
-- The panel component gets the input `activeService` (`RuntimeService | null`) when it applies to services, and `activeComponent` when it applies to components. It only gets the inputs of the targets it names, so a panel written before services existed is not affected.
-- Use `placement: 'view'`: a service page shows view tabs only. An addon panel appears on component pages alone, so for it `appliesTo` only decides whether it applies to `'component'`: with `['service']` it shows nowhere.
+- `appliesTo: ['component']` is the default, `['service']` is for services only, `['pipe']` for pipes only, and a list names several, for example `['component', 'service', 'pipe']`.
+- The panel component gets the input `activeService` (`RuntimeService | null`) when it applies to services, `activePipe` (`RuntimePipe | null`) when it applies to pipes, and `activeComponent` when it applies to components. It only gets the inputs of the targets it names, so a panel written before services and pipes existed is not affected.
+- Use `placement: 'view'`: a service or pipe page shows view tabs only. An addon panel appears on component pages alone, so for it `appliesTo` only decides whether it applies to `'component'`: with `['service']` or `['pipe']` it shows nowhere.
 - `isVisible` and `badge` take a component and are only called on component pages.
-- The build reads `placement` and `appliesTo` from the panels the plugin's **Node entry** declares, to decide whether anything shows services: only a view panel that applies to services counts. A plugin with a [browser entry](api/ng-prism-plugin.md#example-a-complete-navigation-decoration-plugin) declares the same `placement` and `appliesTo` in both.
+- The build reads `placement` and `appliesTo` from the panels the plugin's **Node entry** declares, to decide whether anything shows services or pipes: only a view panel that applies to services counts for services, and one that applies to pipes for pipes. A plugin with a [browser entry](api/ng-prism-plugin.md#example-a-complete-navigation-decoration-plugin) declares the same `placement` and `appliesTo` in both.
 
 ```typescript
 @Component({
@@ -150,7 +166,7 @@ export class ServiceNotesComponent {
 }
 ```
 
-`activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0).
+`activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0). On a pipe page, a panel with `appliesTo: ['pipe']` declares `readonly activePipe = input<RuntimePipe | null>(null);` and reads `activePipe()?.meta.api.transform` (`PipeApi`, experimental until 23.0.0) and `activePipe()?.meta.pipeName`.
 
 ### `controls`
 
@@ -232,19 +248,19 @@ Registered like any other `headerWidgets` entry; see [`HeaderWidgetDefinition`](
 
 ## PanelDefinition Fields
 
-| Field                  | Type                  | Description                                                                                                        |
-| ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `id`                   | `string`              | Unique panel identifier                                                                                            |
-| `label`                | `string`              | Tab label                                                                                                          |
-| `component`            | `Type<unknown>`       | Static panel component                                                                                             |
-| `loadComponent`        | `() => Promise<Type>` | Lazy-loaded panel component (use when importing browser-only APIs)                                                 |
-| `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                                                                           |
-| `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                                                                         |
-| `icon`                 | `string`              | Icon name (optional)                                                                                               |
-| `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._           |
-| `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                                |
-| `appliesTo`            | `PanelTarget[]`       | `['component']` (default), `['service']` or both (since `22.7.0`), see [Panels for services](#panels-for-services) |
-| `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                          |
+| Field                  | Type                  | Description                                                                                                                                           |
+| ---------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | `string`              | Unique panel identifier                                                                                                                               |
+| `label`                | `string`              | Tab label                                                                                                                                             |
+| `component`            | `Type<unknown>`       | Static panel component                                                                                                                                |
+| `loadComponent`        | `() => Promise<Type>` | Lazy-loaded panel component (use when importing browser-only APIs)                                                                                    |
+| `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                                                                                                              |
+| `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                                                                                                            |
+| `icon`                 | `string`              | Icon name (optional)                                                                                                                                  |
+| `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._                                              |
+| `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                                                                   |
+| `appliesTo`            | `PanelTarget[]`       | `['component']` (default), `['service']`, `['pipe']` or several (since `22.7.0`), see [Panels for services and pipes](#panels-for-services-and-pipes) |
+| `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                                                             |
 
 > **Note:** Always use `loadComponent` rather than `component` if your panel component imports anything from `@angular/platform-browser` or any other browser-only package. The config file is loaded in Node.js during the build, and a static import of a browser component crashes the builder.
 
