@@ -6,7 +6,7 @@ export interface ScannedPipe {
     filePath: string;
     /** Import path of the entry point that exports the pipe. */
     importPath?: string;
-    /** Only the fields that apply to pipes: the same as for a service. */
+    /** Only the fields that apply to pipes: title, description, category, categoryOrder, componentOrder, section, sectionOrder, tags, meta, status. */
     showcaseConfig: ShowcaseConfig;
     /** The name used in templates, from `@Pipe({ name })`. */
     pipeName: string;

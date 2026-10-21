@@ -164,8 +164,8 @@ export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, di
 
 /**
  * The class an export resolves to, when it carries `@Showcase`: the common
- * start of the component and the service scan, which each keep the classes of
- * their own kind.
+ * start of the component, the service and the pipe scan, which each keep the
+ * classes of their own kind.
  */
 export function findShowcasedClass(
     sym: ts.Symbol,
@@ -195,9 +195,9 @@ function hasDecoratorInputs(classDecl: ts.ClassDeclaration): boolean {
 }
 
 /**
- * `setup` is read for services only, so a component's is never part of the
- * config: the issue the evaluator raises for its function is swallowed here,
- * and {@link scanComponents} says what is wrong with it instead.
+ * `setup` is read for services and pipes only, so a component's is never
+ * part of the config: the issue the evaluator raises for its function is
+ * swallowed here, and {@link scanComponents} says what is wrong with it instead.
  */
 export function extractShowcaseConfig(decorator: ts.Decorator, className: string, report: Report, checker: ts.TypeChecker): ShowcaseConfig | undefined {
     const arg = getDecoratorArgument(decorator);
