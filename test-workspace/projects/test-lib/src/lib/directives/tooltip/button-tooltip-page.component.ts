@@ -36,29 +36,27 @@ import { ButtonComponent, TooltipDirective } from 'test-lib';
     styles: `
         .page {
             max-width: 640px;
-            font-family:
-                system-ui,
-                -apple-system,
-                sans-serif;
+            font-family: var(--prism-font-sans);
         }
         .page__heading {
             font-size: 16px;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--prism-text);
             margin: 0 0 8px;
         }
         .page__description {
             font-size: 14px;
-            color: #6b7280;
+            color: var(--prism-text-2);
             line-height: 1.5;
             margin: 0 0 24px;
         }
         .page__description code {
-            background: #f3f4f6;
+            background: var(--prism-input-bg);
             padding: 2px 6px;
             border-radius: 4px;
+            font-family: var(--prism-font-mono);
             font-size: 13px;
-            color: #6366f1;
+            color: var(--prism-primary);
         }
         .page__grid {
             display: grid;
@@ -71,14 +69,14 @@ import { ButtonComponent, TooltipDirective } from 'test-lib';
             align-items: center;
             gap: 8px;
             padding: 24px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--prism-border);
             border-radius: 8px;
-            background: #fafafa;
+            background: var(--prism-bg-surface);
         }
         .page__label {
             font-size: 12px;
             font-weight: 500;
-            color: #9ca3af;
+            color: var(--prism-text-muted);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }

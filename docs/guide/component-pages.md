@@ -37,6 +37,31 @@ import { ButtonComponent } from 'my-lib';
 export class ButtonPatternsPageComponent {}
 ```
 
+## Following the Theme
+
+A page renders in the styleguide's own document, on the dark or light background the theme toggle in the header picks. A fixed colour only works on one of them: dark text written for a white page all but disappears in the dark theme. Take colours from the theme tokens instead. They sit on `<html>` and switch with the theme:
+
+```css
+.tokens-page {
+    color: var(--prism-text);
+}
+
+.tokens-page__intro {
+    color: var(--prism-text-2);
+}
+
+.tokens-page code {
+    font-family: var(--prism-font-mono);
+    color: var(--prism-text-muted);
+}
+
+.tokens-page h2 {
+    border-bottom: 1px solid var(--prism-border-strong);
+}
+```
+
+Text without a colour of its own inherits `--prism-text-2` and the styleguide's sans font. [Theming](guide/theming.md) lists every token with its dark and light value. For anything a token cannot express, such as an image per theme, `data-theme` on `<html>` reads `dark` or `light`, see [Dark and Light Themes](guide/theming.md#dark-and-light-themes).
+
 ## Registering Pages
 
 Register pages via the third argument to `providePrism()` in `main.ts`:

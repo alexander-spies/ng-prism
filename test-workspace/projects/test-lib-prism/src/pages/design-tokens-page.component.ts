@@ -51,15 +51,15 @@ import { Component } from '@angular/core';
             max-width: 800px;
             margin: 0 auto;
             padding: 32px;
-            font-family: system-ui, sans-serif;
-            color: #1a1a2e;
+            font-family: var(--prism-font-sans);
+            color: var(--prism-text);
         }
         .tokens-page h1 {
             font-size: 28px;
             margin-bottom: 8px;
         }
         .tokens-page__intro {
-            color: #666;
+            color: var(--prism-text-2);
             margin-bottom: 32px;
         }
         .tokens-section {
@@ -68,7 +68,7 @@ import { Component } from '@angular/core';
         .tokens-section h2 {
             font-size: 18px;
             margin-bottom: 16px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--prism-border-strong);
             padding-bottom: 8px;
         }
         .tokens-grid {
@@ -80,7 +80,7 @@ import { Component } from '@angular/core';
             width: 100%;
             height: 64px;
             border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--prism-border-strong);
         }
         .token-swatch__name {
             display: block;
@@ -90,8 +90,9 @@ import { Component } from '@angular/core';
         }
         .token-swatch__value {
             display: block;
+            font-family: var(--prism-font-mono);
             font-size: 11px;
-            color: #888;
+            color: var(--prism-text-muted);
         }
         .tokens-spacing {
             display: flex;
@@ -111,7 +112,7 @@ import { Component } from '@angular/core';
         }
         .token-space__label {
             font-size: 13px;
-            color: #555;
+            color: var(--prism-text-2);
         }
         .tokens-type {
             display: flex;

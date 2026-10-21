@@ -50,14 +50,15 @@ import { ButtonComponent } from 'test-lib';
             max-width: 600px;
             margin: 0 auto;
             padding: 32px;
-            font-family: system-ui, sans-serif;
+            font-family: var(--prism-font-sans);
+            color: var(--prism-text);
         }
         .patterns h2 {
             font-size: 24px;
             margin-bottom: 8px;
         }
         .patterns__intro {
-            color: #666;
+            color: var(--prism-text-2);
             margin-bottom: 24px;
         }
         .pattern {
@@ -67,7 +68,7 @@ import { ButtonComponent } from 'test-lib';
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 12px;
-            color: #444;
+            color: var(--prism-text-2);
         }
         .pattern__row {
             display: flex;

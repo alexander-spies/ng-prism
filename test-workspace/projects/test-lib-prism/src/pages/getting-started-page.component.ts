@@ -35,15 +35,15 @@ export class MyComponent {{ '{' }}{{ '}' }}</code></pre>
             max-width: 700px;
             margin: 0 auto;
             padding: 32px;
-            font-family: system-ui, sans-serif;
-            color: #1a1a2e;
+            font-family: var(--prism-font-sans);
+            color: var(--prism-text);
         }
         .gs-page h1 {
             font-size: 28px;
             margin-bottom: 8px;
         }
         .gs-page__intro {
-            color: #666;
+            color: var(--prism-text-2);
             margin-bottom: 32px;
         }
         .gs-page section {
@@ -54,17 +54,21 @@ export class MyComponent {{ '{' }}{{ '}' }}</code></pre>
             margin-bottom: 12px;
         }
         .gs-page pre {
-            background: #1e1e2e;
-            color: #cdd6f4;
+            background: var(--prism-bg-elevated);
+            color: var(--prism-text);
             padding: 16px;
+            border: 1px solid var(--prism-border);
             border-radius: 8px;
             overflow-x: auto;
             font-size: 14px;
             line-height: 1.5;
         }
+        .gs-page code {
+            font-family: var(--prism-font-mono);
+        }
         .gs-page p {
             line-height: 1.6;
-            color: #444;
+            color: var(--prism-text-2);
         }
     `
 })
