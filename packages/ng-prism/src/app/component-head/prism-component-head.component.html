@@ -1,14 +1,16 @@
-@if (comp(); as c) {
+@if (subject(); as s) {
     <section class="comp-head">
         <span class="comp-crumb">{{ category() }}</span>
-        <h1 class="comp-title">{{ c.meta.showcaseConfig.title }}</h1>
+        <h1 class="comp-title">{{ s.showcaseConfig.title }}</h1>
 
         <prism-head-info
-            [selector]="c.meta.componentMeta.selector"
-            [description]="c.meta.showcaseConfig.description"
-            [tags]="c.meta.showcaseConfig.tags ?? []"
+            [selector]="selector()"
+            [className]="s.className"
+            [description]="s.showcaseConfig.description"
+            [tags]="s.showcaseConfig.tags ?? []"
             [variantCount]="variantCount()"
-            [stateCount]="stateCount()" />
+            [stateCount]="stateCount()"
+            [facts]="facts()" />
 
         @if (statusBadge(); as badge) {
             <span
@@ -23,7 +25,9 @@
 
         <span class="comp-spacer"></span>
 
-        <prism-head-gauge [metrics]="metrics()" />
+        @if (comp()) {
+            <prism-head-gauge [metrics]="metrics()" />
+        }
         <span class="comp-head-end"><ng-content select="[headEnd]" /></span>
     </section>
 }

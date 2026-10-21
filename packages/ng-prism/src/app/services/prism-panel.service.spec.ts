@@ -1,5 +1,6 @@
 import { EnvironmentInjector, Injector, runInInjectionContext, signal, type Type } from '@angular/core';
 import type { PanelDefinition, RuntimeComponent } from '../../plugin/plugin.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_BUILTIN_PANELS } from '../tokens/prism-tokens.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
 import { PrismPanelService } from './prism-panel.service.js';
@@ -23,11 +24,24 @@ function makeComponent(className = 'ButtonComponent'): RuntimeComponent {
     };
 }
 
+function makeService(className = 'ToastService'): RuntimeService {
+    return {
+        meta: {
+            className,
+            filePath: '/toast.service.ts',
+            showcaseConfig: { title: 'Toast' },
+            provision: 'auto',
+            api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+        }
+    };
+}
+
 function createService(
     options: {
         builtins?: PanelDefinition[];
         pluginViewPanels?: PanelDefinition[];
         activeComponent?: RuntimeComponent | null;
+        activeService?: RuntimeService | null;
     } = {}
 ): PrismPanelService {
     const pluginStub = {
@@ -35,7 +49,8 @@ function createService(
         viewPanels: signal(options.pluginViewPanels ?? []).asReadonly()
     } as unknown as PrismPluginService;
     const navigationStub = {
-        activeComponent: signal(options.activeComponent ?? null).asReadonly()
+        activeComponent: signal(options.activeComponent ?? null).asReadonly(),
+        activeService: signal(options.activeService ?? null).asReadonly()
     } as unknown as PrismNavigationService;
 
     const injector = Injector.create({
@@ -143,6 +158,50 @@ describe('PrismPanelService', () => {
 
             service.visibleViewPanels();
             expect(seen).toEqual(['CardComponent']);
+        });
+
+        it('drops service-only panels on a component page', () => {
+            const service = createService({
+                builtins: [
+                    { id: 'overview', label: 'Overview', placement: 'view' },
+                    { id: 'usage', label: 'Usage', placement: 'view', appliesTo: ['service'] }
+                ],
+                activeComponent: makeComponent()
+            });
+
+            expect(service.visibleViewPanels().map((p) => p.id)).toEqual(['overview']);
+        });
+
+        it('keeps panels that apply to both on a component page', () => {
+            const service = createService({
+                builtins: [{ id: 'docs', label: 'API', placement: 'view', appliesTo: ['component', 'service'] }],
+                activeComponent: makeComponent()
+            });
+
+            expect(service.visibleViewPanels().map((p) => p.id)).toEqual(['docs']);
+        });
+
+        it('offers only service panels while a service is active', () => {
+            const service = createService({
+                builtins: [
+                    { id: 'overview', label: 'Overview', placement: 'view' },
+                    { id: 'docs', label: 'API', placement: 'view', appliesTo: ['component', 'service'] }
+                ],
+                activeService: makeService()
+            });
+
+            expect(service.visibleViewPanels().map((p) => p.id)).toEqual(['docs']);
+        });
+
+        it('does not call isVisible for services', () => {
+            const isVisible = jest.fn(() => false);
+            const service = createService({
+                builtins: [{ id: 'docs', label: 'API', placement: 'view', appliesTo: ['service'], isVisible }],
+                activeService: makeService()
+            });
+
+            expect(service.visibleViewPanels().map((p) => p.id)).toEqual(['docs']);
+            expect(isVisible).not.toHaveBeenCalled();
         });
     });
 });

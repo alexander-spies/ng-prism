@@ -5,6 +5,7 @@ import { PrismNavigationService } from '../services/prism-navigation.service.js'
 import type { HeadMetric } from './head-metrics.js';
 import { PrismHeadGaugeComponent } from './prism-head-gauge.component.js';
 import { PrismHeadInfoComponent } from './prism-head-info.component.js';
+import { serviceFacts } from './service-facts.js';
 
 interface StatusBadge {
     label: string;
@@ -43,11 +44,20 @@ export class PrismComponentHeadComponent {
     private readonly auditService = inject(A11yAuditService);
 
     protected readonly comp = computed(() => this.navigationService.activeComponent());
+    protected readonly service = computed(() => this.navigationService.activeService());
 
-    protected readonly category = computed(() => {
-        const c = this.comp();
+    /** What the head introduces: the active component or, on a service page, the service. */
+    protected readonly subject = computed(() => this.comp()?.meta ?? this.service()?.meta ?? null);
 
-        return c?.meta.showcaseConfig.category ?? 'Uncategorized';
+    protected readonly category = computed(() => this.subject()?.showcaseConfig.category ?? 'Uncategorized');
+
+    /** The selector of a component. A service has none. */
+    protected readonly selector = computed(() => this.comp()?.meta.componentMeta.selector);
+
+    protected readonly facts = computed(() => {
+        const s = this.service();
+
+        return s ? serviceFacts(s.meta.provision, s.meta.importPath) : [];
     });
 
     protected readonly variantCount = computed(() => {
@@ -62,7 +72,7 @@ export class PrismComponentHeadComponent {
         return c?.meta.showcaseConfig.states?.length ?? 0;
     });
 
-    protected readonly status = computed<ComponentStatus | undefined>(() => this.comp()?.meta.showcaseConfig.status);
+    protected readonly status = computed<ComponentStatus | undefined>(() => this.subject()?.showcaseConfig.status);
 
     protected readonly statusBadge = computed<StatusBadge | null>(() => {
         const s = this.status();

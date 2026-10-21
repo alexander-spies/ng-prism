@@ -2,6 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { Component, computed, createEnvironmentInjector, effect, EnvironmentInjector, inject, OnDestroy, signal, type Type } from '@angular/core';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
+import { panelInputsFor } from './panel-inputs.js';
 
 @Component({
     selector: 'prism-view-panel-host',
@@ -18,16 +19,15 @@ export class PrismViewPanelHostComponent implements OnDestroy {
     private readonly allViewPanels = this.panelService.viewPanels;
 
     protected readonly resolvedComponent = signal<Type<unknown> | null>(null);
-    protected readonly panelInputs = computed(() => ({
-        activeComponent: this.nav.activeComponent()
-    }));
+    private readonly activePanel = computed(() => this.allViewPanels().find((p) => p.id === this.panelService.activeViewId()));
+
+    protected readonly panelInputs = computed(() => panelInputsFor(this.activePanel(), this.nav.activeComponent(), this.nav.activeService()));
 
     private readonly lazyCache = new Map<string, Type<unknown>>();
     private readonly injectorCache = new Map<string, EnvironmentInjector>();
 
     protected readonly activeInjector = computed(() => {
-        const panelId = this.panelService.activeViewId();
-        const panel = this.allViewPanels().find((p) => p.id === panelId);
+        const panel = this.activePanel();
 
         if (!panel?.providers?.length) return this.envInjector;
 
@@ -39,7 +39,7 @@ export class PrismViewPanelHostComponent implements OnDestroy {
 
     constructor() {
         effect(() => {
-            const panel = this.allViewPanels().find((p) => p.id === this.panelService.activeViewId()) ?? null;
+            const panel = this.activePanel();
 
             if (!panel) {
                 this.resolvedComponent.set(null);
