@@ -247,6 +247,91 @@ describe('createScanner', () => {
         });
     });
 
+    describe('pipes', () => {
+        const pipesDir = path.join(FIXTURES_DIR, 'pipes');
+        const apiEntry = path.join(pipesDir, 'pipes-api.ts');
+        const barrelEntry = path.join(pipesDir, 'pipes-barrel.ts');
+        let warn: jest.SpyInstance;
+
+        beforeEach(() => {
+            warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            warn.mockRestore();
+        });
+
+        it('scans the pipes of an entry point next to its components and services', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/pipes' }] }).scan();
+            const timeAgo = result.pipes.find((p) => p.className === 'TimeAgoPipe');
+
+            expect(timeAgo?.pipeName).toBe('timeAgo');
+            expect(timeAgo?.importPath).toBe('lib/pipes');
+            expect(timeAgo?.api.setup.map((entry) => entry.importPath)).toEqual(['lib/pipes']);
+        });
+
+        it('keeps a pipe out of the components and the services, and a component and a service out of the pipes', () => {
+            const pipes = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/pipes' }] }).scan();
+            const others = createScanner({ entryPoints: [{ entryFile: path.join(FIXTURES_DIR, 'services', 'services-api.ts'), importPath: 'lib/toast' }] }).scan();
+
+            expect(pipes.components.map((c) => c.className)).not.toContain('StandalonePipe');
+            expect(pipes.services.map((s) => s.className)).not.toContain('StandalonePipe');
+            expect(others.pipes).toEqual([]);
+        });
+
+        it('does not list a @Pipe with @Injectable as a service', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/pipes' }] }).scan();
+
+            expect(result.pipes.map((p) => p.className)).toContain('InjectablePipe');
+            expect(result.services.map((s) => s.className)).not.toContain('InjectablePipe');
+            expect(result.components.map((c) => c.className)).not.toContain('InjectablePipe');
+        });
+
+        it('returns no pipes for a library without any', () => {
+            expect(createScanner({ entryPoints }).scan().pipes).toEqual([]);
+        });
+
+        it('dedupes a pipe exported by a secondary and the primary entry point', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/pipes' },
+                    { entryFile: barrelEntry, importPath: 'lib', primary: true }
+                ]
+            }).scan();
+            const timeAgos = result.pipes.filter((p) => p.className === 'TimeAgoPipe');
+
+            expect(timeAgos).toHaveLength(1);
+            expect(timeAgos[0].importPath).toBe('lib/pipes');
+            expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('multiple entry points'));
+        });
+
+        it('warns about a pipe two secondary entry points export, and keeps the first', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/pipes' },
+                    { entryFile: barrelEntry, importPath: 'lib/barrel' }
+                ]
+            }).scan();
+            const timeAgos = result.pipes.filter((p) => p.className === 'TimeAgoPipe');
+
+            expect(timeAgos).toHaveLength(1);
+            expect(timeAgos[0].importPath).toBe('lib/pipes');
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('TimeAgoPipe is exported by multiple entry points'));
+        });
+
+        it('collects what it drops from a pipe once, even when several entry points export it', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/a' },
+                    { entryFile: apiEntry, importPath: 'lib/b' }
+                ]
+            }).scan();
+
+            expect(result.diagnostics.filter((message) => message.startsWith('NgModulePipe'))).toHaveLength(1);
+            expect(new Set(result.diagnostics).size).toBe(result.diagnostics.length);
+        });
+    });
+
     it('should collect a dropped @Showcase value once, even when several entry points export its component', () => {
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
         const unevaluableEntry = path.join(FIXTURES_DIR, 'unevaluable-api.ts');

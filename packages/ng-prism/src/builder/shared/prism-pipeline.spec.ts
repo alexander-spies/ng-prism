@@ -597,6 +597,234 @@ describe('runPrismPipeline services', () => {
     });
 });
 
+describe('runPrismPipeline pipes', () => {
+    let tmp: string;
+
+    afterEach(() => {
+        if (tmp && existsSync(tmp)) {
+            rmSync(tmp, { recursive: true, force: true });
+        }
+    });
+
+    const options = {
+        entryPoint: 'lib/public-api.ts',
+        libraryImportPath: 'my-lib',
+        prismProject: 'my-lib-prism',
+        configFile: 'ng-prism.config.ts'
+    };
+    const HINT =
+        'ng-prism: 1 pipe(s) with @Showcase found, but no plugin shows pipes; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.';
+
+    /** A library of one component, one pipe whose setup function the entry point exports, and one service. */
+    function createPipesWorkspace(config: string): string {
+        const root = mkdtempSync(join(tmpdir(), 'ng-prism-pipeline-pipes-'));
+        const lib = join(root, 'lib');
+
+        mkdirSync(lib);
+        writeFileSync(join(root, 'ng-prism.config.ts'), config, 'utf-8');
+        writeFileSync(
+            join(lib, 'public-api.ts'),
+            [
+                "export { BadgeComponent } from './badge.component.js';",
+                "export { provideTimeAgo, TimeAgoPipe } from './time-ago.pipe.js';",
+                "export { ToastService } from './toast.service.js';",
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'badge.component.ts'),
+            [
+                "import { Component } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                "@Showcase({ title: 'Badge' })",
+                "@Component({ selector: 'ui-badge', standalone: true, template: '<span></span>' })",
+                'export class BadgeComponent {}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'time-ago.pipe.ts'),
+            [
+                "import { Pipe, type PipeTransform } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                'export function provideTimeAgo(): unknown[] {',
+                '    return [];',
+                '}',
+                "@Showcase({ title: 'Time ago', setup: () => [provideTimeAgo] })",
+                "@Pipe({ name: 'timeAgo' })",
+                'export class TimeAgoPipe implements PipeTransform {',
+                '    transform(value: Date): string {',
+                "        return '';",
+                '    }',
+                '}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'toast.service.ts'),
+            [
+                "import { Injectable } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                "@Showcase({ title: 'Toast Service' })",
+                "@Injectable({ providedIn: 'root' })",
+                'export class ToastService {',
+                '    show(message: string): void {}',
+                '}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        return root;
+    }
+
+    /** `Object.assign` rather than spread, for the reason the a11y test above gives. */
+    const PIPE_PANEL_CONFIG = `export default {
+      plugins: [
+        {
+          name: 'test-pipe-panel-plugin',
+          panels: [{ id: 'api', label: 'API', placement: 'view', appliesTo: ['pipe'] }],
+          onPipeScanned(pipe) {
+            return Object.assign({}, pipe, { meta: { fromPlugin: 'pipe-hook' } });
+          },
+        },
+      ],
+    };`;
+
+    function hintsLogged(ctx: BuilderContext): unknown[][] {
+        return (ctx.logger.info as jest.Mock).mock.calls.filter(([message]) => String(message).includes('no plugin shows pipes'));
+    }
+
+    it('drops pipes and logs a hint when no view panel applies to pipes', async () => {
+        tmp = createPipesWorkspace('export default { plugins: [] };');
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(result.componentCount).toBe(1);
+        expect(ctx.logger.info).toHaveBeenCalledWith(HINT);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+        expect(readManifest(tmp)).not.toContain('pipes:');
+        expect(readManifest(tmp)).not.toContain('TimeAgoPipe');
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\) at /));
+    });
+
+    it('does not count a panel that applies to components or services only as one that shows pipes', async () => {
+        tmp = createPipesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B', appliesTo: ['component'] }, { id: 'c', label: 'C', placement: 'view', appliesTo: ['service'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(result.serviceCount).toBe(1);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+    });
+
+    it('does not count an addon panel that applies to pipes as one that shows pipes', async () => {
+        tmp = createPipesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', appliesTo: ['pipe'] }, { id: 'b', label: 'B', placement: 'addon', appliesTo: ['component', 'pipe'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+    });
+
+    it('does not turn the hint into a diagnostic: strictShowcase stays quiet about dropped pipes', async () => {
+        tmp = createPipesWorkspace('export default { strictShowcase: true };');
+        const ctx = createMockContext(tmp);
+
+        await expect(runPrismPipeline(options, ctx, createPipelineState())).resolves.toMatchObject({ pipeCount: 0 });
+    });
+
+    it('keeps pipes when a view panel applies to pipes', async () => {
+        tmp = createPipesWorkspace(PIPE_PANEL_CONFIG);
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(1);
+        expect(hintsLogged(ctx)).toHaveLength(0);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\), 1 pipe\(s\) at /));
+    });
+
+    it('keeps pipes when one view panel applies to components, services and pipes', async () => {
+        tmp = createPipesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', placement: 'view', appliesTo: ['component', 'service', 'pipe'] }] }] };"
+        );
+
+        const result = await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(result.pipeCount).toBe(1);
+        expect(result.serviceCount).toBe(1);
+    });
+
+    it('judges services and pipes on their own: a panel that shows pipes does not show services', async () => {
+        tmp = createPipesWorkspace(PIPE_PANEL_CONFIG);
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(1);
+        expect(result.serviceCount).toBe(0);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('1 service(s) with @Showcase found, but no plugin shows services'));
+        expect(readManifest(tmp)).not.toContain('ToastService');
+    });
+
+    it('runs onPipeScanned and writes the pipes into the runtime manifest as data', async () => {
+        tmp = createPipesWorkspace(PIPE_PANEL_CONFIG);
+
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        const content = readManifest(tmp);
+
+        expect(content).toContain('pipes: [');
+        expect(content).toContain('className: "TimeAgoPipe"');
+        expect(content).toContain('pipeName: "timeAgo"');
+        expect(content).toContain('fromPlugin: "pipe-hook"');
+        expect(content).toContain('importPath: "my-lib"');
+        expect(content).toContain('name: "provideTimeAgo"');
+        expect(content).toContain("import { BadgeComponent } from 'my-lib';");
+        expect(content).not.toMatch(/import \{[^}]*TimeAgoPipe/);
+    });
+
+    it('lists pipes in the log line after the services and before the pages', async () => {
+        tmp = createPipesWorkspace(
+            "export default { pages: [{ type: 'custom', title: 'Intro', data: {} }], plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', placement: 'view', appliesTo: ['service', 'pipe'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pageCount).toBe(1);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\), 1 service\(s\), 1 pipe\(s\) and 1 page\(s\) at /));
+    });
+
+    it('writes no pipes and logs no hint for a library that has none', async () => {
+        tmp = createTempWorkspace();
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline({ ...options, libraryImportPath: 'my-lib' }, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(0);
+        expect(readManifest(tmp)).not.toContain('pipes:');
+    });
+});
+
 describe('runPrismPipeline deprecated options', () => {
     let tmp: string;
 

@@ -1,8 +1,10 @@
 import ts from 'typescript';
+import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
 import { scanComponents } from './component.scanner.js';
 import { type EntryPointInput, resolveEntryPointExports } from './entry-point.scanner.js';
+import { scanPipes } from './pipe.scanner.js';
 import { buildExportIndex } from './service/export-index.js';
 import { scanServices } from './service.scanner.js';
 import { createSourceFileCache } from './source-file-cache.js';
@@ -15,6 +17,7 @@ export interface CreateScannerOptions {
 export interface ScanResult {
     components: ScannedComponent[];
     services: ScannedService[];
+    pipes: ScannedPipe[];
     /** One message per @Showcase value the scan had to drop, already printed as a warning. */
     diagnostics: string[];
 }
@@ -67,9 +70,10 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             const checker = program.getTypeChecker();
             const allComponents: ScannedComponent[] = [];
             const allServices: ScannedService[] = [];
+            const allPipes: ScannedPipe[] = [];
             const diagnostics: string[] = [];
             const notices = new Set<string>();
-            // A setup function or a type is often exported by another entry point than the service that names it.
+            // A setup function or a type is often exported by another entry point than the service or pipe that names it.
             const exportIndex = buildExportIndex(entries, checker);
 
             const fromPrimary = new Set<object>();
@@ -77,16 +81,23 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             for (const { exports, importPath, primary } of entries) {
                 const components = scanComponents(exports, checker, diagnostics, notices);
                 const services = scanServices(exports, checker, { exportIndex, diagnostics, notices });
+                const pipes = scanPipes(exports, checker, { exportIndex, diagnostics, notices });
 
                 for (const c of components) c.importPath = importPath;
                 if (primary) {
-                    for (const item of [...components, ...services]) fromPrimary.add(item);
+                    for (const item of [...components, ...services, ...pipes]) fromPrimary.add(item);
                 }
                 allComponents.push(...components);
                 allServices.push(...services);
+                allPipes.push(...pipes);
             }
 
-            return { components: dedupe(allComponents, fromPrimary), services: dedupe(allServices, fromPrimary), diagnostics };
+            return {
+                components: dedupe(allComponents, fromPrimary),
+                services: dedupe(allServices, fromPrimary),
+                pipes: dedupe(allPipes, fromPrimary),
+                diagnostics
+            };
         }
     };
 }

@@ -7,7 +7,10 @@ import type { ExportIndex } from './service/export-index.js';
 import { extractServiceApi } from './service/service-api.extractor.js';
 import { readSetupRefs } from './service/setup.reader.js';
 
-/** The `@Showcase` fields that mean something for a service: what places it in the sidebar, and what a plugin may read. */
+/**
+ * The `@Showcase` fields that mean something for a service, and for a pipe, which the sidebar and the plugins treat the same way:
+ * what places it in the sidebar, and what a plugin may read.
+ */
 const SERVICE_CONFIG_FIELDS = ['description', 'category', 'categoryOrder', 'componentOrder', 'section', 'sectionOrder', 'tags', 'meta', 'status'] as const;
 
 export interface ScanServicesOptions {
@@ -63,7 +66,8 @@ export function scanServices(exports: ts.Symbol[], checker: ts.TypeChecker, { ex
     return services;
 }
 
-function pickServiceFields(config: ShowcaseConfig): ShowcaseConfig {
+/** `title` and whichever of the service fields the config sets: a component's `variants`, `bg` and the like mean nothing here. */
+export function pickServiceFields(config: ShowcaseConfig): ShowcaseConfig {
     const picked: ShowcaseConfig = { title: config.title };
 
     for (const field of SERVICE_CONFIG_FIELDS) {
