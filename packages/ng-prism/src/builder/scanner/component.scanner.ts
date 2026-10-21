@@ -11,6 +11,7 @@ import { classifyShowcaseClass } from './service/angular-decorators.js';
 import { findSetupProperty } from './service/setup.reader.js';
 import {
     describeDeprecatedProviders,
+    describeLegacyPipeComponent,
     describeLegacyServiceComponent,
     describeSetupOnComponent,
     describeUnevaluable,
@@ -81,8 +82,9 @@ export function createReporters(diagnostics: string[], notices: Set<string>): { 
 
 /**
  * Scan exported symbols for Angular components annotated with @Showcase.
- * A class with `@Injectable` or `@Service` is a service and is left to the
- * service scan, unless it declares fields only a component can use.
+ * A class with `@Injectable` or `@Service` is a service and one with `@Pipe` a
+ * pipe, each left to its own scan, unless it declares fields only a component
+ * can use.
  *
  * Every @Showcase value the scan has to drop is printed and collected in
  * `diagnostics`, once: sharing the array across entry points keeps a
@@ -103,14 +105,20 @@ export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, di
         const className = classDecl.name?.text ?? 'Anonymous';
         const classKind = classifyShowcaseClass(classDecl, showcaseArg, checker);
 
-        if (classKind.kind === 'service') continue;
+        if (classKind.kind === 'service' || classKind.kind === 'pipe') continue;
 
         const showcaseConfig = extractShowcaseConfig(showcaseDecorator, className, report, checker);
 
         if (!showcaseConfig) continue;
 
         // Not a diagnostic: the component still works, and strictShowcase must not fail the build over a notice about 23.0.0.
-        if (classKind.kind === 'legacy-component') notify(describeLegacyServiceComponent(className, classKind.fields));
+        if (classKind.kind === 'legacy-component') {
+            notify(
+                classKind.source === 'pipe'
+                    ? describeLegacyPipeComponent(className, classKind.fields, classKind.standalone !== false)
+                    : describeLegacyServiceComponent(className, classKind.fields)
+            );
+        }
 
         const setup = showcaseArg && findSetupProperty(showcaseArg);
 

@@ -2,9 +2,10 @@ import path from 'node:path';
 import ts from 'typescript';
 import { findDecorator, getDecoratorArgument } from '../ast-utils.js';
 import { resolveEntryPointExports } from '../entry-point.scanner.js';
-import { classifyShowcaseClass, findAngularCoreDecorator, readProvision } from './angular-decorators.js';
+import { classifyShowcaseClass, findAngularCoreDecorator, readPipeOptions, readProvision } from './angular-decorators.js';
 
 const FIXTURES_DIR = path.join(__dirname, '..', '__fixtures__', 'services');
+const PIPES_DIR = path.join(__dirname, '..', '__fixtures__', 'pipes');
 
 const compilerOptions: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2022,
@@ -16,9 +17,9 @@ const compilerOptions: ts.CompilerOptions = {
 };
 
 /** The classes an entry file exports, by name, with the checker that resolves their decorators. */
-function loadClasses(entry: string) {
-    const entryFile = path.join(FIXTURES_DIR, entry);
-    const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture/toast' }], compilerOptions);
+function loadClasses(entry: string, dir = FIXTURES_DIR, importPath = 'fixture/toast') {
+    const entryFile = path.join(dir, entry);
+    const result = resolveEntryPointExports([{ entryFile, importPath }], compilerOptions);
     const checker = result.program.getTypeChecker();
     const classes = new Map(
         result.entries[0].exports.flatMap((sym) => {
@@ -49,7 +50,14 @@ function loadClasses(entry: string) {
         return readProvision(kind.decorator, checker);
     }
 
-    return { checker, classOf, classify, provision };
+    function pipeOptions(name: string) {
+        const kind = classify(name);
+
+        if (kind.kind !== 'pipe') throw new Error(`${name} is not a pipe`);
+        return readPipeOptions(kind.decorator, checker);
+    }
+
+    return { checker, classOf, classify, provision, pipeOptions };
 }
 
 describe('angular-decorators', () => {
@@ -94,7 +102,7 @@ describe('angular-decorators', () => {
         });
 
         it('keeps a service with component-only fields a component', () => {
-            expect(classify('LegacyPageService')).toEqual({ kind: 'legacy-component', fields: ['renderPage'] });
+            expect(classify('LegacyPageService')).toEqual({ kind: 'legacy-component', fields: ['renderPage'], source: 'injectable' });
         });
     });
 
@@ -121,9 +129,9 @@ describe('angular-decorators edge cases', () => {
     });
 
     it('finds the component-only fields in the literal, in a spread and in a field it cannot read', () => {
-        expect(classify('SpreadFieldService')).toEqual({ kind: 'legacy-component', fields: ['variants'] });
-        expect(classify('LiteralFieldsService')).toEqual({ kind: 'legacy-component', fields: ['variants', 'bg'] });
-        expect(classify('UnreadableFieldService')).toEqual({ kind: 'legacy-component', fields: ['bg'] });
+        expect(classify('SpreadFieldService')).toEqual({ kind: 'legacy-component', fields: ['variants'], source: 'injectable' });
+        expect(classify('LiteralFieldsService')).toEqual({ kind: 'legacy-component', fields: ['variants', 'bg'], source: 'injectable' });
+        expect(classify('UnreadableFieldService')).toEqual({ kind: 'legacy-component', fields: ['bg'], source: 'injectable' });
     });
 
     it('classifies a service whose @Showcase has no component-only field, with or without a literal', () => {
@@ -145,5 +153,55 @@ describe('angular-decorators edge cases', () => {
         expect(provision('ConstantOptOutService')).toBe('manual');
         expect(provision('VariableOptOutService')).toBe('manual');
         expect(provision('FactoryService')).toBe('auto');
+    });
+});
+
+describe('angular-decorators with pipes', () => {
+    let checker: ts.TypeChecker;
+    let classOf: ReturnType<typeof loadClasses>['classOf'];
+    let classify: ReturnType<typeof loadClasses>['classify'];
+    let pipeOptions: ReturnType<typeof loadClasses>['pipeOptions'];
+
+    beforeAll(() => {
+        ({ checker, classOf, classify, pipeOptions } = loadClasses('pipes-api.ts', PIPES_DIR, 'fixture/pipes'));
+    });
+
+    it('finds @Pipe imported from @angular/core', () => {
+        expect(findAngularCoreDecorator(classOf('StandalonePipe'), 'Pipe', checker)).toBeDefined();
+        expect(findAngularCoreDecorator(classOf('StandalonePipe'), 'Injectable', checker)).toBeUndefined();
+    });
+
+    it('classifies a standalone @Pipe as a pipe', () => {
+        expect(classify('StandalonePipe')).toMatchObject({ kind: 'pipe' });
+        expect(classify('ImpurePipe')).toMatchObject({ kind: 'pipe' });
+    });
+
+    it('classifies a pipe declared in an NgModule as a pipe, for the pipe scan to drop with a reason', () => {
+        expect(classify('NgModulePipe')).toMatchObject({ kind: 'pipe' });
+    });
+
+    it('prefers @Pipe over @Injectable', () => {
+        expect(classify('InjectablePipe')).toMatchObject({ kind: 'pipe' });
+    });
+
+    it('keeps a pipe with component-only fields a component', () => {
+        expect(classify('LegacyPagePipe')).toEqual({ kind: 'legacy-component', fields: ['renderPage'], source: 'pipe' });
+        expect(classify('NgModulePagePipe')).toEqual({ kind: 'legacy-component', fields: ['renderPage'], source: 'pipe', standalone: false });
+    });
+
+    it('reads the pipe options', () => {
+        expect(pipeOptions('StandalonePipe')).toEqual({ name: 'standalone', pure: true, standalone: true });
+        expect(pipeOptions('ImpurePipe')).toEqual({ name: 'impure', pure: false, standalone: true });
+        expect(pipeOptions('NgModulePipe')).toEqual({ name: 'ngModule', pure: true, standalone: false });
+    });
+
+    it('leaves out a name or purity it cannot read, and still reads the rest', () => {
+        const dynamicName = pipeOptions('DynamicNamePipe');
+        const dynamicPure = pipeOptions('DynamicPurePipe');
+
+        expect(dynamicName).not.toHaveProperty('name');
+        expect(dynamicName).toMatchObject({ pure: true, standalone: true });
+        expect(dynamicPure).not.toHaveProperty('pure');
+        expect(dynamicPure).toMatchObject({ name: 'dynamicPure', standalone: true });
     });
 });

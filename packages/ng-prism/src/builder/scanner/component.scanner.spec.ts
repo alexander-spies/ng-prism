@@ -857,17 +857,75 @@ describe('scanComponents with services in the entry point', () => {
         expect(diagnostics.filter((d) => d.startsWith('LegacyPageService'))).toEqual([]);
     });
 
-    it('says that setup only applies to services, once per component', () => {
+    it('says that setup only applies to services and pipes, once per component', () => {
         const { components, diagnostics } = scan();
         const file = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'services', 'setup-on-component.component.ts'));
 
         expect(components.find((c) => c.className === 'SetupOnComponent')!.showcaseConfig).toEqual({ title: 'Setup on component' });
         expect(diagnostics.filter((d) => d.includes('setup'))).toEqual([
-            `SetupOnComponent › setup (${file}:4:42) only applies to services (@Injectable or @Service); it was dropped.`
+            `SetupOnComponent › setup (${file}:4:42) only applies to services and pipes (@Injectable, @Service or @Pipe); it was dropped.`
         ]);
     });
 
     it('does not report the setup function as a runtime value', () => {
         expect(scan().diagnostics.filter((d) => d.includes('runtime value'))).toEqual([]);
+    });
+});
+
+describe('scanComponents with pipes in the entry point', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'pipes', 'pipes-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture/pipes' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan() {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+        const components = scanComponents(exports, checker, diagnostics, notices);
+
+        return { components, diagnostics, notices };
+    }
+
+    it('leaves the pipes to the pipe scan', () => {
+        const names = scan().components.map((c) => c.className);
+
+        for (const pipe of ['StandalonePipe', 'ImpurePipe', 'NgModulePipe', 'InjectablePipe', 'DynamicNamePipe', 'DynamicPurePipe']) {
+            expect(names).not.toContain(pipe);
+        }
+    });
+
+    it('keeps a pipe with component-only fields as a component', () => {
+        const names = scan().components.map((c) => c.className);
+
+        expect(names.sort()).toEqual(['LegacyPagePipe', 'NgModulePagePipe']);
+    });
+
+    it('notices a pipe that is kept a component, without counting it as a diagnostic', () => {
+        const { diagnostics, notices } = scan();
+
+        expect(notices).toContain(
+            'LegacyPagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. ' +
+                'From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.'
+        );
+        expect(notices).toContain(
+            'NgModulePagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. ' +
+                'From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.'
+        );
+        expect(diagnostics).toEqual([]);
     });
 });

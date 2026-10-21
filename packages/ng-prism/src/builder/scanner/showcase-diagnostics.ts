@@ -76,9 +76,33 @@ export function describeLegacyServiceComponent(className: string, fields: string
     );
 }
 
-/** `setup` lists what configures a service; a component has no use for it, and says so instead of silently ignoring it. */
+/**
+ * A class with `@Pipe` that still declares fields only a component can use:
+ * the pipe counterpart of {@link describeLegacyServiceComponent}. A pipe declared
+ * in an NgModule (`standalone: false`) has more to lose, since ng-prism will not
+ * show it at all.
+ */
+export function describeLegacyPipeComponent(className: string, fields: string[], standalone: boolean): string {
+    const lead = `${className} is a @Pipe with @Showcase and declares ${fields.join(', ')}, so it is still treated as a component. `;
+
+    return standalone
+        ? `${lead}From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.`
+        : `${lead}From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.`;
+}
+
+/** A pipe declared in an NgModule cannot be called from a template the styleguide builds, so it is not shown. */
+export function describePipeNotStandalone(className: string, node: ts.Node): string {
+    return `${className} › @Pipe (${location(node)}) is declared with standalone: false; ng-prism shows standalone pipes only, so it was dropped.`;
+}
+
+/** The name is what a template calls the pipe by; without it the pipe has no usage to show. */
+export function describePipeNameUnreadable(className: string, node: ts.Node): string {
+    return `${className} › @Pipe name (${location(node)}) cannot be evaluated statically, so the pipe was dropped.`;
+}
+
+/** `setup` lists what configures a service or a pipe; a component has no use for it, and says so instead of silently ignoring it. */
 export function describeSetupOnComponent(className: string, node: ts.Node): string {
-    return `${className} › setup (${location(node)}) only applies to services (@Injectable or @Service); it was dropped.`;
+    return `${className} › setup (${location(node)}) only applies to services and pipes (@Injectable, @Service or @Pipe); it was dropped.`;
 }
 
 /**

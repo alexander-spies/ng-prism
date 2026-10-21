@@ -6,8 +6,8 @@ const ANGULAR_CORE = '@angular/core';
 
 /**
  * `@Showcase` fields that only a component can use. A class that carries
- * one of them next to `@Injectable` is a component with an injectable
- * decorator, not a service: showing it as a service would drop the field.
+ * one of them next to `@Injectable` or `@Pipe` is a component with that
+ * decorator, not a service or a pipe: showing it as one would drop the field.
  */
 const COMPONENT_ONLY_FIELDS = ['variants', 'states', 'providers', 'bg', 'canvasLayout', 'host', 'renderPage'] as const;
 
@@ -18,8 +18,23 @@ export type ShowcaseClassKind =
     | { kind: 'component' }
     /** `decorator` is the `@Injectable` or `@Service` that makes it one. */
     | { kind: 'service'; decorator: ts.Decorator }
-    /** An `@Injectable`/`@Service` that still declares component-only `fields`, so it stays a component for now. */
-    | { kind: 'legacy-component'; fields: string[] };
+    /** `decorator` is the `@Pipe` that makes it one; whether the pipe is shown is for the pipe scan to decide. */
+    | { kind: 'pipe'; decorator: ts.Decorator }
+    /**
+     * An `@Injectable`, `@Service` or `@Pipe` that still declares component-only `fields`, so it stays a component for now.
+     * `source` says which decorator would make it a service or a pipe; `standalone: false` only for a pipe declared in an NgModule.
+     */
+    | { kind: 'legacy-component'; fields: string[]; source: 'injectable' | 'pipe'; standalone?: false };
+
+/** What the `@Pipe` metadata says, as far as the source can be read. */
+export interface PipeOptions {
+    /** Missing when the source does not give it as a string constant: the pipe cannot be shown without its name. */
+    name?: string;
+    /** `true` when the metadata does not say, missing when it says something the scan cannot read. */
+    pure?: boolean;
+    /** Only `false` when the metadata statically says `standalone: false`; Angular's default is `true`. */
+    standalone: boolean;
+}
 
 /**
  * {@link findDecorator} for an Angular decorator: it only counts if the
@@ -31,7 +46,7 @@ export type ShowcaseClassKind =
  */
 export function findAngularCoreDecorator(
     classDecl: ts.ClassDeclaration,
-    name: 'Injectable' | 'Service' | 'Component' | 'Directive',
+    name: 'Injectable' | 'Service' | 'Component' | 'Directive' | 'Pipe',
     checker: ts.TypeChecker
 ): ts.Decorator | undefined {
     const decorator = findDecorator(classDecl, name);
@@ -40,14 +55,16 @@ export function findAngularCoreDecorator(
 }
 
 /**
- * Tell a service from a component. The two both carry `@Showcase`, and the
- * only thing that tells them apart is the Angular decorator beside it.
+ * Tell a service or a pipe from a component. They all carry `@Showcase`, and
+ * the only thing that tells them apart is the Angular decorator beside it.
  *
  * A class with `@Component` or `@Directive` is a component, whatever else it
- * carries. Otherwise `@Injectable` or `@Service` makes it a service, unless
- * the `@Showcase` argument declares a component-only field: such a class has
- * been shown as a component so far, so it stays one (`legacy-component`) until
- * 23.0.0, and the scan says why.
+ * carries. Otherwise `@Pipe` makes it a pipe, and `@Service` or `@Injectable`
+ * a service, so that a pipe that is also injectable stays a pipe. Either is
+ * overruled by the `@Showcase` argument declaring a component-only field: such
+ * a class has been shown as a component so far, so it stays one
+ * (`legacy-component`) until 23.0.0, and the scan says why. That check comes
+ * first, before anything is said about the pipe itself.
  *
  * `showcaseArg` is read from the literal and from the evaluated value, since a
  * constant or a spread can bring the field in and a field the evaluator cannot
@@ -57,13 +74,25 @@ export function classifyShowcaseClass(classDecl: ts.ClassDeclaration, showcaseAr
     // Compared by name, as everywhere else in the scanner.
     if (findDecorator(classDecl, 'Component') || findDecorator(classDecl, 'Directive')) return { kind: 'component' };
 
+    const pipe = findAngularCoreDecorator(classDecl, 'Pipe', checker);
+
+    if (pipe) {
+        const fields = readComponentOnlyFields(showcaseArg, checker);
+
+        if (fields.length === 0) return { kind: 'pipe', decorator: pipe };
+
+        return readPipeOptions(pipe, checker).standalone
+            ? { kind: 'legacy-component', fields, source: 'pipe' }
+            : { kind: 'legacy-component', fields, source: 'pipe', standalone: false };
+    }
+
     const decorator = findAngularCoreDecorator(classDecl, 'Service', checker) ?? findAngularCoreDecorator(classDecl, 'Injectable', checker);
 
     if (!decorator) return { kind: 'component' };
 
     const fields = readComponentOnlyFields(showcaseArg, checker);
 
-    return fields.length > 0 ? { kind: 'legacy-component', fields } : { kind: 'service', decorator };
+    return fields.length > 0 ? { kind: 'legacy-component', fields, source: 'injectable' } : { kind: 'service', decorator };
 }
 
 /**
@@ -98,6 +127,36 @@ export function readProvision(decorator: ts.Decorator, checker: ts.TypeChecker):
     if (isService) return unreadable || options['autoProvided'] === false ? 'manual' : 'auto';
 
     return AUTO_PROVIDED_IN.includes(options['providedIn']) ? 'auto' : 'manual';
+}
+
+/**
+ * Read `name`, `pure` and `standalone` from the `@Pipe` metadata.
+ *
+ * Nothing that cannot be read is guessed: a `name` or `pure` the source does not
+ * give as a constant is left out, so that the caller can say so, while
+ * `standalone` only counts as `false` when the source says exactly that.
+ */
+export function readPipeOptions(decorator: ts.Decorator, checker: ts.TypeChecker): PipeOptions {
+    const arg = getDecoratorArgument(decorator);
+    let unreadable = false;
+    const raw = arg
+        ? evaluateStatic(arg, {
+              checker,
+              report: (issue) => {
+                  // The whole argument or a spread that fails could have carried `pure` along, so it counts for it too.
+                  if (issue.path.length === 0 || issue.path[0] === 'pure') unreadable = true;
+              }
+          })
+        : {};
+    const options = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
+    const result: PipeOptions = { standalone: options['standalone'] !== false };
+
+    if (typeof options['name'] === 'string') result.name = options['name'];
+
+    if (typeof options['pure'] === 'boolean') result.pure = options['pure'];
+    else if (!unreadable && options['pure'] === undefined) result.pure = true;
+
+    return result;
 }
 
 function isImportedFromAngularCore(decorator: ts.Decorator, name: string, checker: ts.TypeChecker): boolean {
