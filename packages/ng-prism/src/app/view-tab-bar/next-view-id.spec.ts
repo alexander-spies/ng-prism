@@ -37,4 +37,20 @@ describe('nextViewId', () => {
     it('on a service page with no service panels, returns null', () => {
         expect(nextViewId('renderer', [], 'service')).toBeNull();
     });
+
+    it('on a pipe page, falls back to the first pipe panel when the active view is renderer', () => {
+        expect(nextViewId('renderer', [panel('api'), panel('notes')], 'pipe')).toBe('api');
+    });
+
+    it('on a pipe page, keeps a pipe panel that is still offered', () => {
+        expect(nextViewId('notes', [panel('api'), panel('notes')], 'pipe')).toBeNull();
+    });
+
+    it('on a pipe page, falls back to the first pipe panel when the active view is no longer offered', () => {
+        expect(nextViewId('overview', [panel('api')], 'pipe')).toBe('api');
+    });
+
+    it('on a pipe page with no pipe panels, returns null', () => {
+        expect(nextViewId('renderer', [], 'pipe')).toBeNull();
+    });
 });

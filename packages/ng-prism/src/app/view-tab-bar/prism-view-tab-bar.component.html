@@ -1,5 +1,5 @@
 <div class="prism-view-tab-bar">
-    @if (!navigationService.activeService()) {
+    @if (navigationService.activeTarget() === 'component') {
         <button
             class="prism-view-tab-bar__tab"
             [class.prism-view-tab-bar__tab--active]="panelService.activeViewId() === 'renderer'"

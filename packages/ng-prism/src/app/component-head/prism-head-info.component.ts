@@ -11,7 +11,8 @@ import { PrismIconComponent } from '../icons/prism-icon.component.js';
  *
  * A service has no selector, so its code block shows the class name instead,
  * and `facts` carries the plain lines that stand in for the variant and state
- * counts a service does not have.
+ * counts a service does not have. A pipe has none either; its code block is
+ * whatever `code` says, which is how it is written in a template.
  *
  * Opening is click-only, through the native Popover API. Escape, click-outside
  * dismissal and top-layer placement come with it declaratively; a hover panel
@@ -28,6 +29,8 @@ import { PrismIconComponent } from '../icons/prism-icon.component.js';
 })
 export class PrismHeadInfoComponent {
     readonly selector = input<string | undefined>(undefined);
+    /** Replaces the code block, which otherwise shows the selector of a component or the class name of a service. */
+    readonly code = input<string | undefined>(undefined);
     readonly className = input<string | undefined>(undefined);
     readonly description = input<string | undefined>(undefined);
     readonly tags = input<readonly string[]>([]);
@@ -35,9 +38,15 @@ export class PrismHeadInfoComponent {
     readonly stateCount = input<number>(0);
     readonly facts = input<readonly string[]>([]);
 
-    protected readonly label = computed(() => (this.selector() === undefined ? 'Service details' : 'Component details'));
+    protected readonly label = computed(() => {
+        if (this.selector() !== undefined) return 'Component details';
+        return this.code() === undefined ? 'Service details' : 'Pipe details';
+    });
 
-    protected readonly code = computed(() => {
+    protected readonly codeBlock = computed(() => {
+        const code = this.code();
+
+        if (code !== undefined) return code;
         const selector = this.selector();
 
         return selector ? `<${selector}>` : (this.className() ?? '');

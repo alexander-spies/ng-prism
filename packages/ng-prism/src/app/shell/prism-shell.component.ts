@@ -77,10 +77,10 @@ export class PrismShellComponent {
         // remember; this one states the invariant and needs nothing. The rule
         // itself lives in `nextViewId`, a pure function with its own tests; this
         // effect only reads the signals it needs and applies the result. On a
-        // service page the target switches the rule: a service has no Playground
-        // to fall back to.
+        // service or pipe page the target switches the rule: neither has a
+        // Playground to fall back to.
         effect(() => {
-            const target = this.navigationService.activeService() ? 'service' : 'component';
+            const target = this.navigationService.activeTarget() ?? 'component';
             const next = nextViewId(this.panelService.activeViewId(), this.panelService.visibleViewPanels(), target);
 
             if (next !== null) {
@@ -92,9 +92,10 @@ export class PrismShellComponent {
             const item = this.navigationService.activeItem();
             const activeComp = this.navigationService.activeComponent();
             const activeService = this.navigationService.activeService();
+            const activePipe = this.navigationService.activePipe();
             const activePage = this.navigationService.activePage();
 
-            if (shouldSelectFirst(item, activeComp, activeService, activePage)) {
+            if (shouldSelectFirst(item, activeComp, activeService, activePipe, activePage)) {
                 untracked(() => this.navigationService.selectFirst());
             }
         });

@@ -71,7 +71,7 @@
                         <prism-panel-host />
                     </div>
                 }
-            } @else if (navigationService.activeService()) {
+            } @else if (navigationService.activeTarget() === 'service' || navigationService.activeTarget() === 'pipe') {
                 <prism-component-head>
                     <prism-view-tab-bar headEnd />
                 </prism-component-head>

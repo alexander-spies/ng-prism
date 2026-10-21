@@ -31,15 +31,18 @@ export class PrismPanelService {
     /**
      * The view panels the active page actually offers.
      *
-     * A service gets the panels that apply to services, all of them: `isVisible`
-     * takes a component, so it has nothing to say about a service. A component
-     * gets the panels that apply to components and pass their `isVisible`.
-     * Empty when neither is active, which is how pages end up without view tabs:
-     * it falls out of the data instead of needing a case of its own.
+     * A service or a pipe gets the panels that apply to its kind, all of them:
+     * `isVisible` takes a component, so it has nothing to say about either. A
+     * component gets the panels that apply to components and pass their
+     * `isVisible`. Empty when none of the three is active, which is how pages end
+     * up without view tabs: it falls out of the data instead of needing a case of
+     * its own.
      */
     readonly visibleViewPanels = computed<PanelDefinition[]>(() => {
-        if (this.navigationService.activeService()) {
-            return this.viewPanels().filter((p) => panelTargets(p).includes('service'));
+        const target = this.navigationService.activeTarget();
+
+        if (target === 'service' || target === 'pipe') {
+            return this.viewPanels().filter((p) => panelTargets(p).includes(target));
         }
         const component = this.navigationService.activeComponent();
 
