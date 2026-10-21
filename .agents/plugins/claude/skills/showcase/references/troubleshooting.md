@@ -236,9 +236,9 @@ What is specific to a pipe:
   implementation.
 - **A property or another method of the class isn't listed:** only `transform()` is.
 - **The Pure / Impure chip is missing:** `pure` in `@Pipe({ … })` isn't a literal the builder can read.
-- **The template line has no arguments, or too few:** it is built from the first signature, with each required
-  parameter after the value as `: name`, up to the last required one. Optional and rest parameters after that are left
-  out.
+- **The template line has no arguments, or too few:** it is built from the first signature that isn't `@deprecated`
+  (the first one when all are), with each required parameter after the value as `: name`, up to the last required one.
+  Optional and rest parameters after that are left out.
 
 ## A service page is missing something
 

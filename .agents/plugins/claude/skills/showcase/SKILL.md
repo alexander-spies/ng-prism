@@ -306,8 +306,9 @@ same type cards and the same page without a canvas. What differs:
   pipe without a `transform()` of its own takes it from its base class, `class LocalDatePipe extends DatePipe {}`
   from `@angular/common` included. Without type annotations the page shows the types the compiler infers.
 - **The usage snippet** has the imports, the `providers` entries of `setup`, the component's `imports` entry and a
-  template line from the first signature: each required parameter after the value becomes `: name`, up to the last
-  required one (`{{ value | sgDate: pattern }}`); optional and rest parameters after that are left out.
+  template line from the first signature that isn't `@deprecated` (the first one when all are): each required
+  parameter after the value becomes `: name`, up to the last required one (`{{ value | sgDate: pattern }}`); optional
+  and rest parameters after that are left out.
 - **A panel of your own** with `appliesTo: ['pipe']` needs `placement: 'view'`, like one for services. The extracted
   API (`PipeApi`) is experimental until 23.0.0.
 

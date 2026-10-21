@@ -103,6 +103,22 @@ describe('generatePipeUsage', () => {
         expect(templateLine(makePipe({}, [], [transform(), transform(pattern)]))).toBe('{{ value | timeAgo }}');
     });
 
+    it('reads the template line from the first signature that is not deprecated', () => {
+        const length: ApiParam = { name: 'length', type: { text: 'number' }, optional: false };
+        const options: ApiParam = { name: 'options', type: { text: 'TruncateOptions' }, optional: false };
+        const deprecated = { ...transform(length), tags: { deprecated: 'Pass an options object instead.' } };
+
+        expect(templateLine(makePipe({}, [], [deprecated, transform(options)]))).toBe('{{ value | timeAgo: options }}');
+    });
+
+    it('falls back to the first signature when every one is deprecated', () => {
+        const length: ApiParam = { name: 'length', type: { text: 'number' }, optional: false };
+        const options: ApiParam = { name: 'options', type: { text: 'TruncateOptions' }, optional: false };
+        const signatures = [transform(length), transform(options)].map((signature) => ({ ...signature, tags: { deprecated: true as const } }));
+
+        expect(templateLine(makePipe({}, [], signatures))).toBe('{{ value | timeAgo: length }}');
+    });
+
     it('writes the bare template line for a pipe without transform', () => {
         expect(templateLine(makePipe({}, [], []))).toBe('{{ value | timeAgo }}');
     });

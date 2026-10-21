@@ -148,7 +148,7 @@ Generated from the scanned API, so it says nothing about values:
 
 - **Imports** are grouped by entry point, the pipe first. Setup entries follow, in the `providers: [...]` of `app.config.ts`, called without arguments when every parameter is optional and with a `…` placeholder otherwise. That block is left out when there is no `setup`.
 - **The component** line shows the pipe in the `imports` of a component.
-- **The template** line is built from the first signature of `transform()`. Arguments are positional, so every parameter up to the last required one is kept, as `: name`. Optional and rest parameters after that are left out. `transform(value, pattern: string)` gives `{{ value | sgDate: pattern }}`, and `transform(value, zone = 'UTC', pattern: string)` gives `{{ value | sgDate: zone: pattern }}`, because `pattern` cannot be passed without `zone`.
+- **The template** line is built from the first signature of `transform()` that is not `@deprecated`, or from the first one when all are. Arguments are positional, so every parameter up to the last required one is kept, as `: name`. Optional and rest parameters after that are left out. `transform(value, pattern: string)` gives `{{ value | sgDate: pattern }}`, and `transform(value, zone = 'UTC', pattern: string)` gives `{{ value | sgDate: zone: pattern }}`, because `pattern` cannot be passed without `zone`.
 
 ### Transform
 

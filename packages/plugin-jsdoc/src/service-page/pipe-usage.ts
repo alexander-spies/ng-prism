@@ -8,16 +8,18 @@ import { importLines, joinUsageBlocks, setupBlock } from './service-usage.js';
  *
  * Like the service snippet it is generated and says nothing about values: the
  * template line names the piped value `value` and each argument by its
- * parameter name.
+ * parameter name. It shows the first signature that is not `@deprecated`, the
+ * way a new template should call the pipe, or the first one when all are.
  */
 export function generatePipeUsage(pipe: ScannedPipe): string {
     const { className, pipeName, api } = pipe;
+    const signature = api.transform.find((method) => !method.tags.deprecated) ?? api.transform[0];
 
     return joinUsageBlocks([
         importLines(pipe),
         setupBlock(api.setup),
         ['// in the component that uses it', `@Component({ imports: [${className}], … })`],
-        ['// in its template', `{{ value | ${pipeName}${pipeArguments(api.transform[0])} }}`]
+        ['// in its template', `{{ value | ${pipeName}${pipeArguments(signature)} }}`]
     ]);
 }
 
