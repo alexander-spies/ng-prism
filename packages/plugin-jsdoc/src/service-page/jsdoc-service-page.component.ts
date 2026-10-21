@@ -4,7 +4,16 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ApiDocTags, ApiMethod, ApiProperty, ApiTypeDoc, RuntimeService } from '@ng-prism/core/plugin';
 import { Highlight } from 'ngx-highlightjs';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from '../markdown.js';
-import { activeTocId, buildServiceToc, paramSegments, setupSignature, splitReachedFrom, typeAnchor, typeSegments } from './service-page.model.js';
+import {
+    activeTocId,
+    buildServiceToc,
+    declaredParamSegments,
+    documentsParams,
+    setupSignature,
+    splitReachedFrom,
+    typeAnchor,
+    typeSegments
+} from './service-page.model.js';
 import { generateServiceUsage } from './service-usage.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
@@ -58,8 +67,9 @@ export class JsDocServicePageComponent {
     // object or text, these hand it the same values again, so nothing below
     // the bindings is rebuilt and no `innerHTML` is written twice.
     protected readonly segmentsOf = memoize(typeSegments);
-    protected readonly paramSegmentsOf = memoize(paramSegments);
+    protected readonly declaredParamSegmentsOf = memoize(declaredParamSegments);
     protected readonly signatureOf = memoize(setupSignature);
+    protected readonly documentsParams = documentsParams;
     protected readonly splitReachedFrom = splitReachedFrom;
     protected readonly typeAnchor = typeAnchor;
 

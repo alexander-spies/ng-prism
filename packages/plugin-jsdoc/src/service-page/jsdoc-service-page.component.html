@@ -33,6 +33,33 @@
     }
 </ng-template>
 
+<!-- Parameters as declared, default included, each with its @param text under it. -->
+<ng-template
+    #paramList
+    let-params>
+    @for (param of params; track param.name) {
+        <div class="prism-jsdoc-service-page__param">
+            <code><ng-container *ngTemplateOutlet="typeText; context: { $implicit: declaredParamSegmentsOf(param) }" /></code>
+            @if (param.description) {
+                <div
+                    class="prism-jsdoc-service-page__param-doc"
+                    [innerHTML]="renderInline(param.description)"></div>
+            }
+        </div>
+    }
+</ng-template>
+
+<ng-template
+    #seeChips
+    let-refs>
+    @for (ref of refs; track $index) {
+        <span class="prism-jsdoc-panel__meta-item">
+            <span class="prism-jsdoc-panel__meta-label">See:</span>
+            {{ ref }}
+        </span>
+    }
+</ng-template>
+
 <ng-template
     #propertyTable
     let-properties
@@ -66,7 +93,7 @@
                         <code><ng-container *ngTemplateOutlet="typeText; context: { $implicit: segmentsOf(property.type) }" /></code>
                     </td>
                     @if (defaults) {
-                        <td class="prism-jsdoc-panel__cell--default">
+                        <td class="prism-jsdoc-panel__cell--default prism-jsdoc-service-page__default">
                             @if (property.tags.default; as value) {
                                 <code>{{ value }}</code>
                             } @else {
@@ -110,11 +137,9 @@
                     </td>
                     @if (params) {
                         <td class="prism-jsdoc-panel__cell--type">
-                            @for (param of method.params; track param.name) {
-                                <div>
-                                    <code><ng-container *ngTemplateOutlet="typeText; context: { $implicit: paramSegmentsOf(param) }" /></code>
-                                </div>
-                            } @empty {
+                            @if (method.params.length) {
+                                <ng-container *ngTemplateOutlet="paramList; context: { $implicit: method.params }" />
+                            } @else {
                                 <span class="prism-jsdoc-panel__muted">—</span>
                             }
                         </td>
@@ -169,6 +194,7 @@
                     {{ importPath }}
                 </span>
             }
+            <ng-container *ngTemplateOutlet="seeChips; context: { $implicit: tags().see ?? [] }" />
         </div>
 
         <section class="prism-jsdoc-panel__section">
@@ -229,6 +255,11 @@
                             <div
                                 class="prism-jsdoc-panel__description prism-jsdoc-service-page__lead"
                                 [innerHTML]="html"></div>
+                        }
+                        @if (documentsParams(entry.params)) {
+                            <div class="prism-jsdoc-service-page__params">
+                                <ng-container *ngTemplateOutlet="paramList; context: { $implicit: entry.params }" />
+                            </div>
                         }
                         @if (entry.config?.length) {
                             <ng-container *ngTemplateOutlet="propertyTable; context: { $implicit: entry.config, label: 'Option', defaults: true }" />
@@ -343,6 +374,11 @@
                             <div
                                 class="prism-jsdoc-panel__description prism-jsdoc-service-page__lead"
                                 [innerHTML]="html"></div>
+                        }
+                        @if (type.tags.see?.length) {
+                            <div class="prism-jsdoc-panel__meta prism-jsdoc-service-page__type-meta">
+                                <ng-container *ngTemplateOutlet="seeChips; context: { $implicit: type.tags.see }" />
+                            </div>
                         }
                         @if (properties.length) {
                             <ng-container

@@ -126,6 +126,44 @@
     margin-bottom: 8px;
 }
 
+/* A default such as 'bottom-right' would otherwise break at its hyphen. */
+.prism-jsdoc-service-page__default {
+    white-space: nowrap;
+}
+
+/* ──── Parameters ──── */
+
+.prism-jsdoc-service-page__param + .prism-jsdoc-service-page__param {
+    margin-top: 6px;
+}
+
+.prism-jsdoc-service-page__param-doc {
+    margin-top: 3px;
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+    color: var(--prism-text-muted);
+}
+
+:host ::ng-deep .prism-jsdoc-service-page__param-doc code {
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    color: var(--prism-text-2);
+}
+
+/* Under a setup signature, outside a table: the code gets the look of a type cell. */
+.prism-jsdoc-service-page__params {
+    margin: 0 0 10px;
+}
+
+.prism-jsdoc-service-page__params code {
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--prism-primary);
+    background: color-mix(in srgb, var(--prism-primary) 8%, transparent);
+    border-radius: var(--radius-xs);
+}
+
 /* ──── Type links ──── */
 
 .prism-jsdoc-service-page__ref {
@@ -200,6 +238,10 @@
 }
 
 .prism-jsdoc-service-page__type .prism-jsdoc-service-page__lead {
+    margin-bottom: 8px;
+}
+
+.prism-jsdoc-service-page__type-meta {
     margin-bottom: 8px;
 }
 

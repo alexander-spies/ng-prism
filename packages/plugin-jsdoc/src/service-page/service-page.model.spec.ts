@@ -1,5 +1,14 @@
 import type { ApiSetupEntry, ApiTypeDoc, ServiceApi } from '@ng-prism/core/plugin';
-import { activeTocId, buildServiceToc, paramSegments, setupSignature, splitReachedFrom, typeSegments } from './service-page.model.js';
+import {
+    activeTocId,
+    buildServiceToc,
+    declaredParamSegments,
+    documentsParams,
+    paramSegments,
+    setupSignature,
+    splitReachedFrom,
+    typeSegments
+} from './service-page.model.js';
 
 function typeDoc(name: string, id = name): ApiTypeDoc {
     return { id, name, kind: 'interface', importPath: 'fixture/toast', tags: {}, properties: [] };
@@ -100,6 +109,34 @@ describe('paramSegments', () => {
 
     it('writes a rest parameter with ...', () => {
         expect(paramSegments({ name: 'features', type: { text: 'Feature[]' }, optional: false, rest: true })).toEqual([{ text: '...features: Feature[]' }]);
+    });
+});
+
+describe('declaredParamSegments', () => {
+    it('writes a parameter with a default as its declaration does, without the ?', () => {
+        expect(declaredParamSegments({ name: 'config', type: { text: 'ToastConfig', links: ['ToastConfig'] }, optional: true, defaultValue: '{}' })).toEqual([
+            { text: 'config: ' },
+            { text: 'ToastConfig', link: 'type-ToastConfig' },
+            { text: ' = {}' }
+        ]);
+    });
+
+    it('writes a parameter without a default like a signature does', () => {
+        expect(declaredParamSegments({ name: 'hint', type: { text: 'string' }, optional: true })).toEqual([{ text: 'hint?: string' }]);
+        expect(declaredParamSegments({ name: 'features', type: { text: 'Feature[]' }, optional: false, rest: true })).toEqual([{ text: '...features: Feature[]' }]);
+    });
+});
+
+describe('documentsParams', () => {
+    it('is true when a parameter has a @param text or a default', () => {
+        expect(documentsParams([{ name: 'a', type: { text: 'string' }, optional: false, description: 'The a.' }])).toBe(true);
+        expect(documentsParams([{ name: 'b', type: { text: 'number' }, optional: true, defaultValue: '5' }])).toBe(true);
+    });
+
+    it('is false when the signature already says everything', () => {
+        expect(documentsParams([{ name: 'a', type: { text: 'string' }, optional: false }])).toBe(false);
+        expect(documentsParams([])).toBe(false);
+        expect(documentsParams(undefined)).toBe(false);
     });
 });
 

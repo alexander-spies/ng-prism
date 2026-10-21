@@ -115,6 +115,21 @@ export function paramSegments(param: ApiParam): TypeSegment[] {
 }
 
 /**
+ * A parameter as its declaration writes it, default included:
+ * `config: ToastConfig = {}`. A default makes the parameter optional, so it
+ * goes without the `?`; one without a default reads as in a signature.
+ */
+export function declaredParamSegments(param: ApiParam): TypeSegment[] {
+    if (param.defaultValue === undefined) return paramSegments(param);
+    return joinSegments(`${param.rest ? '...' : ''}${param.name}: `, typeSegments(param.type), ` = ${param.defaultValue}`);
+}
+
+/** Whether a parameter list says more than its signature: a `@param` text or a default. */
+export function documentsParams(params: readonly ApiParam[] | undefined): boolean {
+    return !!params?.some((param) => param.description || param.defaultValue !== undefined);
+}
+
+/**
  * What follows a setup entry's name on its signature line: the parameters and
  * the return type of a function, the type of a token.
  */
