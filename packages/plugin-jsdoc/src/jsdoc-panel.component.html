@@ -1,186 +1,190 @@
-<div class="prism-jsdoc-panel">
-    @if (!activeComponent()) {
-        <div class="prism-jsdoc-panel__empty"> Select a component to view API documentation. </div>
-    } @else {
-        @if (renderedClassDescription(); as descHtml) {
-            <div
-                class="prism-jsdoc-panel__description"
-                [innerHTML]="descHtml"></div>
-        }
-        @if (hasTags()) {
-            <div class="prism-jsdoc-panel__meta">
-                @if (isDeprecated()) {
-                    <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated">
-                        Deprecated{{ deprecatedMessage() ? ': ' + deprecatedMessage() : '' }}
-                    </span>
-                }
-                @if (version()) {
-                    <span class="prism-jsdoc-panel__meta-item">
-                        <span class="prism-jsdoc-panel__meta-label">Version:</span>
-                        {{ version() }}
-                    </span>
-                }
-                @if (since()) {
-                    <span class="prism-jsdoc-panel__meta-item">
-                        <span class="prism-jsdoc-panel__meta-label">Since:</span>
-                        {{ since() }}
-                    </span>
-                }
-                @for (ref of seeRefs(); track $index) {
-                    <span class="prism-jsdoc-panel__meta-item"> <span class="prism-jsdoc-panel__meta-label">See:</span> {{ ref }} </span>
-                }
-            </div>
-        }
-        @if (examples().length) {
-            <div class="prism-jsdoc-panel__section">
-                <h3 class="prism-jsdoc-panel__heading">Examples</h3>
-                @for (example of examples(); track $index) {
-                    @let parsed = parseExample(example);
-                    <pre class="prism-jsdoc-panel__code"><code [highlight]="parsed.code" [language]="parsed.lang"></code></pre>
-                }
-            </div>
-        }
-        @if (inputs().length) {
-            <div class="prism-jsdoc-panel__section">
-                <h3 class="prism-jsdoc-panel__heading">Inputs</h3>
-                <table class="prism-jsdoc-panel__table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Type</th>
-                            <th>Default</th>
-                            <th>Required</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (inp of inputs(); track inp.name) {
-                            <tr [class.prism-jsdoc-panel__row--deprecated]="isMemberDeprecated(inp.name)">
-                                <td class="prism-jsdoc-panel__cell--name">
-                                    <code>{{ inp.alias ?? inp.name }}</code>
-                                    @if (isMemberDeprecated(inp.name)) {
-                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--type">
-                                    <code>{{ inp.rawType ?? inp.type }}</code>
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--default">
-                                    @if (inp.defaultValue !== undefined) {
-                                        <code>{{ formatDefault(inp.defaultValue) }}</code>
-                                    } @else {
-                                        <span class="prism-jsdoc-panel__muted">—</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--required">
-                                    @if (inp.required) {
-                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--required">required</span>
-                                    } @else {
-                                        <span class="prism-jsdoc-panel__muted">—</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--doc">
-                                    @if (inp.doc) {
-                                        <span [innerHTML]="renderInline(inp.doc)"></span>
-                                    }
-                                    @if (getMemberSince(inp.name); as since) {
+@if (service(); as current) {
+    <prism-jsdoc-service-page [service]="current" />
+} @else {
+    <div class="prism-jsdoc-panel">
+        @if (!activeComponent()) {
+            <div class="prism-jsdoc-panel__empty"> Select a component to view API documentation. </div>
+        } @else {
+            @if (renderedClassDescription(); as descHtml) {
+                <div
+                    class="prism-jsdoc-panel__description"
+                    [innerHTML]="descHtml"></div>
+            }
+            @if (hasTags()) {
+                <div class="prism-jsdoc-panel__meta">
+                    @if (isDeprecated()) {
+                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated">
+                            Deprecated{{ deprecatedMessage() ? ': ' + deprecatedMessage() : '' }}
+                        </span>
+                    }
+                    @if (version()) {
+                        <span class="prism-jsdoc-panel__meta-item">
+                            <span class="prism-jsdoc-panel__meta-label">Version:</span>
+                            {{ version() }}
+                        </span>
+                    }
+                    @if (since()) {
+                        <span class="prism-jsdoc-panel__meta-item">
+                            <span class="prism-jsdoc-panel__meta-label">Since:</span>
+                            {{ since() }}
+                        </span>
+                    }
+                    @for (ref of seeRefs(); track $index) {
+                        <span class="prism-jsdoc-panel__meta-item"> <span class="prism-jsdoc-panel__meta-label">See:</span> {{ ref }} </span>
+                    }
+                </div>
+            }
+            @if (examples().length) {
+                <div class="prism-jsdoc-panel__section">
+                    <h3 class="prism-jsdoc-panel__heading">Examples</h3>
+                    @for (example of examples(); track $index) {
+                        @let parsed = parseExample(example);
+                        <pre class="prism-jsdoc-panel__code"><code [highlight]="parsed.code" [language]="parsed.lang"></code></pre>
+                    }
+                </div>
+            }
+            @if (inputs().length) {
+                <div class="prism-jsdoc-panel__section">
+                    <h3 class="prism-jsdoc-panel__heading">Inputs</h3>
+                    <table class="prism-jsdoc-panel__table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Default</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (inp of inputs(); track inp.name) {
+                                <tr [class.prism-jsdoc-panel__row--deprecated]="isMemberDeprecated(inp.name)">
+                                    <td class="prism-jsdoc-panel__cell--name">
+                                        <code>{{ inp.alias ?? inp.name }}</code>
+                                        @if (isMemberDeprecated(inp.name)) {
+                                            <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
+                                        }
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--type">
+                                        <code>{{ inp.rawType ?? inp.type }}</code>
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--default">
+                                        @if (inp.defaultValue !== undefined) {
+                                            <code>{{ formatDefault(inp.defaultValue) }}</code>
+                                        } @else {
+                                            <span class="prism-jsdoc-panel__muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--required">
+                                        @if (inp.required) {
+                                            <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--required">required</span>
+                                        } @else {
+                                            <span class="prism-jsdoc-panel__muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--doc">
                                         @if (inp.doc) {
-                                            <span class="prism-jsdoc-panel__since-sep"> · </span>
+                                            <span [innerHTML]="renderInline(inp.doc)"></span>
                                         }
-                                        <span class="prism-jsdoc-panel__since">Since {{ since }}</span>
-                                    }
-                                </td>
+                                        @if (getMemberSince(inp.name); as since) {
+                                            @if (inp.doc) {
+                                                <span class="prism-jsdoc-panel__since-sep"> · </span>
+                                            }
+                                            <span class="prism-jsdoc-panel__since">Since {{ since }}</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            @if (outputs().length) {
+                <div class="prism-jsdoc-panel__section">
+                    <h3 class="prism-jsdoc-panel__heading">Outputs</h3>
+                    <table class="prism-jsdoc-panel__table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-        @if (outputs().length) {
-            <div class="prism-jsdoc-panel__section">
-                <h3 class="prism-jsdoc-panel__heading">Outputs</h3>
-                <table class="prism-jsdoc-panel__table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (out of outputs(); track out.name) {
-                            <tr [class.prism-jsdoc-panel__row--deprecated]="isMemberDeprecated(out.name)">
-                                <td class="prism-jsdoc-panel__cell--name">
-                                    <code>{{ out.alias ?? out.name }}</code>
-                                    @if (isMemberDeprecated(out.name)) {
-                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--doc">
-                                    @if (out.doc) {
-                                        <span [innerHTML]="renderInline(out.doc)"></span>
-                                    }
-                                    @if (getMemberSince(out.name); as since) {
+                        </thead>
+                        <tbody>
+                            @for (out of outputs(); track out.name) {
+                                <tr [class.prism-jsdoc-panel__row--deprecated]="isMemberDeprecated(out.name)">
+                                    <td class="prism-jsdoc-panel__cell--name">
+                                        <code>{{ out.alias ?? out.name }}</code>
+                                        @if (isMemberDeprecated(out.name)) {
+                                            <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
+                                        }
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--doc">
                                         @if (out.doc) {
-                                            <span class="prism-jsdoc-panel__since-sep"> · </span>
+                                            <span [innerHTML]="renderInline(out.doc)"></span>
                                         }
-                                        <span class="prism-jsdoc-panel__since">Since {{ since }}</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-        @if (methods().length) {
-            <div class="prism-jsdoc-panel__section">
-                <h3 class="prism-jsdoc-panel__heading">Methods</h3>
-                <table class="prism-jsdoc-panel__table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Parameters</th>
-                            <th>Returns</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (method of methods(); track method.name) {
-                            <tr [class.prism-jsdoc-panel__row--deprecated]="!!method.tags.deprecated">
-                                <td class="prism-jsdoc-panel__cell--name">
-                                    <code>{{ method.name }}()</code>
-                                    @if (method.tags.deprecated) {
-                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--type">
-                                    @if (method.params.length) {
-                                        @for (p of method.params; track p.name) {
-                                            <div>
-                                                <code>{{ p.name }}{{ p.type ? ': ' + p.type : '' }}</code>
-                                            </div>
+                                        @if (getMemberSince(out.name); as since) {
+                                            @if (out.doc) {
+                                                <span class="prism-jsdoc-panel__since-sep"> · </span>
+                                            }
+                                            <span class="prism-jsdoc-panel__since">Since {{ since }}</span>
                                         }
-                                    } @else {
-                                        <span class="prism-jsdoc-panel__muted">—</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--type">
-                                    @if (method.returnType) {
-                                        <code>{{ method.returnType }}</code>
-                                    } @else {
-                                        <span class="prism-jsdoc-panel__muted">void</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--doc">
-                                    @if (method.description) {
-                                        <span [innerHTML]="renderInline(method.description)"></span>
-                                    }
-                                </td>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            @if (methods().length) {
+                <div class="prism-jsdoc-panel__section">
+                    <h3 class="prism-jsdoc-panel__heading">Methods</h3>
+                    <table class="prism-jsdoc-panel__table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Parameters</th>
+                                <th>Returns</th>
+                                <th>Description</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            @for (method of methods(); track method.name) {
+                                <tr [class.prism-jsdoc-panel__row--deprecated]="!!method.tags.deprecated">
+                                    <td class="prism-jsdoc-panel__cell--name">
+                                        <code>{{ method.name }}()</code>
+                                        @if (method.tags.deprecated) {
+                                            <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
+                                        }
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--type">
+                                        @if (method.params.length) {
+                                            @for (p of method.params; track p.name) {
+                                                <div>
+                                                    <code>{{ p.name }}{{ p.type ? ': ' + p.type : '' }}</code>
+                                                </div>
+                                            }
+                                        } @else {
+                                            <span class="prism-jsdoc-panel__muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--type">
+                                        @if (method.returnType) {
+                                            <code>{{ method.returnType }}</code>
+                                        } @else {
+                                            <span class="prism-jsdoc-panel__muted">void</span>
+                                        }
+                                    </td>
+                                    <td class="prism-jsdoc-panel__cell--doc">
+                                        @if (method.description) {
+                                            <span [innerHTML]="renderInline(method.description)"></span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         }
-    }
-</div>
+    </div>
+}

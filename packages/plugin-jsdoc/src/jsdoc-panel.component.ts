@@ -1,22 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import type { InputMeta, OutputMeta } from '@ng-prism/core/plugin';
+import type { InputMeta, OutputMeta, RuntimeService } from '@ng-prism/core/plugin';
 import { Highlight } from 'ngx-highlightjs';
 import type { JsDocData, MethodDoc } from './jsdoc.types.js';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from './markdown.js';
+import { JsDocServicePageComponent } from './service-page/jsdoc-service-page.component.js';
 
 @Component({
     selector: 'prism-jsdoc-panel',
     standalone: true,
-    imports: [Highlight],
+    imports: [Highlight, JsDocServicePageComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './jsdoc-panel.component.html',
     styleUrl: './jsdoc-panel.component.css'
 })
 export class JsDocPanelComponent {
     readonly activeComponent = input<unknown>(null);
+    /** Set on a service page, where `activeComponent` is `null`. */
+    readonly activeService = input<unknown>(null);
 
     private readonly sanitizer = inject(DomSanitizer);
+
+    protected readonly service = computed(() => this.activeService() as RuntimeService | null);
 
     protected readonly jsdocData = computed<JsDocData | null>(() => {
         const comp = this.activeComponent() as any;

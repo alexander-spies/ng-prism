@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { ScannedComponent } from '@ng-prism/core/plugin';
+import { jsDocPlugin as browserJsDocPlugin } from './jsdoc-plugin.browser.js';
 import { jsDocPlugin } from './jsdoc-plugin.js';
 
 const FIXTURE_PATH = path.join(__dirname, '__fixtures__/documented-button.ts');
@@ -38,6 +39,11 @@ describe('jsDocPlugin', () => {
         expect(panel.position).toBeUndefined();
         expect(panel.loadComponent).toBeDefined();
         expect(panel.component).toBeUndefined();
+    });
+
+    it('registers the API panel for components and services', () => {
+        expect(jsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service']);
+        expect(browserJsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service']);
     });
 
     it('should lazy-load the panel component', async () => {

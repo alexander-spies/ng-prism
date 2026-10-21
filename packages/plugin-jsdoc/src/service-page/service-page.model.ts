@@ -1,0 +1,118 @@
+import type { ApiParam, ApiSetupEntry, ApiTypeRef, ServiceApi } from '@ng-prism/core/plugin';
+
+/** One entry of the service page's "On this page" list. `id` names the section, `level` 2 is a type below "Types". */
+export interface TocEntry {
+    id: string;
+    label: string;
+    level: 1 | 2;
+}
+
+/** A piece of a type as written; `link` is the TOC id of the documented type the piece names. */
+export interface TypeSegment {
+    text: string;
+    link?: string;
+}
+
+/** The TOC id of a documented type's card. */
+export function typeAnchor(typeId: string): string {
+    return `type-${typeId}`;
+}
+
+/**
+ * The sections of a service page in the order the page shows them. Usage is
+ * always there, being generated; any other section only when it has content.
+ */
+export function buildServiceToc(api: ServiceApi): TocEntry[] {
+    const sections: [id: string, label: string, present: boolean][] = [
+        ['usage', 'Usage', true],
+        ['setup', 'Setup', api.setup.length > 0],
+        ['examples', 'Examples', !!api.tags.example?.length],
+        ['properties', 'Properties', api.properties.length > 0],
+        ['methods', 'Methods', api.methods.length > 0],
+        ['types', 'Types', api.types.length > 0]
+    ];
+    const toc: TocEntry[] = sections.filter(([, , present]) => present).map(([id, label]) => ({ id, label, level: 1 }));
+
+    for (const type of api.types) toc.push({ id: typeAnchor(type.id), label: type.name, level: 2 });
+    return toc;
+}
+
+const IDENTIFIER = /[A-Za-z_$][\w$]*/g;
+
+/**
+ * Cut a type as written into plain text and the names of documented types, so
+ * the page can turn those names into links to their cards.
+ *
+ * `ref.links` holds type ids, and an id is the type's name, or
+ * `${name}@${importPath}` when two reachable types share a name. An identifier
+ * in the text is matched against the name part of each id, the id that is the
+ * name itself first. Known limitation: a type imported under another name
+ * (`import { Item as OtherItem }`) appears in the text by its local name, which
+ * no id carries, so it stays unlinked.
+ */
+export function typeSegments(ref: ApiTypeRef): TypeSegment[] {
+    const links = ref.links ?? [];
+    const segments: TypeSegment[] = [];
+    let plain = '';
+    let last = 0;
+
+    for (const match of ref.text.matchAll(IDENTIFIER)) {
+        const name = match[0];
+        const id = links.find((candidate) => candidate === name) ?? links.find((candidate) => candidate.split('@')[0] === name);
+
+        if (!id) continue;
+
+        plain += ref.text.slice(last, match.index);
+        if (plain) segments.push({ text: plain });
+        segments.push({ text: name, link: typeAnchor(id) });
+        plain = '';
+        last = match.index + name.length;
+    }
+
+    plain += ref.text.slice(last);
+    if (plain || !segments.length) segments.push({ text: plain });
+    return segments;
+}
+
+/** A parameter as a signature writes it, `config?: ToastConfig` or `...features: Feature[]`, with its type linked. */
+export function paramSegments(param: ApiParam): TypeSegment[] {
+    return joinSegments(`${param.rest ? '...' : ''}${param.name}${param.optional ? '?' : ''}: `, typeSegments(param.type));
+}
+
+/**
+ * What follows a setup entry's name on its signature line: the parameters and
+ * the return type of a function, the type of a token.
+ */
+export function setupSignature(entry: ApiSetupEntry): TypeSegment[] {
+    if (entry.kind === 'token') return entry.tokenType ? joinSegments(': ', typeSegments(entry.tokenType)) : [];
+
+    const params = (entry.params ?? []).flatMap((param, index) => (index ? [', ', paramSegments(param)] : [paramSegments(param)]));
+
+    return joinSegments('(', ...params, ')', ...(entry.returnType ? [': ', typeSegments(entry.returnType)] : []));
+}
+
+/** Concatenate text and segments, merging neighbouring plain text into one segment. */
+function joinSegments(...parts: (string | TypeSegment[])[]): TypeSegment[] {
+    const joined: TypeSegment[] = [];
+
+    for (const segment of parts.flatMap((part) => (typeof part === 'string' ? [{ text: part }] : part))) {
+        const previous = joined.at(-1);
+
+        if (!segment.text) continue;
+        if (previous && !previous.link && !segment.link) previous.text += segment.text;
+        else joined.push({ ...segment });
+    }
+
+    return joined;
+}
+
+/**
+ * Split a type's `reachedFrom` (`parameter of show()`, `via options.action`)
+ * into its words and the code they end in, so the page can set the code apart.
+ */
+export function splitReachedFrom(reachedFrom: string): { text: string; code?: string } {
+    const space = reachedFrom.lastIndexOf(' ');
+
+    if (space < 0) return { text: reachedFrom };
+    return { text: reachedFrom.slice(0, space + 1), code: reachedFrom.slice(space + 1) };
+}
