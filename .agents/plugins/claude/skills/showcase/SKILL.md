@@ -300,7 +300,8 @@ same type cards and the same page without a canvas. What differs:
   `renderPage` keeps its page in 22.x. To make it a pipe, remove those fields and move the demo to a component page.
 - **The page is `transform()`.** Every overload signature gets its own row, with its parameters, `@param` texts and
   return type, and the implementation signature is left out when there are overloads. No other member of the class is
-  listed. An overload without a doc block takes the implementation's, then the first documented overload's, then the
+  listed. An overload without a doc block takes the implementation's, then the first documented overload's (only its
+  description and `@param` texts, not its tags, so `@deprecated` stays on the overload it is written on), then the
   one of the nearest base class that has one, so documenting the implementation or the first overload is enough. A
   pipe without a `transform()` of its own takes it from its base class, `class LocalDatePipe extends DatePipe {}`
   from `@angular/common` included. Without type annotations the page shows the types the compiler infers.

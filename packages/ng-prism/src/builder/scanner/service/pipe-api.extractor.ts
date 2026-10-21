@@ -38,6 +38,10 @@ export function extractPipeApi(classDecl: ts.ClassDeclaration, setupRefs: SetupR
  * A signature without a doc block of its own takes the one of the
  * implementation, then of the first documented signature of the same class,
  * then of the first documented `transform()` of the nearest base class that has one.
+ * The implementation and a base class document the method as a whole, so all
+ * of their block is taken. Another signature's block is about that signature:
+ * its description and `@param` texts are taken, its tags are not, since an
+ * overload marked `@deprecated` does not deprecate the one that replaces it.
  */
 function extractTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker, types: TypeRefResolver): ApiMethod[] {
     const levels = getClassChain(classDecl, checker).map(getTransformDeclarations);
@@ -47,12 +51,18 @@ function extractTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecke
 
     const declarations = levels[level];
     const signatures = declarations.filter((declaration) => !declaration.body);
-    const fallback =
-        declarations.find((declaration) => declaration.body && isDocumented(declaration)) ?? signatures.find(isDocumented) ?? findInheritedDocs(levels.slice(level + 1));
+    const implementation = declarations.find((declaration) => declaration.body && isDocumented(declaration));
+    const sibling = signatures.find(isDocumented);
+    const fallback = implementation ?? sibling ?? findInheritedDocs(levels.slice(level + 1));
 
-    return (signatures.length > 0 ? signatures : declarations).map((signature) =>
-        extractMethod('transform', signature, isDocumented(signature) ? signature : (fallback ?? signature), checker, types)
-    );
+    return (signatures.length > 0 ? signatures : declarations).map((signature) => {
+        const docs = isDocumented(signature) ? signature : (fallback ?? signature);
+        const method = extractMethod('transform', signature, docs, checker, types);
+
+        if (docs !== signature && docs === sibling) method.tags = {};
+
+        return method;
+    });
 }
 
 /** The instance declarations of `transform()` in a class, in source order: the overload signatures and the implementation. */

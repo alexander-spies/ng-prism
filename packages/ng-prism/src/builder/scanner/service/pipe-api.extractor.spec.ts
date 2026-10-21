@@ -84,6 +84,28 @@ describe('pipe API extractor', () => {
         }
     });
 
+    it('gives an undocumented overload the docs of the implementation before those of a documented overload', () => {
+        const [first, second] = extract('OverloadAndImplementationDocumentedPipe').transform;
+
+        expect(first.description).toBe('Cuts a text down to a number of characters.');
+        expect(second.description).toBe('Cuts a text down, or passes null through.');
+        expect(second.params[0].description).toBe('The text to cut, or null.');
+    });
+
+    it("takes only the description and @param texts of another overload's doc block, not its tags", () => {
+        const [deprecated, replacement] = extract('DeprecatedOverloadPipe').transform;
+
+        expect(deprecated.tags).toEqual({
+            deprecated: 'Pass an options object instead.',
+            since: '1.0.0',
+            see: ['truncate'],
+            example: ['{{ title | deprecatedOverload: 10 }}']
+        });
+        expect(replacement.description).toBe('Cuts a text down to a number of characters.');
+        expect(replacement.params.map((p) => p.description)).toEqual(['The text to cut.', undefined]);
+        expect(replacement.tags).toEqual({});
+    });
+
     it('inherits transform docs from a base class with source', () => {
         const [signature] = extract('InheritedTransformPipe').transform;
 
@@ -93,6 +115,10 @@ describe('pipe API extractor', () => {
         expect(signature.params.map((p) => p.description)).toEqual(['The text to cut.', 'How many characters to keep.', undefined]);
     });
 
+    it('does not take the class description of a documented base class', () => {
+        expect(extract('InheritedTransformPipe').description).toBeUndefined();
+    });
+
     it('reads transform from a declaration-only base', () => {
         const api = extract('LocalDatePipe');
         const refs: ApiTypeRef[] = api.transform.flatMap((m) => [m.returnType, ...m.params.map((p) => p.type)]);
@@ -100,7 +126,7 @@ describe('pipe API extractor', () => {
         expect(api.transform.length).toBeGreaterThanOrEqual(1);
         expect(api.transform[0].params[0].name).toBe('value');
         expect(api.transform[0].params[0].description).toMatch(/^The date expression/);
-        // The class's own description: the one of DatePipe is not inherited.
+        // Its own description, not the one of DatePipe.
         expect(api.description).toMatch(/^The `date` pipe under a name of the library's own/);
         expect(api.types).toEqual([]);
         expect(refs.filter((ref) => ref.links)).toEqual([]);

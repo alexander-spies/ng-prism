@@ -231,6 +231,9 @@ What is specific to a pipe:
 - **A signature has no description:** an overload takes the doc block of its own, else of the implementation, else of
   the first documented overload, else of a base class's `transform()`. Document one of them. The class description
   comes from the pipe's own doc block and isn't inherited.
+- **A tag of one overload is missing on another:** from another overload only the description and the `@param` texts
+  are taken, not `@deprecated`, `@since`, `@see` or `@example`. Tags that apply to every signature go on the
+  implementation.
 - **A property or another method of the class isn't listed:** only `transform()` is.
 - **The Pure / Impure chip is missing:** `pure` in `@Pipe({ … })` isn't a literal the builder can read.
 - **The template line has no arguments, or too few:** it is built from the first signature, with each required

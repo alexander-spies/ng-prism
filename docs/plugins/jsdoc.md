@@ -125,7 +125,7 @@ The page looks like the one of a service and reads the same JSDoc, with these di
 
 - **Meta chips:** `Pipe: <name>` (what a template calls it), `Pure` or `Impure` (left out when the purity cannot be read), then `Since` and `Entry point`.
 - **Usage** shows the imports, the `providers` entries of its `setup`, the component's `imports` entry and a template line such as `{{ value | timeAgo }}`, with the pipe's required arguments after the value.
-- **Transform** replaces Properties and Methods: one row per `transform()` signature, with its parameters, return type and description. Every overload is listed with its own parameters, and the implementation signature is left out when there are overloads. An overload without a doc block takes the one of the implementation, then of the first documented overload, then of a base class.
+- **Transform** replaces Properties and Methods: one row per `transform()` signature, with its parameters, return type and description. Every overload is listed with its own parameters, and the implementation signature is left out when there are overloads. An overload without a doc block takes the one of the implementation, then of the first documented overload (its description and `@param` texts, not its tags), then of a base class.
 - **Nothing else of the class** is listed: properties and other methods do not appear, and add no type cards.
 
 The page is made of the sections Usage, Setup, Examples, Transform and Types, in this order, with an "On this page" list; a section without content is left out. See [Showcasing Pipes](guide/showcasing-pipes.md).

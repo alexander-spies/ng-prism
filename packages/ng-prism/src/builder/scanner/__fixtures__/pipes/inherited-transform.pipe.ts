@@ -1,6 +1,7 @@
 import { Pipe, type PipeTransform } from '@angular/core';
 import { Showcase } from './showcase.js';
 
+/** Shortens a text: the base of the pipes that cut text, which describe themselves. */
 export class TruncateBase {
     /**
      * Cuts a text down to a number of characters.
