@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { StyleguidePage } from '../../plugin/page.types.js';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 
@@ -36,6 +37,23 @@ export class PrismSearchService {
             return (
                 config.title.toLowerCase().includes(q) ||
                 service.meta.className.toLowerCase().includes(q) ||
+                (config.category?.toLowerCase().includes(q) ?? false) ||
+                (config.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
+            );
+        });
+    });
+
+    readonly filteredPipes = computed<RuntimePipe[]>(() => {
+        const q = this.query().toLowerCase().trim();
+        const all = this.manifestService.pipes();
+
+        if (!q) return all;
+        return all.filter((pipe) => {
+            const config = pipe.meta.showcaseConfig;
+
+            return (
+                config.title.toLowerCase().includes(q) ||
+                pipe.meta.className.toLowerCase().includes(q) ||
                 (config.category?.toLowerCase().includes(q) ?? false) ||
                 (config.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
             );

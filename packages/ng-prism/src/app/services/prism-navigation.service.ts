@@ -1,7 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { StyleguidePage } from '../../plugin/page.types.js';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeComponent, ScannedComponent } from '../../plugin/plugin.types.js';
-import type { RuntimeService } from '../../plugin/service.types.js';
+import type { PanelTarget, RuntimeService } from '../../plugin/service.types.js';
 import { itemShowcaseConfig } from './navigation-item.js';
 import type { NavigationItem } from './navigation-item.types.js';
 import { PrismManifestService } from './prism-manifest.service.js';
@@ -10,10 +11,11 @@ import { PrismSearchService } from './prism-search.service.js';
 const DEFAULT_SECTION_ORDER: Record<string, number> = {
     Components: 0,
     Directives: 10,
-    Services: 20
+    Services: 20,
+    Pipes: 30
 };
 
-const SECTION_TIEBREAK: readonly string[] = ['Components', 'Directives', 'Services'];
+const SECTION_TIEBREAK: readonly string[] = ['Components', 'Directives', 'Services', 'Pipes'];
 
 export interface CategoryNode {
     name: string;
@@ -37,8 +39,14 @@ type ShowcasedItem = Exclude<NavigationItem, { kind: 'page' }>;
 
 /** The section an item lists under: its own `section`, else the default for what it is. */
 function resolveItemSection(item: ShowcasedItem): string {
-    if (item.kind === 'component') return resolveSection(item.data.meta);
-    return item.data.meta.showcaseConfig.section ?? 'Services';
+    switch (item.kind) {
+        case 'component':
+            return resolveSection(item.data.meta);
+        case 'service':
+            return item.data.meta.showcaseConfig.section ?? 'Services';
+        case 'pipe':
+            return item.data.meta.showcaseConfig.section ?? 'Pipes';
+    }
 }
 
 function defaultSectionOrder(name: string): number {
@@ -81,6 +89,27 @@ export class PrismNavigationService {
         return relinked ?? null;
     });
 
+    readonly activePipe = computed<RuntimePipe | null>(() => {
+        const item = this.activeItem();
+
+        if (item?.kind !== 'pipe') return null;
+        const relinked = this.manifestService.pipes().find((p) => p.meta.className === item.data.meta.className);
+
+        return relinked ?? null;
+    });
+
+    /**
+     * What the active item is, for the panels that apply to one kind only.
+     * Built from the re-linked signals, so an item the manifest no longer has
+     * (and a page, which no panel targets) reports `null`.
+     */
+    readonly activeTarget = computed<PanelTarget | null>(() => {
+        if (this.activeComponent()) return 'component';
+        if (this.activeService()) return 'service';
+        if (this.activePipe()) return 'pipe';
+        return null;
+    });
+
     readonly activePage = computed<StyleguidePage | null>(() => {
         const item = this.activeItem();
 
@@ -94,7 +123,8 @@ export class PrismNavigationService {
     readonly sectionTree = computed<SectionNode[]>(() => {
         const items: ShowcasedItem[] = [
             ...this.searchService.filteredComponents().map((data): ShowcasedItem => ({ kind: 'component', data })),
-            ...this.searchService.filteredServices().map((data): ShowcasedItem => ({ kind: 'service', data }))
+            ...this.searchService.filteredServices().map((data): ShowcasedItem => ({ kind: 'service', data })),
+            ...this.searchService.filteredPipes().map((data): ShowcasedItem => ({ kind: 'pipe', data }))
         ];
 
         const sections = new Map<string, Map<string, NavigationItem[]>>();
@@ -170,6 +200,10 @@ export class PrismNavigationService {
         this.activeItem.set({ kind: 'service', data: service });
     }
 
+    selectPipe(pipe: RuntimePipe): void {
+        this.activeItem.set({ kind: 'pipe', data: pipe });
+    }
+
     selectPage(page: StyleguidePage): void {
         this.activeItem.set({ kind: 'page', data: page });
     }
@@ -191,6 +225,12 @@ export class PrismNavigationService {
 
         if (services.length > 0) {
             this.activeItem.set({ kind: 'service', data: services[0] });
+            return;
+        }
+        const pipes = this.searchService.filteredPipes();
+
+        if (pipes.length > 0) {
+            this.activeItem.set({ kind: 'pipe', data: pipes[0] });
             return;
         }
         this.activeItem.set(null);

@@ -1,6 +1,7 @@
 import { ApplicationRef, effect, untracked } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { ShowcaseState } from '../../decorator/showcase.types.js';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { NgPrismConfig, RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../tokens/prism-tokens.js';
@@ -44,6 +45,18 @@ function createService(className = 'ToastService'): RuntimeService {
             showcaseConfig: { title: className },
             provision: 'auto',
             api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+        }
+    };
+}
+
+function createPipe(className = 'TruncatePipe'): RuntimePipe {
+    return {
+        meta: {
+            className,
+            filePath: '/test.pipe.ts',
+            showcaseConfig: { title: className },
+            pipeName: 'truncate',
+            api: { tags: {}, transform: [], setup: [], types: [] }
         }
     };
 }
@@ -966,6 +979,143 @@ describe('PrismUrlStateService', () => {
             window.dispatchEvent(new PopStateEvent('popstate'));
 
             expect(nav.activeService()).toBe(toast);
+        });
+    });
+
+    describe('pipe param', () => {
+        it('restores ?pipe=', () => {
+            const truncate = createPipe('TruncatePipe');
+
+            setUrl('?pipe=TruncatePipe');
+            const { url, nav } = setup({ components: [], pipes: [truncate] });
+
+            url.init();
+
+            expect(nav.activePipe()).toBe(truncate);
+            expect(nav.activeComponent()).toBeNull();
+            expect(nav.activeService()).toBeNull();
+        });
+
+        it('restores the pipe before a page', () => {
+            const truncate = createPipe('TruncatePipe');
+            const page = { type: 'component' as const, title: 'Intro', component: class {} as any };
+
+            setUrl('?pipe=TruncatePipe&page=Intro');
+            const { url, nav } = setup({ components: [], pipes: [truncate], pages: [page] });
+
+            url.init();
+
+            expect(nav.activePipe()).toBe(truncate);
+            expect(nav.activePage()).toBeNull();
+        });
+
+        it('restores ?service= before ?pipe=', () => {
+            const toast = createService('ToastService');
+            const truncate = createPipe('TruncatePipe');
+
+            setUrl('?pipe=TruncatePipe&service=ToastService');
+            const { url, nav } = setup({ components: [], services: [toast], pipes: [truncate] });
+
+            url.init();
+
+            expect(nav.activeService()).toBe(toast);
+            expect(nav.activePipe()).toBeNull();
+        });
+
+        it('selects nothing for an unknown pipe className', () => {
+            const truncate = createPipe('TruncatePipe');
+
+            setUrl('?pipe=Gone');
+            const { url, nav } = setup({ components: [], pipes: [truncate] });
+
+            url.init();
+
+            expect(nav.activeItem()).toBeNull();
+        });
+
+        it('writes pipe=<className> without variant or state, next to the view and the panel', () => {
+            const comp = createComponent({ className: 'Btn', variants: [{ name: 'V1' }, { name: 'V2' }], states: STATES });
+            const truncate = createPipe('TruncatePipe');
+            const { url, nav, renderer, panel } = setup({ components: [comp], pipes: [truncate] });
+
+            url.init();
+            nav.select(comp);
+            renderer.activeVariantIndex.set(1);
+            renderer.selectState(0);
+            flush();
+            expect(window.location.search).toBe('?component=Btn&variant=1&state=0');
+
+            nav.selectPipe(truncate);
+            flush();
+            expect(window.location.search).toBe('?pipe=TruncatePipe');
+
+            panel.activeViewId.set('api');
+            panel.activePanelId.set('jsdoc');
+            flush();
+            expect(window.location.search).toBe('?pipe=TruncatePipe&view=api&panel=jsdoc');
+        });
+
+        it('keeps ?pipe=X and ?service=X apart', () => {
+            const toast = createService('Shared');
+            const truncate = createPipe('Shared');
+            const pushSpy = jest.spyOn(window.history, 'pushState');
+            const { url, nav } = setup({ components: [], services: [toast], pipes: [truncate] });
+
+            url.init();
+            nav.selectService(toast);
+            flush();
+            expect(window.location.search).toBe('?service=Shared');
+            pushSpy.mockClear();
+
+            nav.selectPipe(truncate);
+            flush();
+            expect(window.location.search).toBe('?pipe=Shared');
+            expect(pushSpy).toHaveBeenCalledTimes(1);
+
+            pushSpy.mockClear();
+            nav.selectService(toast);
+            flush();
+            expect(window.location.search).toBe('?service=Shared');
+            expect(pushSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('pushes history when switching between two pipes and replaces it for a view change', () => {
+            const a = createPipe('A');
+            const b = createPipe('B');
+            const pushSpy = jest.spyOn(window.history, 'pushState');
+            const replaceSpy = jest.spyOn(window.history, 'replaceState');
+            const { url, nav, panel } = setup({ components: [], pipes: [a, b] });
+
+            url.init();
+            nav.selectPipe(a);
+            flush();
+            pushSpy.mockClear();
+            replaceSpy.mockClear();
+
+            nav.selectPipe(b);
+            flush();
+            expect(pushSpy).toHaveBeenCalledTimes(1);
+
+            pushSpy.mockClear();
+            panel.activeViewId.set('api');
+            flush();
+            expect(pushSpy).not.toHaveBeenCalled();
+            expect(replaceSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('re-reads a pipe on popstate', () => {
+            const comp = createComponent({ className: 'Btn' });
+            const truncate = createPipe('TruncatePipe');
+            const { url, nav } = setup({ components: [comp], pipes: [truncate] });
+
+            url.init();
+            nav.select(comp);
+            flush();
+
+            setUrl('?pipe=TruncatePipe');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+
+            expect(nav.activePipe()).toBe(truncate);
         });
     });
 });

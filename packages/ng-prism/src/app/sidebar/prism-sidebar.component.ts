@@ -14,13 +14,27 @@ const STORAGE_KEY = 'ng-prism-sidebar-collapsed';
 const SECTION_ICONS: Record<string, string> = {
     Components: 'box',
     Directives: 'zap',
-    Services: 'plug'
+    Services: 'plug',
+    Pipes: 'pipette'
 };
 const DEFAULT_SECTION_ICON = 'box-select';
 const SERVICE_ICON = 'plug';
+const PIPE_ICON = 'pipette';
 
 function sectionIcon(name: string): string {
     return SECTION_ICONS[name] ?? DEFAULT_SECTION_ICON;
+}
+
+/** The glyph of an item's kind, shown unless it is a work in progress. `undefined` for a component: `lifecycleIcon` falls back to the box. */
+function idleIcon(item: NavigationItem): string | undefined {
+    switch (item.kind) {
+        case 'service':
+            return SERVICE_ICON;
+        case 'pipe':
+            return PIPE_ICON;
+        default:
+            return undefined;
+    }
 }
 
 interface SidebarCategory {
@@ -99,7 +113,7 @@ export class PrismSidebarComponent {
             categories: section.categories.map((cat): ComponentCategory => {
                 const items = cat.items.map((item) => ({
                     item,
-                    icon: lifecycleIcon(this.itemStatus(item), item.kind === 'service' ? SERVICE_ICON : undefined),
+                    icon: lifecycleIcon(this.itemStatus(item), idleIcon(item)),
                     decorations: decorateItem(item, defs)
                 }));
 
@@ -179,6 +193,9 @@ export class PrismSidebarComponent {
                 break;
             case 'service':
                 this.navigationService.selectService(item.data);
+                break;
+            case 'pipe':
+                this.navigationService.selectPipe(item.data);
                 break;
             case 'page':
                 this.navigationService.selectPage(item.data);

@@ -1,4 +1,5 @@
 import { Injector, runInInjectionContext } from '@angular/core';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
@@ -35,6 +36,22 @@ function createService(overrides: Partial<{ title: string; category: string; tag
             },
             provision: 'auto',
             api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+        }
+    };
+}
+
+function createPipe(overrides: Partial<{ title: string; category: string; tags: string[]; className: string }> = {}): RuntimePipe {
+    return {
+        meta: {
+            className: overrides.className ?? 'SomePipe',
+            filePath: '/some.pipe.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Default',
+                category: overrides.category,
+                tags: overrides.tags
+            },
+            pipeName: 'some',
+            api: { tags: {}, transform: [], setup: [], types: [] }
         }
     };
 }
@@ -140,5 +157,34 @@ describe('PrismSearchService', () => {
         const service = setup({ components: [createComponent({ title: 'Button' })] });
 
         expect(service.filteredServices()).toEqual([]);
+    });
+
+    it('filters pipes by title, category, tags and className', () => {
+        const truncate = createPipe({ title: 'Truncate', className: 'TruncatePipe', category: 'Text', tags: ['shorten'] });
+        const money = createPipe({ title: 'Money', className: 'CurrencyFormat', category: 'Numbers', tags: ['locale'] });
+        const service = setup({ components: [], pipes: [truncate, money] });
+
+        expect(service.filteredPipes()).toEqual([truncate, money]);
+
+        service.search('truncate');
+        expect(service.filteredPipes()).toEqual([truncate]);
+
+        service.search('numbers');
+        expect(service.filteredPipes()).toEqual([money]);
+
+        service.search('SHORTEN');
+        expect(service.filteredPipes()).toEqual([truncate]);
+
+        service.search('currencyformat');
+        expect(service.filteredPipes()).toEqual([money]);
+
+        service.search('nonexistent');
+        expect(service.filteredPipes()).toEqual([]);
+    });
+
+    it('has no pipes for a manifest without them', () => {
+        const service = setup({ components: [createComponent({ title: 'Button' })] });
+
+        expect(service.filteredPipes()).toEqual([]);
     });
 });

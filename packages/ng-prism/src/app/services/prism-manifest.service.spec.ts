@@ -1,4 +1,5 @@
 import { Injector, runInInjectionContext } from '@angular/core';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
@@ -144,5 +145,26 @@ describe('PrismManifestService', () => {
 
         service.updateManifest({ components: [] });
         expect(service.services()).toEqual([]);
+    });
+
+    it('should expose pipes from the manifest, none when it has no pipes field', () => {
+        const truncate: RuntimePipe = {
+            meta: {
+                className: 'TruncatePipe',
+                filePath: '/truncate.pipe.ts',
+                showcaseConfig: { title: 'Truncate' },
+                pipeName: 'truncate',
+                api: { tags: {}, transform: [], setup: [], types: [] }
+            }
+        };
+
+        expect(setup({ components: [] }).pipes()).toEqual([]);
+
+        const service = setup({ components: [], pipes: [truncate] });
+
+        expect(service.pipes()).toEqual([truncate]);
+
+        service.updateManifest({ components: [] });
+        expect(service.pipes()).toEqual([]);
     });
 });
