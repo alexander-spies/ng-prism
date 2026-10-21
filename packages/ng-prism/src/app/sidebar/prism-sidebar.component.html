@@ -5,7 +5,7 @@
             [size]="12" />
         <input
             #filterInput
-            placeholder="Filter components…"
+            placeholder="Filter…"
             [value]="searchService.query()"
             (input)="searchService.search($any($event.target).value)" />
         <kbd>/</kbd>
