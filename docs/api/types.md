@@ -17,7 +17,7 @@ interface RuntimeManifest {
 }
 ```
 
-`services` and `pipes` are only present when the library has [services](guide/showcasing-services.md) or [pipes](guide/showcasing-pipes.md) and a plugin shows them. Neither is ever part of `components`, so code that walks `components` sees the same entries as before they existed.
+`services` and `pipes` are only present when the library has [services](guide/showcasing-services.md) or [pipes](guide/showcasing-pipes.md) and a plugin shows them. Neither is ever part of `components`. Before 22.7.0 a showcased service or pipe was listed in `components` as a component; code that walks `components` no longer sees it, see [Breaking changes and deprecations in 22.7.0](guide/migration-v22.md#breaking-changes-and-deprecations-in-2270).
 
 ---
 

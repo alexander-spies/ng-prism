@@ -138,7 +138,7 @@ All three callers pass the checker. They treat a drop differently:
 
 ## Services
 
-A service is a class with `@Showcase` and `@Injectable` or `@Service`. `component.scanner.ts` and `service.scanner.ts` split the `@Showcase` classes between them, so a service is in `ScanResult.services` and never in `components`: the component list, `onComponentScanned` and the discovery manifest keep their contents. The code is in `builder/scanner/service/`.
+A service is a class with `@Showcase` and `@Injectable` or `@Service`. `component.scanner.ts` and `service.scanner.ts` split the `@Showcase` classes between them, so a service is in `ScanResult.services` and never in `components`: the component list, `onComponentScanned` and the discovery manifest hold components and directives only (before 22.7.0 a showcased service or pipe was listed there too). The code is in `builder/scanner/service/`.
 
 ### Telling a service or pipe from a component
 
