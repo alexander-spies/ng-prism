@@ -1,5 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
@@ -37,9 +38,39 @@ function createComponent(
     };
 }
 
+function createService(
+    overrides: Partial<{
+        title: string;
+        category: string;
+        className: string;
+        section: string;
+        sectionOrder: number;
+        componentOrder: number;
+        categoryOrder: number;
+    }> = {}
+): RuntimeService {
+    return {
+        meta: {
+            className: overrides.className ?? 'SomeService',
+            filePath: '/some.service.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Default',
+                category: overrides.category,
+                section: overrides.section,
+                sectionOrder: overrides.sectionOrder,
+                componentOrder: overrides.componentOrder,
+                categoryOrder: overrides.categoryOrder
+            },
+            provision: 'auto',
+            api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+        }
+    };
+}
+
 function setup(manifest: RuntimeManifest): {
     service: PrismNavigationService;
     manifestService: PrismManifestService;
+    searchService: PrismSearchService;
 } {
     const rootInjector = Injector.create({
         providers: [{ provide: PRISM_MANIFEST, useValue: manifest }]
@@ -61,7 +92,7 @@ function setup(manifest: RuntimeManifest): {
     });
     const service = runInInjectionContext(navInjector, () => new PrismNavigationService());
 
-    return { service, manifestService };
+    return { service, manifestService, searchService };
 }
 
 describe('PrismNavigationService', () => {
@@ -173,6 +204,61 @@ describe('PrismNavigationService', () => {
 
         expect(service.activePage()).toBe(updatedPage);
         expect(service.activePage()).not.toBe(page);
+    });
+
+    it('selectFirst falls back to services when there are no pages or components', () => {
+        const toast = createService({ className: 'ToastService', title: 'Toasts' });
+        const { service } = setup({ components: [], services: [toast] });
+
+        service.selectFirst();
+        expect(service.activeService()).toBe(toast);
+        expect(service.activeComponent()).toBeNull();
+        expect(service.activePage()).toBeNull();
+    });
+
+    it('selectFirst prefers components over services', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const toast = createService({ className: 'ToastService' });
+        const { service } = setup({ components: [comp], services: [toast] });
+
+        service.selectFirst();
+        expect(service.activeComponent()).toBe(comp);
+        expect(service.activeService()).toBeNull();
+    });
+
+    it('sets activeService via selectService() and leaves the component and page empty', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const toast = createService({ className: 'ToastService' });
+        const { service } = setup({ components: [comp], services: [toast] });
+
+        service.select(comp);
+        service.selectService(toast);
+        expect(service.activeService()).toBe(toast);
+        expect(service.activeComponent()).toBeNull();
+        expect(service.activeItem()).toEqual({ kind: 'service', data: toast });
+    });
+
+    it('has no activeService while a component is selected', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const { service } = setup({ components: [comp], services: [createService()] });
+
+        service.select(comp);
+        expect(service.activeService()).toBeNull();
+    });
+
+    it('relinks activeService after a manifest update', () => {
+        const original = createService({ className: 'ToastService', title: 'Toasts' });
+        const { service, manifestService } = setup({ components: [], services: [original] });
+
+        service.selectService(original);
+
+        const updated = createService({ className: 'ToastService', title: 'Toasts NEW' });
+
+        manifestService.updateManifest({ components: [], services: [updated] });
+        expect(service.activeService()).toBe(updated);
+
+        manifestService.updateManifest({ components: [] });
+        expect(service.activeService()).toBeNull();
     });
 
     describe('sectionTree', () => {
@@ -301,6 +387,70 @@ describe('PrismNavigationService', () => {
 
             expect(comps?.totalCount).toBe(2);
             expect(dirs?.totalCount).toBe(1);
+        });
+
+        it('puts services into a Services section after Directives', () => {
+            const comp = createComponent({ className: 'Btn' });
+            const dir = createComponent({ className: 'HiDir', isDirective: true });
+            const toast = createService({ className: 'ToastService' });
+            const { service } = setup({ components: [comp, dir], services: [toast] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Components', 'Directives', 'Services']);
+            expect(tree[2].order).toBe(20);
+            expect(tree[2].totalCount).toBe(1);
+            expect(tree[2].categories[0].items[0]).toEqual({ kind: 'service', data: toast });
+        });
+
+        it("honours a service's own section", () => {
+            const toast = createService({ className: 'ToastService', section: 'Infrastructure' });
+            const plain = createService({ className: 'PlainService' });
+            const { service } = setup({ components: [], services: [toast, plain] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Services', 'Infrastructure']);
+            expect(tree[1].categories[0].items[0]).toEqual({ kind: 'service', data: toast });
+        });
+
+        it('lets a service and a component share a section', () => {
+            const comp = createComponent({ className: 'Btn', section: 'Shared' });
+            const toast = createService({ className: 'ToastService', section: 'Shared' });
+            const { service } = setup({ components: [comp], services: [toast] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Shared']);
+            expect(tree[0].categories[0].items.map((i) => i.kind)).toEqual(['component', 'service']);
+        });
+
+        it('orders services by componentOrder, then title, and their categories by categoryOrder', () => {
+            const b = createService({ className: 'B', title: 'Bravo', category: 'Zeta' });
+            const a = createService({ className: 'A', title: 'Alpha', category: 'Zeta' });
+            const first = createService({ className: 'First', title: 'Zulu', category: 'Zeta', componentOrder: 1 });
+            const early = createService({ className: 'Early', title: 'Late alphabetically', category: 'Omega', categoryOrder: 0 });
+            const { service } = setup({ components: [], services: [b, a, first, early] });
+
+            const tree = service.sectionTree();
+            const categories = tree[0].categories;
+
+            expect(categories.map((c) => c.name)).toEqual(['Omega', 'Zeta']);
+            expect(categories[1].items.map((i) => (i.kind === 'service' ? i.data.meta.className : ''))).toEqual(['First', 'A', 'B']);
+        });
+
+        it('hides services the filter excludes', () => {
+            const toast = createService({ className: 'ToastService', title: 'Toasts' });
+            const comp = createComponent({ className: 'Btn', title: 'Button' });
+            const { service, searchService } = setup({ components: [comp], services: [toast] });
+
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Components', 'Services']);
+
+            searchService.search('button');
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Components']);
+
+            searchService.search('toasts');
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Services']);
         });
     });
 });

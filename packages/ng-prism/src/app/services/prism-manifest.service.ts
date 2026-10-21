@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { StyleguidePage } from '../../plugin/page.types.js';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 
 @Injectable({ providedIn: 'root' })
@@ -10,6 +11,8 @@ export class PrismManifestService {
     readonly manifest = this._manifest.asReadonly();
 
     readonly components = computed<RuntimeComponent[]>(() => this._manifest().components);
+
+    readonly services = computed<RuntimeService[]>(() => this._manifest().services ?? []);
 
     readonly pages = computed<StyleguidePage[]>(() => this._manifest().pages ?? []);
 

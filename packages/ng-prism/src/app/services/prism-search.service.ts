@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { StyleguidePage } from '../../plugin/page.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 
 @Injectable({ providedIn: 'root' })
@@ -18,6 +19,23 @@ export class PrismSearchService {
 
             return (
                 config.title.toLowerCase().includes(q) ||
+                (config.category?.toLowerCase().includes(q) ?? false) ||
+                (config.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
+            );
+        });
+    });
+
+    readonly filteredServices = computed<RuntimeService[]>(() => {
+        const q = this.query().toLowerCase().trim();
+        const all = this.manifestService.services();
+
+        if (!q) return all;
+        return all.filter((service) => {
+            const config = service.meta.showcaseConfig;
+
+            return (
+                config.title.toLowerCase().includes(q) ||
+                service.meta.className.toLowerCase().includes(q) ||
                 (config.category?.toLowerCase().includes(q) ?? false) ||
                 (config.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
             );

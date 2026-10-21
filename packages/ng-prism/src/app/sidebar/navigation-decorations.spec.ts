@@ -153,6 +153,26 @@ describe('rollupCategory', () => {
     });
 });
 
+describe('decorateItem on a service', () => {
+    it('never decorates a service, whatever the definitions say', () => {
+        const everything = def('always', 'x', 0, {});
+        const service: NavigationItem = {
+            kind: 'service',
+            data: {
+                meta: {
+                    className: 'ToastService',
+                    filePath: '',
+                    showcaseConfig: { title: 'Toasts' },
+                    provision: 'auto',
+                    api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+                }
+            }
+        };
+
+        expect(decorateItem(service, [{ ...everything, badge: () => ({ variant: 'danger', label: 'always' }) }])).toBeNull();
+    });
+});
+
 describe('lifecycleIcon', () => {
     it('is the dashed circle for work in progress', () => {
         expect(lifecycleIcon('wip')).toBe('circle-dashed');
@@ -163,5 +183,11 @@ describe('lifecycleIcon', () => {
         expect(lifecycleIcon('beta')).toBe('box');
         expect(lifecycleIcon('deprecated')).toBe('box');
         expect(lifecycleIcon(undefined)).toBe('box');
+    });
+
+    it('takes the glyph for everything else from the caller, the dashed circle stays shared', () => {
+        expect(lifecycleIcon('wip', 'plug')).toBe('circle-dashed');
+        expect(lifecycleIcon('stable', 'plug')).toBe('plug');
+        expect(lifecycleIcon(undefined, 'plug')).toBe('plug');
     });
 });

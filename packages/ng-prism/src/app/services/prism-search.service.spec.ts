@@ -1,5 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 import { PrismSearchService } from './prism-search.service.js';
@@ -18,6 +19,22 @@ function createComponent(overrides: Partial<{ title: string; category: string; t
             inputs: [],
             outputs: [],
             componentMeta: { selector: 'test', standalone: true, isDirective: false }
+        }
+    };
+}
+
+function createService(overrides: Partial<{ title: string; category: string; tags: string[]; className: string }> = {}): RuntimeService {
+    return {
+        meta: {
+            className: overrides.className ?? 'SomeService',
+            filePath: '/some.service.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Default',
+                category: overrides.category,
+                tags: overrides.tags
+            },
+            provision: 'auto',
+            api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
         }
     };
 }
@@ -94,5 +111,34 @@ describe('PrismSearchService', () => {
 
         service.search('nonexistent');
         expect(service.filteredComponents()).toEqual([]);
+    });
+
+    it('filters services by title, category, tags and className', () => {
+        const toast = createService({ title: 'Toasts', className: 'ToastService', category: 'Feedback', tags: ['notification'] });
+        const auth = createService({ title: 'Session', className: 'AuthStore', category: 'Security', tags: ['login'] });
+        const service = setup({ components: [], services: [toast, auth] });
+
+        expect(service.filteredServices()).toEqual([toast, auth]);
+
+        service.search('toasts');
+        expect(service.filteredServices()).toEqual([toast]);
+
+        service.search('security');
+        expect(service.filteredServices()).toEqual([auth]);
+
+        service.search('NOTIFICATION');
+        expect(service.filteredServices()).toEqual([toast]);
+
+        service.search('authstore');
+        expect(service.filteredServices()).toEqual([auth]);
+
+        service.search('nonexistent');
+        expect(service.filteredServices()).toEqual([]);
+    });
+
+    it('has no services for a manifest without them', () => {
+        const service = setup({ components: [createComponent({ title: 'Button' })] });
+
+        expect(service.filteredServices()).toEqual([]);
     });
 });

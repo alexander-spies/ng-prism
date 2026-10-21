@@ -127,7 +127,12 @@ export function rollupCategory(decorations: readonly (ItemDecorations | null)[])
  * finding. At 11px the previous pair (cube vs dashed square) was effectively
  * one glyph, so `wip` now uses a shape that differs in silhouette rather than
  * in stroke style.
+ *
+ * `idle` is the glyph of everything that is not work in progress: the box of a
+ * component by default, another one for another kind of item (the plug of a
+ * service). The dashed circle is shared, so work in progress reads the same
+ * for every kind.
  */
-export function lifecycleIcon(status: ComponentStatus | undefined): string {
-    return status === 'wip' ? 'circle-dashed' : 'box';
+export function lifecycleIcon(status: ComponentStatus | undefined, idle = 'box'): string {
+    return status === 'wip' ? 'circle-dashed' : idle;
 }

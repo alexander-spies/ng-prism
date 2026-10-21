@@ -7,6 +7,7 @@ import { PrismPanelService } from './prism-panel.service.js';
 import { PrismRendererService } from './prism-renderer.service.js';
 
 const PARAM_COMPONENT = 'component';
+const PARAM_SERVICE = 'service';
 const PARAM_PAGE = 'page';
 const PARAM_VARIANT = 'variant';
 const PARAM_STATE = 'state';
@@ -29,6 +30,21 @@ function parseStateIndex(param: string | null, count: number): number | null {
     const index = Number(param);
 
     return index < count ? index : null;
+}
+
+/**
+ * What a URL addresses, `null` for nothing. The same precedence as the restore,
+ * prefixed per kind so a component and a service of one name still differ.
+ */
+function navKey(params: URLSearchParams): string | null {
+    const component = params.get(PARAM_COMPONENT);
+    const service = params.get(PARAM_SERVICE);
+    const page = params.get(PARAM_PAGE);
+
+    if (component !== null) return `${PARAM_COMPONENT}:${component}`;
+    if (service !== null) return `${PARAM_SERVICE}:${service}`;
+    if (page !== null) return `${PARAM_PAGE}:${page}`;
+    return null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -67,6 +83,7 @@ export class PrismUrlStateService {
     private restoreFromUrl(): void {
         const params = new URLSearchParams(window.location.search);
         const componentClassName = params.get(PARAM_COMPONENT);
+        const serviceClassName = params.get(PARAM_SERVICE);
         const pageTitle = params.get(PARAM_PAGE);
         const variantParam = params.get(PARAM_VARIANT);
         const stateParam = params.get(PARAM_STATE);
@@ -101,6 +118,12 @@ export class PrismUrlStateService {
                         this.rendererService.selectVariant(variantIndex);
                     }
                     stateIndex = parseStateIndex(stateParam, comp.meta.showcaseConfig.states?.length ?? 0);
+                }
+            } else if (serviceClassName) {
+                const service = this.manifestService.services().find((s) => s.meta.className === serviceClassName);
+
+                if (service) {
+                    this.navigationService.selectService(service);
                 }
             } else if (pageTitle) {
                 const page = this.manifestService.pages().find((p) => p.title === pageTitle);
@@ -137,6 +160,8 @@ export class PrismUrlStateService {
             if (stateIndex !== null) {
                 params.set(PARAM_STATE, String(stateIndex));
             }
+        } else if (item?.kind === 'service') {
+            params.set(PARAM_SERVICE, item.data.meta.className);
         } else if (item?.kind === 'page') {
             params.set(PARAM_PAGE, item.data.title);
         }
@@ -153,11 +178,7 @@ export class PrismUrlStateService {
 
         if (newUrl === window.location.pathname + window.location.search) return;
 
-        const currentParams = new URLSearchParams(window.location.search);
-        const prevNavKey = currentParams.get(PARAM_COMPONENT) ?? currentParams.get(PARAM_PAGE);
-        const newNavKey = params.get(PARAM_COMPONENT) ?? params.get(PARAM_PAGE);
-
-        if (prevNavKey !== newNavKey) {
+        if (navKey(new URLSearchParams(window.location.search)) !== navKey(params)) {
             window.history.pushState(null, '', newUrl);
         } else {
             window.history.replaceState(null, '', newUrl);
