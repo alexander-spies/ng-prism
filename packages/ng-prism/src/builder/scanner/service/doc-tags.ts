@@ -3,9 +3,10 @@ import type { ApiDocTags } from '../../../plugin/service.types.js';
 
 /**
  * The block that documents a node: the last `/** *\/` above it, as long as it
- * sits right on top of the node and says something. TypeScript also attaches a
- * block that floats a few lines above, such as a section banner, and one that
- * is only a ruler (`/** ===== *\/`); neither describes the node.
+ * sits right on top of the node and says something. Line comments in between,
+ * such as `// eslint-disable-next-line`, keep it attached. TypeScript also
+ * attaches a block that floats a few lines above, such as a section banner,
+ * and one that is only a ruler (`/** ===== *\/`); neither describes the node.
  */
 function readDocBlock(node: ts.Node): ts.JSDoc | undefined {
     const blocks = (node as ts.Node & { jsDoc?: ts.JSDoc[] }).jsDoc;
@@ -14,10 +15,10 @@ function readDocBlock(node: ts.Node): ts.JSDoc | undefined {
     if (!block) return undefined;
 
     const sourceFile = node.getSourceFile();
-    const blockEnd = sourceFile.getLineAndCharacterOfPosition(block.end).line;
-    const nodeStart = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line;
+    // The first line is the rest of the block's last line, the last one the indentation of the node.
+    const linesBetween = sourceFile.text.slice(block.end, node.getStart(sourceFile)).split('\n').slice(1, -1);
 
-    if (nodeStart - blockEnd > 1) return undefined;
+    if (linesBetween.some((line) => !/^\s*\/\//.test(line))) return undefined;
 
     const stripped = block.getText(sourceFile).replace(/[/*\s]/g, '');
 

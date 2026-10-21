@@ -2,7 +2,7 @@ import { Injectable, OnDestroy, signal } from '@angular/core';
 import { provideToast, TOAST_LABELS } from './provide-toast.js';
 import { Showcase } from './showcase.js';
 import { ToastRef } from './toast-ref.js';
-import type { ToastOptions } from './toast.model.js';
+import { type ToastConfig, type ToastEntry, ToastLevel, type ToastOptions } from './toast.model.js';
 
 export class ToastBase {
     /** Empties the queue and closes what is on screen. */
@@ -70,6 +70,16 @@ export class ToastService extends ToastBase implements OnDestroy {
     ngOnDestroy(): void {
         this.dismissAll();
     }
+
+    readonly level = signal<ToastLevel>(ToastLevel.Low);
+
+    private entries: ToastEntry[] = [];
+
+    history(): readonly ToastRef[] {
+        return this.entries.map(() => new ToastRef());
+    }
+
+    configure(config: Partial<ToastConfig>): void {}
 
     static create(): ToastService {
         return new ToastService();

@@ -47,7 +47,7 @@ describe('member extractor', () => {
         const show = methods.find((m) => m.name === 'show')!;
         const dismissAll = methods.find((m) => m.name === 'dismissAll')!;
 
-        expect(methods.map((m) => m.name)).toEqual(['show', 'dismissAll', 'open', 'reset']);
+        expect(methods.map((m) => m.name)).toEqual(['show', 'dismissAll', 'open', 'history', 'configure', 'reset']);
         expect(show.params[0]).toEqual({ name: 'options', type: { text: 'ToastOptions' }, optional: false, description: 'What to show.' });
         expect(show.returnType.text).toBe('ToastRef');
         expect(show.description).toBe('Puts a toast on screen.');
@@ -197,6 +197,78 @@ describe('member extractor', () => {
             );
 
             expect(methods.map((m) => m.name)).toEqual(['shown']);
+        });
+
+        it('lets a member without docs keep the docs of the base member it redeclares', () => {
+            const { properties, methods } = extract(
+                [
+                    'class Base {',
+                    '  /** The size. */',
+                    '  size = 1;',
+                    '  /**',
+                    '   * Loads it.',
+                    '   *',
+                    '   * @param id - The id.',
+                    '   * @since 1.0.0',
+                    '   */',
+                    '  load(id: string): void {}',
+                    '}',
+                    'class Subject extends Base {',
+                    '  override size = 2;',
+                    '  override load(id: string, force = false): void {}',
+                    '}'
+                ].join('\n')
+            );
+
+            expect(properties).toEqual([{ name: 'size', type: { text: 'number' }, readonly: false, description: 'The size.', tags: {} }]);
+            expect(methods).toEqual([
+                {
+                    name: 'load',
+                    params: [
+                        { name: 'id', type: { text: 'string' }, optional: false, description: 'The id.' },
+                        { name: 'force', type: { text: 'boolean' }, optional: true, defaultValue: 'false' }
+                    ],
+                    returnType: { text: 'void' },
+                    description: 'Loads it.',
+                    tags: { since: '1.0.0' }
+                }
+            ]);
+        });
+
+        it('takes the docs from the nearest base class that has them', () => {
+            const { methods } = extract(
+                [
+                    'class A {',
+                    '  /** From A. */',
+                    '  load(): void {}',
+                    '}',
+                    'class B extends A {',
+                    '  override load(): void {}',
+                    '}',
+                    'class Subject extends B {',
+                    '  override load(): void {}',
+                    '}'
+                ].join('\n')
+            );
+
+            expect(methods[0].description).toBe('From A.');
+        });
+
+        it('lets a member with docs of its own hide the docs of the base member', () => {
+            const { methods } = extract(
+                [
+                    'class Base {',
+                    '  /** Base. @since 1.0.0 */',
+                    '  load(): void {}',
+                    '}',
+                    'class Subject extends Base {',
+                    '  /** Own. */',
+                    '  override load(): void {}',
+                    '}'
+                ].join('\n')
+            );
+
+            expect(methods[0]).toMatchObject({ description: 'Own.', tags: {} });
         });
 
         it('lets a static member hide nothing', () => {

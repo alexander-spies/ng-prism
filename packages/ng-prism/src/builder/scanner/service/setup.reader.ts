@@ -82,7 +82,7 @@ function readSetupArray(initializer: ts.Expression): ts.ArrayLiteralExpression |
     return value && ts.isArrayLiteralExpression(value) ? value : undefined;
 }
 
-function skipParentheses(expression: ts.Expression): ts.Expression {
+export function skipParentheses(expression: ts.Expression): ts.Expression {
     let current = expression;
 
     while (ts.isParenthesizedExpression(current)) current = current.expression;

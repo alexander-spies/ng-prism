@@ -63,6 +63,17 @@ describe('doc tags', () => {
 
             expect(readDocTags(decl)).toEqual({});
         });
+
+        it('keeps a block that only line comments separate from the node', () => {
+            const decl = parseClass(['/** @since 1.0.0 */', '// eslint-disable-next-line some-rule', '// @ts-expect-error', 'class Subject {}'].join('\n'));
+
+            expect(readDocTags(decl)).toEqual({ since: '1.0.0' });
+        });
+
+        it('ignores a block that a blank line separates from the node, line comments or not', () => {
+            expect(readDocTags(parseClass(['/** @since 1.0.0 */', '// some comment', '', 'class Subject {}'].join('\n')))).toEqual({});
+            expect(readDocTags(parseClass(['/** @since 1.0.0 */', '', '// some comment', 'class Subject {}'].join('\n')))).toEqual({});
+        });
     });
 
     describe('isInternal', () => {

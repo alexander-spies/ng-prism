@@ -5,6 +5,7 @@ export { SetupOnComponent } from './setup-on-component.component.js';
 export { provideToast, TOAST_LABELS } from './provide-toast.js';
 export { ToastRef } from './toast-ref.js';
 export { ToastService } from './toast.service.js';
+export { type TreeNode, TreeService } from './tree.service.js';
 export { ToastLevel } from './toast.model.js';
 export type { ToastAction, ToastConfig, ToastEntry, ToastLabels, ToastOptions, ToastPosition } from './toast.model.js';
 export { BlockBodyService, NotAFunctionService, NotArrowService, UnexportedService } from './broken-setup.services.js';

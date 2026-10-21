@@ -3,13 +3,17 @@ import type { ApiMethod, ApiParam, ApiProperty, ApiTypeRef } from '../../../plug
 import { getClassHierarchy } from '../class-hierarchy.js';
 import { isDocumented, isInternal, readDescription, readDocTags, readParamDescriptions } from './doc-tags.js';
 
+/** What a type is the type of: a property, a parameter of a method, or what a method returns. */
+export type TypeSite = { kind: 'property'; name: string } | { kind: 'parameter'; name: string; method: string } | { kind: 'return'; method: string };
+
 /**
  * Turns the type of a member, parameter or return value into an {@link ApiTypeRef}.
- * `reachedFrom` says where it was met, e.g. `parameter of show()`, for a
- * resolver that documents the types it finds on the way.
+ * `reachedFrom` says where it was met, e.g. `parameter of show()`, and `site`
+ * the same in parts, for a resolver that documents the types it finds on the
+ * way and follows their members.
  */
 export interface TypeRefResolver {
-    ref(typeNode: ts.TypeNode | undefined, type: ts.Type, reachedFrom: string): ApiTypeRef;
+    ref(typeNode: ts.TypeNode | undefined, type: ts.Type, reachedFrom: string, site?: TypeSite): ApiTypeRef;
 }
 
 /** The lifecycle hooks Angular calls on a service; they are not part of what a user calls. */
@@ -26,6 +30,7 @@ const LIFECYCLE_HOOKS = new Set([
 
 type Accessor = ts.GetAccessorDeclaration | ts.SetAccessorDeclaration;
 type NamedMember = ts.PropertyDeclaration | ts.MethodDeclaration | Accessor;
+type PropertyLike = ts.PropertyDeclaration | ts.PropertySignature | Accessor;
 
 /** A type as written, or as the checker prints it when there is nothing written. Whitespace is collapsed, so a multi-line literal type stays on one line. */
 export function readTypeText(checker: ts.TypeChecker, typeNode: ts.TypeNode | undefined, type: ts.Type): string {
@@ -48,29 +53,62 @@ export function textOnlyResolver(checker: ts.TypeChecker): TypeRefResolver {
  *
  * Left out: `private`, `protected` and `#` members, names with a `_` prefix,
  * lifecycle hooks, the constructor, statics and what is tagged `@internal`.
- * Methods are listed with or without JSDoc.
+ * Methods are listed with or without JSDoc. A redeclaration without JSDoc of
+ * its own keeps its signature, but takes description, tags and `@param` texts
+ * from the nearest base class member of that name that has them.
  */
 export function extractMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker, types: TypeRefResolver): { properties: ApiProperty[]; methods: ApiMethod[] } {
     const properties: ApiProperty[] = [];
     const methods: ApiMethod[] = [];
     const declared = new Set<string>();
+    const levels = getClassHierarchy(classDecl, checker).classes.map(({ classDecl: current }) => groupByName(current));
 
-    for (const { classDecl: current } of getClassHierarchy(classDecl, checker).classes) {
-        const groups = groupByName(current);
-
+    levels.forEach((groups, level) => {
         for (const [name, group] of groups) {
             if (declared.has(name)) continue;
 
             // The doc block sits on one of them: the first overload, or the getter or the setter.
-            const documented = group.find(isDocumented) ?? group[0];
+            const declaration = group.find(isDocumented) ?? group[0];
 
-            if (!isPublicApi(name, group, documented)) continue;
+            if (!isPublicApi(name, group, declaration)) continue;
 
-            if (ts.isMethodDeclaration(documented)) methods.push(extractMethod(name, documented, checker, types));
-            else properties.push(extractProperty(name, group as (ts.PropertyDeclaration | Accessor)[], documented, checker, types));
+            const docs = isDocumented(declaration) ? declaration : (findInheritedDocs(levels.slice(level + 1), name) ?? declaration);
+
+            if (ts.isMethodDeclaration(declaration)) methods.push(extractMethod(name, declaration, docs, checker, types));
+            else properties.push(extractProperty(name, group as PropertyLike[], declaration, docs, checker, types));
         }
 
         for (const name of groups.keys()) declared.add(name);
+    });
+
+    return { properties, methods };
+}
+
+/**
+ * The members of an interface or an object literal type, the inherited ones
+ * included, own members first. What is tagged `@internal` is left out; there
+ * is nothing private to leave out.
+ */
+export function extractObjectTypeMembers(type: ts.Type, checker: ts.TypeChecker, types: TypeRefResolver): { properties: ApiProperty[]; methods: ApiMethod[] } {
+    const properties: ApiProperty[] = [];
+    const methods: ApiMethod[] = [];
+
+    for (const symbol of checker.getPropertiesOfType(type)) {
+        const group = (symbol.declarations ?? []).filter(
+            (d): d is ts.MethodSignature | ts.MethodDeclaration | PropertyLike =>
+                ts.isMethodSignature(d) ||
+                ts.isMethodDeclaration(d) ||
+                ts.isPropertySignature(d) ||
+                ts.isPropertyDeclaration(d) ||
+                ts.isGetAccessor(d) ||
+                ts.isSetAccessor(d)
+        );
+        const declaration = group.find(isDocumented) ?? group[0];
+
+        if (!declaration || isInternal(declaration)) continue;
+
+        if (ts.isMethodSignature(declaration) || ts.isMethodDeclaration(declaration)) methods.push(extractMethod(symbol.name, declaration, declaration, checker, types));
+        else properties.push(extractProperty(symbol.name, group as PropertyLike[], declaration, declaration, checker, types));
     }
 
     return { properties, methods };
@@ -94,51 +132,64 @@ function groupByName(classDecl: ts.ClassDeclaration): Map<string, NamedMember[]>
     return groups;
 }
 
-function isPublicApi(name: string, group: NamedMember[], documented: NamedMember): boolean {
+function isPublicApi(name: string, group: NamedMember[], declaration: NamedMember): boolean {
     if (name.startsWith('_') || LIFECYCLE_HOOKS.has(name)) return false;
     if (group.some((member) => hasModifier(member, ts.SyntaxKind.PrivateKeyword) || hasModifier(member, ts.SyntaxKind.ProtectedKeyword))) return false;
 
-    return !isInternal(documented);
+    // Only its own block: a member is internal where it is declared, as for `stripInternal`.
+    return !isInternal(declaration);
 }
 
-function extractProperty(
-    name: string,
-    group: (ts.PropertyDeclaration | Accessor)[],
-    documented: ts.PropertyDeclaration | Accessor,
-    checker: ts.TypeChecker,
-    types: TypeRefResolver
-): ApiProperty {
+/** The documented declaration of a name in the nearest of the given base classes that has one. */
+function findInheritedDocs(levels: Map<string, NamedMember[]>[], name: string): NamedMember | undefined {
+    for (const groups of levels) {
+        const documented = groups.get(name)?.find(isDocumented);
+
+        if (documented) return documented;
+    }
+
+    return undefined;
+}
+
+/** `docs` is the node the doc block is read from: the declaration itself, or a declaration it inherits the docs of. */
+function extractProperty(name: string, group: PropertyLike[], declaration: PropertyLike, docs: ts.Node, checker: ts.TypeChecker, types: TypeRefResolver): ApiProperty {
     const getter = group.find(ts.isGetAccessorDeclaration);
     const setter = group.find(ts.isSetAccessorDeclaration);
+    const isField = ts.isPropertyDeclaration(declaration) || ts.isPropertySignature(declaration);
     // A property reads its type from the getter, and from the setter's parameter when there is none.
-    const typeNode = ts.isPropertyDeclaration(documented) ? documented.type : (getter?.type ?? setter?.parameters[0]?.type);
+    const typeNode = isField ? declaration.type : (getter?.type ?? setter?.parameters[0]?.type);
     const property: ApiProperty = {
         name,
-        type: types.ref(typeNode, checker.getTypeAtLocation(documented), `type of ${name}`),
-        readonly: ts.isPropertyDeclaration(documented) ? hasModifier(documented, ts.SyntaxKind.ReadonlyKeyword) : !!getter && !setter,
-        tags: readDocTags(documented)
+        type: types.ref(typeNode, checker.getTypeAtLocation(declaration), `type of ${name}`, { kind: 'property', name }),
+        readonly: isField ? hasModifier(declaration, ts.SyntaxKind.ReadonlyKeyword) : !!getter && !setter,
+        tags: readDocTags(docs)
     };
 
-    if (ts.isPropertyDeclaration(documented) && documented.questionToken) property.optional = true;
+    if (isField && declaration.questionToken) property.optional = true;
 
-    const description = readDescription(documented);
+    const description = readDescription(docs);
 
     if (description) property.description = description;
 
     return property;
 }
 
-function extractMethod(name: string, method: ts.MethodDeclaration, checker: ts.TypeChecker, types: TypeRefResolver): ApiMethod {
-    const signature = checker.getSignatureFromDeclaration(method);
-    const returnType = signature ? checker.getReturnTypeOfSignature(signature) : checker.getTypeAtLocation(method);
-    const descriptions = readParamDescriptions(method);
+/**
+ * The signature of a method, or of a function such as a setup function, with
+ * the doc block read from `docs`: the declaration itself, the statement of a
+ * `const` arrow function, or a declaration it inherits the docs of.
+ */
+export function extractMethod(name: string, declaration: ts.SignatureDeclaration, docs: ts.Node, checker: ts.TypeChecker, types: TypeRefResolver): ApiMethod {
+    const signature = checker.getSignatureFromDeclaration(declaration);
+    const returnType = signature ? checker.getReturnTypeOfSignature(signature) : checker.getTypeAtLocation(declaration);
+    const descriptions = readParamDescriptions(docs);
     const result: ApiMethod = {
         name,
-        params: method.parameters.filter((param) => !isThisParameter(param)).map((param) => extractParam(name, param, descriptions, checker, types)),
-        returnType: types.ref(method.type, returnType, `returned by ${name}()`),
-        tags: readDocTags(method)
+        params: declaration.parameters.filter((param) => !isThisParameter(param)).map((param) => extractParam(name, param, descriptions, checker, types)),
+        returnType: types.ref(declaration.type, returnType, `returned by ${name}()`, { kind: 'return', method: name }),
+        tags: readDocTags(docs)
     };
-    const description = readDescription(method);
+    const description = readDescription(docs);
 
     if (description) result.description = description;
 
@@ -149,7 +200,7 @@ function extractParam(methodName: string, param: ts.ParameterDeclaration, descri
     const name = ts.isIdentifier(param.name) ? param.name.text : collapseWhitespace(param.name.getText());
     const result: ApiParam = {
         name,
-        type: types.ref(param.type, checker.getTypeAtLocation(param), `parameter of ${methodName}()`),
+        type: types.ref(param.type, checker.getTypeAtLocation(param), `parameter of ${methodName}()`, { kind: 'parameter', name, method: methodName }),
         optional: !!(param.questionToken || param.initializer)
     };
 
@@ -161,6 +212,11 @@ function extractParam(methodName: string, param: ts.ParameterDeclaration, descri
     if (description) result.description = description;
 
     return result;
+}
+
+/** The first parameter that is not `this`. */
+export function firstParameter(declaration: ts.SignatureDeclaration): ts.ParameterDeclaration | undefined {
+    return declaration.parameters.find((param) => !isThisParameter(param));
 }
 
 function isThisParameter(param: ts.ParameterDeclaration): boolean {
@@ -179,6 +235,6 @@ function hasModifier(node: ts.Node, kind: ts.SyntaxKind): boolean {
     return ts.canHaveModifiers(node) && !!ts.getModifiers(node)?.some((modifier) => modifier.kind === kind);
 }
 
-function collapseWhitespace(text: string): string {
+export function collapseWhitespace(text: string): string {
     return text.replace(/\s+/g, ' ').trim();
 }
