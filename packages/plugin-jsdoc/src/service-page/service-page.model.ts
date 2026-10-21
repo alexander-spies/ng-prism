@@ -37,6 +37,41 @@ export function buildServiceToc(api: ServiceApi): TocEntry[] {
     return toc;
 }
 
+/** How far down the view, as a share of its height, a section's heading has to come to make the section active. */
+const ACTIVATION_LINE = 0.25;
+
+/** Where the page is scrolled to, and where each anchor of the "On this page" list sits on it. */
+export interface ScrollSpyState {
+    /** The TOC id of each anchor in page order, with its offset from the top of the scrolled content. */
+    anchors: readonly { id: string; top: number }[];
+    scrollTop: number;
+    clientHeight: number;
+    scrollHeight: number;
+    /** The entry a jump is heading for, for as long as the jump lasts. */
+    jumpTarget: string | null;
+}
+
+/**
+ * The entry the "On this page" list marks. During a jump, the one the reader
+ * jumped to, whatever the jump scrolls past. Otherwise the last section whose
+ * heading has come up to a line a quarter down the view, except at the bottom
+ * of the page: the sections there can never come up to the line, so the last
+ * one in view is active.
+ */
+export function activeTocId({ anchors, scrollTop, clientHeight, scrollHeight, jumpTarget }: ScrollSpyState): string {
+    if (jumpTarget) return jumpTarget;
+
+    if (scrollTop + clientHeight >= scrollHeight - 1) {
+        const inView = anchors.filter((anchor) => anchor.top >= scrollTop && anchor.top < scrollTop + clientHeight).at(-1);
+
+        if (inView) return inView.id;
+    }
+
+    const line = scrollTop + clientHeight * ACTIVATION_LINE;
+
+    return (anchors.filter((anchor) => anchor.top <= line).at(-1) ?? anchors[0])?.id ?? 'usage';
+}
+
 const IDENTIFIER = /[A-Za-z_$][\w$]*/g;
 
 /**

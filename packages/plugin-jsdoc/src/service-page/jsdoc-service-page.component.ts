@@ -4,7 +4,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ApiDocTags, ApiMethod, ApiProperty, ApiTypeDoc, RuntimeService } from '@ng-prism/core/plugin';
 import { Highlight } from 'ngx-highlightjs';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from '../markdown.js';
-import { buildServiceToc, paramSegments, setupSignature, splitReachedFrom, typeAnchor, typeSegments } from './service-page.model.js';
+import { activeTocId, buildServiceToc, paramSegments, setupSignature, splitReachedFrom, typeAnchor, typeSegments } from './service-page.model.js';
 import { generateServiceUsage } from './service-usage.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
@@ -12,6 +12,12 @@ const SCROLL_OFFSET = 12;
 
 /** How long a type card stays highlighted after a link jumped to it. */
 const HIGHLIGHT_MS = 1600;
+
+/** Without `scrollend`, a jump counts as over once its smooth scroll has been quiet for this long. */
+const JUMP_SETTLE_MS = 150;
+
+/** What the reader does to scroll by hand; any of it ends a jump. */
+const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
 
 /**
  * The API page of a service: what it is, how to bring it in, what it offers and
@@ -35,6 +41,8 @@ export class JsDocServicePageComponent {
     private readonly host: HTMLElement = inject(ElementRef).nativeElement;
 
     protected readonly meta = computed(() => this.service().meta);
+    /** The class name, not the service object: a manifest update during `serve` hands over a new object for the same service. */
+    private readonly className = computed(() => this.meta().className);
     protected readonly api = computed(() => this.meta().api);
     protected readonly tags = computed(() => this.api().tags);
     protected readonly usage = computed(() => generateServiceUsage(this.meta()));
@@ -58,7 +66,14 @@ export class JsDocServicePageComponent {
     private readonly blockHtml = new Map<string, SafeHtml>();
     private readonly inlineHtml = new Map<string, SafeHtml>();
 
+    /**
+     * The entry the reader jumped to, until the jump is over: the smooth scroll
+     * passes other sections on its way, and one near the bottom of the page is
+     * never scrolled up to the activation line.
+     */
+    private jumpTarget: string | null = null;
     private spyFrame = 0;
+    private jumpTimer?: ReturnType<typeof setTimeout>;
     private highlightTimer?: ReturnType<typeof setTimeout>;
     private copiedTimer?: ReturnType<typeof setTimeout>;
 
@@ -66,8 +81,9 @@ export class JsDocServicePageComponent {
         // The panel keeps this instance when the reader moves to another
         // service, so the page starts over at the top for the new one.
         effect(() => {
-            this.service();
+            this.className();
             untracked(() => {
+                this.endJump();
                 this.host.scrollTo({ top: 0, behavior: 'instant' });
                 this.activeId.set('usage');
                 this.highlightedId.set(null);
@@ -77,11 +93,19 @@ export class JsDocServicePageComponent {
         // Outside the zone: a scroll event alone changes nothing on screen.
         // Only a different active entry does, and that is a signal write.
         const onScroll = () => this.onScroll();
+        const endJump = () => this.endJump();
 
-        inject(NgZone).runOutsideAngular(() => this.host.addEventListener('scroll', onScroll, { passive: true }));
+        inject(NgZone).runOutsideAngular(() => {
+            this.host.addEventListener('scroll', onScroll, { passive: true });
+            this.host.addEventListener('scrollend', endJump);
+            for (const type of READER_INPUT) this.host.addEventListener(type, endJump, { passive: true });
+        });
         inject(DestroyRef).onDestroy(() => {
             this.host.removeEventListener('scroll', onScroll);
+            this.host.removeEventListener('scrollend', endJump);
+            for (const type of READER_INPUT) this.host.removeEventListener(type, endJump);
             cancelAnimationFrame(this.spyFrame);
+            clearTimeout(this.jumpTimer);
             clearTimeout(this.highlightTimer);
             clearTimeout(this.copiedTimer);
         });
@@ -94,6 +118,7 @@ export class JsDocServicePageComponent {
         if (!target) return;
 
         this.activeId.set(id);
+        this.jumpTarget = id;
         this.host.scrollTo({ top: this.offsetOf(target) - SCROLL_OFFSET });
 
         if (!id.startsWith('type-')) return;
@@ -157,12 +182,31 @@ export class JsDocServicePageComponent {
     }
 
     private onScroll(): void {
+        if (this.jumpTarget && !('onscrollend' in this.host)) {
+            clearTimeout(this.jumpTimer);
+            this.jumpTimer = setTimeout(() => this.endJump(), JUMP_SETTLE_MS);
+        }
+
         if (this.spyFrame) return;
 
         this.spyFrame = requestAnimationFrame(() => {
             this.spyFrame = 0;
             this.activeId.set(this.sectionInView());
         });
+    }
+
+    /**
+     * The jump is over: from here on the scroll position decides. The entry
+     * stays as it is until the next scroll moves the page, so a frame still
+     * pending from the jump is dropped rather than allowed to overrule it.
+     */
+    private endJump(): void {
+        if (!this.jumpTarget) return;
+
+        this.jumpTarget = null;
+        clearTimeout(this.jumpTimer);
+        cancelAnimationFrame(this.spyFrame);
+        this.spyFrame = 0;
     }
 
     private anchors(): HTMLElement[] {
@@ -173,21 +217,16 @@ export class JsDocServicePageComponent {
         return element.getBoundingClientRect().top - this.host.getBoundingClientRect().top + this.host.scrollTop;
     }
 
-    /**
-     * The last section that has reached the top of the scroll container. At the
-     * bottom of the page the sections below it can never get there, so one the
-     * reader jumped to stays active: down there, every section below the
-     * reached one is in view.
-     */
     private sectionInView(): string {
-        const anchors = this.anchors();
-        const threshold = this.host.scrollTop + SCROLL_OFFSET + 1;
-        const reached = anchors.filter((anchor) => this.offsetOf(anchor) <= threshold).at(-1);
-        const current = anchors.find((anchor) => anchor.dataset['tocId'] === this.activeId());
-        const atBottom = this.host.scrollTop + this.host.clientHeight >= this.host.scrollHeight - 1;
+        const { scrollTop, clientHeight, scrollHeight } = this.host;
 
-        if (atBottom && current && (!reached || this.offsetOf(current) > this.offsetOf(reached))) return this.activeId();
-        return reached?.dataset['tocId'] ?? 'usage';
+        return activeTocId({
+            anchors: this.anchors().map((anchor) => ({ id: anchor.dataset['tocId']!, top: this.offsetOf(anchor) })),
+            scrollTop,
+            clientHeight,
+            scrollHeight,
+            jumpTarget: this.jumpTarget
+        });
     }
 }
 

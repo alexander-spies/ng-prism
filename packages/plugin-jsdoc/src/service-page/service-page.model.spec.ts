@@ -1,5 +1,5 @@
 import type { ApiSetupEntry, ApiTypeDoc, ServiceApi } from '@ng-prism/core/plugin';
-import { buildServiceToc, paramSegments, setupSignature, splitReachedFrom, typeSegments } from './service-page.model.js';
+import { activeTocId, buildServiceToc, paramSegments, setupSignature, splitReachedFrom, typeSegments } from './service-page.model.js';
 
 function typeDoc(name: string, id = name): ApiTypeDoc {
     return { id, name, kind: 'interface', importPath: 'fixture/toast', tags: {}, properties: [] };
@@ -130,5 +130,54 @@ describe('setupSignature', () => {
         };
 
         expect(setupSignature(entry)).toEqual([{ text: ': InjectionToken<' }, { text: 'ToastLabels', link: 'type-ToastLabels' }, { text: '>' }]);
+    });
+});
+
+describe('activeTocId', () => {
+    // A page 3000px tall in a view 800px high: the bottom is reached at scrollTop 2200.
+    const anchors = [
+        { id: 'usage', top: 40 },
+        { id: 'setup', top: 300 },
+        { id: 'examples', top: 700 },
+        { id: 'properties', top: 1000 },
+        { id: 'methods', top: 1400 },
+        { id: 'types', top: 2000 },
+        { id: 'type-ToastOptions', top: 2300 },
+        { id: 'type-ToastRef', top: 2600 }
+    ];
+
+    function at(scrollTop: number, jumpTarget: string | null = null): string {
+        return activeTocId({ anchors, scrollTop, clientHeight: 800, scrollHeight: 3000, jumpTarget });
+    }
+
+    it('activates the last section whose heading crossed the line a quarter down the view', () => {
+        expect(at(800)).toBe('properties');
+        expect(at(790)).toBe('examples');
+    });
+
+    it('activates the first section at the top of the page', () => {
+        expect(at(0)).toBe('usage');
+        expect(activeTocId({ anchors: anchors.slice(1), scrollTop: 0, clientHeight: 800, scrollHeight: 3000, jumpTarget: null })).toBe('setup');
+    });
+
+    it('activates the last entry in view at the bottom of the page', () => {
+        expect(at(2200)).toBe('type-ToastRef');
+    });
+
+    it('keeps the jump target at the bottom of the page, where it cannot reach the line', () => {
+        expect(at(2200, 'types')).toBe('types');
+        expect(at(2200, 'type-ToastOptions')).toBe('type-ToastOptions');
+    });
+
+    it('keeps the jump target while the jump scrolls past other sections', () => {
+        expect(at(800, 'type-ToastRef')).toBe('type-ToastRef');
+    });
+
+    it('falls back to the line at the bottom when no anchor is in view', () => {
+        expect(activeTocId({ anchors: anchors.slice(0, 6), scrollTop: 2200, clientHeight: 800, scrollHeight: 3000, jumpTarget: null })).toBe('types');
+    });
+
+    it('activates the usage on a page without anchors', () => {
+        expect(activeTocId({ anchors: [], scrollTop: 0, clientHeight: 800, scrollHeight: 800, jumpTarget: null })).toBe('usage');
     });
 });
