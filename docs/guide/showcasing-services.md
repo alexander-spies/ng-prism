@@ -275,7 +275,7 @@ It is a notice, not a warning: nothing is wrong with the library, so [`strictSho
 
 ## Compatibility until 23.0.0
 
-> **Deprecated since 22.7.0, removed in 23.0.0.** Until then a class with a component-only field stays a component. See [Breaking changes in 22.7.0](guide/migration-v22.md#breaking-changes-and-deprecations-in-2270).
+> **Deprecated since 22.7.0, removed in 23.0.0.** Until then a class with a component-only field stays a component. See [Deprecation: injectables with component-only fields](guide/migration-v22.md#deprecation-injectables-with-component-only-fields).
 
 A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. To keep that working in 22.x, a class with `@Injectable` or `@Service` that declares one of the fields only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) stays a component, as before. The build prints this notice:
 

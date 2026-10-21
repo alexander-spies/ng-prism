@@ -375,7 +375,7 @@ A class with `@Injectable` or `@Service` from `@angular/core` is a [service](gui
 ⚠ ng-prism: ToastService is an @Injectable/@Service with @Showcase and declares variants, renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.
 ```
 
-Remove the fields and move the demo to a [component page](guide/component-pages.md) to make it a service now. The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Breaking changes in 22.7.0](guide/migration-v22.md#breaking-changes-and-deprecations-in-2270).
+Remove the fields and move the demo to a [component page](guide/component-pages.md) to make it a service now. The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Deprecation: injectables with component-only fields](guide/migration-v22.md#deprecation-injectables-with-component-only-fields).
 
 ---
 

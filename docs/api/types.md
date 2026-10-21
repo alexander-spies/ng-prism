@@ -331,7 +331,7 @@ Discriminated union used in `PrismNavigationService.sectionTree()` (the items of
 type NavigationItem = { kind: 'component'; data: RuntimeComponent } | { kind: 'service'; data: RuntimeService } | { kind: 'page'; data: StyleguidePage };
 ```
 
-The `'service'` kind was added in 22.7.0 with [services](guide/showcasing-services.md). It is a public type, so any code that narrows a `NavigationItem` by `kind` and reads `data` needs a `'service'` branch. That includes a plain two-way check: after `item.kind === 'component' ? … : item.data.title`, the `data` in the other branch is a `RuntimeService | StyleguidePage`, and `title` no longer type-checks. See [Breaking changes in 22.7.0](guide/migration-v22.md#breaking-changes-and-deprecations-in-2270) for a before and after.
+The `'service'` kind was added in 22.7.0 with [services](guide/showcasing-services.md). It is a public type, so any code that narrows a `NavigationItem` by `kind` and reads `data` needs a `'service'` branch. That includes a plain two-way check: after `item.kind === 'component' ? … : item.data.title`, the `data` in the other branch is a `RuntimeService | StyleguidePage`, and `title` no longer type-checks. See [Breaking change: NavigationItem has a third kind](guide/migration-v22.md#breaking-change-navigationitem-has-a-third-kind) for a before and after.
 
 ---
 
