@@ -2,6 +2,7 @@ import type { Provider, Type } from '@angular/core';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import type { StyleguidePage } from './page.types.js';
+import type { RuntimePipe, ScannedPipe } from './pipe.types.js';
 import type { PanelTarget, RuntimeService, ScannedService } from './service.types.js';
 
 export interface NgPrismPlugin {
@@ -11,6 +12,7 @@ export interface NgPrismPlugin {
     // Build-time hooks (run inside the Angular builder / Node.js)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
     onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
+    onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
 
@@ -102,12 +104,13 @@ export interface PanelDefinition {
     /**
      * Where this panel appears. Default: `['component']`. A panel with `'component'`
      * gets the input `activeComponent`, one with `'service'` gets the input
-     * `activeService` (`RuntimeService | null`). `isVisible` and `badge` are only
+     * `activeService` (`RuntimeService | null`), one with `'pipe'` gets the input
+     * `activePipe` (`RuntimePipe | null`). `isVisible` and `badge` are only
      * called for components.
      *
-     * `'service'` only counts on a view panel (`placement: 'view'`): a service
-     * page has no addon area, so an addon panel shows on component pages alone,
-     * and only when it applies to `'component'`. Since 22.7.0.
+     * `'service'` and `'pipe'` only count on a view panel (`placement: 'view'`): a
+     * service or pipe page has no addon area, so an addon panel shows on component
+     * pages alone, and only when it applies to `'component'`. Since 22.7.0.
      */
     appliesTo?: readonly PanelTarget[];
     /** Providers injected into a child EnvironmentInjector scoped to this panel */
@@ -147,6 +150,7 @@ export interface ControlDefinition {
 export interface PrismManifest {
     components: ScannedComponent[];
     services?: ScannedService[];
+    pipes?: ScannedPipe[];
     pages?: StyleguidePage[];
     /** Library-wide plugin metadata (e.g. aggregate coverage totals). */
     meta?: Record<string, unknown>;
@@ -201,6 +205,7 @@ export interface OutputMeta {
 export interface RuntimeManifest {
     components: RuntimeComponent[];
     services?: RuntimeService[];
+    pipes?: RuntimePipe[];
     pages?: StyleguidePage[];
     /** Library-wide plugin metadata, mirrored from the build-time PrismManifest. */
     meta?: Record<string, unknown>;

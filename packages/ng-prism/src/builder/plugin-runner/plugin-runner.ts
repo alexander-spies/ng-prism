@@ -1,4 +1,5 @@
 import type { StyleguidePage } from '../../plugin/page.types.js';
+import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { NgPrismPlugin, PrismManifest, ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
 
@@ -59,6 +60,27 @@ export async function runPluginHooks(manifest: PrismManifest, plugins: NgPrismPl
         services[i] = current;
     }
 
+    const pipes = [...(manifest.pipes ?? [])];
+
+    for (let i = 0; i < pipes.length; i++) {
+        let current: ScannedPipe = pipes[i];
+
+        for (const plugin of plugins) {
+            if (plugin.onPipeScanned) {
+                try {
+                    const result = await plugin.onPipeScanned(current);
+
+                    if (result) {
+                        current = result;
+                    }
+                } catch (err) {
+                    throw wrapPluginError(plugin, 'onPipeScanned', `pipe "${current.className}"`, err);
+                }
+            }
+        }
+        pipes[i] = current;
+    }
+
     const pages = [...(manifest.pages ?? [])];
 
     for (let i = 0; i < pages.length; i++) {
@@ -84,6 +106,9 @@ export async function runPluginHooks(manifest: PrismManifest, plugins: NgPrismPl
 
     if (manifest.services) {
         result.services = services;
+    }
+    if (manifest.pipes) {
+        result.pipes = pipes;
     }
     if (manifest.meta) {
         result.meta = manifest.meta;

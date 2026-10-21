@@ -1,3 +1,4 @@
+import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { NgPrismPlugin, PrismManifest, ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
 import { runPluginHooks } from './plugin-runner.js';
@@ -21,6 +22,16 @@ function svc(className: string): ScannedService {
         showcaseConfig: { title: className },
         provision: 'auto',
         api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+    };
+}
+
+function pipe(className: string): ScannedPipe {
+    return {
+        className,
+        filePath: `${className}.ts`,
+        showcaseConfig: { title: className },
+        pipeName: className.toLowerCase(),
+        api: { tags: {}, transform: [], setup: [], types: [] }
     };
 }
 
@@ -189,5 +200,48 @@ describe('runPluginHooks', () => {
         const result = await runPluginHooks(createManifest(), []);
 
         expect('services' in result).toBe(false);
+    });
+
+    it('should call onPipeScanned for each pipe and apply its result', async () => {
+        const plugin: NgPrismPlugin = {
+            name: 'pipe-plugin',
+            onPipeScanned: (scanned) => ({ ...scanned, meta: { seen: true } })
+        };
+        const manifest: PrismManifest = { components: [createComponent()], pipes: [pipe('A'), pipe('B')] };
+
+        const result = await runPluginHooks(manifest, [plugin]);
+
+        expect(result.pipes?.map((p) => p.meta)).toEqual([{ seen: true }, { seen: true }]);
+        expect(result.components).toEqual(manifest.components);
+    });
+
+    it('should not pass pipes to onComponentScanned or onServiceScanned', async () => {
+        const componentSpy = jest.fn();
+        const serviceSpy = jest.fn();
+        const plugin: NgPrismPlugin = { name: 'spy-plugin', onComponentScanned: componentSpy, onServiceScanned: serviceSpy };
+        const manifest: PrismManifest = { components: [], pipes: [pipe('A')] };
+
+        await runPluginHooks(manifest, [plugin]);
+
+        expect(componentSpy).not.toHaveBeenCalled();
+        expect(serviceSpy).not.toHaveBeenCalled();
+    });
+
+    it('should wrap onPipeScanned errors with plugin and pipe context', async () => {
+        const plugin: NgPrismPlugin = {
+            name: 'broken-plugin',
+            onPipeScanned: () => {
+                throw new Error('boom');
+            }
+        };
+        const manifest: PrismManifest = { components: [], pipes: [pipe('A')] };
+
+        await expect(runPluginHooks(manifest, [plugin])).rejects.toThrow(/plugin "broken-plugin" failed in onPipeScanned for pipe "A": boom/);
+    });
+
+    it('should omit pipes from the result when the input has none', async () => {
+        const result = await runPluginHooks(createManifest(), []);
+
+        expect('pipes' in result).toBe(false);
     });
 });

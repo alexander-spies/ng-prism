@@ -3,8 +3,8 @@ import type { ShowcaseConfig } from '../decorator/showcase.types.js';
 /** How a service reaches the injector: on its own, or through a providers array. */
 export type ServiceProvision = 'auto' | 'manual';
 
-/** Where a panel appears: on component pages, on service pages, or both. */
-export type PanelTarget = 'component' | 'service';
+/** Where a panel appears: on component pages, on service pages, on pipe pages, or on several. */
+export type PanelTarget = 'component' | 'service' | 'pipe';
 
 /** @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release. */
 export interface ApiDocTags {

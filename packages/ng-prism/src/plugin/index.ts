@@ -21,6 +21,7 @@ export type {
     ScannedComponent
 } from './plugin.types.js';
 export type { ComponentPage, CustomPage, StyleguidePage } from './page.types.js';
+export type { PipeApi, RuntimePipe, ScannedPipe } from './pipe.types.js';
 export type {
     ApiDocTags,
     ApiMethod,

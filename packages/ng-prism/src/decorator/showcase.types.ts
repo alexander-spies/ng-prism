@@ -46,7 +46,7 @@ export interface ShowcaseState {
 }
 
 /**
- * A function or injection token that configures a service, listed in
+ * A function or injection token that configures a service or pipe, listed in
  * `ShowcaseConfig.setup`. ng-prism only reads its name, signature and type.
  */
 export type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
@@ -64,15 +64,15 @@ export interface ShowcaseConfig<T = unknown> {
     componentOrder?: number;
     /**
      * Top-level section in the sidebar. Auto-detected if omitted:
-     * 'Directives' for a `@Directive`, 'Services' for a service, otherwise
-     * 'Components'. Free-form string: any value creates a new top-level
-     * section (e.g. 'Forms', 'Utilities').
+     * 'Directives' for a `@Directive`, 'Services' for a service, 'Pipes' for a
+     * pipe, otherwise 'Components'. Free-form string: any value creates a new
+     * top-level section (e.g. 'Forms', 'Utilities').
      */
     section?: string;
     /**
      * Sort order of this section in the sidebar (lower = higher in list).
      * The section's effective order is the minimum `sectionOrder` of all its items.
-     * Defaults: 'Components' 0, 'Directives' 10, 'Services' 20, all others 100.
+     * Defaults: 'Components' 0, 'Directives' 10, 'Services' 20, 'Pipes' 30, all others 100.
      */
     sectionOrder?: number;
     /** Predefined variants shown as tabs. Not for services: until 23.0.0 it keeps an `@Injectable` or `@Service` class a component. */
@@ -101,12 +101,12 @@ export interface ShowcaseConfig<T = unknown> {
     /** Arbitrary metadata for plugins (e.g. { figma: 'https://...' }) */
     meta?: Record<string, unknown>;
     /**
-     * Services only: the functions and tokens that configure the service, for
-     * example `provideToasts` and `TOAST_CONFIG`. The styleguide documents them
-     * next to the service. A function, not a list, so that a service and its
-     * `provide*` function can live in files that import each other without the
-     * list reading a binding that is not initialised yet. ng-prism never calls it.
-     * Since 22.7.0.
+     * Services and pipes only: the functions and tokens that configure the service
+     * or pipe, for example `provideToasts` and `TOAST_CONFIG`. The styleguide
+     * documents them next to the service or pipe. A function, not a list, so that
+     * a service and its `provide*` function can live in files that import each
+     * other without the list reading a binding that is not initialised yet.
+     * ng-prism never calls it. Since 22.7.0.
      */
     setup?: () => readonly ShowcaseSetupRef[];
     /**
