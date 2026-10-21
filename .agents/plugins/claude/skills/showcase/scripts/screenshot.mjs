@@ -1,10 +1,17 @@
 #!/usr/bin/env node
-// Screenshot one @Showcase variant, optionally in one of the component's `states`, in a running ng-prism
-// styleguide. Ships with the `showcase` skill of the ng-prism Claude Code plugin; ng-prism's own repo runs it
-// too (skill prism-test-workspace).
+// Screenshot one @Showcase variant, optionally in one of the component's `states`, or the API page of a showcased
+// service, in a running ng-prism styleguide. Ships with the `showcase` skill of the ng-prism Claude Code plugin;
+// ng-prism's own repo runs it too (skill prism-test-workspace).
 //
 //   node <skill dir>/scripts/screenshot.mjs --component ButtonComponent [--variant 1] [--state 0] [--shell]
 //        [--url http://localhost:4400] [--out file.png] [--timeout 30000]
+//   node <skill dir>/scripts/screenshot.mjs --service NotificationService [--url …] [--out …] [--timeout …]
+//
+// --service: a service has no canvas; its page is what @ng-prism/plugin-jsdoc renders from the service's JSDoc. The
+// script opens `?service=<ClassName>&view=jsdoc`, waits for `[data-prism-service-rendered="<ClassName>"]` and its code
+// blocks, and screenshots that page at its full length, without the sidebar and header. It can't be combined with
+// --component, --variant, --state or --shell. Services aren't listed in `__PRISM_MANIFEST__`, so an unknown class name
+// only shows as the marker never appearing.
 //
 // Run it from the project root. Playwright comes from that project (`playwright`, else `@playwright/test`),
 // resolved from the current directory, never from where this file lives (a plugin cache has no node_modules).
@@ -16,8 +23,8 @@
 // Without it no state is active. A state does not fit every variant: when the styleguide marks the cell with
 // `data-prism-excluded`, the script prints the reason, takes no screenshot and exits 4.
 //
-// Exit codes: 0 saved · 1 styleguide unreachable, component, variant or state unknown, the variant never
-// rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing · 4 the
+// Exit codes: 0 saved · 1 styleguide unreachable, component, variant or state unknown, the variant or the service
+// page never rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing · 4 the
 // requested state does not fit the variant (the styleguide marked the cell as excluded).
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -42,7 +49,9 @@ try {
     ({ values } = parseArgs({
         options: {
             component: { type: 'string' },
-            variant: { type: 'string', default: '0' },
+            service: { type: 'string' },
+            // No default here: --service must be able to tell an explicit --variant from none.
+            variant: { type: 'string' },
             state: { type: 'string' },
             url: { type: 'string', default: 'http://localhost:4400' },
             shell: { type: 'boolean', default: false },
@@ -54,10 +63,18 @@ try {
     exitWith(2, firstLine(error));
 }
 
-const { component, shell } = values;
-if (!component) exitWith(2, 'Missing --component <ClassName>, e.g. --component ButtonComponent');
-if (!/^\d+$/.test(values.variant)) exitWith(2, `--variant must be a 0-based index, got "${values.variant}"`);
-const variant = Number(values.variant);
+const { component, service, shell } = values;
+if (service !== undefined) {
+    if (!service) exitWith(2, 'Missing class name after --service, e.g. --service NotificationService');
+    const clashing = ['component', 'variant', 'state'].filter((name) => values[name] !== undefined).concat(shell ? ['shell'] : []);
+
+    if (clashing.length > 0) exitWith(2, `--service takes the whole API page and can't be combined with ${clashing.map((name) => `--${name}`).join(', ')}`);
+} else if (!component) {
+    exitWith(2, 'Missing --component <ClassName> or --service <ClassName>, e.g. --component ButtonComponent');
+}
+const variantArg = values.variant ?? '0';
+if (!/^\d+$/.test(variantArg)) exitWith(2, `--variant must be a 0-based index, got "${variantArg}"`);
+const variant = Number(variantArg);
 if (values.state !== undefined && !/^\d+$/.test(values.state)) exitWith(2, `--state must be a 0-based index, got "${values.state}"`);
 const state = values.state === undefined ? undefined : Number(values.state);
 const timeout = Number(values.timeout);
@@ -71,14 +88,27 @@ try {
 }
 if (!base || !['http:', 'https:'].includes(base.protocol)) exitWith(2, `--url must be an http(s) URL such as http://localhost:4400, got "${values.url}"`);
 
-const out = values.out ?? join(tmpdir(), `prism-${component}-${variant}${state === undefined ? '' : `-s${state}`}${shell ? '-shell' : ''}.png`);
+const out =
+    values.out ??
+    join(tmpdir(), service ? `prism-service-${service}.png` : `prism-${component}-${variant}${state === undefined ? '' : `-s${state}`}${shell ? '-shell' : ''}.png`);
 const target = new URL(base);
-target.searchParams.set('component', component);
-target.searchParams.set('variant', String(variant));
-if (state !== undefined) target.searchParams.set('state', String(state));
-if (!shell) target.searchParams.set('capture', '1');
+if (service) {
+    target.searchParams.set('service', service);
+    // The API page is the JSDoc plugin's view panel, whose id is `jsdoc`.
+    target.searchParams.set('view', 'jsdoc');
+} else {
+    target.searchParams.set('component', component);
+    target.searchParams.set('variant', String(variant));
+    if (state !== undefined) target.searchParams.set('state', String(state));
+    if (!shell) target.searchParams.set('capture', '1');
+}
 const url = target.href;
-const marker = `.demo-wrap[data-prism-rendered="${component}:${variant}${state === undefined ? '' : `:${state}`}"]`;
+const marker = service
+    ? `[data-prism-service-rendered="${service}"]`
+    : `.demo-wrap[data-prism-rendered="${component}:${variant}${state === undefined ? '' : `:${state}`}"]`;
+
+// A service page longer than this is cut there; Chromium can't capture much more in one image.
+const MAX_SERVICE_PAGE_HEIGHT = 15000;
 
 async function loadChromium() {
     const requireFromProject = createRequire(join(process.cwd(), 'package.json'));
@@ -105,6 +135,51 @@ async function saveDiagnosis(page) {
     }
 }
 
+async function captureService(page) {
+    try {
+        await page.waitForSelector(marker, { state: 'attached', timeout });
+    } catch {
+        console.error(`Service page never rendered: no ${marker} within ${timeout} ms at ${url}`);
+        await saveDiagnosis(page);
+        console.error(
+            'Check the class name. A service is shown only with @Showcase on an @Injectable or @Service class and with jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer. ' +
+                'If ng-prism.config.ts sets urlState: false, the styleguide ignores the URL parameters this script selects the service with.'
+        );
+        return 1;
+    }
+
+    // Highlight.js gives a code block the class `hljs` once it is highlighted; a page caught earlier shows plain code.
+    // Best effort: a block that never gets highlighted is no reason to lose the screenshot.
+    await page
+        .waitForFunction((selector) => [...globalThis.document.querySelectorAll(`${selector} pre code`)].every((code) => code.classList.contains('hljs')), marker, {
+            timeout: Math.min(timeout, 5000)
+        })
+        .catch(() => {});
+
+    // The page is its own scroll container, as high as the window. Growing the window to the page's full height lets
+    // one element screenshot hold all of it, the type cards at the bottom included.
+    const size = await page.evaluate((selector) => {
+        const element = globalThis.document.querySelector(selector);
+
+        return { top: element.getBoundingClientRect().top, height: element.scrollHeight };
+    }, marker);
+    const viewport = page.viewportSize();
+    const fullHeight = Math.ceil(size.top + size.height);
+
+    if (fullHeight > MAX_SERVICE_PAGE_HEIGHT) console.error(`The page is ${fullHeight} px high; the screenshot is cut at ${MAX_SERVICE_PAGE_HEIGHT} px.`);
+    await page.setViewportSize({ width: viewport.width, height: Math.max(viewport.height, Math.min(fullHeight, MAX_SERVICE_PAGE_HEIGHT)) });
+    await page.evaluate(() => new Promise((resolve) => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve))));
+
+    try {
+        await page.locator(marker).screenshot({ path: out, timeout });
+    } catch (error) {
+        console.error(`Could not save the screenshot at ${url} (${firstLine(error).replace(/\.$/, '')}).`);
+        return 1;
+    }
+    console.log(`${url}\n${out}`);
+    return 0;
+}
+
 async function capture(page) {
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
@@ -122,6 +197,8 @@ async function capture(page) {
         await saveDiagnosis(page);
         return 1;
     }
+
+    if (service) return captureService(page);
 
     const entry = manifest.components.find((c) => c.className === component);
     if (!entry) {

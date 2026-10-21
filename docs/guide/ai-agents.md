@@ -68,7 +68,8 @@ Claude Code loads a skill when your request matches it. You can also call one di
 ## Checking in the browser
 
 The showcase skill starts the styleguide (`ng run <lib>:prism`) and takes a screenshot of each variant it touched, using
-the Playwright of your project. If Playwright is missing, the agent asks before it installs it
+the Playwright of your project. For a [service](guide/showcasing-services.md) it captures the API page instead, to check
+that the service's JSDoc reads cleanly there. If Playwright is missing, the agent asks before it installs it
 (`npm i -D playwright && npx playwright install chromium`). An agent with a browser tool of its own uses that instead;
 otherwise it gives you the URL to check. Either way it drives the styleguide through the
 [External Tooling API](guide/external-tooling.md).

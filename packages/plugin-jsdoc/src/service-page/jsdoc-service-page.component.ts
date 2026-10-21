@@ -34,6 +34,12 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
  *
  * The host is the scroll container (the panel stylesheet gives it `overflow:
  * auto`), so every jump scrolls it, never the window or the shell around it.
+ *
+ * It also carries the render marker `data-prism-service-rendered`, the class
+ * name of the service it shows. Host bindings update in the same pass as the
+ * template, so the marker names a service only once its page is in the DOM,
+ * which is what an outside tool such as the showcase skill's screenshot
+ * script waits for.
  */
 @Component({
     selector: 'prism-jsdoc-service-page',
@@ -41,7 +47,8 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
     imports: [Highlight, NgTemplateOutlet],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './jsdoc-service-page.component.html',
-    styleUrls: ['../jsdoc-panel.component.css', './jsdoc-service-page.component.css']
+    styleUrls: ['../jsdoc-panel.component.css', './jsdoc-service-page.component.css'],
+    host: { '[attr.data-prism-service-rendered]': 'className()' }
 })
 export class JsDocServicePageComponent {
     readonly service = input.required<RuntimeService>();
@@ -51,7 +58,7 @@ export class JsDocServicePageComponent {
 
     protected readonly meta = computed(() => this.service().meta);
     /** The class name, not the service object: a manifest update during `serve` hands over a new object for the same service. */
-    private readonly className = computed(() => this.meta().className);
+    protected readonly className = computed(() => this.meta().className);
     protected readonly api = computed(() => this.meta().api);
     protected readonly tags = computed(() => this.api().tags);
     protected readonly usage = computed(() => generateServiceUsage(this.meta()));
