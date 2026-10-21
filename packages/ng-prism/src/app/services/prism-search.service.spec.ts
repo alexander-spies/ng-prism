@@ -40,7 +40,7 @@ function createService(overrides: Partial<{ title: string; category: string; tag
     };
 }
 
-function createPipe(overrides: Partial<{ title: string; category: string; tags: string[]; className: string }> = {}): RuntimePipe {
+function createPipe(overrides: Partial<{ title: string; category: string; tags: string[]; className: string; pipeName: string }> = {}): RuntimePipe {
     return {
         meta: {
             className: overrides.className ?? 'SomePipe',
@@ -50,7 +50,7 @@ function createPipe(overrides: Partial<{ title: string; category: string; tags: 
                 category: overrides.category,
                 tags: overrides.tags
             },
-            pipeName: 'some',
+            pipeName: overrides.pipeName ?? 'some',
             api: { tags: {}, transform: [], setup: [], types: [] }
         }
     };
@@ -186,5 +186,14 @@ describe('PrismSearchService', () => {
         const service = setup({ components: [createComponent({ title: 'Button' })] });
 
         expect(service.filteredPipes()).toEqual([]);
+    });
+
+    it('finds a pipe by its template name', () => {
+        const timeAgo = createPipe({ title: 'Relative time', className: 'RelativeTimePipe', pipeName: 'timeAgo' });
+        const truncate = createPipe({ title: 'Truncate', className: 'TruncatePipe', pipeName: 'truncate' });
+        const service = setup({ components: [], pipes: [timeAgo, truncate] });
+
+        service.search('timeago');
+        expect(service.filteredPipes()).toEqual([timeAgo]);
     });
 });
