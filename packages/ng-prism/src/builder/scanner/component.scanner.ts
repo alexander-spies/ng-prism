@@ -59,6 +59,27 @@ function isCanvasLayout(value: unknown): value is CanvasLayout {
 type Report = (message: string) => void;
 
 /**
+ * The two ways a scan warns, each printing a message once however often it is
+ * raised: `report` for a dropped value, which is also collected in
+ * `diagnostics` and fails the build under `strictShowcase`, and `notify` for
+ * anything else worth saying.
+ */
+export function createReporters(diagnostics: string[], notices: Set<string>): { report: Report; notify: Report } {
+    return {
+        report: (message) => {
+            if (diagnostics.includes(message)) return;
+            diagnostics.push(message);
+            console.warn(`⚠ ng-prism: ${message}`);
+        },
+        notify: (message) => {
+            if (notices.has(message)) return;
+            notices.add(message);
+            console.warn(`⚠ ng-prism: ${message}`);
+        }
+    };
+}
+
+/**
  * Scan exported symbols for Angular components annotated with @Showcase.
  * A class with `@Injectable` or `@Service` is a service and is left to the
  * service scan, unless it declares fields only a component can use.
@@ -71,35 +92,15 @@ type Report = (message: string) => void;
  */
 export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, diagnostics: string[] = [], notices = new Set<string>()): ScannedComponent[] {
     const components: ScannedComponent[] = [];
-    const report: Report = (message) => {
-        if (diagnostics.includes(message)) return;
-        diagnostics.push(message);
-        console.warn(`⚠ ng-prism: ${message}`);
-    };
-    const notify = (message: string) => {
-        if (notices.has(message)) return;
-        notices.add(message);
-        console.warn(`⚠ ng-prism: ${message}`);
-    };
+    const { report, notify } = createReporters(diagnostics, notices);
 
     for (const sym of exports) {
-        const resolved = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
+        const showcased = findShowcasedClass(sym, checker);
 
-        const classDecl = resolved.declarations?.find(ts.isClassDeclaration);
+        if (!showcased) continue;
 
-        if (!classDecl) continue;
-
-        // Perf: cheap pre-filter that skips the full decorator walk for files that don't
-        // mention Showcase at all. False positives (string-literal containing "@Showcase")
-        // just lose the optimization for that file; correctness is unaffected.
-        if (!classDecl.getSourceFile().text.includes('@Showcase')) continue;
-
-        const showcaseDecorator = findDecorator(classDecl, 'Showcase');
-
-        if (!showcaseDecorator) continue;
-
+        const { classDecl, decorator: showcaseDecorator, argument: showcaseArg } = showcased;
         const className = classDecl.name?.text ?? 'Anonymous';
-        const showcaseArg = getDecoratorArgument(showcaseDecorator);
         const classKind = classifyShowcaseClass(classDecl, showcaseArg, checker);
 
         if (classKind.kind === 'service') continue;
@@ -151,6 +152,30 @@ export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, di
     }
 
     return components;
+}
+
+/**
+ * The class an export resolves to, when it carries `@Showcase`: the common
+ * start of the component and the service scan, which each keep the classes of
+ * their own kind.
+ */
+export function findShowcasedClass(
+    sym: ts.Symbol,
+    checker: ts.TypeChecker
+): { symbol: ts.Symbol; classDecl: ts.ClassDeclaration; decorator: ts.Decorator; argument: ts.Expression | undefined } | undefined {
+    const symbol = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
+    const classDecl = symbol.declarations?.find(ts.isClassDeclaration);
+
+    if (!classDecl) return undefined;
+
+    // Perf: cheap pre-filter that skips the full decorator walk for files that don't
+    // mention Showcase at all. False positives (string-literal containing "@Showcase")
+    // just lose the optimization for that file; correctness is unaffected.
+    if (!classDecl.getSourceFile().text.includes('@Showcase')) return undefined;
+
+    const decorator = findDecorator(classDecl, 'Showcase');
+
+    return decorator && { symbol, classDecl, decorator, argument: getDecoratorArgument(decorator) };
 }
 
 function hasDecoratorInputs(classDecl: ts.ClassDeclaration): boolean {

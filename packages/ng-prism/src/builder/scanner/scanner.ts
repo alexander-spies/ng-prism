@@ -1,7 +1,10 @@
 import ts from 'typescript';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
+import type { ScannedService } from '../../plugin/service.types.js';
 import { scanComponents } from './component.scanner.js';
 import { type EntryPointInput, resolveEntryPointExports } from './entry-point.scanner.js';
+import { buildExportIndex } from './service/export-index.js';
+import { scanServices } from './service.scanner.js';
 import { createSourceFileCache } from './source-file-cache.js';
 
 export interface CreateScannerOptions {
@@ -11,6 +14,7 @@ export interface CreateScannerOptions {
 
 export interface ScanResult {
     components: ScannedComponent[];
+    services: ScannedService[];
     /** One message per @Showcase value the scan had to drop, already printed as a warning. */
     diagnostics: string[];
 }
@@ -62,45 +66,51 @@ export function createScanner(options: CreateScannerOptions): Scanner {
 
             const checker = program.getTypeChecker();
             const allComponents: ScannedComponent[] = [];
+            const allServices: ScannedService[] = [];
             const diagnostics: string[] = [];
             const notices = new Set<string>();
+            // A setup function or a type is often exported by another entry point than the service that names it.
+            const exportIndex = buildExportIndex(entries, checker);
 
-            const fromPrimary = new Set<ScannedComponent>();
+            const fromPrimary = new Set<object>();
 
             for (const { exports, importPath, primary } of entries) {
                 const components = scanComponents(exports, checker, diagnostics, notices);
+                const services = scanServices(exports, checker, { exportIndex, diagnostics, notices });
 
-                for (const c of components) {
-                    c.importPath = importPath;
-                    if (primary) fromPrimary.add(c);
+                for (const c of components) c.importPath = importPath;
+                if (primary) {
+                    for (const item of [...components, ...services]) fromPrimary.add(item);
                 }
                 allComponents.push(...components);
+                allServices.push(...services);
             }
 
-            // Dedupe by (filePath, className): if a component class is re-exported from
-            // multiple entry points (e.g. atoms/button + barrel index.ts), we keep the first
-            // occurrence. The duplicate would otherwise produce duplicate imports in the
-            // generated manifest and a runtime collision in the Prism shell. The primary
-            // entry point comes last and re-exporting its secondaries is normal there.
-            const seen = new Set<string>();
-            const unique: ScannedComponent[] = [];
-
-            for (const c of allComponents) {
-                const key = `${c.filePath}::${c.className}`;
-
-                if (seen.has(key)) {
-                    if (fromPrimary.has(c)) continue;
-                    console.warn(
-                        `⚠ ng-prism: ${c.className} is exported by multiple entry points; ` +
-                            `keeping the first occurrence (importPath: ${unique.find((u) => u.className === c.className && u.filePath === c.filePath)?.importPath}).`
-                    );
-                    continue;
-                }
-                seen.add(key);
-                unique.push(c);
-            }
-
-            return { components: unique, diagnostics };
+            return { components: dedupe(allComponents, fromPrimary), services: dedupe(allServices, fromPrimary), diagnostics };
         }
     };
+}
+
+/**
+ * Dedupe by (filePath, className): if a class is re-exported from multiple
+ * entry points (e.g. atoms/button + barrel index.ts), we keep the first
+ * occurrence. The duplicate would otherwise produce duplicate imports in the
+ * generated manifest and a runtime collision in the Prism shell. The primary
+ * entry point comes last and re-exporting its secondaries is normal there.
+ */
+function dedupe<T extends { className: string; filePath: string; importPath?: string }>(items: T[], fromPrimary: ReadonlySet<object>): T[] {
+    const first = new Map<string, T>();
+
+    for (const item of items) {
+        const key = `${item.filePath}::${item.className}`;
+        const kept = first.get(key);
+
+        if (!kept) {
+            first.set(key, item);
+        } else if (!fromPrimary.has(item)) {
+            console.warn(`⚠ ng-prism: ${item.className} is exported by multiple entry points; ` + `keeping the first occurrence (importPath: ${kept.importPath}).`);
+        }
+    }
+
+    return [...first.values()];
 }

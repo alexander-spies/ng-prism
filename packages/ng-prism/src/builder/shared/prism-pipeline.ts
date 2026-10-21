@@ -24,6 +24,8 @@ export interface PrismPipelineOptions {
 export interface PrismPipelineResult {
     manifestPath: string;
     componentCount: number;
+    /** Services in the manifest: 0 when no plugin shows services, however many the scan found. */
+    serviceCount: number;
     pageCount: number;
     /** True if the manifest file was actually written; false if the existing content was identical. */
     written: boolean;
@@ -53,16 +55,26 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
     }
 
     context.reportStatus('Scanning components...');
-    const { components, diagnostics } = scanEntryPoints(workspaceRoot, options, state);
+    const { components, services: scannedServices, diagnostics } = scanEntryPoints(workspaceRoot, options, state);
 
     if (config.strictShowcase && diagnostics.length > 0) {
         throw new Error(`ng-prism: strictShowcase is enabled and ${diagnostics.length} @Showcase value(s) were dropped; see the warnings above.`);
     }
 
+    // A service page is made by a plugin panel that applies to services; without one the services would
+    // go into the manifest and be shown nowhere. A hint rather than a diagnostic: the library is fine.
+    const showsServices = (config.plugins ?? []).some((plugin) => plugin.panels?.some((panel) => panel.appliesTo?.includes('service')));
+
+    if (!showsServices && scannedServices.length > 0) {
+        context.logger.info(
+            `ng-prism: ${scannedServices.length} service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`
+        );
+    }
+
     const pages: StyleguidePage[] = config.pages ? [...config.pages] : [];
 
     context.reportStatus('Running plugin hooks...');
-    let manifest = await runPluginHooks({ components, pages }, config.plugins ?? []);
+    let manifest = await runPluginHooks(showsServices ? { components, services: scannedServices, pages } : { components, pages }, config.plugins ?? []);
 
     const a11yReportPath = config.a11y?.reportPath ?? DEFAULT_A11Y_REPORT_PATH;
     const a11yReportPathAbs = join(workspaceRoot, a11yReportPath);
@@ -102,6 +114,7 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
     context.reportStatus('Generating runtime manifest...');
     const source = generateRuntimeManifest({
         components: manifest.components,
+        services: manifest.services,
         libraryImportPath: options.libraryImportPath,
         pages: manifest.pages,
         meta: manifest.meta
@@ -114,12 +127,14 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
     mkdirSync(cacheDir, { recursive: true });
     const written = writeManifestIfChanged(manifestPath, source);
 
+    const serviceCount = (manifest.services ?? []).length;
     const pageCount = (manifest.pages ?? []).length;
 
     context.reportStatus('');
     context.logger.info(
         `ng-prism: ${written ? 'Generated' : 'Verified (unchanged)'} manifest ` +
             `with ${manifest.components.length} component(s)` +
+            (serviceCount > 0 ? `, ${serviceCount} service(s)` : '') +
             (pageCount > 0 ? ` and ${pageCount} page(s)` : '') +
             ` at ${manifestPath}`
     );
@@ -127,6 +142,7 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
     return {
         manifestPath,
         componentCount: manifest.components.length,
+        serviceCount,
         pageCount,
         written
     };

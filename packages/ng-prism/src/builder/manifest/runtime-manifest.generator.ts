@@ -1,10 +1,13 @@
 import type { DirectiveHost } from '../../decorator/showcase.types.js';
 import type { StyleguidePage } from '../../plugin/page.types.js';
 import type { InputMeta, ScannedComponent } from '../../plugin/plugin.types.js';
+import type { ScannedService } from '../../plugin/service.types.js';
 import { parseHostString } from './host-parser.js';
 
 export interface RuntimeManifestOptions {
     components: ScannedComponent[];
+    /** Written as data: a service's class is never imported into the styleguide. */
+    services?: ScannedService[];
     libraryImportPath: string;
     pages?: StyleguidePage[];
     meta?: Record<string, unknown>;
@@ -126,7 +129,7 @@ function groupComponentsByImportPath(components: ScannedComponent[], fallbackImp
 }
 
 export function generateRuntimeManifest(options: RuntimeManifestOptions): string {
-    const { components, libraryImportPath, pages, meta } = options;
+    const { components, services, libraryImportPath, pages, meta } = options;
 
     const directives = components.filter((c) => c.componentMeta.isDirective);
     const hasDirectives = directives.length > 0;
@@ -184,6 +187,18 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
     }
 
     lines.push('  ],');
+
+    if (services && services.length > 0) {
+        lines.push('  services: [');
+
+        for (const service of services) {
+            lines.push('    {');
+            lines.push(`      meta: ${formatObject(service as unknown as Record<string, unknown>, 6)},`);
+            lines.push('    },');
+        }
+
+        lines.push('  ],');
+    }
 
     if (pages && pages.length > 0) {
         lines.push(

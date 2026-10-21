@@ -159,6 +159,94 @@ describe('createScanner', () => {
         }
     });
 
+    describe('services', () => {
+        const servicesDir = path.join(FIXTURES_DIR, 'services');
+        const apiEntry = path.join(servicesDir, 'services-api.ts');
+        const barrelEntry = path.join(servicesDir, 'services-barrel.ts');
+        let warn: jest.SpyInstance;
+
+        beforeEach(() => {
+            warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            warn.mockRestore();
+        });
+
+        it('scans the services of an entry point next to its components', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/toast' }] }).scan();
+            const toast = result.services.find((s) => s.className === 'ToastService');
+
+            expect(toast?.importPath).toBe('lib/toast');
+            expect(toast?.api.setup.map((entry) => entry.importPath)).toEqual(['lib/toast', 'lib/toast']);
+        });
+
+        it('leaves services out of the components, and components out of the services', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/toast' }] }).scan();
+
+            expect(result.components.map((c) => c.className)).not.toContain('ToastService');
+            expect(result.services.map((s) => s.className)).not.toContain('SetupOnComponent');
+        });
+
+        it('returns no services for a library without any', () => {
+            expect(createScanner({ entryPoints }).scan().services).toEqual([]);
+        });
+
+        it('dedupes a service exported by a secondary and the primary entry point', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/toast' },
+                    { entryFile: barrelEntry, importPath: 'lib', primary: true }
+                ]
+            }).scan();
+            const toasts = result.services.filter((s) => s.className === 'ToastService');
+
+            expect(toasts).toHaveLength(1);
+            expect(toasts[0].importPath).toBe('lib/toast');
+            expect(result.components.map((c) => c.className)).not.toContain('ToastService');
+            expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('multiple entry points'));
+        });
+
+        it('warns about a service two secondary entry points export, and keeps the first', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/toast' },
+                    { entryFile: barrelEntry, importPath: 'lib/barrel' }
+                ]
+            }).scan();
+            const toasts = result.services.filter((s) => s.className === 'ToastService');
+
+            expect(toasts).toHaveLength(1);
+            expect(toasts[0].importPath).toBe('lib/toast');
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('ToastService is exported by multiple entry points'));
+        });
+
+        it('imports a setup entry from the entry point that exports it, not from the one that scans the service', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: barrelEntry, importPath: 'lib' },
+                    { entryFile: apiEntry, importPath: 'lib/toast', primary: true }
+                ]
+            }).scan();
+            const toast = result.services.find((s) => s.className === 'ToastService');
+
+            expect(toast?.importPath).toBe('lib');
+            expect(toast?.api.setup.map((entry) => entry.importPath)).toEqual(['lib/toast', 'lib/toast']);
+        });
+
+        it('collects what it drops from a service once, even when several entry points export it', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/a' },
+                    { entryFile: apiEntry, importPath: 'lib/b' }
+                ]
+            }).scan();
+
+            expect(result.diagnostics.filter((message) => message.startsWith('UnexportedService'))).toHaveLength(1);
+            expect(new Set(result.diagnostics).size).toBe(result.diagnostics.length);
+        });
+    });
+
     it('should collect a dropped @Showcase value once, even when several entry points export its component', () => {
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
         const unevaluableEntry = path.join(FIXTURES_DIR, 'unevaluable-api.ts');

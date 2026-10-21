@@ -9,3 +9,4 @@ export { type TreeNode, TreeService } from './tree.service.js';
 export { ToastLevel } from './toast.model.js';
 export type { ToastAction, ToastConfig, ToastEntry, ToastLabels, ToastOptions, ToastPosition } from './toast.model.js';
 export { BlockBodyService, NotAFunctionService, NotArrowService, UnexportedService } from './broken-setup.services.js';
+export { OwnFileService, provideOwnFile } from './own-file-setup.service.js';
