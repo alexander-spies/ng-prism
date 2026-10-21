@@ -41,12 +41,12 @@ describe('jsDocPlugin', () => {
         expect(panel.component).toBeUndefined();
     });
 
-    it('registers the API panel for components and services', () => {
-        expect(jsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service']);
-        expect(browserJsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service']);
+    it('registers the API panel for components, services and pipes', () => {
+        expect(jsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service', 'pipe']);
+        expect(browserJsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service', 'pipe']);
     });
 
-    // The build only keeps services when a view panel applies to them, and it reads the Node half.
+    // The build only keeps services and pipes when a view panel applies to them, and it reads the Node half.
     it('registers the API panel as a view on both halves', () => {
         expect(jsDocPlugin().panels![0].placement).toBe('view');
         expect(browserJsDocPlugin().panels![0].placement).toBe('view');

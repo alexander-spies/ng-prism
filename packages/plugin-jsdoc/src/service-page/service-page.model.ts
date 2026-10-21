@@ -1,6 +1,7 @@
-import type { ApiParam, ApiSetupEntry, ApiTypeRef, ServiceApi } from '@ng-prism/core/plugin';
+import type { ApiParam, ApiSetupEntry, ApiTypeRef } from '@ng-prism/core/plugin';
+import type { ApiPageModel } from './api-page.model.js';
 
-/** One entry of the service page's "On this page" list. `id` names the section, `level` 2 is a type below "Types". */
+/** One entry of the API page's "On this page" list. `id` names the section, `level` 2 is a type below "Types". */
 export interface TocEntry {
     id: string;
     label: string;
@@ -19,21 +20,23 @@ export function typeAnchor(typeId: string): string {
 }
 
 /**
- * The sections of a service page in the order the page shows them. Usage is
+ * The sections of an API page in the order the page shows them. Usage is
  * always there, being generated; any other section only when it has content.
+ * A service has properties and methods, a pipe its transform signatures.
  */
-export function buildServiceToc(api: ServiceApi): TocEntry[] {
+export function buildApiPageToc(page: ApiPageModel): TocEntry[] {
     const sections: [id: string, label: string, present: boolean][] = [
         ['usage', 'Usage', true],
-        ['setup', 'Setup', api.setup.length > 0],
-        ['examples', 'Examples', !!api.tags.example?.length],
-        ['properties', 'Properties', api.properties.length > 0],
-        ['methods', 'Methods', api.methods.length > 0],
-        ['types', 'Types', api.types.length > 0]
+        ['setup', 'Setup', page.setup.length > 0],
+        ['examples', 'Examples', page.examples.length > 0],
+        ['properties', 'Properties', !!page.properties?.length],
+        ['methods', 'Methods', !!page.methods?.length],
+        ['transform', 'Transform', !!page.transform?.length],
+        ['types', 'Types', page.types.length > 0]
     ];
     const toc: TocEntry[] = sections.filter(([, , present]) => present).map(([id, label]) => ({ id, label, level: 1 }));
 
-    for (const type of api.types) toc.push({ id: typeAnchor(type.id), label: type.name, level: 2 });
+    for (const type of page.types) toc.push({ id: typeAnchor(type.id), label: type.name, level: 2 });
     return toc;
 }
 

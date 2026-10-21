@@ -1,5 +1,12 @@
 import type { ApiSetupEntry, ScannedService } from '@ng-prism/core/plugin';
 
+/** What the import lines read: a scanned service or pipe. */
+export interface UsageSubject {
+    className: string;
+    importPath?: string;
+    api: { setup: ApiSetupEntry[] };
+}
+
 /**
  * The snippet that shows how to bring a service into an application: the
  * imports, the `providers` entries its setup asks for, and the `inject()` call.
@@ -11,11 +18,7 @@ import type { ApiSetupEntry, ScannedService } from '@ng-prism/core/plugin';
 export function generateServiceUsage(service: ScannedService): string {
     const { className, provision, api } = service;
     const variable = className.charAt(0).toLowerCase() + className.slice(1);
-    const blocks = [importLines(service)];
-
-    if (api.setup.length) {
-        blocks.push(['// app.config.ts', `providers: [${api.setup.map(providerEntry).join(', ')}]`]);
-    }
+    const blocks = [importLines(service), setupBlock(api.setup)];
 
     // A setup function of a service provided by hand normally provides it; a token never does.
     if (provision === 'manual' && !api.setup.some((entry) => entry.kind === 'function')) {
@@ -30,22 +33,36 @@ export function generateServiceUsage(service: ScannedService): string {
         blocks.push(['// in a component or service', `private readonly ${variable} = inject(${className});`]);
     }
 
-    return blocks
-        .filter((lines) => lines.length)
-        .map((lines) => lines.join('\n'))
-        .join('\n\n');
+    return joinUsageBlocks(blocks);
 }
 
-/** One line per entry point, the service's first, each naming the service before its setup entries. */
-function importLines({ className, importPath, api }: ScannedService): string[] {
+/**
+ * One line per entry point, the subject's first, each naming the subject
+ * before its setup entries. Shared with the pipe snippet.
+ */
+export function importLines({ className, importPath, api }: UsageSubject): string[] {
     const groups = new Map<string, string[]>();
     const add = (path: string, name: string) => groups.set(path, [...(groups.get(path) ?? []), name]);
 
-    // A service the scanner could not place has no import path; there is nothing true to write for it.
+    // A class the scanner could not place has no import path; there is nothing true to write for it.
     if (importPath) add(importPath, className);
     for (const entry of api.setup) add(entry.importPath, entry.name);
 
     return [...groups].map(([path, names]) => `import { ${names.join(', ')} } from '${path}';`);
+}
+
+/** The `app.config.ts` block with one `providers` entry per setup entry, or nothing without setup. Shared with the pipe snippet. */
+export function setupBlock(setup: ApiSetupEntry[]): string[] {
+    if (!setup.length) return [];
+    return ['// app.config.ts', `providers: [${setup.map(providerEntry).join(', ')}]`];
+}
+
+/** The blocks of a snippet, each a list of lines, with a blank line between them; an empty block is left out. */
+export function joinUsageBlocks(blocks: string[][]): string {
+    return blocks
+        .filter((lines) => lines.length)
+        .map((lines) => lines.join('\n'))
+        .join('\n\n');
 }
 
 function providerEntry(entry: ApiSetupEntry): string {

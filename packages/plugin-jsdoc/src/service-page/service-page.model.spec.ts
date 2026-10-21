@@ -1,7 +1,8 @@
-import type { ApiSetupEntry, ApiTypeDoc, ServiceApi } from '@ng-prism/core/plugin';
+import type { ApiSetupEntry, ApiTypeDoc, PipeApi, ScannedPipe, ScannedService, ServiceApi } from '@ng-prism/core/plugin';
+import { pipePage, servicePage } from './api-page.model.js';
 import {
     activeTocId,
-    buildServiceToc,
+    buildApiPageToc,
     declaredParamSegments,
     documentsParams,
     paramSegments,
@@ -14,23 +15,42 @@ function typeDoc(name: string, id = name): ApiTypeDoc {
     return { id, name, kind: 'interface', importPath: 'fixture/toast', tags: {}, properties: [] };
 }
 
-function makeApi(overrides: Partial<ServiceApi> = {}): ServiceApi {
-    return { tags: {}, properties: [], methods: [], setup: [], types: [], ...overrides };
+function makeService(overrides: Partial<ServiceApi> = {}): ScannedService {
+    return {
+        className: 'ToastService',
+        filePath: '/lib/toast.service.ts',
+        importPath: 'fixture/toast',
+        showcaseConfig: { title: 'Toast Service' },
+        provision: 'auto',
+        api: { tags: {}, properties: [], methods: [], setup: [], types: [], ...overrides }
+    };
 }
 
-describe('buildServiceToc', () => {
+function makePipe(overrides: Partial<PipeApi> = {}): ScannedPipe {
+    return {
+        className: 'TimeAgoPipe',
+        filePath: '/lib/time-ago.pipe.ts',
+        importPath: 'test-lib',
+        showcaseConfig: { title: 'Time Ago' },
+        pipeName: 'timeAgo',
+        pure: true,
+        api: { tags: {}, transform: [], setup: [], types: [], ...overrides }
+    };
+}
+
+describe('buildApiPageToc', () => {
     it('orders the toc and skips empty sections', () => {
-        const api = makeApi({
+        const service = makeService({
             setup: [{ name: 'provideToast', kind: 'function', importPath: 'fixture/toast', tags: {}, params: [] }],
             methods: [{ name: 'show', params: [], returnType: { text: 'void' }, tags: {} }],
             types: [typeDoc('ToastOptions'), typeDoc('ToastRef')]
         });
 
-        expect(buildServiceToc(api).map((entry) => entry.id)).toEqual(['usage', 'setup', 'methods', 'types', 'type-ToastOptions', 'type-ToastRef']);
+        expect(buildApiPageToc(servicePage(service)).map((entry) => entry.id)).toEqual(['usage', 'setup', 'methods', 'types', 'type-ToastOptions', 'type-ToastRef']);
     });
 
     it('lists every section with a label and puts the types one level down', () => {
-        const api = makeApi({
+        const service = makeService({
             tags: { example: ['inject(ToastService)'] },
             properties: [{ name: 'count', type: { text: 'number' }, readonly: true, tags: {} }],
             setup: [{ name: 'provideToast', kind: 'function', importPath: 'fixture/toast', tags: {}, params: [] }],
@@ -38,7 +58,7 @@ describe('buildServiceToc', () => {
             types: [typeDoc('Item', 'Item@lib/b')]
         });
 
-        expect(buildServiceToc(api)).toEqual([
+        expect(buildApiPageToc(servicePage(service))).toEqual([
             { id: 'usage', label: 'Usage', level: 1 },
             { id: 'setup', label: 'Setup', level: 1 },
             { id: 'examples', label: 'Examples', level: 1 },
@@ -50,7 +70,21 @@ describe('buildServiceToc', () => {
     });
 
     it('always lists the usage', () => {
-        expect(buildServiceToc(makeApi())).toEqual([{ id: 'usage', label: 'Usage', level: 1 }]);
+        expect(buildApiPageToc(servicePage(makeService()))).toEqual([{ id: 'usage', label: 'Usage', level: 1 }]);
+        expect(buildApiPageToc(pipePage(makePipe()))).toEqual([{ id: 'usage', label: 'Usage', level: 1 }]);
+    });
+
+    it('lists the transform signatures of a pipe between examples and types', () => {
+        const pipe = makePipe({
+            tags: { example: ['{{ date | timeAgo }}'] },
+            transform: [{ name: 'transform', params: [], returnType: { text: 'string' }, tags: {} }],
+            setup: [{ name: 'provideTimeAgo', kind: 'function', importPath: 'test-lib', tags: {}, params: [] }],
+            types: [typeDoc('TimeAgoOptions')]
+        });
+        const toc = buildApiPageToc(pipePage(pipe));
+
+        expect(toc.map((entry) => entry.id)).toEqual(['usage', 'setup', 'examples', 'transform', 'types', 'type-TimeAgoOptions']);
+        expect(toc.find((entry) => entry.id === 'transform')).toEqual({ id: 'transform', label: 'Transform', level: 1 });
     });
 });
 

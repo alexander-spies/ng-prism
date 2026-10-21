@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import type { InputMeta, OutputMeta, RuntimeService } from '@ng-prism/core/plugin';
+import type { InputMeta, OutputMeta, RuntimePipe, RuntimeService } from '@ng-prism/core/plugin';
 import { Highlight } from 'ngx-highlightjs';
 import type { JsDocData, MethodDoc } from './jsdoc.types.js';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from './markdown.js';
+import { type ApiPageModel, pipePage, servicePage } from './service-page/api-page.model.js';
 import { JsDocServicePageComponent } from './service-page/jsdoc-service-page.component.js';
 
 @Component({
@@ -18,10 +19,19 @@ export class JsDocPanelComponent {
     readonly activeComponent = input<unknown>(null);
     /** Set on a service page, where `activeComponent` is `null`. */
     readonly activeService = input<unknown>(null);
+    /** Set on a pipe page, where `activeComponent` is `null`. */
+    readonly activePipe = input<unknown>(null);
 
     private readonly sanitizer = inject(DomSanitizer);
 
-    protected readonly service = computed(() => this.activeService() as RuntimeService | null);
+    /** The API page of the service or pipe on screen; `null` on a component page. */
+    protected readonly apiPage = computed<ApiPageModel | null>(() => {
+        const service = this.activeService() as RuntimeService | null;
+        const pipe = this.activePipe() as RuntimePipe | null;
+
+        if (service) return servicePage(service.meta);
+        return pipe ? pipePage(pipe.meta) : null;
+    });
 
     protected readonly jsdocData = computed<JsDocData | null>(() => {
         const comp = this.activeComponent() as any;

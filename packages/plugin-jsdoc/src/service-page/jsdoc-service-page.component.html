@@ -113,6 +113,7 @@
     </table>
 </ng-template>
 
+<!-- Tracked by position: the overloads of a pipe's transform share one name. -->
 <ng-template
     #methodTable
     let-methods
@@ -130,7 +131,7 @@
             </tr>
         </thead>
         <tbody>
-            @for (method of methods; track method.name) {
+            @for (method of methods; track $index) {
                 <tr [class.prism-jsdoc-panel__row--deprecated]="isDeprecated(method.tags)">
                     <td class="prism-jsdoc-panel__cell--name">
                         <code>{{ method.name }}()</code>
@@ -176,28 +177,19 @@
                 [innerHTML]="descHtml"></div>
         }
         <div class="prism-jsdoc-panel__meta">
-            @if (isDeprecated(tags())) {
-                <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated">
-                    Deprecated{{ deprecatedMessage(tags()) ? ': ' + deprecatedMessage(tags()) : '' }}
-                </span>
+            @for (chip of page().chips; track chip.label) {
+                @if (chip.deprecated) {
+                    <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated"> {{ chip.label }}{{ chip.value ? ': ' + chip.value : '' }} </span>
+                } @else if (chip.value) {
+                    <span class="prism-jsdoc-panel__meta-item">
+                        <span class="prism-jsdoc-panel__meta-label">{{ chip.label }}:</span>
+                        {{ chip.value }}
+                    </span>
+                } @else {
+                    <span class="prism-jsdoc-panel__meta-item">{{ chip.label }}</span>
+                }
             }
-            @if (tags().since; as since) {
-                <span class="prism-jsdoc-panel__meta-item">
-                    <span class="prism-jsdoc-panel__meta-label">Since:</span>
-                    {{ since }}
-                </span>
-            }
-            <span class="prism-jsdoc-panel__meta-item">
-                <span class="prism-jsdoc-panel__meta-label">Provided in:</span>
-                {{ providedIn() }}
-            </span>
-            @if (meta().importPath; as importPath) {
-                <span class="prism-jsdoc-panel__meta-item">
-                    <span class="prism-jsdoc-panel__meta-label">Entry point:</span>
-                    {{ importPath }}
-                </span>
-            }
-            <ng-container *ngTemplateOutlet="seeChips; context: { $implicit: tags().see ?? [] }" />
+            <ng-container *ngTemplateOutlet="seeChips; context: { $implicit: page().see }" />
         </div>
 
         <section class="prism-jsdoc-panel__section">
@@ -208,7 +200,7 @@
                 <small class="prism-jsdoc-service-page__heading-note">generated</small>
             </h3>
             <div class="prism-jsdoc-service-page__usage">
-                <pre class="prism-jsdoc-panel__code"><code [highlight]="usage()" language="typescript"></code></pre>
+                <pre class="prism-jsdoc-panel__code"><code [highlight]="page().usage" language="typescript"></code></pre>
                 <button
                     type="button"
                     class="prism-jsdoc-service-page__copy"
@@ -234,14 +226,14 @@
             </div>
         </section>
 
-        @if (api().setup.length) {
+        @if (page().setup.length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
                     class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
                     data-toc-id="setup">
                     Setup
                 </h3>
-                @for (entry of api().setup; track entry.name) {
+                @for (entry of page().setup; track entry.name) {
                     <div class="prism-jsdoc-service-page__setup">
                         <div class="prism-jsdoc-service-page__sig">
                             <code
@@ -273,7 +265,7 @@
             </section>
         }
 
-        @if (tags().example?.length) {
+        @if (page().examples.length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
                     class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
@@ -281,11 +273,11 @@
                     Examples
                     <small class="prism-jsdoc-service-page__heading-note">from &#64;example</small>
                 </h3>
-                <ng-container *ngTemplateOutlet="exampleList; context: { $implicit: tags().example }" />
+                <ng-container *ngTemplateOutlet="exampleList; context: { $implicit: page().examples }" />
             </section>
         }
 
-        @if (api().properties.length) {
+        @if (serviceProperties().length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
                     class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
@@ -302,7 +294,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for (property of api().properties; track property.name) {
+                        @for (property of serviceProperties(); track property.name) {
                             <tr [class.prism-jsdoc-panel__row--deprecated]="isDeprecated(property.tags)">
                                 <td class="prism-jsdoc-panel__cell--name">
                                     <code>{{ property.name }}</code>
@@ -330,18 +322,29 @@
             </section>
         }
 
-        @if (api().methods.length) {
+        @if (serviceMethods().length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
                     class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
                     data-toc-id="methods">
                     Methods
                 </h3>
-                <ng-container *ngTemplateOutlet="methodTable; context: { $implicit: api().methods, label: 'Name', params: true }" />
+                <ng-container *ngTemplateOutlet="methodTable; context: { $implicit: serviceMethods(), label: 'Name', params: true }" />
             </section>
         }
 
-        @if (api().types.length) {
+        @if (transformSignatures().length) {
+            <section class="prism-jsdoc-panel__section">
+                <h3
+                    class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                    data-toc-id="transform">
+                    Transform
+                </h3>
+                <ng-container *ngTemplateOutlet="methodTable; context: { $implicit: transformSignatures(), label: 'Name', params: true }" />
+            </section>
+        }
+
+        @if (page().types.length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
                     class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
@@ -349,7 +352,7 @@
                     Types
                     <small class="prism-jsdoc-service-page__heading-note">reached from the signatures above</small>
                 </h3>
-                @for (type of api().types; track type.id) {
+                @for (type of page().types; track type.id) {
                     @let anchor = typeAnchor(type.id);
                     @let properties = type.properties ?? [];
                     @let methods = type.methods ?? [];

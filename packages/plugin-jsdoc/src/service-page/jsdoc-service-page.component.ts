@@ -1,12 +1,13 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, NgZone, signal, untracked } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import type { ApiDocTags, ApiMethod, ApiProperty, ApiTypeDoc, RuntimeService } from '@ng-prism/core/plugin';
+import type { ApiDocTags, ApiMethod, ApiProperty, ApiTypeDoc } from '@ng-prism/core/plugin';
 import { Highlight } from 'ngx-highlightjs';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from '../markdown.js';
+import type { ApiPageModel } from './api-page.model.js';
 import {
     activeTocId,
-    buildServiceToc,
+    buildApiPageToc,
     declaredParamSegments,
     documentsParams,
     setupSignature,
@@ -14,7 +15,6 @@ import {
     typeAnchor,
     typeSegments
 } from './service-page.model.js';
-import { generateServiceUsage } from './service-usage.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
 const SCROLL_OFFSET = 12;
@@ -29,16 +29,18 @@ const JUMP_SETTLE_MS = 150;
 const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
 
 /**
- * The API page of a service: what it is, how to bring it in, what it offers and
- * the types its API reaches, with an "On this page" list next to it.
+ * The API page of a service or a pipe: what it is, how to bring it in, what it
+ * offers and the types its API reaches, with an "On this page" list next to
+ * it. It renders an `ApiPageModel`, so both kinds share one look.
  *
  * The host is the scroll container (the panel stylesheet gives it `overflow:
  * auto`), so every jump scrolls it, never the window or the shell around it.
  *
- * It also carries the render marker `data-prism-service-rendered`, the class
- * name of the service it shows. Host bindings update in the same pass as the
- * template, so the marker names a service only once its page is in the DOM,
- * which is what an outside tool such as the showcase skill's screenshot
+ * It also carries a render marker, the class name of what it shows:
+ * `data-prism-service-rendered` on a service page, `data-prism-pipe-rendered`
+ * on a pipe page, the other one absent. Host bindings update in the same pass
+ * as the template, so the marker names a class only once its page is in the
+ * DOM, which is what an outside tool such as the showcase skill's screenshot
  * script waits for.
  */
 @Component({
@@ -48,23 +50,25 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './jsdoc-service-page.component.html',
     styleUrls: ['../jsdoc-panel.component.css', './jsdoc-service-page.component.css'],
-    host: { '[attr.data-prism-service-rendered]': 'className()' }
+    host: {
+        '[attr.data-prism-service-rendered]': "kind() === 'service' ? className() : null",
+        '[attr.data-prism-pipe-rendered]': "kind() === 'pipe' ? className() : null"
+    }
 })
 export class JsDocServicePageComponent {
-    readonly service = input.required<RuntimeService>();
+    readonly page = input.required<ApiPageModel>();
 
     private readonly sanitizer = inject(DomSanitizer);
     private readonly host: HTMLElement = inject(ElementRef).nativeElement;
 
-    protected readonly meta = computed(() => this.service().meta);
-    /** The class name, not the service object: a manifest update during `serve` hands over a new object for the same service. */
-    protected readonly className = computed(() => this.meta().className);
-    protected readonly api = computed(() => this.meta().api);
-    protected readonly tags = computed(() => this.api().tags);
-    protected readonly usage = computed(() => generateServiceUsage(this.meta()));
-    protected readonly toc = computed(() => buildServiceToc(this.api()));
-    protected readonly providedIn = computed(() => (this.meta().provision === 'auto' ? 'root/automatically' : 'providers'));
-    protected readonly renderedDescription = computed(() => this.renderBlock(this.api().description));
+    /** Kind and class name, not the page object: a manifest update during `serve` hands over a new page for the same class. */
+    protected readonly kind = computed(() => this.page().kind);
+    protected readonly className = computed(() => this.page().className);
+    protected readonly serviceProperties = computed(() => this.page().properties ?? []);
+    protected readonly serviceMethods = computed(() => this.page().methods ?? []);
+    protected readonly transformSignatures = computed(() => this.page().transform ?? []);
+    protected readonly toc = computed(() => buildApiPageToc(this.page()));
+    protected readonly renderedDescription = computed(() => this.renderBlock(this.page().description));
 
     protected readonly activeId = signal('usage');
     protected readonly highlightedId = signal<string | null>(null);
@@ -96,8 +100,9 @@ export class JsDocServicePageComponent {
 
     constructor() {
         // The panel keeps this instance when the reader moves to another
-        // service, so the page starts over at the top for the new one.
+        // service or pipe, so the page starts over at the top for the new one.
         effect(() => {
+            this.kind();
             this.className();
             untracked(() => {
                 this.endJump();
@@ -147,7 +152,7 @@ export class JsDocServicePageComponent {
 
     protected copyUsage(): void {
         navigator.clipboard
-            ?.writeText(this.usage())
+            ?.writeText(this.page().usage)
             .then(() => {
                 this.copied.set(true);
                 clearTimeout(this.copiedTimer);
@@ -164,7 +169,7 @@ export class JsDocServicePageComponent {
         return typeof tags.deprecated === 'string' ? tags.deprecated : undefined;
     }
 
-    // Source is service-author JSDoc compiled into the manifest at build time,
+    // Source is library-author JSDoc compiled into the manifest at build time,
     // not user input, so bypassing sanitization is safe here.
     protected renderBlock(text: string | undefined): SafeHtml | null {
         if (!text) return null;

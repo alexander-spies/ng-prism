@@ -1,5 +1,5 @@
-@if (service(); as current) {
-    <prism-jsdoc-service-page [service]="current" />
+@if (apiPage(); as current) {
+    <prism-jsdoc-service-page [page]="current" />
 } @else {
     <div class="prism-jsdoc-panel">
         @if (!activeComponent()) {
