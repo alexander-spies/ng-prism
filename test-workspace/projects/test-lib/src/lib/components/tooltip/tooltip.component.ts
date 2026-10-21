@@ -1,11 +1,25 @@
 import { ChangeDetectionStrategy, Component, input, signal, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** Side of the trigger a tooltip appears on. */
 export type TooltipPositionType = 'top' | 'bottom' | 'left' | 'right';
 
 /**
- * A lightweight tooltip trigger that shows contextual help text on hover.
+ * Inline help text with a tooltip that appears while the pointer is over it.
+ *
+ * The component brings its own trigger, the text in `triggerLabel`. To put a tooltip on an element
+ * you already have, such as a button, use `TooltipDirective` instead.
+ *
+ * ## Positions
+ *
+ * `top` (default), `bottom`, `left` and `right`, each with an arrow that points at the trigger.
+ *
  * @since 1.0.0
+ * @see TooltipDirective
+ * @example
+ * ```html
+ * <sg-tooltip triggerLabel="What is this?" text="Shown on every invoice." position="right" />
+ * ```
  */
 @Showcase({
     title: 'Tooltip',
@@ -120,17 +134,22 @@ export type TooltipPositionType = 'top' | 'bottom' | 'left' | 'right';
     `
 })
 export class TooltipComponent {
+    /** Text of the tooltip. */
     readonly text = input.required<string>();
+
+    /** Side of the trigger the tooltip appears on, see `TooltipPositionType`. */
     readonly position = input<TooltipPositionType>('top');
+
+    /** Text of the trigger the tooltip belongs to. */
     readonly triggerLabel = input<string>('');
     protected readonly visible = signal(false);
 
-    /** Shows the tooltip programmatically. */
+    /** Shows the tooltip without a hover, e.g. to point out a feature once. */
     show(): void {
         this.visible.set(true);
     }
 
-    /** Hides the tooltip programmatically. */
+    /** Hides the tooltip again. */
     hide(): void {
         this.visible.set(false);
     }

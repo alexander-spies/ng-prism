@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** Direction of a divider: a horizontal rule or a vertical separator. */
 export type DividerOrientationType = 'horizontal' | 'vertical';
+
+/** Visual weight of a divider's colour: `dark` is more prominent than `default`. */
 export type DividerVariantType = 'default' | 'dark';
 
 /**

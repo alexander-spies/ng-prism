@@ -1,11 +1,30 @@
 import { ChangeDetectionStrategy, Component, input, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** Diameter of a spinner: `sm` 16px, `md` 24px, `lg` 36px. */
 export type SpinnerSizeType = 'sm' | 'md' | 'lg';
 
 /**
- * An animated loading spinner with configurable size and color.
+ * Circular loading indicator for a wait of unknown length.
+ *
+ * ## Sizes
+ *
+ * - `sm` (16px): inline, next to text or inside a button
+ * - `md` (24px): inside cards and panels
+ * - `lg` (36px): for a whole section or page
+ *
+ * The host carries `role="status"`. A `label` is shown next to the spinner and gives screen readers something to announce.
+ *
  * @since 1.0.0
+ * @see ProgressBarComponent
+ * @example
+ * ```html
+ * <sg-spinner size="sm" />
+ * ```
+ * @example
+ * ```html
+ * <sg-spinner size="lg" label="Loading projects" />
+ * ```
  */
 @Showcase({
     title: 'Spinner',
@@ -73,7 +92,15 @@ export type SpinnerSizeType = 'sm' | 'md' | 'lg';
     `
 })
 export class SpinnerComponent {
+    /** Diameter of the spinner, see `SpinnerSizeType`. */
     readonly size = input<SpinnerSizeType>('md');
+
+    /** Text next to the spinner. Left out when empty. */
     readonly label = input<string>('');
+
+    /**
+     * Colour of the arc, any CSS colour. The track is drawn in the same colour at 20% opacity.
+     * @since 1.1.0
+     */
     readonly color = input<string>('#6366f1');
 }

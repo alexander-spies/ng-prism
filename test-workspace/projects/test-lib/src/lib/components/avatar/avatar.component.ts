@@ -1,11 +1,30 @@
 import { ChangeDetectionStrategy, Component, computed, input, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** Diameter of an avatar: `sm` 28px, `md` 36px, `lg` 48px. */
 export type AvatarSizeType = 'sm' | 'md' | 'lg';
 
 /**
- * Displays a user avatar with image, initials fallback, or placeholder icon.
+ * Round picture of a person, with two fallbacks for when there is no photo.
+ *
+ * ## What it shows
+ *
+ * 1. The image from `src`, cropped to a circle
+ * 2. Without `src`: the initials of `name`, the first letters of its first two words
+ * 3. Without either: a neutral person icon
+ *
+ * `name` is also the image's `alt` text, so set it even when you pass a photo.
+ *
  * @since 1.0.0
+ * @see AvatarSizeType
+ * @example
+ * ```html
+ * <sg-avatar name="Jane Smith" size="lg" />
+ * ```
+ * @example
+ * ```html
+ * <sg-avatar src="/assets/users/42.jpg" name="Jane Smith" />
+ * ```
  */
 @Showcase({
     title: 'Avatar',
@@ -84,8 +103,13 @@ export type AvatarSizeType = 'sm' | 'md' | 'lg';
     `
 })
 export class AvatarComponent {
+    /** URL of the photo. When empty, the avatar falls back to the initials or the placeholder icon. */
     readonly src = input<string>('');
+
+    /** Full name of the person: the source of the initials and the image's `alt` text. */
     readonly name = input<string>('');
+
+    /** Diameter of the avatar, see `AvatarSizeType`. */
     readonly size = input<AvatarSizeType>('md');
 
     protected readonly initials = computed(() => {
@@ -99,7 +123,7 @@ export class AvatarComponent {
             .slice(0, 2);
     });
 
-    /** Returns the computed initials string based on the name input. */
+    /** Returns the initials shown for `name`: at most two letters, empty without a name. */
     getInitials(): string {
         return this.initials();
     }

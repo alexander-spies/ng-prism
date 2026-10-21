@@ -2,8 +2,28 @@ import { ChangeDetectionStrategy, Component, computed, input, model, output, Vie
 import { Showcase } from '@ng-prism/core';
 
 /**
- * A multi-line text input with character count, auto-resize hint, and validation states.
+ * Multi-line text field with an optional character counter and an error message.
+ *
+ * ## Footer
+ *
+ * - `showCounter` counts the characters, against `maxLength` when one is set, and highlights the count at the limit
+ * - `error` shows a message below the field and gives the field a red border
+ *
+ * `value` is a model: bind it with `[(value)]`, or listen to `valueChanged`.
+ * `maxLength` is passed on to the native field, so the browser stops the input at the limit.
+ *
  * @since 1.0.0
+ * @example
+ * ```html
+ * <sg-textarea placeholder="Your message" [(value)]="message" />
+ * ```
+ * @example
+ * ```html
+ * <sg-textarea
+ *   [maxLength]="200"
+ *   [showCounter]="true"
+ *   [error]="tooShort() ? 'Please write at least 20 characters.' : ''" />
+ * ```
  */
 @Showcase({
     title: 'Textarea',
@@ -126,21 +146,41 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class TextareaComponent {
+    /** Hint shown while the field is empty. */
     readonly placeholder = input<string>('');
+
+    /** Visible height of the field, in lines of text. */
     readonly rows = input<number>(4);
+
+    /** Disables the field and dims it. */
     readonly disabled = input<boolean>(false);
+
+    /** Most characters the field takes, passed on as `maxlength`. `0` means no limit. */
     readonly maxLength = input<number>(0);
+
+    /** Shows the character count below the field, as `count / maxLength` when there is a limit. */
     readonly showCounter = input<boolean>(false);
+
+    /** Error message below the field. Any text also switches the field to its error style. */
     readonly error = input<string>('');
+
+    /** Current text. Two-way bindable with `[(value)]`. */
     readonly value = model<string>('');
+
+    /** Emits the new text on every input and on `clear()`. */
     readonly valueChanged = output<string>();
+
+    /**
+     * Emits when the field loses focus, e.g. to validate it then.
+     * @since 1.1.0
+     */
     readonly blurred = output<void>();
 
     protected readonly charCount = computed(() => this.value().length);
     protected readonly isAtLimit = computed(() => this.maxLength() > 0 && this.charCount() >= this.maxLength());
 
     /**
-     * Handles native input events and syncs the value.
+     * Handles the native `input` event of the field: sets `value` and emits `valueChanged`.
      * @param event The native input event
      */
     onInput(event: Event): void {
@@ -150,7 +190,7 @@ export class TextareaComponent {
         this.valueChanged.emit(val);
     }
 
-    /** Clears the textarea value and emits an empty string. */
+    /** Empties the field and emits `valueChanged` with `''`. */
     clear(): void {
         this.value.set('');
         this.valueChanged.emit('');
