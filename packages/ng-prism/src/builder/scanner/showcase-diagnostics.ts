@@ -64,6 +64,23 @@ export function describeUnreadableBase(className: string, base: UnreadableBase):
     );
 }
 
+/**
+ * A class with `@Injectable` or `@Service` that still declares fields only a
+ * component can use. Shown as a component for now, so nothing is lost, but
+ * the service page will not have these fields, which is why it is said early.
+ */
+export function describeLegacyServiceComponent(className: string, fields: string[]): string {
+    return (
+        `${className} is an @Injectable/@Service with @Showcase and declares ${fields.join(', ')}, so it is still treated as a component. ` +
+        `From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`
+    );
+}
+
+/** `setup` lists what configures a service; a component has no use for it, and says so instead of silently ignoring it. */
+export function describeSetupOnComponent(className: string, node: ts.Node): string {
+    return `${className} › setup (${location(node)}) only applies to services (@Injectable or @Service); it was dropped.`;
+}
+
 /** A variant or a state is named by its `name` as well as its index, since that is what the styleguide shows. */
 function formatShowcasePath(path: EvaluationPath, config: ts.Expression): string {
     const [head, index, ...rest] = path;

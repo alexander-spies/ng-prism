@@ -7,7 +7,14 @@ import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument
 import { getClassHierarchy } from './class-hierarchy.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
 import { describeValue, readPseudoStates } from './pseudo-states.js';
-import { describeDeprecatedProviders, describeUnevaluable, describeUnreadableBase } from './showcase-diagnostics.js';
+import { classifyShowcaseClass } from './service/angular-decorators.js';
+import {
+    describeDeprecatedProviders,
+    describeLegacyServiceComponent,
+    describeSetupOnComponent,
+    describeUnevaluable,
+    describeUnreadableBase
+} from './showcase-diagnostics.js';
 import { readShowcaseStates } from './showcase-states.js';
 
 const COMPONENT_STATUSES = ['stable', 'beta', 'wip', 'deprecated'] as const;
@@ -52,6 +59,8 @@ type Report = (message: string) => void;
 
 /**
  * Scan exported symbols for Angular components annotated with @Showcase.
+ * A class with `@Injectable` or `@Service` is a service and is left to the
+ * service scan, unless it declares fields only a component can use.
  *
  * Every @Showcase value the scan has to drop is printed and collected in
  * `diagnostics`, once: sharing the array across entry points keeps a
@@ -89,9 +98,21 @@ export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, di
         if (!showcaseDecorator) continue;
 
         const className = classDecl.name?.text ?? 'Anonymous';
+        const showcaseArg = getDecoratorArgument(showcaseDecorator);
+        const classKind = classifyShowcaseClass(classDecl, showcaseArg, checker);
+
+        if (classKind.kind === 'service') continue;
+
         const showcaseConfig = extractShowcaseConfig(showcaseDecorator, className, report, checker);
 
         if (!showcaseConfig) continue;
+
+        // Not a diagnostic: the component still works, and strictShowcase must not fail the build over a notice about 23.0.0.
+        if (classKind.kind === 'legacy-component') notify(describeLegacyServiceComponent(className, classKind.fields));
+
+        const setup = showcaseArg && findSetupProperty(showcaseArg);
+
+        if (setup) report(describeSetupOnComponent(className, setup));
 
         const componentMeta = extractComponentMeta(classDecl, checker);
         const hierarchy = getClassHierarchy(classDecl, checker);
@@ -139,7 +160,19 @@ function hasDecoratorInputs(classDecl: ts.ClassDeclaration): boolean {
     return false;
 }
 
-function extractShowcaseConfig(decorator: ts.Decorator, className: string, report: Report, checker: ts.TypeChecker): ShowcaseConfig | undefined {
+/** Only the literal: a `setup` that arrives through a spread or a constant is dropped without a word. */
+function findSetupProperty(arg: ts.Expression): ts.ObjectLiteralElementLike | undefined {
+    if (!ts.isObjectLiteralExpression(arg)) return undefined;
+
+    return arg.properties.find((p) => p.name !== undefined && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === 'setup');
+}
+
+/**
+ * `setup` is read for services only, so a component's is never part of the
+ * config: the issue the evaluator raises for its function is swallowed here,
+ * and {@link scanComponents} says what is wrong with it instead.
+ */
+export function extractShowcaseConfig(decorator: ts.Decorator, className: string, report: Report, checker: ts.TypeChecker): ShowcaseConfig | undefined {
     const arg = getDecoratorArgument(decorator);
 
     if (!arg) return undefined;
@@ -151,6 +184,7 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
     const raw = evaluateStatic(arg, {
         checker,
         report: (issue) => {
+            if (issue.path[0] === 'setup') return;
             if (issue.path[0] === 'providers') {
                 providers ??= issue.node;
                 return;

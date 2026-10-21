@@ -798,3 +798,76 @@ describe('scanComponents with base classes', () => {
         expect(diagnostics).toEqual([]);
     });
 });
+
+describe('scanComponents with services in the entry point', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'services', 'services-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture/toast' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan() {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+        const components = scanComponents(exports, checker, diagnostics, notices);
+
+        return { components, diagnostics, notices };
+    }
+
+    it('leaves the services to the service scan', () => {
+        const names = scan().components.map((c) => c.className);
+
+        expect(names).not.toContain('AutoService');
+        expect(names).not.toContain('OptOutService');
+        expect(names).not.toContain('RootService');
+        expect(names).not.toContain('PlatformService');
+        expect(names).not.toContain('ManualService');
+        expect(names).not.toContain('DynamicService');
+    });
+
+    it('keeps a @Service from another package and a service with a component page as components', () => {
+        const names = scan().components.map((c) => c.className);
+
+        expect(names).toContain('TypeDiService');
+        expect(names).toContain('LegacyPageService');
+        expect(names).toContain('SetupOnComponent');
+    });
+
+    it('notices a service that is kept a component, without counting it as a diagnostic', () => {
+        const { diagnostics, notices } = scan();
+
+        expect(notices).toContain(
+            'LegacyPageService is an @Injectable/@Service with @Showcase and declares renderPage, so it is still treated as a component. ' +
+                'From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.'
+        );
+        expect(diagnostics.filter((d) => d.startsWith('LegacyPageService'))).toEqual([]);
+    });
+
+    it('says that setup only applies to services, once per component', () => {
+        const { components, diagnostics } = scan();
+        const file = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'services', 'setup-on-component.component.ts'));
+
+        expect(components.find((c) => c.className === 'SetupOnComponent')!.showcaseConfig).toEqual({ title: 'Setup on component' });
+        expect(diagnostics.filter((d) => d.includes('setup'))).toEqual([
+            `SetupOnComponent › setup (${file}:4:42) only applies to services (@Injectable or @Service); it was dropped.`
+        ]);
+    });
+
+    it('does not report the setup function as a runtime value', () => {
+        expect(scan().diagnostics.filter((d) => d.includes('runtime value'))).toEqual([]);
+    });
+});
