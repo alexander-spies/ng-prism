@@ -33,17 +33,17 @@ export class MyComponent {
 
 Manages which component, service or page is currently selected in the sidebar.
 
-| Member                   | Type                                     | Description                                                 |
-| ------------------------ | ---------------------------------------- | ----------------------------------------------------------- |
-| `activeItem`             | `WritableSignal<NavigationItem \| null>` | Currently active navigation item                            |
-| `activeComponent`        | `Signal<RuntimeComponent \| null>`       | Derived from `activeItem` if kind is `'component'`          |
-| `activeService`          | `Signal<RuntimeService \| null>`         | Derived from `activeItem` if kind is `'service'`            |
-| `activePage`             | `Signal<StyleguidePage \| null>`         | Derived from `activeItem` if kind is `'page'`               |
-| `categoryTree`           | `Signal<Map<string, NavigationItem[]>>`  | Sidebar tree, filtered by search, sorted by order           |
-| `select(comp)`           | `void`                                   | Select a `RuntimeComponent`                                 |
-| `selectService(service)` | `void`                                   | Select a `RuntimeService`                                   |
-| `selectPage(page)`       | `void`                                   | Select a `StyleguidePage`                                   |
-| `selectFirst()`          | `void`                                   | Select the first component, service or page in the manifest |
+| Member                   | Type                                     | Description                                                                        |
+| ------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------- |
+| `activeItem`             | `WritableSignal<NavigationItem \| null>` | Currently active navigation item                                                   |
+| `activeComponent`        | `Signal<RuntimeComponent \| null>`       | Derived from `activeItem` if kind is `'component'`                                 |
+| `activeService`          | `Signal<RuntimeService \| null>`         | Derived from `activeItem` if kind is `'service'`                                   |
+| `activePage`             | `Signal<StyleguidePage \| null>`         | Derived from `activeItem` if kind is `'page'`                                      |
+| `sectionTree`            | `Signal<SectionNode[]>`                  | Sidebar tree of sections and their categories, filtered by search, sorted by order |
+| `select(comp)`           | `void`                                   | Select a `RuntimeComponent`                                                        |
+| `selectService(service)` | `void`                                   | Select a `RuntimeService`                                                          |
+| `selectPage(page)`       | `void`                                   | Select a `StyleguidePage`                                                          |
+| `selectFirst()`          | `void`                                   | Select the first component, service or page in the manifest                        |
 
 ---
 

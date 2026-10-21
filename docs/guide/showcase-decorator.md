@@ -73,7 +73,7 @@ Anything else would need the code to run, so the scanner drops it:
 | Function and method calls        | `megabytes(5)`, `items.map(toOption)`       |
 | Functions, classes and instances | `(value) => value.length > 0`, `new Date()` |
 
-Functions, classes and instances are a limit of the approach, not of the scanner: they only exist once code runs, so the static manifest has no way to hold them.
+Functions, classes and instances are a limit of the approach, not of the scanner: they only exist once code runs, so the static manifest has no way to hold them. The one function that works is [`setup: () => [...]`](guide/showcasing-services.md#setup) on a service: the scanner reads the array literal it returns from the source and never evaluates or calls it.
 
 ### What happens to a value it cannot read
 

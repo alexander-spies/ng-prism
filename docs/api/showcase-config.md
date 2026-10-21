@@ -36,7 +36,7 @@ interface ShowcaseState {
 }
 ```
 
-`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md): a page with its API and no canvas. For a service, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only a service takes. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) need a canvas, see [Services](#services) below.
+`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md) (since `22.7.0`): a page with its API and no canvas. For a service, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only a service takes. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) need a canvas, see [Services](#services) below.
 
 The optional generic parameter `T` is the component class. When set via `@Showcase<MyComponent>({...})`, variant `inputs` are checked against `Partial<InputsOf<MyComponent>>`, giving you autocomplete on input names and type-checking on values. When omitted, `T` defaults to `unknown` and `inputs` accepts any `Record<string, unknown>`, so existing call sites keep working unchanged. See [Variants: Type-safe inputs](guide/variants.md#type-safe-inputs) for usage and [`InputsOf<T>`](api/types.md#inputsof) for the type mapping rules.
 
@@ -196,7 +196,7 @@ Use `defineConfig({ appProviders })` instead. For a provider only one component 
 
 ### `setup`
 
-**Services only.** The functions and `InjectionToken` constants that configure the service, as an arrow function that returns them. The styleguide documents each one next to the service: signature, description, `@example` and a table of its options, and the generated usage snippet calls them.
+**Services only**, since `22.7.0`. The functions and `InjectionToken` constants that configure the service, as an arrow function that returns them. The styleguide documents each one next to the service: signature, description, `@example` and a table of its options, and the generated usage snippet calls them.
 
 ```typescript
 @Showcase({

@@ -18,10 +18,13 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
   from the entry file   uses ast-utils
   (builder option
    `entryPoint`, e.g.
-   public-api.ts)
+   public-api.ts)      →  service.scanner
+                               ↓
+                        uses service/ (decorators, setup,
+                        members, types, export index)
 ```
 
-**Orchestrator:** `scanner.ts` connects everything. It exports `createScanner(options: CreateScannerOptions): Scanner` — a factory that returns the scanner, not a bare `scan()` function.
+**Orchestrator:** `scanner.ts` connects everything. It exports `createScanner(options: CreateScannerOptions): Scanner` — a factory that returns the scanner, not a bare `scan()` function. Per entry point it runs `scanComponents` and `scanServices` on the same exports; `scanServices` needs an export index built from every entry point first, since a setup function or a type is often exported by another entry point than the service. `scan()` returns `{ components, services, diagnostics }`. A class is a service only when `classifyShowcaseClass` says so, so the two scanners never claim the same class.
 
 ## Existing Modules
 
@@ -37,7 +40,9 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
 | `showcase-diagnostics.ts`  | Word the warnings for `@Showcase` values the scan had to drop                                                               |
 | `showcase-states.ts`       | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                              |
 | `entry-point-discovery.ts` | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`) |
-| `scanner.ts`               | Orchestrator — exports `createScanner(options)`, which returns a `Scanner`                                                  |
+| `service.scanner.ts`       | Find @Showcase services (`@Injectable`/`@Service` from `@angular/core`), read provision, `setup` and API (`scanServices`)   |
+| `service/`                 | The service modules: Angular decorators and provision, `setup` reader, export index, member, type and API extraction        |
+| `scanner.ts`               | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components and services                     |
 | `index.ts`                 | Public surface of the scanner (re-exports the functions and their types)                                                    |
 
 ## Module Template

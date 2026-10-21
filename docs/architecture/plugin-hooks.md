@@ -90,7 +90,7 @@ onServiceScanned(service) {
 
 **A separate hook, not a second kind of component.** A service has no inputs, outputs, selector or canvas, and the four plugins that implement `onComponentScanned` (coverage, jsdoc, perf and visual regression) read exactly those. Giving services their own list and hook means none of them is ever called with one, and the manifest they write stays what it was. The JSDoc plugin does not need the hook: its service page reads `service.api` in the browser.
 
-**It may not run.** Services go into the manifest only when some plugin has a panel with `appliesTo: ['service']`. Without one the pipeline drops them before the hooks, so `onServiceScanned` is not called, and logs a hint, see the services gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.services` only when they were kept.
+**It may not run.** Services go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'service'`. Without one the pipeline drops them before the hooks, so `onServiceScanned` is not called, and logs a hint, see the services gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.services` only when they were kept.
 
 `service.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `service.meta`, which is stable, and read `service.api` knowing it can change.
 

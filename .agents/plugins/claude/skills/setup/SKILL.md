@@ -105,12 +105,13 @@ itself. Keep the core and every plugin on the same version: plugins require `@ng
 | `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker                                       |
 
 - **JSDoc and services:** a class with `@Showcase` and `@Injectable` or `@Service` is a service, and `jsDocPlugin()`
-  draws its page (skill showcase). **Services need the plugin.** Without it, or without any other plugin whose panel
-  has `appliesTo: ['service']`, the build leaves all services out of the manifest and the sidebar and logs once, through
-  the normal log and not as a warning:
-  `ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`
+  draws its page (skill showcase, since 22.7.0). **Services need the plugin.** Without it, or without any other plugin
+  whose view panel has `appliesTo: ['service']`, the build leaves all services out of the manifest and the sidebar and
+  logs once, through the normal log and not as a warning:
+  `ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`
   When a user asks why a service is missing, look for that line first, then add the plugin
-  (`ng add @ng-prism/plugin-jsdoc`). `strictShowcase` doesn't fail over it.
+  (`ng add @ng-prism/plugin-jsdoc`). If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or
+  newer: an older one has no page for services. `strictShowcase` doesn't fail over it.
 - **Figma:** the embed shows when the component sets `meta: { figma: '<Figma URL with node-id>' }` as a string on
   `@Showcase` itself. The Design Diff panel appears once a variant sets `meta.figma`: a URL with `node-id`, or
   `{ url, nodeId }`; a variant without its own value falls back to the component's `meta.figma`. It calls the Figma

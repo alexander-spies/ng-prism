@@ -1,6 +1,6 @@
 # Showcasing Services
 
-A service is no component, so there is nothing to render. What a developer who uses your library needs from it is a reference: what it can do, how to bring it in, and what its setup function takes. ng-prism builds that page from the service itself. Put `@Showcase` on a class with `@Injectable` or `@Service`, write JSDoc on what is public, and the service gets its own entry in the sidebar under **Services**, with the API read from the code and a generated usage snippet. No separate documentation files.
+A service is no component, so there is nothing to render. What a developer who uses your library needs from it is a reference: what it can do, how to bring it in, and what its setup function takes. ng-prism builds that page from the service itself (since `22.7.0`). Put `@Showcase` on a class with `@Injectable` or `@Service`, write JSDoc on what is public, and the service gets its own entry in the sidebar under **Services**, with the API read from the code and a generated usage snippet. No separate documentation files.
 
 A service page has no canvas, no variants and no controls. It is the API page of a component, made for a class that has no template.
 
@@ -114,11 +114,11 @@ Export all of it from a library entry point, as you do for components, and run `
     private readonly notificationService = inject(NotificationService);
     ```
 
-3. **Setup**: `provideNotifications(config?: NotificationConfig): EnvironmentProviders`, its description, an option table (`position`, `duration`, each with its `@default`) and its `@example`.
+3. **Setup**: `provideNotifications(config?: NotificationConfig): EnvironmentProviders`, its description, its parameter as declared (`config: NotificationConfig = {}`) with its `@param` text, an option table (`position`, `duration`, each with its `@default`) and its `@example`.
 4. **Examples**, from the `@example` of the class.
 5. **Properties**: `count`, typed `Signal<number>`, readonly.
-6. **Methods**: `show()` and `dismissAll()`, with parameters, return type and description.
-7. **Types**: a card for `NotificationOptions`, `NotificationRef`, `NotificationConfig` and `NotificationPosition`, because the signatures above reach them.
+6. **Methods**: `show()` and `dismissAll()`, with parameters and their `@param` texts, return type and description.
+7. **Types**: a card for `NotificationOptions`, `NotificationRef` (with its `readonly id`, a constructor parameter property), `NotificationConfig` and `NotificationPosition`, because the signatures above reach them.
 
 A section with nothing in it is left out, together with its entry in the "On this page" list next to the content. Every type name in a table or a signature that has a card below is a link that jumps to it.
 
@@ -171,7 +171,7 @@ A `providedIn` that is a module class, and any option the scanner cannot read st
 
 ## `setup`
 
-`setup` lists the functions and `InjectionToken` constants that configure the service, such as `provideNotifications` and a `NOTIFICATION_CONFIG` token. They are not classes of their own, so they get no page. They appear as the **Setup** section of the service, each with its signature, description, `@example` and a table of its options, and the usage snippet calls them.
+`setup` (since `22.7.0`) lists the functions and `InjectionToken` constants that configure the service, such as `provideNotifications` and a `NOTIFICATION_CONFIG` token. They are not classes of their own, so they get no page. They appear as the **Setup** section of the service, each with its signature, description, `@example` and a table of its options, and the usage snippet calls them.
 
 ```typescript
 @Showcase({
@@ -212,33 +212,33 @@ The snippet is generated from the scanned API, not written by hand, so it says n
 - **Imports** are grouped by entry point, the service first. A service the scanner could not place in an entry point has no import line.
 - **Setup entries** go into `providers: [...]` in `app.config.ts`. A function is called without arguments when every parameter is optional or a rest parameter, and with a `…` placeholder otherwise. A token becomes `{ provide: NOTIFICATION_CONFIG, useValue: … }`.
 - **`inject()`** closes the snippet, with the class name, first letter in lower case, as the variable name.
-- **A service provided by hand** without `setup` is shown in a `@Component` that lists it in `providers: [NotificationService]`. With `setup`, that line is left out: the setup function of such a service normally provides it, and listing it a second time would give every component its own silent second instance. If it is not provided after all, Angular reports a `NullInjectorError`, which is hard to miss.
+- **A service provided by hand** without a setup function is shown in a `@Component` that lists it in `providers: [NotificationService]`. With a setup function, that line is left out: the setup function of such a service normally provides it, and listing it a second time would give every component its own silent second instance. If it is not provided after all, Angular reports a `NullInjectorError`, which is hard to miss. A `setup` of tokens only keeps the line, since a token never provides the service.
 
 ### Members
 
-| Section        | What is listed                                                                                                                                                                                      |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Properties** | Public instance properties and getters: signals, `computed()`, readonly fields, accessors. Name, type, `readonly`, description. Listed without JSDoc as well, because the type alone is information |
-| **Methods**    | Public instance methods, **with or without JSDoc**. Name, parameters (type, optional, default, rest, `@param` text), return type, description                                                       |
+| Section        | What is listed                                                                                                                                                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Properties** | Public instance properties and getters: signals, `computed()`, readonly fields, accessors, and constructor parameter properties (`constructor(readonly id: number)`). Name, type, `readonly`, description. Listed without JSDoc as well, because the type alone is information |
+| **Methods**    | Public instance methods, **with or without JSDoc**. Name, parameters as declared (type, optional, default, rest) with the `@param` text under each, return type, description                                                                                                   |
 
 Methods are listed without JSDoc on purpose. That differs from the API tab of a component, which leaves undocumented methods out.
 
-Left out: `private`, `protected` and `#private` members, names that start with `_`, Angular's lifecycle hooks (`ngOnDestroy` and the others), the constructor, static members, and anything tagged `@internal`. Members of base classes are included, nearest class first. A member the subclass declares hides the one of the base class; an override without JSDoc of its own keeps its signature and takes the description, tags and `@param` texts from the base class.
+Left out: `private`, `protected` and `#private` members, names that start with `_`, Angular's lifecycle hooks (`ngOnDestroy` and the others), the constructor itself, static members, and anything tagged `@internal`. A constructor parameter with `public`, `readonly` or `override` is a property: it is listed where the constructor stands, typed from its annotation or its default, and described by the constructor's `@param` for it. Members of base classes are included, nearest class first. A member the subclass declares hides the one of the base class; an override without JSDoc of its own keeps its signature and takes the description, tags and `@param` texts from the base class.
 
 The type is the annotation as written, or what the compiler infers when there is none (`Signal<boolean>`).
 
 ### JSDoc that is read
 
-| Tag                | Where it shows                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------- |
-| Description        | Rendered as Markdown on the class; inline in tables                                         |
-| `@since`           | The `Since` chip of the class, a note next to a member                                      |
-| `@deprecated`      | A badge, with the message after the colon                                                   |
-| `@default`         | The **Default** column of an option or property table                                       |
-| `@param name text` | The description of the parameter (`@param name - text` works as well)                       |
-| `@example`         | A highlighted block, in **Examples** for the class and below the signature of a setup entry |
-| `@see`             | Read into the data for plugins; the page does not show it                                   |
-| `@internal`        | Hides the member or the type altogether                                                     |
+| Tag                | Where it shows                                                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Description        | Rendered as Markdown on the class; inline in tables                                                                                                                 |
+| `@since`           | The `Since` chip of the class, a note next to a member                                                                                                              |
+| `@deprecated`      | A badge, with the message after the colon                                                                                                                           |
+| `@default`         | The **Default** column of an option or property table                                                                                                               |
+| `@param name text` | Under the parameter, in **Methods** and below a setup signature (`@param name - text` works as well); on a constructor, the description of its parameter properties |
+| `@example`         | A highlighted block, in **Examples** for the class and below the signature of a setup entry                                                                         |
+| `@see`             | A `See:` chip on the class and on a type card                                                                                                                       |
+| `@internal`        | Hides the member or the type altogether                                                                                                                             |
 
 A line comment between the doc block and the member (`// eslint-disable-next-line`) keeps the doc block attached. A block that floats a few lines above the member, such as a banner, and a doc block that is only a ruler (`/** ===== */`) do not describe it.
 
@@ -265,13 +265,13 @@ A type is only documented when a scanned entry point exports it and it is not `@
 
 ## Without the JSDoc plugin
 
-A service page is made by a panel that applies to services. When no plugin in `ng-prism.config.ts` has one, nothing could show the services, so the build leaves them out of the manifest and the sidebar and prints one notice:
+A service page is made by a view panel that applies to services. When no plugin in `ng-prism.config.ts` has one, nothing could show the services, so the build leaves them out of the manifest and the sidebar and prints one notice:
 
 ```
-ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.
+ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
 ```
 
-It is a notice, not a warning: nothing is wrong with the library, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail the build over it. Add the plugin with `ng add @ng-prism/plugin-jsdoc`, or see [JSDoc Plugin](plugins/jsdoc.md).
+It is a notice, not a warning: nothing is wrong with the library, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail the build over it. Add the plugin with `ng add @ng-prism/plugin-jsdoc`, or see [JSDoc Plugin](plugins/jsdoc.md). If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for services.
 
 ## Compatibility until 23.0.0
 
@@ -301,9 +301,10 @@ All four are lost values, so [`strictShowcase`](api/ng-prism-config.md#strictsho
 ## Limits
 
 - **Experimental data model.** The shape of the extracted API (`ServiceApi` and everything below it) is experimental until 23.0.0 and may change in a 22.x minor release. The upper fields of `ScannedService` and `RuntimeService`, the `onServiceScanned` hook and `PanelDefinition.appliesTo` are stable. See [Type Reference](api/types.md#scannedservice).
-- **Constructor parameter properties** (`constructor(public readonly store: Store)`) are not listed as properties yet.
+- **`@returns` text** is not shown. The return type comes from the code; say what it means in the description of the method.
 - **Overloads** appear once, with the documented overload's signature, or the first one. **Generic type parameters** and **static members** are not listed.
 - **Renamed types.** A type imported or re-exported under another name appears under its declared name and may stay unlinked.
+- **Renamed setup exports.** A setup function or token exported under another name (`export { impl as provideToast }`) is imported in the usage snippet under its declared name, which the entry point does not export. Export it under the name it is declared with.
 - **No live demo.** A service has no playground. A hand-written [component page](guide/component-pages.md) still does that job.
 - **Publishing.** [`ng-prism-strip`](guide/library-publishing.md) removes `@Showcase` from a service like from any class, `setup` included. The import of the setup function stays, as every other import does; nothing reads it any more, and the build is not affected.
 

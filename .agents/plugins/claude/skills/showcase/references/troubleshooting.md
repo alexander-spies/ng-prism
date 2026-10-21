@@ -75,9 +75,10 @@ Same prefix, but they don't count for `strictShowcase`.
   the class has a field only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or
   `renderPage`), so it stays a component until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0). To make it a service now, remove the fields and move the demo to
   a component page; otherwise leave it, nothing is lost.
-- **`ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`**
-  (no `⚠`, an info line of the normal log): no plugin has a panel that applies to services, so the build left every
-  service out. Add `jsDocPlugin()` (skill setup).
+- **`ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`**
+  (no `⚠`, an info line of the normal log): no plugin has a view panel that applies to services, so the build left
+  every service out. Add `jsDocPlugin()` (skill setup). If `jsDocPlugin()` is already there, update
+  `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for services.
 
 - **`<Class> declares bg "checker", which is deprecated and will be removed in 23.0.0; use 'transparent' for the same look with a capture that keeps its alpha, or 'light'/'dark' for an absolute colour.`**
 - **`<Class> uses @Input() decorators which are not fully supported. …`** or
@@ -168,7 +169,8 @@ Check the log line `ng-prism: Generated manifest with N component(s)` first, the
 ## The service is missing from the sidebar
 
 Look at the log first. `ng-prism: … service(s) with @Showcase found, but no plugin shows services; …` means the
-config has no `jsDocPlugin()` (or another plugin with a panel that has `appliesTo: ['service']`): add it. Otherwise:
+config has no `jsDocPlugin()` (or another plugin with a view panel that has `appliesTo: ['service']`): add it. If
+`jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer. Otherwise:
 
 1. Is the log line `ng-prism: Generated manifest with N component(s), M service(s)` and M is lower than expected?
 2. Is the class exported from an entry point the `prism` target scans?
@@ -190,8 +192,12 @@ A service is addressed as `?service=<ClassName>`; `?component=` never selects on
 - **A default shows `—`:** the option needs `@default <value>` in its JSDoc. Prose isn't read.
 - **A type isn't a link:** it must be an interface, class, type alias or enum that a scanned entry point exports and
   that isn't `@internal`. A type imported under another name stays unlinked.
-- **A property isn't listed:** `private`, `protected`, `#x`, `_x`, statics, `@internal` and constructor parameter
-  properties (`constructor(public readonly x: T)`) aren't, and a lifecycle hook never is.
+- **A property isn't listed:** `private`, `protected`, `#x`, `_x`, statics and `@internal` aren't, and a lifecycle hook
+  never is. A constructor parameter is listed only with `public`, `readonly` or `override`.
+- **A `@returns` text isn't shown:** that is a limit; the return type comes from the code. Say what it means in the
+  method's description.
+- **The usage snippet imports a setup entry under the wrong name:** the function or token is exported under another
+  name (`export { impl as provideToast }`), and the snippet uses the declared one. Export it under its declared name.
 - **A panel of your own doesn't show on a service page:** it needs `appliesTo: ['service']` and `placement: 'view'`.
 
 ## The styleguide build fails with NG8002

@@ -12,13 +12,18 @@ npm install @ng-prism/plugin-jsdoc
 
 ### Peer Dependencies
 
-| Package           | Version    |
-| ----------------- | ---------- |
-| `@ng-prism/core`  | `>=21.0.0` |
-| `@angular/core`   | `>=20.0.0` |
-| `typescript`      | `>=5.5.0`  |
-| `highlight.js`    | `>=11.0.0` |
-| `ngx-highlightjs` | `>=14.0.0` |
+| Package                      | Version               |
+| ---------------------------- | --------------------- |
+| `@ng-prism/core`             | `^<plugin version>-0` |
+| `@angular/common`            | `>=20.0.0`            |
+| `@angular/core`              | `>=20.0.0`            |
+| `@angular/platform-browser`  | `>=20.0.0`            |
+| `@angular-devkit/schematics` | `>=20.0.0`            |
+| `typescript`                 | `>=5.5.0`             |
+| `highlight.js`               | `>=11.0.0`            |
+| `ngx-highlightjs`            | `>=14.0.0`            |
+
+Each release requires the `@ng-prism/core` of its own version (`^22.7.0-0` for 22.7.0), so keep the core and the plugin on the same version.
 
 ## Setup
 
@@ -41,6 +46,7 @@ export default defineConfig({
     - Inputs table (name, type, default, description)
     - Outputs table (name, description)
     - Supported tags: `@deprecated`, `@since`, `@see`, `@example`
+- Draws the API page of every service with `@Showcase` (since 22.7.0): its properties, methods and setup, a generated usage snippet and the types it reaches, see [Services](https://ng-prism.github.io/ng-prism/#/plugins/jsdoc?id=services)
 
 ## Markdown Support
 

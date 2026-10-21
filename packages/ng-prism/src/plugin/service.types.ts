@@ -17,9 +17,9 @@ export interface ApiDocTags {
 }
 
 /**
- * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
- *
  * A type as written, plus the ids of documented types it mentions.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
  */
 export interface ApiTypeRef {
     /** Display text, e.g. `ToastOptions`, `Signal<boolean>`, `number | null`. */

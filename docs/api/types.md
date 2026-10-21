@@ -85,7 +85,7 @@ interface RuntimeService {
 
 ## ScannedService
 
-The data the scanner extracts from a `@Showcase`-annotated class with `@Injectable` or `@Service`, see [Showcasing Services](guide/showcasing-services.md). Plugins receive it in [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned).
+The data the scanner extracts from a `@Showcase`-annotated class with `@Injectable` or `@Service` (since `22.7.0`), see [Showcasing Services](guide/showcasing-services.md). Plugins receive it in [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned).
 
 ```typescript
 interface ScannedService {
@@ -325,7 +325,7 @@ componentPage({
 
 ## NavigationItem
 
-Discriminated union used in `PrismNavigationService.categoryTree()` and `PrismNavigationService.activeItem`.
+Discriminated union used in `PrismNavigationService.sectionTree()` (the items of each category) and `PrismNavigationService.activeItem`.
 
 ```typescript
 type NavigationItem = { kind: 'component'; data: RuntimeComponent } | { kind: 'service'; data: RuntimeService } | { kind: 'page'; data: StyleguidePage };

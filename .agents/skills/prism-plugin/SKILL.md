@@ -15,9 +15,10 @@ interface NgPrismPlugin {
 
     // Build-time hooks (run in Node.js during scanning)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
-    onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
-
+    // Services (@Showcase + @Injectable/@Service) never reach onComponentScanned; they get this hook (since 22.7.0)
+    onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
+    onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
 
     // Runtime contributions (embedded in the Prism app)
     panels?: PanelDefinition[];
@@ -110,8 +111,11 @@ interface PanelDefinition {
     icon?: string;
     position?: 'bottom' | 'right'; // deprecated since 22.6.0, never had an effect
     placement?: 'addon' | 'view';
+    // Default ['component']. 'service' only counts on a view panel: it gets the input activeService, and the
+    // build keeps services in the manifest only when such a panel exists (read from the Node entry). Since 22.7.0.
+    appliesTo?: readonly ('component' | 'service')[];
     providers?: Provider[];
-    isVisible?: (component: RuntimeComponent) => boolean;
+    isVisible?: (component: RuntimeComponent) => boolean; // components only
     badge?: (component: RuntimeComponent) => PanelBadge | null;
     keepAlive?: boolean;
 }

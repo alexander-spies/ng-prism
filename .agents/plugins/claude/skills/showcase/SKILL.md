@@ -27,9 +27,10 @@ package is right:
    enum members, arithmetic and string concatenation on those, template literals with such placeholders, property
    access on constants (`SIZES.md`), and arrays and objects, spreads included. It drops function calls, ternaries,
    `??` and `&&`, `let` and `var`, `declare`d values, functions, classes and `new`, each with a `⚠ ng-prism:` warning,
-   and keeps the rest. When the whole config can't be evaluated, the component is skipped. Constants imported from a
-   compiled package (`.d.ts`) are readable only as plain literals. `defineConfig({ strictShowcase: true })` in
-   `ng-prism.config.ts` turns every dropped value into a build error.
+   and keeps the rest. The one function that works is a service's `setup: () => [...]`: the builder reads the array
+   literal from the source and never calls it. When the whole config can't be evaluated, the component is skipped.
+   Constants imported from a compiled package (`.d.ts`) are readable only as plain literals.
+   `defineConfig({ strictShowcase: true })` in `ng-prism.config.ts` turns every dropped value into a build error.
 2. **The component must be exported by the library's entry point.** The builder scans what the `entryPoint` of the
    library's `prism` target exports, `export *` included: every secondary entry point (an `ng-package.json` without
    `dest` below the library), then the primary one. Up to 22.5.0 the primary entry file is skipped when secondary entry
@@ -185,8 +186,9 @@ export interface NotificationConfig {
 
 - **The JSDoc plugin draws the page.** Without `jsDocPlugin()` in `ng-prism.config.ts` (skill setup) the build drops all
   services from the manifest and logs, once, through the normal log and not as a warning:
-  `ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`
-  Add the plugin, don't touch the services. `strictShowcase` doesn't fail over this hint.
+  `ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`
+  Add the plugin, or update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer if it is already there; don't touch the
+  services. `strictShowcase` doesn't fail over this hint.
 - **Fields.** A service takes `title` (required), `description`, `category`, `categoryOrder`, `componentOrder`,
   `section` (default `Services`), `sectionOrder`, `tags`, `status`, `meta` and `setup`. `variants`, `states`,
   `providers`, `bg`, `canvasLayout`, `host` and `renderPage` need a canvas. **Until 23.0.0 one of them keeps an
@@ -203,12 +205,14 @@ export interface NotificationConfig {
   entry point. Anything else is dropped with a warning that counts for `strictShowcase`, and `setup` on a component
   or directive too.
 - **The page is the code plus the JSDoc.** Every public property, getter and method is listed with its type, JSDoc or
-  not (a component's API tab skips undocumented methods; a service page doesn't). Left out: `private`, `protected`,
-  `#x`, `_x`, lifecycle hooks, the constructor, statics and `@internal`. Write JSDoc for what the types can't say: the
-  class description (Markdown), `@since`, `@deprecated`, `@example` (a fenced block), `@param name text` on methods
-  and setup functions, and `@default` on each option of a config interface. The default column is filled from
-  `@default` only: prose such as "Defaults to `'bottom-right'`." is not read. An override without a doc block takes
-  the one of its base class.
+  not (a component's API tab skips undocumented methods; a service page doesn't), and so is every constructor
+  parameter property (`constructor(readonly id: number)`), described by the constructor's `@param`. Left out:
+  `private`, `protected`, `#x`, `_x`, lifecycle hooks, the constructor itself, statics and `@internal`. Write JSDoc
+  for what the types can't say: the class description (Markdown), `@since`, `@deprecated`, `@example` (a fenced
+  block), `@param name text` on methods and setup functions (shown under each parameter), `@see` (a chip on the class
+  and on type cards) and `@default` on each option of a config interface. A `@returns` text isn't shown: the return
+  type comes from the code. The default column is filled from `@default` only: prose such as "Defaults to
+  `'bottom-right'`." is not read. An override without a doc block takes the one of its base class.
 - **Types get a card and a link** when a scanned entry point exports them and they aren't `@internal`. Export the
   config interface, the handle class and the union alias from the entry point, or they stay plain text.
 - **Provision is read from the decorator**: `@Service()` and `providedIn: 'root' | 'platform' | 'any'` are automatic,
@@ -216,11 +220,12 @@ export interface NotificationConfig {
   `providers: [X]` for a by-hand service without `setup` only.
 - **Not recognised as a service:** a `@Service` from another DI library, a decorator imported under another name, and a
   class that isn't exported from an entry point.
-- **Known limits, don't work around them:** constructor parameter properties (`constructor(public readonly x: T)`)
-  aren't listed yet; a type imported or re-exported under another name appears under its declared name and may stay
-  unlinked; a token whose type argument is a class gets no option table; overloads show once, and generics and statics
-  aren't listed; a panel of your own with `appliesTo: ['service']` needs `placement: 'view'`, since a service page has
-  no addon area. The extracted API is experimental until 23.0.0.
+- **Known limits, don't work around them:** a `@returns` text isn't shown; a type imported or re-exported under
+  another name appears under its declared name and may stay unlinked; a setup function or token exported under another
+  name (`export { impl as provideToast }`) gets its declared name in the usage snippet's import; a token whose type
+  argument is a class gets no option table; overloads show once, and generics and statics aren't listed; a panel of
+  your own with `appliesTo: ['service']` needs `placement: 'view'`, since a service page has no addon area. The
+  extracted API is experimental until 23.0.0.
 
 ## Workflow
 

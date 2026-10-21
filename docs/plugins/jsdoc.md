@@ -8,7 +8,7 @@
 - Extracts `@deprecated`, `@since`, `@see`, and `@example` tags
 - Renders tables for `@Input` / `@Output` documentation pulled from individual property JSDoc
 - Renders descriptions and examples as **Markdown** (since `21.13.0`)
-- Draws the page of every [service](guide/showcasing-services.md) with `@Showcase`: its API, a generated usage snippet and the types it reaches
+- Draws the page of every [service](guide/showcasing-services.md) with `@Showcase`: its API, a generated usage snippet and the types it reaches (since `22.7.0`)
 - Works purely at build time, with no runtime parsing of TypeScript source
 
 ## Install
@@ -83,16 +83,17 @@ Inputs, outputs and methods a component inherits from a base class are documente
 
 ## Services
 
-A class with `@Showcase` and `@Injectable` or `@Service` gets a page of its own under **Services** in the sidebar. The plugin draws it, which is why a service shows up at all only when `jsDocPlugin()` is in the config: the page is a panel of this plugin that applies to services. Without it, the build leaves services out and prints this once:
+A class with `@Showcase` and `@Injectable` or `@Service` gets a page of its own under **Services** in the sidebar. The plugin draws it, which is why a service shows up at all only when `jsDocPlugin()` from 22.7.0 or newer is in the config: the page is a view panel of this plugin that applies to services. Without it, the build leaves services out and prints this once:
 
 ```
-ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.
+ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
 ```
 
 The page reads the same JSDoc comments in your source as a component's tab, with these differences:
 
 - **Methods are listed with or without JSDoc.** A component's tab only lists methods that have a doc block. For a service the signature is information on its own, so every public method is there, and so is every public property, typed from the annotation or inferred (`Signal<boolean>`).
-- **Signatures come from the code,** not from `@param` and `@returns`. `@param name text` adds the description of a parameter, and nothing else is needed for the types.
+- **Signatures come from the code,** not from `@param` and `@returns`. `@param name text` adds the description of a parameter, shown under it, and nothing else is needed for the types. A `@returns` text is not shown. On a constructor, `@param` describes its parameter properties (`constructor(readonly id: number)`), which are listed as properties.
+- **`@see` shows as a chip,** a `See:` chip on the class and on each type card that has one.
 - **Defaults come from `@default`.** The option tables of setup functions and interfaces show a **Default** column filled from `@default` on each property. Prose such as "Defaults to `'bottom-right'`." is not read.
 - **`@internal` hides** a member or a type from the page.
 - **Overrides inherit.** An override without a doc block of its own takes description, tags and `@param` texts from the nearest base class member that has them. A line comment between a doc block and the member (`// eslint-disable-next-line`) keeps the block attached.

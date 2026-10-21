@@ -41,16 +41,16 @@ On rebuild, the same `Scanner` instance is reused. It passes the previous `ts.Pr
 
 ### 3. Services Gate
 
-A service page is made by a plugin panel that applies to services (`PanelDefinition.appliesTo` includes `'service'`, which `jsDocPlugin()` declares). The pipeline reads that from the panels of the loaded config, whose Node side carries them along:
+A service page is made by a plugin's view panel that applies to services (`placement: 'view'` and `PanelDefinition.appliesTo` includes `'service'`, which `jsDocPlugin()` declares from 22.7.0 on). An addon panel does not count: a service page has no addon area. The pipeline reads that from the panels of the loaded config, whose Node side carries them along:
 
 - **Some plugin has one:** the services go on, into the plugin hooks and the manifest.
 - **None has:** nothing could show the services, so they are dropped here. The manifest gets no `services`, no `onServiceScanned` runs, and the pipeline logs one hint instead, through the builder logger and without the `⚠`:
 
 ```
-ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.
+ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
 ```
 
-The hint is not a diagnostic, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail over it. `PrismPipelineResult.serviceCount` is the number of services in the manifest, `0` when they were dropped however many the scan found.
+The hint names the plugin version because a `@ng-prism/plugin-jsdoc` from before 22.7.0 has no such panel, so a config with `jsDocPlugin()` can still get it. The hint is not a diagnostic, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail over it. `PrismPipelineResult.serviceCount` is the number of services in the manifest, `0` when they were dropped however many the scan found.
 
 ### 4. Merge Config Pages
 
