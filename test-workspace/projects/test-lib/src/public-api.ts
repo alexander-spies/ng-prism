@@ -17,3 +17,6 @@ export { NotificationService } from './lib/services/notification/notification.se
 export { provideNotifications } from './lib/services/notification/provide-notifications.js';
 export { NotificationRef } from './lib/services/notification/notification-ref.js';
 export type { NotificationConfig, NotificationOptions, NotificationPosition } from './lib/services/notification/notification.model.js';
+export { TimeAgoPipe } from './lib/pipes/time-ago/time-ago.pipe.js';
+export { provideTimeAgo } from './lib/pipes/time-ago/provide-time-ago.js';
+export type { TimeAgoOptions, TimeAgoStyle } from './lib/pipes/time-ago/time-ago.model.js';
