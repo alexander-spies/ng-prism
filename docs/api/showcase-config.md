@@ -369,13 +369,13 @@ All colors come from the `--prism-mark-*` role tokens (plus `--prism-text-muted`
 
 A class with `@Injectable` or `@Service` from `@angular/core` is a [service](guide/showcasing-services.md), unless it also has `@Component` or `@Directive`. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` and `renderPage` do nothing there, since a service page has no canvas.
 
-**Until 23.0.0 they decide what the class is.** A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. A class with `@Injectable` or `@Service` that declares one of those fields stays a component, as before, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)):
+**Until 23.0.0 they decide what the class is** (deprecated since 22.7.0, removed in 23.0.0). A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. A class with `@Injectable` or `@Service` that declares one of those fields stays a component, as before, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)):
 
 ```
 ⚠ ng-prism: ToastService is an @Injectable/@Service with @Showcase and declares variants, renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.
 ```
 
-Remove the fields and move the demo to a [component page](guide/component-pages.md) to make it a service now. From 23.0.0 the exception ends.
+Remove the fields and move the demo to a [component page](guide/component-pages.md) to make it a service now. The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Breaking changes in 22.7.0](guide/migration-v22.md#breaking-changes-and-deprecations-in-2270).
 
 ---
 

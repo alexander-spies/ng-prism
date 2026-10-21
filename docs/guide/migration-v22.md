@@ -318,6 +318,34 @@ Relative paths resolve against `workspaceRoot`. If you set this option, also upd
 
 None of this affects `ShowcaseConfig`, the manifest format, or any plugin's public API. See [`PrismMetricBadgeComponent` and `PrismIconComponent`](../plugins/writing-plugins.md#header-and-panel-widgets) if you are building a header widget and want the same building blocks the built-in gauge uses.
 
+## Breaking changes and deprecations in 22.7.0
+
+`22.7.0` adds [services](showcasing-services.md) to the styleguide. Everything else is additive: `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__` and `onComponentScanned` see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. There is one breaking change in application code and one deprecation.
+
+- **`NavigationItem` has a third kind, `'service'`.** The union is exported from `@ng-prism/core`, so any code that narrows it by `kind` and reads `data` needs a `'service'` branch. That includes a plain two-way check, which now fails to compile because the other branch is `RuntimeService | StyleguidePage`:
+
+    ```typescript
+    // before 22.7.0
+    function label(item: NavigationItem): string {
+        return item.kind === 'component' ? item.data.meta.showcaseConfig.title : item.data.title;
+    }
+
+    // from 22.7.0
+    function label(item: NavigationItem): string {
+        switch (item.kind) {
+            case 'component':
+            case 'service':
+                return item.data.meta.showcaseConfig.title;
+            case 'page':
+                return item.data.title;
+        }
+    }
+    ```
+
+    The same goes for a `switch` that ends in `never` and for a lookup typed on the union. The members `PrismNavigationService.activeService` and `selectService()` and the `service` URL parameter are new and change nothing for existing code. See [`NavigationItem`](../api/types.md#navigationitem).
+
+- **Deprecated since 22.7.0, removed in 23.0.0: an `@Injectable` or `@Service` class with `@Showcase` and a component-only field is treated as a component.** Before services, such a class landed in `components`, and with `renderPage` it had a working page. That keeps working in 22.x: a class with `@Injectable` or `@Service` that declares `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or `renderPage` stays a component, and the build prints a notice (it does not count for [`strictShowcase`](../api/ng-prism-config.md#strictshowcase)). From 23.0.0 it is shown as a service and those fields are dropped. To switch now, remove the fields, or move the page to a [component page](component-pages.md) and keep the service on its own. See [Showcasing Services: Compatibility until 23.0.0](showcasing-services.md#compatibility-until-2300).
+
 ## Related
 
 - Issue [#13](https://github.com/ng-prism/ng-prism/issues/13)

@@ -216,4 +216,4 @@ export default defineConfig({ strictShowcase: true });
 ng-prism: strictShowcase is enabled and 2 @Showcase value(s) were dropped; see the warnings above.
 ```
 
-`build` exits with an error, and `serve` does not start. When a watch-mode rebuild fails this way, the error is logged and the previous manifest stays in place. Deprecations that lose nothing, such as `bg: 'checker'`, remain warnings either way, and so do the notices about [services](guide/showcasing-services.md): the one for a class with component-only fields that is still treated as a component until 23.0.0, and the hint that no plugin shows services.
+`build` exits with an error, and `serve` does not start. When a watch-mode rebuild fails this way, the error is logged and the previous manifest stays in place. Deprecations that lose nothing, such as `bg: 'checker'`, remain warnings either way, and so do the notices about [services](guide/showcasing-services.md): the one for a class with component-only fields that is still treated as a component (deprecated since 22.7.0, removed in 23.0.0), and the hint that no plugin shows services.

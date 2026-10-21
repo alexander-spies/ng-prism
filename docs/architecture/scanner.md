@@ -152,7 +152,7 @@ A service is a class with `@Showcase` and `@Injectable` or `@Service`. `componen
 
 `findAngularCoreDecorator()` finds `Injectable` and `Service` by name and then checks through the checker that the identifier is imported from `@angular/core` under that same name, so a decorator imported under another one (`import { Injectable as Service }`) is not recognised. TypeDI and other libraries have a `@Service()` of their own, and it makes no service. The scanner never imports `Service` from `@angular/core`: Angular 20 has none, and the decorator is recognised in the source alone, so the peer dependency stays `>=20.0.0`.
 
-The `@Showcase` argument is read from the literal and from the evaluated value, since a constant or a spread can bring in a component-only field and a field the evaluator cannot read is still in the literal. A `legacy-component` is scanned as a component, as before services existed, and `scanComponents()` prints a notice through `notify`, not `report`, so it is not a [diagnostic](#diagnostics) and `strictShowcase` does not fail over it. The exception ends in 23.0.0.
+The `@Showcase` argument is read from the literal and from the evaluated value, since a constant or a spread can bring in a component-only field and a field the evaluator cannot read is still in the literal. A `legacy-component` is scanned as a component, as before services existed, and `scanComponents()` prints a notice through `notify`, not `report`, so it is not a [diagnostic](#diagnostics) and `strictShowcase` does not fail over it. The exception is deprecated since 22.7.0 and ends in 23.0.0.
 
 ### Provision
 

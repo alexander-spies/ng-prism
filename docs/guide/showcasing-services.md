@@ -153,7 +153,7 @@ A service is only listed when you mark it. There is no automatic discovery of ev
 | [`setup`](#setup)                                                             | The functions and tokens that configure the service. Services only                                                                             |
 | `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage` | Do not apply: a service has no canvas                                                                                                          |
 
-The fields that do not apply have a consequence until 23.0.0, see [Compatibility until 23.0.0](#compatibility-until-2300).
+The fields that do not apply have a consequence until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0), see [Compatibility until 23.0.0](#compatibility-until-2300).
 
 `setup` on a component or a directive is reported and dropped, since a component has no use for it.
 
@@ -275,13 +275,15 @@ It is a notice, not a warning: nothing is wrong with the library, so [`strictSho
 
 ## Compatibility until 23.0.0
 
+> **Deprecated since 22.7.0, removed in 23.0.0.** Until then a class with a component-only field stays a component. See [Breaking changes in 22.7.0](guide/migration-v22.md#breaking-changes-and-deprecations-in-2270).
+
 A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. To keep that working in 22.x, a class with `@Injectable` or `@Service` that declares one of the fields only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) stays a component, as before. The build prints this notice:
 
 ```
 ⚠ ng-prism: ToastService is an @Injectable/@Service with @Showcase and declares variants, renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.
 ```
 
-It is a notice, so `strictShowcase` ignores it. To switch such a class to a service page now, remove those fields and move its demo to a [component page](guide/component-pages.md). From 23.0.0 the exception ends: the class is a service, and those fields are dropped.
+It is a notice, so `strictShowcase` ignores it. To switch such a class to a service page now, remove those fields and move its demo to a [component page](guide/component-pages.md). The exception is deprecated since 22.7.0 and ends in 23.0.0: from then on the class is a service, and those fields are dropped.
 
 ## Warnings
 

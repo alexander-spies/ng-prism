@@ -73,7 +73,7 @@ Same prefix, but they don't count for `strictShowcase`.
 
 - **`<Class> is an @Injectable/@Service with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`**:
   the class has a field only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or
-  `renderPage`), so it stays a component until 23.0.0. To make it a service now, remove the fields and move the demo to
+  `renderPage`), so it stays a component until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0). To make it a service now, remove the fields and move the demo to
   a component page; otherwise leave it, nothing is lost.
 - **`ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`**
   (no `⚠`, an info line of the normal log): no plugin has a panel that applies to services, so the build left every
@@ -175,7 +175,7 @@ config has no `jsDocPlugin()` (or another plugin with a panel that has `appliesT
 3. Does it carry `@Injectable` or `@Service`, imported from `@angular/core` under that name? A decorator imported under
    another name, or a `@Service` from another DI library, makes no service.
 4. Does it have `@Component` or `@Directive` too? Then it is a component. Does it declare `variants`, `renderPage` or
-   another component-only field? Then it is still a component until 23.0.0, with a notice in the log.
+   another component-only field? Then it is still a component until 23.0.0 (deprecated since 22.7.0), with a notice in the log.
 5. Is the `@Showcase` argument an object literal with a `title`, readable by the builder? Otherwise the service is
    skipped with a warning, like a component.
 
