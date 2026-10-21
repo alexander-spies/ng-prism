@@ -99,7 +99,7 @@ Optional number controlling the sort order of _this component_ within its catego
 
 ### `section`
 
-Optional string that places the component into a top-level sidebar section. Auto-detected when omitted: `'Directives'` for a `@Directive`, `'Components'` for a `@Component`, `'Services'` for a service. Any free-form string creates a new section (e.g. `'Pipes'`, `'Utilities'`).
+Optional string that places the component into a top-level sidebar section. Auto-detected when omitted: `'Directives'` for a `@Directive`, `'Components'` for a `@Component`, `'Services'` for a service. Any free-form string creates a new section (e.g. `'Forms'`, `'Utilities'`).
 
 ```typescript
 @Showcase({ title: 'Autofocus', section: 'Behavior' })

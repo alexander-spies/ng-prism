@@ -166,9 +166,9 @@ Top-level sidebar grouping. ng-prism auto-detects this from the decorator type: 
 @Directive({ selector: '[appAutofocus]', standalone: true })
 export class AutofocusDirective {}
 
-@Showcase({ title: 'CurrencyPipe', section: 'Pipes' })
-@Pipe({ name: 'libCurrency', standalone: true })
-export class CurrencyPipe {
+@Showcase({ title: 'Date Field', section: 'Forms' })
+@Component({ selector: 'lib-date-field', standalone: true, template: '…' })
+export class DateFieldComponent {
     /* ... */
 }
 ```

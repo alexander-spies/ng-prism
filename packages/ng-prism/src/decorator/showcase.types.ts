@@ -66,7 +66,7 @@ export interface ShowcaseConfig<T = unknown> {
      * Top-level section in the sidebar. Auto-detected if omitted:
      * 'Directives' for a `@Directive`, 'Services' for a service, otherwise
      * 'Components'. Free-form string: any value creates a new top-level
-     * section (e.g. 'Pipes', 'Utilities').
+     * section (e.g. 'Forms', 'Utilities').
      */
     section?: string;
     /**
