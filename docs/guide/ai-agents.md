@@ -57,11 +57,11 @@ running an update.
 
 ## What it covers
 
-| Skill                   | For                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `ng-prism:showcase`     | Writing or changing `@Showcase` configs, fixing `⚠ ng-prism:` build warnings, checking variants in the running styleguide |
-| `ng-prism:setup`        | `ng add`, `ng-prism.config.ts`, the official plugins, theming, publishing a library without its showcases, upgrades       |
-| `ng-prism:write-plugin` | Your own plugin: build-time hooks, panels, controls, header widgets, sidebar decorations, packaging                       |
+| Skill                   | For                                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ng-prism:showcase`     | Writing or changing `@Showcase` configs, also for services, fixing `⚠ ng-prism:` build warnings, checking variants in the running styleguide |
+| `ng-prism:setup`        | `ng add`, `ng-prism.config.ts`, the official plugins, theming, publishing a library without its showcases, upgrades                          |
+| `ng-prism:write-plugin` | Your own plugin: build-time hooks, panels, controls, header widgets, sidebar decorations, packaging                                          |
 
 Claude Code loads a skill when your request matches it. You can also call one directly, e.g. `/ng-prism:showcase`.
 

@@ -16,6 +16,8 @@ ng-prism exposes a small, stable contract for those tools. This page is the cano
 | `[data-prism-excluded="<reason>"]` on `.demo-wrap`                   | renderer host element           | Set next to the render marker when the requested state is not part of what the canvas shows. A runner reports the cell as excluded instead of capturing it, see [A state that does not apply](#a-state-that-does-not-apply). |
 | `?capture=1`                                                         | URL param                       | [Capture isolation mode](#capture-isolation-mode): strips canvas chrome, hands the canvas the whole viewport and freezes the render for deterministic screenshots.                                                           |
 
+> **Services are not part of this contract.** A [service](guide/showcasing-services.md) page is documentation without a canvas: it has no variants, no `.demo-wrap` and nothing to capture. Services do not appear in `__PRISM_MANIFEST__`, whose `components` lists exactly what renders, so a runner that enumerates it sees the same entries as before services existed. `?component=` never selects a service. A service has its own URL parameter, `?service=<className>`, for deep links into the styleguide, see [State Preservation](guide/url-state.md); it is no anchor of this page.
+
 ### Enumerating what exists
 
 `__PRISM_MANIFEST__` is a thin discovery view of the runtime manifest and carries no Angular class references.

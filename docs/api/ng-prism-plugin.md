@@ -6,6 +6,7 @@ Interface implemented by all ng-prism plugins. A plugin is a plain JavaScript ob
 interface NgPrismPlugin {
     name: string;
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
+    onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
     panels?: PanelDefinition[];
@@ -56,6 +57,27 @@ async onComponentScanned(component) {
 
 ---
 
+### `onServiceScanned`
+
+Build-time hook called once per `@Showcase`-decorated [service](guide/showcasing-services.md), with the `ScannedService`. The same pattern as `onComponentScanned`: mutate it in place or return a new object, `void` keeps the original, async is supported, and a plugin gets the result of the one before it. Runs in Node.js.
+
+```typescript
+onServiceScanned(service) {
+  return {
+    ...service,
+    meta: { ...service.meta, myPlugin: { methods: service.api.methods.length } },
+  };
+}
+```
+
+Services never reach `onComponentScanned`, and components never reach this hook. A service does not appear in `PrismManifest.components`: the manifest has a separate `services` list, so every plugin written before services existed sees the same components as before.
+
+The hook only runs when a plugin shows services. A service page is made by a [panel](#paneldefinition) with `appliesTo: ['service']`, and when no plugin in the config has one (in practice: no `jsDocPlugin()`), the build leaves the services out of the manifest, runs no `onServiceScanned` and prints a hint instead, see [Showcasing Services](guide/showcasing-services.md#without-the-jsdoc-plugin). The build reads `appliesTo` from the panels of the plugin's Node entry, so a plugin with a browser entry declares it in both.
+
+`ScannedService.api` is the extracted API of the service. Its shape is experimental, see [`ScannedService`](api/types.md#scannedservice).
+
+---
+
 ### `onPageScanned`
 
 Build-time hook called once per `StyleguidePage`. Same mutation pattern as `onComponentScanned`.
@@ -72,7 +94,7 @@ onPageScanned(page) {
 
 ### `onManifestReady`
 
-Build-time hook called once with the complete `PrismManifest` after all components and pages have been processed. Use for cross-component transforms or manifest-level filtering.
+Build-time hook called once with the complete `PrismManifest` after all components, services and pages have been processed. Use for cross-component transforms or manifest-level filtering. `manifest.services` is only present when a plugin shows services.
 
 ```typescript
 onManifestReady(manifest) {
@@ -147,7 +169,7 @@ async onManifestReady(manifest) {
 
 ### `navigationDecorations`
 
-Array of `NavigationDecorationDefinition` objects, each contributing a marker to the sidebar's navigation item for every component. Use for library-wide health signals that should be visible while browsing. The a11y, coverage and visual regression markers all ship as built-ins through this same extension point.
+Array of `NavigationDecorationDefinition` objects, each contributing a marker to the sidebar's navigation item for every component. A service gets none: `badge` is never called for it. Use for library-wide health signals that should be visible while browsing. The a11y, coverage and visual regression markers all ship as built-ins through this same extension point.
 
 ```typescript
 navigationDecorations: [
@@ -186,6 +208,7 @@ interface PanelDefinition {
     icon?: string;
     position?: 'bottom' | 'right'; // deprecated, no effect
     placement?: 'addon' | 'view';
+    appliesTo?: readonly PanelTarget[];
     providers?: Provider[];
     isVisible?: (component: RuntimeComponent) => boolean;
     badge?: (component: RuntimeComponent) => PanelBadge | null;
@@ -204,12 +227,55 @@ interface PanelDefinition {
 | `icon`                 | Icon identifier (optional, theme-dependent)                                                                                                                                                                          |
 | `position`             | _Deprecated since 22.6.0, never had an effect: nothing reads it. Where a panel appears is `placement`._                                                                                                              |
 | `placement`            | `'addon'` = bottom tab bar, `'view'` = view toolbar toggle                                                                                                                                                           |
+| `appliesTo`            | Where the panel appears: `['component']` (the default), `['service']` or both. See [Panels on service pages](#panels-on-service-pages)                                                                               |
 | `providers`            | Providers scoped to this panel's child `EnvironmentInjector`                                                                                                                                                         |
 | `isVisible`            | Predicate. When provided, the panel tab is only shown if it returns `true` for the active component                                                                                                                  |
 | `badge`                | When provided, the panel's tab carries a [badge](#panelbadge) for the active component. Return `null` for "nothing worth saying".                                                                                    |
 | `keepAlive`            | When `true`, the panel component is rendered once on first activation and merely hidden (instead of destroyed) on tab switch. Use for expensive panels like iframes, remote previews or heavy DOM. Default: `false`. |
 
 > **Note:** Always prefer `loadComponent` over `component`. The config file is evaluated by the Angular builder in Node.js, and a static import of a component that uses `DomSanitizer` or any browser global will crash the build.
+
+### Panels on service pages
+
+```typescript
+type PanelTarget = 'component' | 'service';
+```
+
+A [service](guide/showcasing-services.md) page has no canvas, so it offers only the panels that say they apply to services. `appliesTo` names where a panel appears. Without it a panel is a component panel, so a panel written before services existed does not show up on a service page and is not handed anything new.
+
+| `appliesTo`                | Component pages | Service pages | The component receives                             |
+| -------------------------- | --------------- | ------------- | -------------------------------------------------- |
+| _unset_ or `['component']` | yes             | no            | input `activeComponent`                            |
+| `['service']`              | no              | yes           | input `activeService`                              |
+| `['component', 'service']` | yes             | yes           | both inputs, the one that does not apply is `null` |
+
+- **`activeService`** is a `RuntimeService | null`. A panel reads the API of the service from `activeService()?.meta.api`, a `ServiceApi`, and its `className`, `provision`, `importPath` and `showcaseConfig` from `meta`. A panel only receives the inputs of the targets it names, so a component-only panel never logs a warning about an input it does not declare.
+- **`placement: 'view'`** is what a service page shows: its view tab bar, with no Playground or Overview in front of it. A panel for services with `placement: 'addon'` has no area on a service page and never shows. Say `placement: 'view'`.
+- **`isVisible` and `badge`** take a component and are only called for component pages. On a service page every panel that applies to services is offered.
+- **The build looks at this field.** A service goes into the manifest only when some plugin has a panel that applies to services; otherwise the build drops the services and prints a hint, see [`onServiceScanned`](#onservicescanned). `jsDocPlugin()` is the panel that does.
+
+```typescript
+panels: [
+    {
+        id: 'service-notes',
+        label: 'Notes',
+        placement: 'view',
+        appliesTo: ['service'],
+        loadComponent: () => import('./service-notes.component.js').then((m) => m.ServiceNotesComponent)
+    }
+];
+```
+
+```typescript
+@Component({
+    selector: 'app-service-notes',
+    standalone: true,
+    template: `<h4>Notes for {{ activeService()?.meta.className }}</h4>`
+})
+export class ServiceNotesComponent {
+    readonly activeService = input<RuntimeService | null>(null);
+}
+```
 
 ---
 

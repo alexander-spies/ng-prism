@@ -10,10 +10,10 @@ The scanner is created via `createScanner()` in `src/builder/scanner/scanner.ts`
 const scanner = createScanner({
     entryPoints: [{ entryFile: 'packages/my-lib/src/public-api.ts', importPath: 'my-lib' }]
 });
-const { components, diagnostics } = scanner.scan();
+const { components, services, diagnostics } = scanner.scan();
 ```
 
-Each `scan()` call creates a `ts.Program` with every entry file as a root, resolves the exports of each entry point, and passes them to `scanComponents()`.
+Each `scan()` call creates a `ts.Program` with every entry file as a root, resolves the exports of each entry point, and passes them to `scanComponents()` and to `scanServices()`. A `@Showcase` class goes to exactly one of the two, see [Services](#services).
 
 ## Incremental Builds: the `createScanner()` Factory
 
@@ -86,7 +86,7 @@ If no `ng-package.json` is found above the file, the file is the only entry poin
 
 ## How Decorators Are Extracted
 
-`component.scanner.ts` iterates over exported symbols, calls `findDecorator()` for each class declaration, and checks for `@Showcase`, `@Component`, and `@Directive` decorators.
+`component.scanner.ts` iterates over exported symbols, calls `findDecorator()` for each class declaration, and checks for `@Showcase`, `@Component`, and `@Directive` decorators. `findShowcasedClass()` is the common start of this and the service scan: it resolves an export to its class and returns it when it carries `@Showcase`.
 
 **`findDecorator(node, name)`** in `ast-utils.ts` walks the node's decorator list and matches by identifier name. It supports both call-expression decorators (`@Component({...})`) and plain identifier decorators.
 
@@ -132,9 +132,58 @@ All three callers pass the checker. They treat a drop differently:
 
 `describeUnevaluable()` in `showcase-diagnostics.ts` turns each `@Showcase` issue into a message: the component, the path (a variant or a state is named by its index and its `name`), the source text, and its `file:line:column` relative to the working directory so terminals and editors can link it.
 
-`scanComponents()` prints each message once as a warning and collects it in a `diagnostics` array. The values it rejects after evaluation (an invalid `bg`, `status` or `canvasLayout`, an unknown `pseudo` state or a `pseudo` target that is neither `true` nor a selector, a missing `title`) go through the same channel, and so does the deprecated `providers` field, as one message for the whole field instead of one per provider. A deprecated `bg: 'checker'` stays a plain warning, because nothing is lost. `createScanner().scan()` shares one array across all entry points, so a component exported from several of them warns once, and returns it as `ScanResult.diagnostics`. The pipeline throws on a non-empty array when [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on, before plugin hooks run and before a manifest is written.
+`scanComponents()` prints each message once as a warning and collects it in a `diagnostics` array. The values it rejects after evaluation (an invalid `bg`, `status` or `canvasLayout`, an unknown `pseudo` state or a `pseudo` target that is neither `true` nor a selector, a missing `title`) go through the same channel, and so does the deprecated `providers` field, as one message for the whole field instead of one per provider. The setup diagnostics of a service (see [Services](#services)) go through the same channel. A deprecated `bg: 'checker'` stays a plain warning, because nothing is lost. `createScanner().scan()` shares one array across all entry points, so a component exported from several of them warns once, and returns it as `ScanResult.diagnostics`. The pipeline throws on a non-empty array when [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on, before plugin hooks run and before a manifest is written.
 
 `readShowcaseStates()` in `showcase-states.ts` reads the component-level `states` list, and it keeps every slot: a state is identified by its position (the URL parameter, the render marker and the discovery manifest all use the index), so an entry it cannot use becomes `{ name, pseudo: {} }`, an empty column in the Overview, instead of being removed and shifting the entries behind it. It reports a `states` value that is no list, an entry that is no object, a missing or empty `name` (the state is then called `State <position>`), a name that repeats an earlier state (only the first one is used), a state without `pseudo`, and whatever `readPseudoStates()` rejects inside a state's `pseudo`, worded with the state's name. An entry `evaluateStatic` could not read at all (`states: [a, buildState(), c]`) is gone from the evaluated list, so `component.scanner.ts` notes the position from the issue's path and `readShowcaseStates()` puts an empty `State <position>` slot back there; the unevaluable message already explains it, so it adds none. An empty list reads as no states and reports nothing. `states` next to `renderPage` is reported and skipped, because a component page has no Overview, and a variant's `states` that is anything but `false` is reported and removed.
+
+## Services
+
+A service is a class with `@Showcase` and `@Injectable` or `@Service`. `component.scanner.ts` and `service.scanner.ts` split the `@Showcase` classes between them, so a service is in `ScanResult.services` and never in `components`: the component list, `onComponentScanned` and the discovery manifest keep their contents. The code is in `builder/scanner/service/`.
+
+### Telling a service from a component
+
+`classifyShowcaseClass()` in `service/angular-decorators.ts` returns one of three kinds:
+
+| Kind               | When                                                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `component`        | The class has `@Component` or `@Directive` (found by name, as everywhere), or neither `@Injectable` nor `@Service`                                                                   |
+| `legacy-component` | `@Injectable` or `@Service` and a `@Showcase` argument that declares a field only a component can use: `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage` |
+| `service`          | `@Injectable` or `@Service`, and none of those fields                                                                                                                                |
+
+`findAngularCoreDecorator()` finds `Injectable` and `Service` by name and then checks through the checker that the identifier is imported from `@angular/core` under that same name, so a decorator imported under another one (`import { Injectable as Service }`) is not recognised. TypeDI and other libraries have a `@Service()` of their own, and it makes no service. The scanner never imports `Service` from `@angular/core`: Angular 20 has none, and the decorator is recognised in the source alone, so the peer dependency stays `>=20.0.0`.
+
+The `@Showcase` argument is read from the literal and from the evaluated value, since a constant or a spread can bring in a component-only field and a field the evaluator cannot read is still in the literal. A `legacy-component` is scanned as a component, as before services existed, and `scanComponents()` prints a notice through `notify`, not `report`, so it is not a [diagnostic](#diagnostics) and `strictShowcase` does not fail over it. The exception ends in 23.0.0.
+
+### Provision
+
+`readProvision()` evaluates the options of the decorator and answers `auto` or `manual`. `@Service()` is `auto` unless it has `autoProvided: false`; `@Injectable` is `auto` for `providedIn` of `'root'`, `'platform'` or `'any'`. A module class, no `providedIn` and a value the evaluator cannot read are `manual`, without a warning. The `factory` of `@Service({ factory })` is a function the evaluator drops, which leaves the provision alone.
+
+### `setup`
+
+`setup.reader.ts` reads `setup: () => [a, b]` from the `@Showcase` object literal. The evaluator cannot fold functions, so `extractShowcaseConfig()` swallows the issue it raises for `setup`, and the reader takes over:
+
+- The value has to be an arrow function whose body is an array literal, as an expression or as the only `return` of a block. Anything else, `as const` included, reports `describeInvalidSetup` and drops the whole field.
+- Each element is resolved to its declaration through the checker, with an import followed to its source. A name or a property access qualifies; a call or a spread does not. The declaration has to be a function declaration or a `const` arrow or function expression (kind `function`), or a `const` whose type is `InjectionToken` (kind `token`). Otherwise `describeSetupEntryNotSupported` drops the entry.
+- The symbol is looked up in the export index. An entry no scanned entry point exports has no import path for the usage snippet and is dropped with `describeSetupEntryNotExported`.
+- Only the literal is searched. A `setup` that arrives through a spread or a constant is not found and dropped without a word.
+
+On a component, `scanComponents()` reports `describeSetupOnComponent` and ignores the field.
+
+### The export index
+
+`buildExportIndex()` in `service/export-index.ts` maps every symbol the entry points export, resolved through aliases, to the import path of the first entry point that exports it. It is built from all entry points once per scan, because a setup function or a type is often exported by another entry point than the service. The same index decides which types get a card.
+
+### Members, tags and types
+
+`extractServiceApi()` builds the `ServiceApi` of one service from three modules:
+
+- **`member.extractor.ts`** walks the class and its base classes, nearest first, and collects public instance properties, accessors and methods with their signatures. A member the subclass declares hides the inherited one, including an `@internal` override. Left out: `private`, `protected`, `#private`, `_`-prefixed names, lifecycle hooks, the constructor, statics and `@internal`. Methods are listed with or without JSDoc, which differs from the component scan. A getter and its setter, or the overloads of a method, are one entry; the doc block sits on one of them, and the signature shown is the documented one's, else the first. A type is the annotation as written, else `checker.typeToString`.
+- **`doc-tags.ts`** reads description and tags. The doc block is the last one above the node and has to sit directly on it, line comments in between allowed; a floating banner and a ruler (`/** ===== */`) are not read. `@default`, `@since`, `@deprecated`, `@see`, `@example`, `@param` and `@internal` are understood. An override without a doc block of its own takes the doc block of the nearest base class member that has one.
+- **`type-collector.ts`** documents the types the signatures reach. A reference is documented when it resolves to an interface, class, type alias or enum that the export index knows and that is not `@internal`; otherwise it stays text. Each type gets one entry, recursively through the types of its members and type arguments, and a type that refers to itself ends there. Its id is its name, or `name@importPath` when two reachable types share a name, and `reachedFrom` records where it was first met. A type imported under another name is documented under its declared name, and the local name in the text stays unlinked.
+
+`service-api.extractor.ts` adds the setup entries: the signature and docs of a function, the type of a token, and a config table made of the properties of the first parameter's object type, or of a token's type argument, looked at through `Partial`, `Required` and `Readonly`. A class, an array or a primitive gets no table.
+
+The shape of all of this, `ServiceApi` and the `Api*` types, is experimental until 23.0.0, see [`ServiceApi`](api/types.md#serviceapi).
 
 ## Input and Output Extraction
 
@@ -203,3 +252,10 @@ A class is considered a directive (`isDirective: true`) if it has `@Directive` b
 - `inputs`, `outputs`: extracted metadata arrays
 - `componentMeta`: `{ selector, standalone, isDirective }`
 - `importPath`: set by the pipeline for secondary entry points
+
+`scanServices()` returns an array of `ScannedService` objects, in `ScanResult.services`:
+
+- `className`, `filePath`, `importPath`
+- `showcaseConfig`: the evaluated `@Showcase` argument, reduced to the fields that apply to services
+- `provision`: `'auto'` or `'manual'`
+- `api`: the extracted `ServiceApi`

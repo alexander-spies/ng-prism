@@ -54,9 +54,30 @@ These count for `strictShowcase: true`, which ends the build with
 - **`<Class> variant "<name>" declares invalid states <value>, expected false. Skipping.`**: the only value a variant's
   `states` takes is `false`, which keeps it out of the component's states.
 
+- **`<Class> › setup — "<source>" (<file>:<line>:<col>) must be an arrow function returning an array literal, e.g. setup: () => [provideX]; setup was dropped.`**
+  (a service): `setup` has to be an arrow function whose body is an array literal, or a block with that one `return`.
+  `as const`, a spread, a condition, a call, a plain array and a constant that holds the list are all rejected. Write
+  `setup: () => [provideX, X_TOKEN]` directly in the `@Showcase({ … })` object.
+- **`<Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is neither a function nor an InjectionToken; it was dropped.`**:
+  the entry is a class, a plain value or a call. List a function declaration, a `const` arrow or function, or a
+  `const` of type `InjectionToken`, by name or as `ns.name`.
+- **`<Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is not exported from any library entry point, so the styleguide cannot show where to import it from; it was dropped.`**:
+  export the function or token from an entry point the `prism` target scans.
+- **`<Class> › setup (<file>:<line>:<col>) only applies to services (@Injectable or @Service); it was dropped.`**:
+  `setup` sits on a component or directive. Remove it, or check that the class has `@Injectable` or `@Service` from
+  `@angular/core` under that name.
+
 ## Notices
 
 Same prefix, but they don't count for `strictShowcase`.
+
+- **`<Class> is an @Injectable/@Service with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`**:
+  the class has a field only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or
+  `renderPage`), so it stays a component until 23.0.0. To make it a service now, remove the fields and move the demo to
+  a component page; otherwise leave it, nothing is lost.
+- **`ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`**
+  (no `⚠`, an info line of the normal log): no plugin has a panel that applies to services, so the build left every
+  service out. Add `jsDocPlugin()` (skill setup).
 
 - **`<Class> declares bg "checker", which is deprecated and will be removed in 23.0.0; use 'transparent' for the same look with a capture that keeps its alpha, or 'light'/'dark' for an absolute colour.`**
 - **`<Class> uses @Input() decorators which are not fully supported. …`** or
@@ -143,6 +164,35 @@ Check the log line `ng-prism: Generated manifest with N component(s)` first, the
    `@Showcase()` without an argument is skipped without a warning.
 5. Did the log warn about a missing `title` or a config that "cannot be evaluated statically, so the component is
    skipped"?
+
+## The service is missing from the sidebar
+
+Look at the log first. `ng-prism: … service(s) with @Showcase found, but no plugin shows services; …` means the
+config has no `jsDocPlugin()` (or another plugin with a panel that has `appliesTo: ['service']`): add it. Otherwise:
+
+1. Is the log line `ng-prism: Generated manifest with N component(s), M service(s)` and M is lower than expected?
+2. Is the class exported from an entry point the `prism` target scans?
+3. Does it carry `@Injectable` or `@Service`, imported from `@angular/core` under that name? A decorator imported under
+   another name, or a `@Service` from another DI library, makes no service.
+4. Does it have `@Component` or `@Directive` too? Then it is a component. Does it declare `variants`, `renderPage` or
+   another component-only field? Then it is still a component until 23.0.0, with a notice in the log.
+5. Is the `@Showcase` argument an object literal with a `title`, readable by the builder? Otherwise the service is
+   skipped with a warning, like a component.
+
+A service is addressed as `?service=<ClassName>`; `?component=` never selects one.
+
+## A service page is missing something
+
+- **A setup function or token is not listed:** look for a `⚠ ng-prism:` line naming `setup` or `setup[<i>]`.
+- **A config table is missing:** the first parameter of the setup function has to be an interface, an object literal
+  type or an object type alias (also in `Partial`, `Required` or `Readonly`). A class, an array, a primitive, or a token
+  whose type argument is a class gets none.
+- **A default shows `—`:** the option needs `@default <value>` in its JSDoc. Prose isn't read.
+- **A type isn't a link:** it must be an interface, class, type alias or enum that a scanned entry point exports and
+  that isn't `@internal`. A type imported under another name stays unlinked.
+- **A property isn't listed:** `private`, `protected`, `#x`, `_x`, statics, `@internal` and constructor parameter
+  properties (`constructor(public readonly x: T)`) aren't, and a lifecycle hook never is.
+- **A panel of your own doesn't show on a service page:** it needs `appliesTo: ['service']` and `placement: 'view'`.
 
 ## The styleguide build fails with NG8002
 

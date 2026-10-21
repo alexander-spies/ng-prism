@@ -8,6 +8,7 @@
 - Extracts `@deprecated`, `@since`, `@see`, and `@example` tags
 - Renders tables for `@Input` / `@Output` documentation pulled from individual property JSDoc
 - Renders descriptions and examples as **Markdown** (since `21.13.0`)
+- Draws the page of every [service](guide/showcasing-services.md) with `@Showcase`: its API, a generated usage snippet and the types it reaches
 - Works purely at build time, with no runtime parsing of TypeScript source
 
 ## Install
@@ -30,7 +31,7 @@ export default defineConfig({
 });
 ```
 
-The plugin adds a **Docs** tab to the addon panel for every component that has JSDoc comments.
+The plugin adds an **API** tab to the view tabs of every component that has JSDoc comments, and the same tab is the whole page of a [service](#services).
 
 ## Supported Tags
 
@@ -79,6 +80,37 @@ export class ButtonComponent {
 The panel renders two tables (one for inputs, one for outputs) with columns for name, type, default value, and description. An input or output declared with an `alias` is listed under its alias, the name a template uses.
 
 Inputs, outputs and methods a component inherits from a base class are documented the same way. The plugin reads their JSDoc from the base classes the scanner found, so `@deprecated` and `@since` on an inherited input show up in the table as well. A member the component redeclares with a JSDoc comment of its own takes its tags from that comment, even if it has none; a redeclaration or override without JSDoc keeps the documentation of the base class, as it does in TypeScript.
+
+## Services
+
+A class with `@Showcase` and `@Injectable` or `@Service` gets a page of its own under **Services** in the sidebar. The plugin draws it, which is why a service shows up at all only when `jsDocPlugin()` is in the config: the page is a panel of this plugin that applies to services. Without it, the build leaves services out and prints this once:
+
+```
+ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.
+```
+
+The page reads the same JSDoc comments in your source as a component's tab, with these differences:
+
+- **Methods are listed with or without JSDoc.** A component's tab only lists methods that have a doc block. For a service the signature is information on its own, so every public method is there, and so is every public property, typed from the annotation or inferred (`Signal<boolean>`).
+- **Signatures come from the code,** not from `@param` and `@returns`. `@param name text` adds the description of a parameter, and nothing else is needed for the types.
+- **Defaults come from `@default`.** The option tables of setup functions and interfaces show a **Default** column filled from `@default` on each property. Prose such as "Defaults to `'bottom-right'`." is not read.
+- **`@internal` hides** a member or a type from the page.
+- **Overrides inherit.** An override without a doc block of its own takes description, tags and `@param` texts from the nearest base class member that has them. A line comment between a doc block and the member (`// eslint-disable-next-line`) keeps the block attached.
+
+```typescript
+/** App-wide defaults, set once with `provideNotifications()`. */
+export interface NotificationConfig {
+    /**
+     * Where the notifications stack.
+     * @default 'bottom-right'
+     */
+    position?: NotificationPosition;
+}
+```
+
+The page is made of the sections Usage, Setup, Examples, Properties, Methods and Types, in this order, with an "On this page" list next to it; a section without content is left out. What is read, how `setup` and the usage snippet work and what the page leaves out is in [Showcasing Services](guide/showcasing-services.md).
+
+> The data behind the page (`ScannedService.api`) is experimental until 23.0.0. A plugin that reads it directly should expect it to change in a 22.x minor, see [`ScannedService`](api/types.md#scannedservice).
 
 ## Class Description
 

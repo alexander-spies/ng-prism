@@ -1,6 +1,6 @@
 ---
 name: showcase
-description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, states and pseudo states, canvas background and layout, status, component pages), when a build prints a "⚠ ng-prism:" warning, when a component is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
+description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and their setup), when a build prints a "⚠ ng-prism:" warning, when a component or service is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
 ---
 
 # Writing and checking @Showcase configs
@@ -83,6 +83,12 @@ package is right:
     page only if it injects `PrismRendererService` from `@ng-prism/core` and reads `inputValues()` and
     `activeVariantIndex()`.
 
+11. **A service is showcased on its class and gets a page without a canvas.** `@Showcase` on a class with `@Injectable`
+    or `@Service`, both imported from `@angular/core` under their own name and with no `@Component` or `@Directive`
+    beside them, lists the class under **Services** in the sidebar. The page shows the public API read from the code,
+    the types it reaches, the `setup` entries and a generated usage snippet. It needs an installed version whose
+    `showcase.types.d.ts` has `setup`. See "Showcasing a service" below.
+
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
 deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`). A variant
@@ -125,6 +131,97 @@ export class ButtonComponent {
 }
 ```
 
+## Showcasing a service
+
+````ts
+import { computed, Injectable, signal } from '@angular/core';
+import { Showcase } from '@ng-prism/core';
+import { NotificationOptions } from './notification.model';
+import { NotificationRef } from './notification-ref';
+import { provideNotifications } from './provide-notifications';
+
+/**
+ * Shows short messages in an overlay at the edge of the viewport, stacked newest first.
+ *
+ * @since 1.4.0
+ * @example
+ * ```ts
+ * private readonly notifications = inject(NotificationService);
+ * ```
+ */
+@Showcase({
+    title: 'Notification Service',
+    category: 'Feedback',
+    setup: () => [provideNotifications]
+})
+@Injectable({ providedIn: 'root' })
+export class NotificationService {
+    private readonly open = signal<readonly NotificationRef[]>([]);
+
+    /** How many notifications are open right now. */
+    readonly count = computed(() => this.open().length);
+
+    /**
+     * Opens a notification. It closes by itself after its duration.
+     * @param options What the notification shows and how long it stays.
+     * @returns A handle to close this notification early.
+     */
+    show(options: NotificationOptions): NotificationRef {
+        /* … */
+    }
+}
+````
+
+```ts
+/** App-wide defaults, set once with `provideNotifications()`. */
+export interface NotificationConfig {
+    /**
+     * Where the notifications stack.
+     * @default 'bottom-right'
+     */
+    position?: NotificationPosition;
+}
+```
+
+- **The JSDoc plugin draws the page.** Without `jsDocPlugin()` in `ng-prism.config.ts` (skill setup) the build drops all
+  services from the manifest and logs, once, through the normal log and not as a warning:
+  `ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`
+  Add the plugin, don't touch the services. `strictShowcase` doesn't fail over this hint.
+- **Fields.** A service takes `title` (required), `description`, `category`, `categoryOrder`, `componentOrder`,
+  `section` (default `Services`), `sectionOrder`, `tags`, `status`, `meta` and `setup`. `variants`, `states`,
+  `providers`, `bg`, `canvasLayout`, `host` and `renderPage` need a canvas. **Until 23.0.0 one of them keeps an
+  `@Injectable` class a component**, with a notice that does not count for `strictShowcase`:
+  `<Class> is an @Injectable/@Service with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`
+  To make it a service, remove those fields and move the demo to a component page.
+- **`setup` lists what configures the service**: provider functions and `InjectionToken` constants, e.g.
+  `setup: () => [provideNotifications, NOTIFICATION_CONFIG]`. It is an arrow function on purpose: a direct list would
+  read a `const` of a file that imports the service back, and `@Showcase(...)` runs when the class is defined (a
+  `ReferenceError` in any library build that isn't stripped). The builder never calls it; it reads the array literal.
+  So: an arrow function whose body is an array literal (or a block with one `return`), written in the `@Showcase({ … })`
+  object itself, not behind a spread or a constant, without `as const`, a spread, a condition or a call. Each entry is
+  a function declaration, a `const` arrow or function, or a `const` of type `InjectionToken`, exported from a scanned
+  entry point. Anything else is dropped with a warning that counts for `strictShowcase`, and `setup` on a component
+  or directive too.
+- **The page is the code plus the JSDoc.** Every public property, getter and method is listed with its type, JSDoc or
+  not (a component's API tab skips undocumented methods; a service page doesn't). Left out: `private`, `protected`,
+  `#x`, `_x`, lifecycle hooks, the constructor, statics and `@internal`. Write JSDoc for what the types can't say: the
+  class description (Markdown), `@since`, `@deprecated`, `@example` (a fenced block), `@param name text` on methods
+  and setup functions, and `@default` on each option of a config interface. The default column is filled from
+  `@default` only: prose such as "Defaults to `'bottom-right'`." is not read. An override without a doc block takes
+  the one of its base class.
+- **Types get a card and a link** when a scanned entry point exports them and they aren't `@internal`. Export the
+  config interface, the handle class and the union alias from the entry point, or they stay plain text.
+- **Provision is read from the decorator**: `@Service()` and `providedIn: 'root' | 'platform' | 'any'` are automatic,
+  `@Injectable()`, `autoProvided: false` and anything it can't read are by hand (no warning). The usage snippet adds
+  `providers: [X]` for a by-hand service without `setup` only.
+- **Not recognised as a service:** a `@Service` from another DI library, a decorator imported under another name, and a
+  class that isn't exported from an entry point.
+- **Known limits, don't work around them:** constructor parameter properties (`constructor(public readonly x: T)`)
+  aren't listed yet; a type imported or re-exported under another name appears under its declared name and may stay
+  unlinked; a token whose type argument is a class gets no option table; overloads show once, and generics and statics
+  aren't listed; a panel of your own with `appliesTo: ['service']` needs `placement: 'view'`, since a service page has
+  no addon area. The extracted API is experimental until 23.0.0.
+
 ## Workflow
 
 1. Read the component: its `input()` / `model()` members and their types, its `<ng-content>` slots, whether it is a
@@ -136,8 +233,10 @@ export class ButtonComponent {
 4. Read the build log. Each `⚠ ng-prism:` line is a dropped value or a deprecated option;
    `references/troubleshooting.md` has the cause and the fix for each. The line
    `ng-prism: Generated manifest with N component(s)` (or `Verified (unchanged)`) tells you whether the component was
-   found. If the styleguide runs in a process you didn't start and you can't read its output, ask for the log or run
-   `ng run <lib>:prism-build` once: it scans the same way and prints the same lines.
+   found. A service shows as `with N component(s), M service(s)`; when that part is missing and the "no plugin shows
+   services" hint is in the log, the services were left out. If the styleguide runs in a process you didn't start and
+   you can't read its output, ask for the log or run `ng run <lib>:prism-build` once: it scans the same way and prints
+   the same lines.
 5. Check every variant you touched in the browser (next section) and look at each image.
 6. Report the URL, the variant, what the screenshot shows and any warning that's left.
 7. Stop the background process unless the user wants it running. Install nothing without asking.
@@ -174,6 +273,10 @@ node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --
   (on Linux with missing system libraries `npx playwright install --with-deps chromium`) and run it only if the user
   agrees. `4` the state doesn't fit the variant, see `--state` above and `references/troubleshooting.md`.
 
+A service has no canvas, and the script can't select one: `--component` only finds components. Open
+`http://localhost:4400/?service=<ClassName>&view=jsdoc` with a browser tool and look at the page (usage snippet, setup,
+members, types), or give the user that URL.
+
 Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome DevTools MCP, Claude in Chrome): open
 `http://localhost:4400/?component=<ClassName>&variant=<index>&capture=1`, wait for
 `.demo-wrap[data-prism-rendered="<ClassName>:<index>"]`, then take the screenshot. For a state add
@@ -184,5 +287,5 @@ External Tooling API; `window.__PRISM_MANIFEST__` lists every component, its var
 ## Guides
 
 - `guide/showcase-decorator.md`, `guide/variants.md`, `guide/content-projection.md`, `guide/directive-hosting.md`,
-  `guide/component-pages.md`
+  `guide/component-pages.md`, `guide/showcasing-services.md` (services and `setup`), `plugins/jsdoc.md`
 - `api/showcase-config.md` (every field), `guide/external-tooling.md` (URL parameters, render marker, capture mode)

@@ -11,9 +11,12 @@ The in-memory manifest produced after the builder scan and loaded at app bootstr
 ```typescript
 interface RuntimeManifest {
     components: RuntimeComponent[];
+    services?: RuntimeService[];
     pages?: StyleguidePage[];
 }
 ```
+
+`services` is only present when the library has [services](guide/showcasing-services.md) and a plugin shows them. Services are never part of `components`, so code that walks `components` sees the same entries as before services existed.
 
 ---
 
@@ -65,6 +68,147 @@ interface ScannedComponent {
 | `importPath`                | Entry point import path (e.g. `'my-lib/atoms'` for secondary entry points)                          |
 | `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest |
 | `meta`                      | Plugin-injected metadata                                                                            |
+
+---
+
+## RuntimeService
+
+A single service in the runtime manifest. It carries data only: the service class is never imported into the styleguide, since the page is documentation and an import would only add bundle size and side effects.
+
+```typescript
+interface RuntimeService {
+    meta: ScannedService;
+}
+```
+
+---
+
+## ScannedService
+
+The data the scanner extracts from a `@Showcase`-annotated class with `@Injectable` or `@Service`, see [Showcasing Services](guide/showcasing-services.md). Plugins receive it in [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned).
+
+```typescript
+interface ScannedService {
+    className: string;
+    filePath: string;
+    importPath?: string;
+    showcaseConfig: ShowcaseConfig;
+    provision: ServiceProvision;
+    api: ServiceApi;
+    meta?: Record<string, unknown>;
+}
+
+type ServiceProvision = 'auto' | 'manual';
+```
+
+| Field            | Description                                                                                                                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `className`      | TypeScript class name. It is what `?service=` addresses                                                                                                                                                                       |
+| `filePath`       | Absolute path to the source file. Build time use                                                                                                                                                                              |
+| `importPath`     | Import path of the entry point that exports the service. Missing when the scanner could not place it                                                                                                                          |
+| `showcaseConfig` | The `@Showcase` argument, reduced to the fields that apply to services: `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta`, `status`. `setup` is in `api.setup` |
+| `provision`      | `'auto'` when Angular provides the service on its own (`@Service()`, `providedIn: 'root'`, `'platform'` or `'any'`), `'manual'` when a providers array has to list it                                                         |
+| `api`            | The extracted API, see [`ServiceApi`](#serviceapi). **Experimental**                                                                                                                                                          |
+| `meta`           | Plugin-injected metadata                                                                                                                                                                                                      |
+
+`className`, `filePath`, `importPath`, `showcaseConfig`, `provision` and `meta` follow semver as they are. The shape of `api` does not, see below.
+
+---
+
+## ServiceApi
+
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `ServiceApi` and every `Api*` type below it: members, signatures, type cards, setup and the links between them. The first model is deliberately simple, and overloads, generics and statics can be refined in later minors. Read it in a plugin if you must, and expect to adjust it.
+
+The documentation of one service, as the scanner extracts it. The JSDoc plugin draws the service page from it.
+
+```typescript
+interface ServiceApi {
+    description?: string;
+    tags: ApiDocTags;
+    properties: ApiProperty[];
+    methods: ApiMethod[];
+    setup: ApiSetupEntry[];
+    types: ApiTypeDoc[];
+}
+
+interface ApiDocTags {
+    deprecated?: string | true;
+    since?: string;
+    see?: string[];
+    example?: string[];
+    default?: string; // from @default
+}
+
+interface ApiTypeRef {
+    text: string; // as written, e.g. 'Signal<boolean>'
+    links?: string[]; // ids of ServiceApi.types entries named in the text
+}
+
+interface ApiParam {
+    name: string;
+    type: ApiTypeRef;
+    optional: boolean;
+    rest?: true;
+    defaultValue?: string; // the initializer as written
+    description?: string; // from @param
+}
+
+interface ApiMethod {
+    name: string;
+    params: ApiParam[];
+    returnType: ApiTypeRef;
+    description?: string;
+    tags: ApiDocTags;
+}
+
+interface ApiProperty {
+    name: string;
+    type: ApiTypeRef;
+    readonly: boolean;
+    optional?: true;
+    description?: string;
+    tags: ApiDocTags;
+}
+
+interface ApiTypeDoc {
+    id: string; // the name, or `${name}@${importPath}` when two reachable types share a name
+    name: string;
+    kind: 'interface' | 'class' | 'type' | 'enum';
+    importPath: string;
+    description?: string;
+    tags: ApiDocTags;
+    properties?: ApiProperty[]; // interfaces, classes, object type aliases
+    methods?: ApiMethod[]; // interfaces and classes
+    union?: string[]; // a type alias of literals
+    text?: string; // any other type alias
+    members?: { name: string; value?: string; description?: string }[]; // enums
+    reachedFrom?: string; // e.g. 'parameter of show()', 'via options.action'
+}
+
+interface ApiSetupEntry {
+    name: string;
+    kind: 'function' | 'token';
+    importPath: string;
+    description?: string;
+    tags: ApiDocTags;
+    params?: ApiParam[]; // functions
+    returnType?: ApiTypeRef; // functions
+    tokenType?: ApiTypeRef; // tokens
+    config?: ApiProperty[]; // options of the first parameter, or of the token's type argument
+}
+```
+
+`ServiceProvision`, `PanelTarget`, `ServiceApi`, `ApiDocTags`, `ApiTypeRef`, `ApiParam`, `ApiMethod`, `ApiProperty`, `ApiTypeDoc` and `ApiSetupEntry` are exported from `@ng-prism/core/plugin` (and `@ng-prism/core`), with `ScannedService` and `RuntimeService`. What is listed and what is left out is described in [Showcasing Services](guide/showcasing-services.md#members).
+
+---
+
+## PanelTarget
+
+Where a panel appears, the type of [`PanelDefinition.appliesTo`](api/ng-prism-plugin.md#panels-on-service-pages).
+
+```typescript
+type PanelTarget = 'component' | 'service';
+```
 
 ---
 
@@ -184,8 +328,10 @@ componentPage({
 Discriminated union used in `PrismNavigationService.categoryTree()` and `PrismNavigationService.activeItem`.
 
 ```typescript
-type NavigationItem = { kind: 'component'; data: RuntimeComponent } | { kind: 'page'; data: StyleguidePage };
+type NavigationItem = { kind: 'component'; data: RuntimeComponent } | { kind: 'service'; data: RuntimeService } | { kind: 'page'; data: StyleguidePage };
 ```
+
+The `'service'` kind was added with [services](guide/showcasing-services.md). It is a public type, so code that narrows on `kind` exhaustively, with a `switch` that ends in `never` or a lookup typed on the union, needs a `case 'service'`. Code that only handles `'component'` and `'page'` and falls through for the rest keeps compiling, and a service never reaches it as a component.
 
 ---
 
@@ -425,6 +571,18 @@ When `status` is omitted, no indicator renders. See [`ShowcaseConfig.status`](ap
 
 ---
 
+## ShowcaseSetupRef
+
+An entry of [`ShowcaseConfig.setup`](api/showcase-config.md#setup): a function or an injection token that configures a service.
+
+```typescript
+type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
+```
+
+Any function fits, whatever it takes and returns; ng-prism only reads its name, signature and type from the source and never calls it. Exported from `@ng-prism/core`.
+
+---
+
 ## PrismManifest
 
 The build-time manifest written to disk by the builder. Contains JSON-serializable data only, no class references.
@@ -432,6 +590,9 @@ The build-time manifest written to disk by the builder. Contains JSON-serializab
 ```typescript
 interface PrismManifest {
     components: ScannedComponent[];
+    services?: ScannedService[];
     pages?: StyleguidePage[];
 }
 ```
+
+`services` is only present when a plugin shows services, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned). Services are not in `components`.

@@ -6,7 +6,7 @@ All services are provided in `root` and injectable anywhere in the Prism app, fo
 
 ## PrismManifestService
 
-Manages the runtime manifest, i.e. the in-memory representation of all discovered components and pages.
+Manages the runtime manifest, i.e. the in-memory representation of all discovered components, services and pages.
 
 ```typescript
 import { PrismManifestService } from '@ng-prism/core';
@@ -21,6 +21,7 @@ export class MyComponent {
 | -------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
 | `manifest`                 | `Signal<RuntimeManifest>`                 | Full runtime manifest (read-only)                                      |
 | `components`               | `Signal<RuntimeComponent[]>`              | All registered components                                              |
+| `services`                 | `Signal<RuntimeService[]>`                | All registered [services](guide/showcasing-services.md), `[]` for none |
 | `pages`                    | `Signal<StyleguidePage[]>`                | All registered pages                                                   |
 | `categories`               | `Signal<string[]>`                        | Distinct category names, sorted by `categoryOrder` then alphabetically |
 | `groupedByCategory`        | `Signal<Map<string, RuntimeComponent[]>>` | Components keyed by category                                           |
@@ -30,17 +31,19 @@ export class MyComponent {
 
 ## PrismNavigationService
 
-Manages which component or page is currently selected in the sidebar.
+Manages which component, service or page is currently selected in the sidebar.
 
-| Member             | Type                                     | Description                                        |
-| ------------------ | ---------------------------------------- | -------------------------------------------------- |
-| `activeItem`       | `WritableSignal<NavigationItem \| null>` | Currently active navigation item                   |
-| `activeComponent`  | `Signal<RuntimeComponent \| null>`       | Derived from `activeItem` if kind is `'component'` |
-| `activePage`       | `Signal<StyleguidePage \| null>`         | Derived from `activeItem` if kind is `'page'`      |
-| `categoryTree`     | `Signal<Map<string, NavigationItem[]>>`  | Sidebar tree, filtered by search, sorted by order  |
-| `select(comp)`     | `void`                                   | Select a `RuntimeComponent`                        |
-| `selectPage(page)` | `void`                                   | Select a `StyleguidePage`                          |
-| `selectFirst()`    | `void`                                   | Select the first component or page in the manifest |
+| Member                   | Type                                     | Description                                                 |
+| ------------------------ | ---------------------------------------- | ----------------------------------------------------------- |
+| `activeItem`             | `WritableSignal<NavigationItem \| null>` | Currently active navigation item                            |
+| `activeComponent`        | `Signal<RuntimeComponent \| null>`       | Derived from `activeItem` if kind is `'component'`          |
+| `activeService`          | `Signal<RuntimeService \| null>`         | Derived from `activeItem` if kind is `'service'`            |
+| `activePage`             | `Signal<StyleguidePage \| null>`         | Derived from `activeItem` if kind is `'page'`               |
+| `categoryTree`           | `Signal<Map<string, NavigationItem[]>>`  | Sidebar tree, filtered by search, sorted by order           |
+| `select(comp)`           | `void`                                   | Select a `RuntimeComponent`                                 |
+| `selectService(service)` | `void`                                   | Select a `RuntimeService`                                   |
+| `selectPage(page)`       | `void`                                   | Select a `StyleguidePage`                                   |
+| `selectFirst()`          | `void`                                   | Select the first component, service or page in the manifest |
 
 ---
 
@@ -75,13 +78,14 @@ readonly rowCount = computed(() =>
 
 Provides sidebar search and filtering.
 
-| Member               | Type                         | Description                                           |
-| -------------------- | ---------------------------- | ----------------------------------------------------- |
-| `query`              | `Signal<string>`             | Current search query                                  |
-| `filteredComponents` | `Signal<RuntimeComponent[]>` | Components matching the query (title, category, tags) |
-| `filteredPages`      | `Signal<StyleguidePage[]>`   | Pages matching the query (title, category)            |
-| `search(q)`          | `void`                       | Set the search query                                  |
-| `clear()`            | `void`                       | Clear the search query                                |
+| Member               | Type                         | Description                                                     |
+| -------------------- | ---------------------------- | --------------------------------------------------------------- |
+| `query`              | `Signal<string>`             | Current search query                                            |
+| `filteredComponents` | `Signal<RuntimeComponent[]>` | Components matching the query (title, category, tags)           |
+| `filteredServices`   | `Signal<RuntimeService[]>`   | Services matching the query (title, class name, category, tags) |
+| `filteredPages`      | `Signal<StyleguidePage[]>`   | Pages matching the query (title, category)                      |
+| `search(q)`          | `void`                       | Set the search query                                            |
+| `clear()`            | `void`                       | Clear the search query                                          |
 
 ---
 
@@ -159,7 +163,7 @@ Provides aggregated plugin contributions (panels and controls) derived from `NgP
 
 ## PrismUrlStateService
 
-Synchronizes navigation state with URL query parameters: `component`, `page`, `variant`, `state`, `view`, `panel`. Initialized automatically by `PrismShellComponent`.
+Synchronizes navigation state with URL query parameters: `component`, `service`, `page`, `variant`, `state`, `view`, `panel`. Initialized automatically by `PrismShellComponent`.
 
 | Member   | Description                                                                         |
 | -------- | ----------------------------------------------------------------------------------- |

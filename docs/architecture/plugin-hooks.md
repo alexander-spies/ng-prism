@@ -12,6 +12,11 @@ For each component (in scan order):
   → plugin[1].onComponentScanned(component)
   → ...
 
+For each service (in scan order, only when a plugin shows services):
+  → plugin[0].onServiceScanned(service)
+  → plugin[1].onServiceScanned(service)
+  → ...
+
 For each page (in config order):
   → plugin[0].onPageScanned(page)
   → plugin[1].onPageScanned(page)
@@ -64,6 +69,33 @@ onComponentScanned(component) {
 - Fetch external metadata keyed on `component.className`
 - Validate that required `meta` fields are present and warn if missing
 
+## `onServiceScanned`
+
+Called once per `@Showcase`-decorated [service](guide/showcasing-services.md), after the scanner has extracted its API.
+
+```typescript
+onServiceScanned(service: ScannedService): ScannedService | void | Promise<ScannedService | void>
+```
+
+The same mutation, return and chaining rules as `onComponentScanned`, and the same error handling: a hook that throws stops the build with `ng-prism: plugin "<name>" failed in onServiceScanned for service "<ClassName>": <cause>`.
+
+```typescript
+onServiceScanned(service) {
+  return {
+    ...service,
+    meta: { ...service.meta, myPlugin: { setupEntries: service.api.setup.length } },
+  };
+}
+```
+
+**A separate hook, not a second kind of component.** A service has no inputs, outputs, selector or canvas, and the four plugins that implement `onComponentScanned` (coverage, jsdoc, perf and visual regression) read exactly those. Giving services their own list and hook means none of them is ever called with one, and the manifest they write stays what it was. The JSDoc plugin does not need the hook: its service page reads `service.api` in the browser.
+
+**It may not run.** Services go into the manifest only when some plugin has a panel with `appliesTo: ['service']`. Without one the pipeline drops them before the hooks, so `onServiceScanned` is not called, and logs a hint, see the services gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.services` only when they were kept.
+
+`service.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `service.meta`, which is stable, and read `service.api` knowing it can change.
+
+**No navigation decorations.** `navigationDecorations` are not called for a service. The `badge()` of a decoration takes a component, and coverage, a11y and visual regression measure what renders.
+
 ## `onPageScanned`
 
 Called once per `StyleguidePage` after all pages are collected (both `config.pages` entries and Component Pages).
@@ -87,7 +119,7 @@ onPageScanned(page) {
 
 ## `onManifestReady`
 
-Called once with the complete `PrismManifest` after all `onComponentScanned` and `onPageScanned` hooks have finished.
+Called once with the complete `PrismManifest` after all `onComponentScanned`, `onServiceScanned` and `onPageScanned` hooks have finished.
 
 ```typescript
 onManifestReady(manifest: PrismManifest): PrismManifest | void | Promise<PrismManifest | void>
@@ -166,7 +198,7 @@ All three built-in sources follow this split. See `packages/plugin-visual-regres
 
 ## Async Hooks
 
-All three hooks accept `Promise` return values. The pipeline runner uses `await` for each hook:
+All four hooks accept `Promise` return values. The pipeline runner uses `await` for each hook:
 
 ```typescript
 async onComponentScanned(component) {

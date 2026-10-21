@@ -17,6 +17,7 @@
     - [Content Projection](guide/content-projection.md)
     - [Directive Hosting](guide/directive-hosting.md)
     - [Component Pages](guide/component-pages.md)
+    - [Showcasing Services](guide/showcasing-services.md)
     - [Measuring](guide/measuring.md)
 
 - **Core Panels**

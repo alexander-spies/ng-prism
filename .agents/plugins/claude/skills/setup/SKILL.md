@@ -95,15 +95,22 @@ and skips a plugin that is already there. In Nx: `npm i -D @ng-prism/plugin-<nam
 `npx nx g @ng-prism/plugin-<name>:ng-add`. Import from the package name; the Angular build picks the browser half
 itself. Keep the core and every plugin on the same version: plugins require `@ng-prism/core` `^<their version>-0`.
 
-| Package                              | Call                                                                  | Adds                                                       |
-| ------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab built from the JSDoc of inputs and outputs      |
-| `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                    |
-| `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel |
-| `@ng-prism/plugin-perf`              | `perfPlugin({ bundle?: { maxTreeDepth? } })`                          | a Performance panel                                        |
-| `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker               |
-| `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker             |
+| Package                              | Call                                                                  | Adds                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab built from the JSDoc of inputs and outputs, and the page of every service |
+| `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                                              |
+| `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel                           |
+| `@ng-prism/plugin-perf`              | `perfPlugin({ bundle?: { maxTreeDepth? } })`                          | a Performance panel                                                                  |
+| `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker                                         |
+| `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker                                       |
 
+- **JSDoc and services:** a class with `@Showcase` and `@Injectable` or `@Service` is a service, and `jsDocPlugin()`
+  draws its page (skill showcase). **Services need the plugin.** Without it, or without any other plugin whose panel
+  has `appliesTo: ['service']`, the build leaves all services out of the manifest and the sidebar and logs once, through
+  the normal log and not as a warning:
+  `ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`
+  When a user asks why a service is missing, look for that line first, then add the plugin
+  (`ng add @ng-prism/plugin-jsdoc`). `strictShowcase` doesn't fail over it.
 - **Figma:** the embed shows when the component sets `meta: { figma: '<Figma URL with node-id>' }` as a string on
   `@Showcase` itself. The Design Diff panel appears once a variant sets `meta.figma`: a URL with `node-id`, or
   `{ url, nodeId }`; a variant without its own value falls back to the component's `meta.figma`. It calls the Figma

@@ -10,6 +10,7 @@ interface NgPrismPlugin {
 
     // Build-time hooks (run in Node.js)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
+    onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
 
@@ -45,6 +46,21 @@ export function myPlugin(): NgPrismPlugin {
 }
 ```
 
+### `onServiceScanned`
+
+Called once per `@Showcase`-decorated [service](guide/showcasing-services.md), with the `ScannedService`. Same pattern as `onComponentScanned`, and a service never goes through that hook: it has its own list, `manifest.services`.
+
+```typescript
+onServiceScanned(service) {
+  return {
+    ...service,
+    meta: { ...service.meta, myPlugin: { setupEntries: service.api.setup.length } },
+  };
+}
+```
+
+`service.api` holds the extracted API (members, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `importPath`, `showcaseConfig`, `provision` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to services](#panels-for-services), otherwise the build drops the services.
+
 ### `onPageScanned`
 
 Called once per `StyleguidePage` (both `CustomPage` and `ComponentPage`). Same mutation pattern as `onComponentScanned`.
@@ -71,7 +87,7 @@ onManifestReady(manifest) {
 
 ### Async Hooks
 
-All three hooks support returning a `Promise`. The pipeline awaits them before continuing.
+All four hooks support returning a `Promise`. The pipeline awaits them before continuing.
 
 ```typescript
 async onComponentScanned(component) {
@@ -100,6 +116,41 @@ panels: [
 ```
 
 See [PanelDefinition](api/ng-prism-plugin.md#paneldefinition) for all fields.
+
+#### Panels for services
+
+A [service](guide/showcasing-services.md) page has no canvas, so it offers only the panels that say they apply to services. Without `appliesTo`, a panel is a component panel and does not appear there.
+
+```typescript
+panels: [
+  {
+    id: 'service-notes',
+    label: 'Notes',
+    placement: 'view',
+    appliesTo: ['service'],
+    loadComponent: () => import('./service-notes.component.js').then(m => m.ServiceNotesComponent),
+  },
+],
+```
+
+- `appliesTo: ['component']` is the default, `['service']` is for services only and `['component', 'service']` for both.
+- The panel component gets the input `activeService` (`RuntimeService | null`) when it applies to services, and `activeComponent` when it applies to components. It only gets the inputs of the targets it names, so a panel written before services existed is not affected.
+- Use `placement: 'view'`: a service page shows view tabs only. A panel for services with `placement: 'addon'` has no area there.
+- `isVisible` and `badge` take a component and are only called on component pages.
+- The build reads `appliesTo` from the panels the plugin's **Node entry** declares, to decide whether anything shows services. A plugin with a [browser entry](api/ng-prism-plugin.md#example-a-complete-navigation-decoration-plugin) declares the same `appliesTo` in both.
+
+```typescript
+@Component({
+    selector: 'app-service-notes',
+    standalone: true,
+    template: `<h4>Notes for {{ activeService()?.meta.className }}</h4>`
+})
+export class ServiceNotesComponent {
+    readonly activeService = input<RuntimeService | null>(null);
+}
+```
+
+`activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0).
 
 ### `controls`
 
@@ -192,6 +243,7 @@ Registered like any other `headerWidgets` entry; see [`HeaderWidgetDefinition`](
 | `icon`                 | `string`              | Icon name (optional)                                                                                     |
 | `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._ |
 | `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                      |
+| `appliesTo`            | `PanelTarget[]`       | `['component']` (default), `['service']` or both, see [Panels for services](#panels-for-services)        |
 | `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                |
 
 > **Note:** Always use `loadComponent` rather than `component` if your panel component imports anything from `@angular/platform-browser` or any other browser-only package. The config file is loaded in Node.js during the build, and a static import of a browser component crashes the builder.
