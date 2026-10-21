@@ -126,6 +126,11 @@
     margin-bottom: 8px;
 }
 
+/* Next to the name in a type card or option table, where there is no Readonly column. */
+.prism-jsdoc-service-page__readonly {
+    color: var(--prism-text-muted);
+}
+
 /* A default such as 'bottom-right' would otherwise break at its hyphen. */
 .prism-jsdoc-service-page__default {
     white-space: nowrap;

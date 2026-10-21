@@ -85,6 +85,9 @@
                         @if (isRequired(property, owner)) {
                             <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--required prism-jsdoc-panel__badge--small">required</span>
                         }
+                        @if (property.readonly) {
+                            <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--small prism-jsdoc-service-page__readonly">readonly</span>
+                        }
                         @if (isDeprecated(property.tags)) {
                             <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
                         }

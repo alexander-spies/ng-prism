@@ -246,13 +246,13 @@ A line comment between the doc block and the member (`// eslint-disable-next-lin
 
 Everything reached from the signatures gets a card in **Types**, recursively through members and type arguments (`Partial<X>`, `X[]`, `Readonly<X>`), once per type:
 
-| A type that is                   | Its card shows                                                                    |
-| -------------------------------- | --------------------------------------------------------------------------------- |
-| an `interface` or a type literal | A table of properties (type, `required`, `@default`, description) and its methods |
-| a `class`                        | Its public properties and methods, as above                                       |
-| a `type` of literals             | The union (`'top-left' \| 'top-right' ...`)                                       |
-| any other `type`                 | The aliased type as written                                                       |
-| an `enum`                        | Its members and values                                                            |
+| A type that is                   | Its card shows                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------------- |
+| an `interface` or a type literal | A table of properties (type, `required`, `readonly`, `@default`, description) and its methods |
+| a `class`                        | Its public properties (with `readonly`) and methods, as above                                 |
+| a `type` of literals             | The union (`'top-left' \| 'top-right' ...`)                                                   |
+| any other `type`                 | The aliased type as written                                                                   |
+| an `enum`                        | Its members and values                                                                        |
 
 A type is only documented when a scanned entry point exports it and it is not `@internal`. Anything else (`Signal`, `Observable`, `Provider`, a type your library keeps to itself) stays text without a link. Each card says where the type was first met (`parameter of show()`, `via config.position`).
 
