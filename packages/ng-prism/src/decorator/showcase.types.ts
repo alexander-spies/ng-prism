@@ -1,4 +1,4 @@
-import type { InputSignalWithTransform, Provider } from '@angular/core';
+import type { InjectionToken, InputSignalWithTransform, Provider } from '@angular/core';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { CanvasLayout } from '../shared/canvas-layout.type.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
@@ -44,6 +44,12 @@ export interface ShowcaseState {
     /** Same shape and semantics as `Variant.pseudo`. */
     pseudo: ForcedPseudoStates;
 }
+
+/**
+ * A function or injection token that configures a service, listed in
+ * `ShowcaseConfig.setup`. ng-prism only reads its name, signature and type.
+ */
+export type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
 
 export interface ShowcaseConfig<T = unknown> {
     /** Display name in the ng-prism UI */
@@ -92,6 +98,14 @@ export interface ShowcaseConfig<T = unknown> {
     providers?: Provider[];
     /** Arbitrary metadata for plugins (e.g. { figma: 'https://...' }) */
     meta?: Record<string, unknown>;
+    /**
+     * Services only: the functions and tokens that configure the service, for
+     * example `provideToasts` and `TOAST_CONFIG`. The styleguide documents them
+     * next to the service. A function, not a list, so that a service and its
+     * `provide*` function can live in files that import each other without the
+     * list reading a binding that is not initialised yet. ng-prism never calls it.
+     */
+    setup?: () => readonly ShowcaseSetupRef[];
     /**
      * Recommended canvas background for this component. Applied when the user
      * opens the component, unless a variant defines its own `bg`. The user

@@ -3,7 +3,7 @@
  * `InputsOf<T>` helper. Most assertions are compile-time only. Jest just
  * confirms the file loads (which means it type-checked through SWC).
  */
-import { input, model, output } from '@angular/core';
+import { InjectionToken, input, model, output } from '@angular/core';
 import type { InputsOf } from './index.js';
 import { Showcase } from './index.js';
 
@@ -127,6 +127,25 @@ void StatesUsage;
 })
 class BadVariantStatesUsage {}
 void BadVariantStatesUsage;
+
+// (g) A service's `setup` is a lazy list of functions and tokens, never called by ng-prism.
+const FIXTURE_TOKEN = new InjectionToken<string>('FIXTURE');
+
+function provideFixture(): never[] {
+    return [];
+}
+
+@Showcase({ title: 'S', setup: () => [provideFixture, FIXTURE_TOKEN] })
+class SetupUsage {}
+void SetupUsage;
+
+@Showcase({
+    title: 'S',
+    // @ts-expect-error: setup is a function returning the list, not the list itself
+    setup: [provideFixture]
+})
+class BadSetupUsage {}
+void BadSetupUsage;
 
 describe('@Showcase<T> typed variant inputs', () => {
     it('loads without runtime errors (all checks are compile-time)', () => {

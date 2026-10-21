@@ -2,6 +2,7 @@ import type { Provider, Type } from '@angular/core';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import type { StyleguidePage } from './page.types.js';
+import type { PanelTarget, RuntimeService, ScannedService } from './service.types.js';
 
 export interface NgPrismPlugin {
     /** Unique plugin name, used for debugging and conflict detection */
@@ -9,6 +10,7 @@ export interface NgPrismPlugin {
 
     // Build-time hooks (run inside the Angular builder / Node.js)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
+    onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
 
@@ -97,6 +99,13 @@ export interface PanelDefinition {
     position?: 'bottom' | 'right';
     /** Where this panel appears: 'addon' (the tab bar below the canvas) or 'view' (top view toolbar). Default: 'addon' */
     placement?: 'addon' | 'view';
+    /**
+     * Where this panel appears. Default: `['component']`. A panel with `'component'`
+     * gets the input `activeComponent`, one with `'service'` gets the input
+     * `activeService` (`RuntimeService | null`). `isVisible` and `badge` are only
+     * called for components.
+     */
+    appliesTo?: readonly PanelTarget[];
     /** Providers injected into a child EnvironmentInjector scoped to this panel */
     providers?: Provider[];
     /** When provided, the panel tab is only shown if this returns true for the active component */
@@ -133,6 +142,7 @@ export interface ControlDefinition {
 
 export interface PrismManifest {
     components: ScannedComponent[];
+    services?: ScannedService[];
     pages?: StyleguidePage[];
     /** Library-wide plugin metadata (e.g. aggregate coverage totals). */
     meta?: Record<string, unknown>;
@@ -186,6 +196,7 @@ export interface OutputMeta {
 
 export interface RuntimeManifest {
     components: RuntimeComponent[];
+    services?: RuntimeService[];
     pages?: StyleguidePage[];
     /** Library-wide plugin metadata, mirrored from the build-time PrismManifest. */
     meta?: Record<string, unknown>;

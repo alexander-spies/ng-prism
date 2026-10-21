@@ -21,6 +21,20 @@ export type {
     ScannedComponent
 } from './plugin.types.js';
 export type { ComponentPage, CustomPage, StyleguidePage } from './page.types.js';
+export type {
+    ApiDocTags,
+    ApiMethod,
+    ApiParam,
+    ApiProperty,
+    ApiSetupEntry,
+    ApiTypeDoc,
+    ApiTypeRef,
+    PanelTarget,
+    RuntimeService,
+    ScannedService,
+    ServiceApi,
+    ServiceProvision
+} from './service.types.js';
 
 // The canvas background a variant renders on. Part of the discovery contract
 // (`DiscoveryVariant.bg`), so external tooling and plugins can name the type

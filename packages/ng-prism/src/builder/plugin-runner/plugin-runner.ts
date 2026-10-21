@@ -1,5 +1,6 @@
 import type { StyleguidePage } from '../../plugin/page.types.js';
 import type { NgPrismPlugin, PrismManifest, ScannedComponent } from '../../plugin/plugin.types.js';
+import type { ScannedService } from '../../plugin/service.types.js';
 
 function pluginLabel(plugin: NgPrismPlugin): string {
     return plugin.name ? `"${plugin.name}"` : '<unnamed>';
@@ -37,6 +38,27 @@ export async function runPluginHooks(manifest: PrismManifest, plugins: NgPrismPl
         components[i] = current;
     }
 
+    const services = [...(manifest.services ?? [])];
+
+    for (let i = 0; i < services.length; i++) {
+        let current: ScannedService = services[i];
+
+        for (const plugin of plugins) {
+            if (plugin.onServiceScanned) {
+                try {
+                    const result = await plugin.onServiceScanned(current);
+
+                    if (result) {
+                        current = result;
+                    }
+                } catch (err) {
+                    throw wrapPluginError(plugin, 'onServiceScanned', `service "${current.className}"`, err);
+                }
+            }
+        }
+        services[i] = current;
+    }
+
     const pages = [...(manifest.pages ?? [])];
 
     for (let i = 0; i < pages.length; i++) {
@@ -58,7 +80,14 @@ export async function runPluginHooks(manifest: PrismManifest, plugins: NgPrismPl
         pages[i] = current;
     }
 
-    let result: PrismManifest = manifest.meta ? { components, pages, meta: manifest.meta } : { components, pages };
+    let result: PrismManifest = { components, pages };
+
+    if (manifest.services) {
+        result.services = services;
+    }
+    if (manifest.meta) {
+        result.meta = manifest.meta;
+    }
 
     for (const plugin of plugins) {
         if (plugin.onManifestReady) {

@@ -1,4 +1,5 @@
 import type { NgPrismPlugin, PrismManifest, ScannedComponent } from '../../plugin/plugin.types.js';
+import type { ScannedService } from '../../plugin/service.types.js';
 import { runPluginHooks } from './plugin-runner.js';
 
 function createComponent(overrides: Partial<ScannedComponent> = {}): ScannedComponent {
@@ -10,6 +11,16 @@ function createComponent(overrides: Partial<ScannedComponent> = {}): ScannedComp
         outputs: [],
         componentMeta: { selector: 'test', standalone: true, isDirective: false },
         ...overrides
+    };
+}
+
+function svc(className: string): ScannedService {
+    return {
+        className,
+        filePath: `${className}.ts`,
+        showcaseConfig: { title: className },
+        provision: 'auto',
+        api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
     };
 }
 
@@ -137,5 +148,46 @@ describe('runPluginHooks', () => {
         const result = await runPluginHooks(manifest, [plugin]);
 
         expect(result.components[0].meta).toEqual({ async: true });
+    });
+
+    it('should call onServiceScanned for each service and apply its result', async () => {
+        const plugin: NgPrismPlugin = {
+            name: 'service-plugin',
+            onServiceScanned: (service) => ({ ...service, meta: { seen: true } })
+        };
+        const manifest: PrismManifest = { components: [createComponent()], services: [svc('A'), svc('B')] };
+
+        const result = await runPluginHooks(manifest, [plugin]);
+
+        expect(result.services?.map((s) => s.meta)).toEqual([{ seen: true }, { seen: true }]);
+        expect(result.components).toEqual(manifest.components);
+    });
+
+    it('should not pass services to onComponentScanned', async () => {
+        const spy = jest.fn();
+        const plugin: NgPrismPlugin = { name: 'spy-plugin', onComponentScanned: spy };
+        const manifest: PrismManifest = { components: [], services: [svc('A')] };
+
+        await runPluginHooks(manifest, [plugin]);
+
+        expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should wrap onServiceScanned errors with plugin and service context', async () => {
+        const plugin: NgPrismPlugin = {
+            name: 'broken-plugin',
+            onServiceScanned: () => {
+                throw new Error('boom');
+            }
+        };
+        const manifest: PrismManifest = { components: [], services: [svc('A')] };
+
+        await expect(runPluginHooks(manifest, [plugin])).rejects.toThrow(/plugin "broken-plugin" failed in onServiceScanned for service "A": boom/);
+    });
+
+    it('should omit services from the result when the input has none', async () => {
+        const result = await runPluginHooks(createManifest(), []);
+
+        expect('services' in result).toBe(false);
     });
 });
