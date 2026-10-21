@@ -61,13 +61,15 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
         throw new Error(`ng-prism: strictShowcase is enabled and ${diagnostics.length} @Showcase value(s) were dropped; see the warnings above.`);
     }
 
-    // A service page is made by a plugin panel that applies to services; without one the services would
-    // go into the manifest and be shown nowhere. A hint rather than a diagnostic: the library is fine.
-    const showsServices = (config.plugins ?? []).some((plugin) => plugin.panels?.some((panel) => panel.appliesTo?.includes('service')));
+    // A service page is made by a plugin's view panel that applies to services: a service page has no
+    // addon area. Without one the services would go into the manifest and be shown nowhere. A hint
+    // rather than a diagnostic: the library is fine. It names the version because a plugin-jsdoc from
+    // before 22.7.0 is no such panel, so a config that has jsDocPlugin() can still get the hint.
+    const showsServices = (config.plugins ?? []).some((plugin) => plugin.panels?.some((panel) => panel.placement === 'view' && panel.appliesTo?.includes('service')));
 
     if (!showsServices && scannedServices.length > 0) {
         context.logger.info(
-            `ng-prism: ${scannedServices.length} service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.`
+            `ng-prism: ${scannedServices.length} service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`
         );
     }
 

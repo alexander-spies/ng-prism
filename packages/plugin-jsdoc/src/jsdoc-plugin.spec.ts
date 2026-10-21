@@ -46,6 +46,12 @@ describe('jsDocPlugin', () => {
         expect(browserJsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service']);
     });
 
+    // The build only keeps services when a view panel applies to them, and it reads the Node half.
+    it('registers the API panel as a view on both halves', () => {
+        expect(jsDocPlugin().panels![0].placement).toBe('view');
+        expect(browserJsDocPlugin().panels![0].placement).toBe('view');
+    });
+
     it('should lazy-load the panel component', async () => {
         const plugin = jsDocPlugin();
         const panel = plugin.panels![0];

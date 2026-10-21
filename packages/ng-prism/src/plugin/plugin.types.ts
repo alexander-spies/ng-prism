@@ -104,6 +104,10 @@ export interface PanelDefinition {
      * gets the input `activeComponent`, one with `'service'` gets the input
      * `activeService` (`RuntimeService | null`). `isVisible` and `badge` are only
      * called for components.
+     *
+     * `'service'` only counts on a view panel (`placement: 'view'`): a service
+     * page has no addon area, so an addon panel shows on component pages alone,
+     * and only when it applies to `'component'`. Since 22.7.0.
      */
     appliesTo?: readonly PanelTarget[];
     /** Providers injected into a child EnvironmentInjector scoped to this panel */

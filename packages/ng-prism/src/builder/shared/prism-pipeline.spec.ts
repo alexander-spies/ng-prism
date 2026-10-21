@@ -424,7 +424,8 @@ describe('runPrismPipeline services', () => {
         prismProject: 'my-lib-prism',
         configFile: 'ng-prism.config.ts'
     };
-    const HINT = 'ng-prism: 1 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() to ng-prism.config.ts to list them.';
+    const HINT =
+        'ng-prism: 1 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.';
 
     /** A library of one component and one service, whose setup function the entry point exports. */
     function createServicesWorkspace(config: string): string {
@@ -479,7 +480,7 @@ describe('runPrismPipeline services', () => {
       plugins: [
         {
           name: 'test-service-panel-plugin',
-          panels: [{ id: 'api', label: 'API', appliesTo: ['service'] }],
+          panels: [{ id: 'api', label: 'API', placement: 'view', appliesTo: ['service'] }],
           onServiceScanned(service) {
             return Object.assign({}, service, { meta: { fromPlugin: 'service-hook' } });
           },
@@ -518,6 +519,18 @@ describe('runPrismPipeline services', () => {
         expect(hintsLogged(ctx)).toHaveLength(1);
     });
 
+    it('does not count an addon panel that applies to services as one that shows services', async () => {
+        tmp = createServicesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', appliesTo: ['service'] }, { id: 'b', label: 'B', placement: 'addon', appliesTo: ['component', 'service'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.serviceCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+    });
+
     it('does not turn the hint into a diagnostic: strictShowcase stays quiet about dropped services', async () => {
         tmp = createServicesWorkspace('export default { strictShowcase: true };');
         const ctx = createMockContext(tmp);
@@ -537,7 +550,9 @@ describe('runPrismPipeline services', () => {
     });
 
     it('keeps services when one panel applies to both components and services', async () => {
-        tmp = createServicesWorkspace("export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', appliesTo: ['component', 'service'] }] }] };");
+        tmp = createServicesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', placement: 'view', appliesTo: ['component', 'service'] }] }] };"
+        );
 
         const result = await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
 
