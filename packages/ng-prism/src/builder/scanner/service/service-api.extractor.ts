@@ -17,13 +17,18 @@ const CONFIG_WRAPPERS = new Set(['Partial', 'Required', 'Readonly']);
 export function extractServiceApi(classDecl: ts.ClassDeclaration, setupRefs: SetupRef[], checker: ts.TypeChecker, exportIndex: ExportIndex): ServiceApi {
     const collector = createTypeCollector(checker, exportIndex);
     const { properties, methods } = extractMembers(classDecl, checker, collector);
-    const setup = setupRefs.map((ref) => (ref.kind === 'function' ? describeSetupFunction(ref, checker, collector) : describeSetupToken(ref, checker, collector)));
+    const setup = describeSetupEntries(setupRefs, checker, collector);
     const api: ServiceApi = { tags: readDocTags(classDecl), properties, methods, setup, types: collector.drain() };
     const description = readDescription(classDecl);
 
     if (description) api.description = description;
 
     return api;
+}
+
+/** The setup functions and tokens of a service or a pipe, with their config tables; the types they reach go to `collector`. */
+export function describeSetupEntries(setupRefs: SetupRef[], checker: ts.TypeChecker, collector: TypeCollector): ApiSetupEntry[] {
+    return setupRefs.map((ref) => (ref.kind === 'function' ? describeSetupFunction(ref, checker, collector) : describeSetupToken(ref, checker, collector)));
 }
 
 /** A setup function: its signature and docs, and the options of its first parameter when that is an object. */
