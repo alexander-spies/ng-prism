@@ -59,13 +59,13 @@ export interface HeaderWidgetDefinition {
  * plain quantity, drawn as a muted figure without a fill.
  */
 export interface PanelBadge {
-    /** Defaults from `variant` for badges written before 22.7: a judgement is `issues`, anything else `count`. */
+    /** Defaults from `variant` for badges written before 22.7: a judgement is `issues`, anything else `count`. Since 22.7.0. */
     kind?: 'count' | 'issues';
     /** Kept to a couple of characters because the tab bar scrolls horizontally. */
     text: string;
-    /** Tone of an `issues` badge. Default `'danger'`. */
+    /** Tone of an `issues` badge. Default `'danger'`. Since 22.7.0. */
     tone?: 'primary' | 'warn' | 'danger';
-    /** Read after the tab's label by assistive technology, e.g. `'1 violation'`. Defaults to `text`. */
+    /** Read after the tab's label by assistive technology, e.g. `'1 violation'`. Defaults to `text`. Since 22.7.0. */
     label?: string;
     /**
      * @deprecated Deprecated since 22.7.0, removed in 23.0.0. Use `kind` and `tone`:

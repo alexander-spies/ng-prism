@@ -75,14 +75,24 @@ export function normalizePanelBadge(badge: PanelBadge | null): NormalizedPanelBa
     if (!badge.kind && badge.variant === 'ok') return null;
 
     const kind = badge.kind ?? (badge.variant === 'warn' || badge.variant === 'danger' ? 'issues' : 'count');
-    const ariaLabel = badge.label ?? badge.text;
+    const label = badge.label ?? badge.text;
 
-    if (kind === 'count') return { kind, text: badge.text, ariaLabel };
+    if (kind === 'count') return { kind, text: badge.text, label };
     if (badge.text === '0') return null;
 
     const legacyTone = badge.variant === 'warn' || badge.variant === 'danger' ? badge.variant : undefined;
 
-    return { kind, text: badge.text, tone: badge.tone ?? legacyTone ?? 'danger', ariaLabel };
+    return { kind, text: badge.text, tone: badge.tone ?? legacyTone ?? 'danger', label };
+}
+
+/**
+ * What to tell the author of a panel whose badge still sets `variant`, or
+ * `null` when it does not. The panel host logs it once per panel; the badge
+ * keeps rendering through {@link normalizePanelBadge} until 23.0.0.
+ */
+export function deprecatedBadgeVariantNotice(panelId: string, badge: PanelBadge | null): string | null {
+    if (badge?.variant === undefined) return null;
+    return `The badge of panel "${panelId}" sets variant, which is deprecated since 22.7.0 and will be removed in 23.0.0. It is mapped to kind and tone until then; set those instead.`;
 }
 
 /**

@@ -13,7 +13,10 @@ import { resolveA11yThresholds } from '../a11y/a11y-thresholds.js';
 import type { A11yCoreConfig, A11yManifestMeta } from '../a11y/a11y.types.js';
 import { BUILTIN_PANELS } from '../builtin-panels.js';
 import { addonPanelsFor } from './addon-panels.js';
-import { normalizePanelBadge, resolvePanelBadge } from './panel-badge.js';
+import { deprecatedBadgeVariantNotice, normalizePanelBadge, resolvePanelBadge } from './panel-badge.js';
+
+/** Panels whose badge still sets `variant`, warned about once per page load. */
+const warnedVariantBadges = new Set<string>();
 
 type RenderedPanelEntry = {
     id: string;
@@ -63,14 +66,19 @@ export class PrismPanelHostComponent {
     private readonly eventLog = inject(PrismEventLogService);
 
     private panelBadge(panel: PanelDefinition) {
-        return normalizePanelBadge(
-            resolvePanelBadge(panel, this.nav.activeComponent(), {
-                inputCount: this.inputCount(),
-                eventCount: this.eventLog.events().length,
-                a11yResult: this.auditService.scoreResult(),
-                a11yThresholds: this.a11yThresholds()
-            })
-        );
+        const badge = resolvePanelBadge(panel, this.nav.activeComponent(), {
+            inputCount: this.inputCount(),
+            eventCount: this.eventLog.events().length,
+            a11yResult: this.auditService.scoreResult(),
+            a11yThresholds: this.a11yThresholds()
+        });
+        const notice = deprecatedBadgeVariantNotice(panel.id, badge);
+
+        if (notice && !warnedVariantBadges.has(panel.id)) {
+            warnedVariantBadges.add(panel.id);
+            console.warn(`[ng-prism] ${notice}`);
+        }
+        return normalizePanelBadge(badge);
     }
 
     protected readonly tabItems = computed<PrismTabItem[]>(() =>

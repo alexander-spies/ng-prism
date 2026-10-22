@@ -351,6 +351,8 @@ A short marker on a panel's tab, returned by [`PanelDefinition.badge`](#paneldef
 | `tone`  | Tone of an `issues` badge: `danger` (default) for findings that are failures, `warn` for ones that only need a look, `primary` for neutral news.       |
 | `label` | Read after the tab's label by assistive technology, e.g. `'3 to review'` becomes "Visual Regression, 3 to review". Defaults to `text`.                 |
 
+A badge that still sets the deprecated `variant` keeps rendering until 23.0.0, mapped to `kind` and `tone`, and the browser console warns once per panel. See [Migration: `PanelBadge.variant`](guide/migration-v22.md#deprecation-panelbadgevariant).
+
 ```typescript
 panels: [
     {
@@ -523,6 +525,23 @@ import { PrismBadgeComponent, PrismMetricCardComponent, PrismPanelToolbarCompone
 | `PrismButtonComponent`       | `button[prismButton]`     | `variant`: `secondary` \| `primary` \| `ghost`; `size`: `sm` (26 px) \| `md`                                                                                   | Text actions in a toolbar, secondary before primary.                                           |
 
 `toneForStatus(status)` maps a status verdict (`'ok' | 'warn' | 'danger'`, see [Status grading](#status-grading)) to the badge tone.
+
+The types the primitives take are exported from `@ng-prism/core` too:
+
+```typescript
+/** Colour roles of `prism-badge`, also the tone of a tab badge. */
+type BadgeTone = 'neutral' | 'primary' | 'success' | 'warn' | 'danger';
+
+/** A tab's badge in `PrismTabItem.badge`. */
+interface PrismTabBadge {
+    kind: 'count' | 'issues'; // count: a plain quantity, muted; issues: open findings, a pill in `tone`
+    text: string;
+    tone?: BadgeTone;
+    label: string; // read after the tab's label by assistive technology, e.g. "A11y, 1 violation"
+}
+```
+
+`PrismTabBadge` mirrors a panel's [`PanelBadge`](#panelbadge) with the same field names; the panel host turns a `PanelBadge` into one, taking `kind` from a deprecated `variant` and `label` from `text` when they are missing.
 
 ## Status grading
 

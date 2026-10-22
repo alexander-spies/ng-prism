@@ -8,8 +8,8 @@ export interface PrismTabBadge {
     kind: 'count' | 'issues';
     text: string;
     tone?: BadgeTone;
-    /** Read after the tab's label, e.g. "A11y, 1 violation". */
-    ariaLabel: string;
+    /** Read after the tab's label by assistive technology, e.g. "A11y, 1 violation". Same name as on `PanelBadge`. */
+    label: string;
 }
 
 export interface PrismTabItem {
@@ -88,6 +88,6 @@ export class PrismTabsComponent {
     }
 
     protected accessibleName(item: PrismTabItem): string {
-        return item.badge ? `${item.label}, ${item.badge.ariaLabel}` : item.label;
+        return item.badge ? `${item.label}, ${item.badge.label}` : item.label;
     }
 }

@@ -1,7 +1,7 @@
 import type { PanelDefinition, RuntimeComponent } from '../../../plugin/plugin.types.js';
 import { DEFAULT_A11Y_THRESHOLDS } from '../a11y/a11y-thresholds.js';
 import type { A11yScoreResult } from '../a11y/a11y.types.js';
-import { normalizePanelBadge, type PanelBadgeContext, resolvePanelBadge } from './panel-badge.js';
+import { deprecatedBadgeVariantNotice, normalizePanelBadge, type PanelBadgeContext, resolvePanelBadge } from './panel-badge.js';
 
 const EMPTY_CONTEXT: PanelBadgeContext = {
     inputCount: 0,
@@ -147,8 +147,8 @@ describe('resolvePanelBadge', () => {
  */
 describe('normalizePanelBadge', () => {
     it('reads a warn or danger variant as open findings in that tone', () => {
-        expect(normalizePanelBadge({ text: '3', variant: 'warn' })).toEqual({ kind: 'issues', text: '3', tone: 'warn', ariaLabel: '3' });
-        expect(normalizePanelBadge({ text: '1', variant: 'danger' })).toEqual({ kind: 'issues', text: '1', tone: 'danger', ariaLabel: '1' });
+        expect(normalizePanelBadge({ text: '3', variant: 'warn' })).toEqual({ kind: 'issues', text: '3', tone: 'warn', label: '3' });
+        expect(normalizePanelBadge({ text: '1', variant: 'danger' })).toEqual({ kind: 'issues', text: '1', tone: 'danger', label: '1' });
     });
 
     it('hides findings that number zero', () => {
@@ -157,8 +157,8 @@ describe('normalizePanelBadge', () => {
     });
 
     it('reads a plain figure as a neutral count', () => {
-        expect(normalizePanelBadge({ text: '7' })).toEqual({ kind: 'count', text: '7', ariaLabel: '7' });
-        expect(normalizePanelBadge({ text: '7', variant: 'default' })).toEqual({ kind: 'count', text: '7', ariaLabel: '7' });
+        expect(normalizePanelBadge({ text: '7' })).toEqual({ kind: 'count', text: '7', label: '7' });
+        expect(normalizePanelBadge({ text: '7', variant: 'default' })).toEqual({ kind: 'count', text: '7', label: '7' });
     });
 
     it('keeps an ok variant invisible', () => {
@@ -170,10 +170,27 @@ describe('normalizePanelBadge', () => {
     });
 
     it('names the badge with its label for assistive technology', () => {
-        expect(normalizePanelBadge({ kind: 'issues', text: '2', tone: 'warn', label: '2 violations' })?.ariaLabel).toBe('2 violations');
+        expect(normalizePanelBadge({ kind: 'issues', text: '2', tone: 'warn', label: '2 violations' })?.label).toBe('2 violations');
     });
 
     it('passes no badge through as none', () => {
         expect(normalizePanelBadge(null)).toBeNull();
+    });
+});
+
+describe('deprecatedBadgeVariantNotice', () => {
+    it('names the panel whose badge still sets variant', () => {
+        expect(deprecatedBadgeVariantNotice('my-panel', { text: '3', variant: 'warn' })).toBe(
+            'The badge of panel "my-panel" sets variant, which is deprecated since 22.7.0 and will be removed in 23.0.0. It is mapped to kind and tone until then; set those instead.'
+        );
+    });
+
+    it('also reports an ok variant, which renders nothing', () => {
+        expect(deprecatedBadgeVariantNotice('my-panel', { text: '90', variant: 'ok' })).not.toBeNull();
+    });
+
+    it('stays quiet for a badge without variant or no badge at all', () => {
+        expect(deprecatedBadgeVariantNotice('my-panel', { kind: 'issues', text: '2', tone: 'warn' })).toBeNull();
+        expect(deprecatedBadgeVariantNotice('my-panel', null)).toBeNull();
     });
 });
