@@ -142,7 +142,7 @@ export interface TabItem {
     `
 })
 export class TabsComponent {
-    /** The tabs, in order, see `TabItem`. */
+    /** The tabs, in order, see {@link TabItem}. */
     readonly tabs = input.required<TabItem[]>();
 
     /** Id of the active tab. Two-way bindable with `[(activeTabId)]`. */
