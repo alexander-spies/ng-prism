@@ -39,13 +39,14 @@
     padding: var(--sp-3);
 }
 
-/* What the click opens, and what the Playground shows right now. Longhands,
-   so a dashed n/a frame stays dashed. */
+/* What the click opens, and what the Playground shows right now. Outside the
+   stage, on the panel surface, where the primary holds its contrast whatever
+   ground the cell paints. Longhands, so a dashed n/a frame stays dashed. */
 :host(:hover) .cell__stage,
 :host([data-current]) .cell__stage {
     outline-width: 1.5px;
     outline-color: var(--prism-primary);
-    outline-offset: -1.5px;
+    outline-offset: 1px;
 }
 
 .cell__mount {

@@ -21,6 +21,7 @@
     --prism-icon-button-bg-hover: color-mix(in srgb, var(--prism-canvas-overlay-fg) 8%, transparent);
     --prism-icon-button-active-fg: var(--prism-canvas-overlay-primary);
     --prism-icon-button-active-bg: var(--prism-canvas-overlay-active);
+    --prism-icon-button-focus: var(--prism-canvas-overlay-primary);
 
     position: absolute;
     top: var(--prism-canvas-overlay-top, 12px);
