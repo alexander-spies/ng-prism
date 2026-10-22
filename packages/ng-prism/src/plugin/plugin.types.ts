@@ -51,13 +51,26 @@ export interface HeaderWidgetDefinition {
     order?: number;
 }
 
-/** A short marker rendered on a panel's tab, usually a count. */
+/**
+ * A short marker on a panel's tab.
+ *
+ * Two kinds, and a filled badge means exactly one thing: `issues` is a number of
+ * open findings, drawn as a pill in its tone and hidden at zero; `count` is a
+ * plain quantity, drawn as a muted figure without a fill.
+ */
 export interface PanelBadge {
+    /** Defaults from `variant` for badges written before 22.7: a judgement is `issues`, anything else `count`. Since 22.7.0. */
+    kind?: 'count' | 'issues';
     /** Kept to a couple of characters because the tab bar scrolls horizontally. */
     text: string;
+    /** Tone of an `issues` badge. Default `'danger'`. Since 22.7.0. */
+    tone?: 'primary' | 'warn' | 'danger';
+    /** Read after the tab's label by assistive technology, e.g. `'1 violation'`. Defaults to `text`. Since 22.7.0. */
+    label?: string;
     /**
-     * Colour role. `default` is the neutral primary tint used for a plain count;
-     * the other three carry a judgement and should be reserved for one.
+     * @deprecated Deprecated since 22.7.0, removed in 23.0.0. Use `kind` and `tone`:
+     * `warn`/`danger` map to `kind: 'issues'` with that tone, `default` to `kind: 'count'`,
+     * and `ok` is not rendered.
      */
     variant?: 'default' | 'ok' | 'warn' | 'danger';
 }

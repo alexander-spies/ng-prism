@@ -1,70 +1,16 @@
-:host {
-    display: block;
-    height: 100%;
-    overflow: auto;
-}
-
 .cov-body {
-    padding: 20px 24px;
-}
-
-.cov-summary {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 12px;
-    margin-bottom: 18px;
-}
-
-.cov-stat {
-    padding: 12px 14px;
-    background: var(--prism-bg-surface);
-    border: 1px solid var(--prism-border);
-    border-radius: 8px;
-}
-
-.cov-stat-k {
-    margin-bottom: 6px;
-    font-size: 10.5px;
-    font-weight: 700;
-    color: var(--prism-text-ghost);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-}
-
-.cov-stat-v {
-    font-family: var(--font-mono);
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--prism-text);
-    letter-spacing: -0.02em;
-}
-
-.cov-stat-v small {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--prism-text-muted);
-}
-
-.cov-bar {
-    height: 4px;
-    margin-top: 8px;
-    overflow: hidden;
-    background: var(--prism-input-bg);
-    border-radius: 2px;
-}
-
-.cov-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--prism-primary-from), var(--prism-primary-to));
-    border-radius: 2px;
-    transition: width 0.6s;
+    padding: 16px 18px;
 }
 
 .cov-files {
     padding: 12px;
+    margin: 0 18px 16px;
     background: var(--prism-bg-surface);
     border: 1px solid var(--prism-border);
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
 .cov-file {
@@ -86,10 +32,10 @@
     padding-bottom: 8px;
     font-size: 10.5px;
     font-weight: 700;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    border-bottom: 1px solid var(--prism-border-strong);
+    border-bottom: 1px solid var(--prism-border);
 }
 
 .cov-file-name {
@@ -103,7 +49,7 @@
 }
 
 .cov-file-val.bad {
-    color: var(--prism-warn);
+    color: var(--prism-danger);
 }
 
 .cov-empty {

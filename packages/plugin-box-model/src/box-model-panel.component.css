@@ -1,7 +1,21 @@
 :host {
+    /* The DevTools convention for the four layers, as plugin-local colours:
+       each holds 4.5:1 for its labels on its own tint. */
+    --prism-bm-margin: #fb923c;
+    --prism-bm-border: #fde047;
+    --prism-bm-padding: #4ade80;
+    --prism-bm-content: #60a5fa;
+
     display: block;
     height: 100%;
     overflow: auto;
+}
+
+:host-context(html[data-theme='light']) {
+    --prism-bm-margin: #9a5200;
+    --prism-bm-border: #7a6300;
+    --prism-bm-padding: #15803d;
+    --prism-bm-content: #1d4ed8;
 }
 
 .prism-bmp {
@@ -9,7 +23,7 @@
     align-items: center;
     justify-content: center;
     min-height: 100%;
-    padding: 24px;
+    padding: 16px 18px;
     font-family: var(--font-sans);
     font-size: 12px;
 }
@@ -27,45 +41,42 @@
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.02em;
     border: 1px dashed;
 }
 
 .prism-bmp__region--margin {
-    padding: 32px;
-    color: #fbbf24;
-    background: color-mix(in srgb, #fbbf24 8%, transparent);
-    border-color: color-mix(in srgb, #fbbf24 70%, transparent);
+    padding: 26px;
+    color: var(--prism-bm-margin);
+    background: color-mix(in srgb, var(--prism-bm-margin) 8%, transparent);
+    border-color: color-mix(in srgb, var(--prism-bm-margin) 70%, transparent);
 }
 
 .prism-bmp__region--border {
     flex: 1;
     padding: 14px;
-    color: #f472b6;
-    background: color-mix(in srgb, #f472b6 8%, transparent);
-    border-color: color-mix(in srgb, #f472b6 70%, transparent);
+    color: var(--prism-bm-border);
+    background: color-mix(in srgb, var(--prism-bm-border) 8%, transparent);
+    border-color: color-mix(in srgb, var(--prism-bm-border) 70%, transparent);
 }
 
 .prism-bmp__region--padding {
     flex: 1;
     padding: 20px;
-    color: #34d399;
-    background: color-mix(in srgb, #34d399 10%, transparent);
-    border-color: color-mix(in srgb, #34d399 70%, transparent);
+    color: var(--prism-bm-padding);
+    background: color-mix(in srgb, var(--prism-bm-padding) 10%, transparent);
+    border-color: color-mix(in srgb, var(--prism-bm-padding) 70%, transparent);
 }
 
 .prism-bmp__region-label {
     position: absolute;
-    top: 6px;
-    left: 50%;
+    top: 4px;
+    left: 6px;
     font-size: 10px;
     font-weight: 600;
     color: inherit;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.8;
-    transform: translateX(-50%);
+    text-transform: none;
+    letter-spacing: 0.02em;
 }
 
 .prism-bmp__sides {
@@ -97,7 +108,7 @@
 }
 
 .prism-bmp__side--dim {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }
 
 .prism-bmp__content-box {
@@ -106,12 +117,12 @@
     font-family: var(--font-mono);
     font-size: 12px;
     font-weight: 500;
-    color: var(--prism-primary);
+    color: var(--prism-bm-content);
     text-align: center;
     text-transform: none;
     letter-spacing: 0;
-    background: color-mix(in srgb, var(--prism-primary) 15%, transparent);
-    border: 1px solid var(--prism-primary);
+    background: color-mix(in srgb, var(--prism-bm-content) 12%, transparent);
+    border: 1px solid var(--prism-bm-content);
     border-radius: var(--radius-xs);
 }
 

@@ -76,9 +76,8 @@ const THEMES = [
  */
 const CONFUSABLE = [
     ['--prism-warn', '--prism-danger'],
-    ['--prism-mark-nominal', '--prism-mark-attention'],
-    ['--prism-mark-nominal', '--prism-mark-critical'],
-    ['--prism-mark-attention', '--prism-mark-critical']
+    ['--prism-success', '--prism-warn'],
+    ['--prism-success', '--prism-danger']
 ] as const;
 
 /**
@@ -95,12 +94,13 @@ const CONFUSABLE = [
  * glyph does: each mark carries its own icon, the status chip its own word,
  * and every readout row its own label.
  */
-const WARM_PAIRS = [
-    ['--prism-warn', '--prism-danger'],
-    ['--prism-mark-attention', '--prism-mark-critical']
-] as const;
+const WARM_PAIRS = [['--prism-warn', '--prism-danger']] as const;
 
-const SEMANTIC = ['--prism-success', '--prism-warn', '--prism-danger', '--prism-mark-nominal', '--prism-mark-attention', '--prism-mark-critical'] as const;
+/**
+ * Since 22.7 the `--prism-mark-*` roles are aliases of these three, so checking
+ * the three checks the marks too.
+ */
+const SEMANTIC = ['--prism-success', '--prism-warn', '--prism-danger'] as const;
 
 describe('semantic colours', () => {
     it.each(THEMES)('%s theme meets WCAG AA against its own background', (_name, theme) => {
@@ -336,5 +336,182 @@ describe('semantic colours', () => {
                 expect(deltaE(theme['--prism-measure'], theme['--prism-primary'])).toBeGreaterThanOrEqual(30);
             }
         });
+    });
+});
+
+/**
+ * Every role on every surface it can land on.
+ *
+ * The semantic block above only measures against `--prism-bg`. That was enough
+ * while the surfaces were within a hair of each other; since 22.7 the chrome,
+ * the content and the popovers are distinct colours in both themes, and a muted
+ * label that passes on one of them can fail on the next. Tokens are resolved
+ * the way the browser resolves them: `var()` aliases are followed, and
+ * `color-mix(in srgb, X N%, transparent)` is composited over the ground it sits on.
+ */
+describe('role contrast', () => {
+    const SURFACES = ['--prism-void', '--prism-bg', '--prism-bg-surface', '--prism-bg-elevated', '--prism-stage'] as const;
+
+    const hex2 = (n: number) => Math.round(n).toString(16).padStart(2, '0');
+
+    const over = (fg: string, alpha: number, ground: string): string => {
+        const f = rgb(fg);
+        const g = rgb(ground);
+
+        return `#${[0, 1, 2].map((i) => hex2(f[i] * alpha + g[i] * (1 - alpha))).join('')}`;
+    };
+
+    /** The opaque colour a token paints over `ground`. */
+    const resolve = (theme: Record<string, string>, value: string, ground: string): string => {
+        const v = value.trim();
+        const alias = /^var\((--[a-z0-9-]+)\)$/i.exec(v);
+
+        if (alias) {
+            const target = theme[alias[1]] ?? PRISM_BASE_TOKENS[alias[1]];
+
+            if (target === undefined) throw new Error(`unresolved ${alias[1]}`);
+            return resolve(theme, target, ground);
+        }
+
+        const mix = /^color-mix\(in srgb,\s*(.+)\s+(\d+(?:\.\d+)?)%,\s*transparent\)$/i.exec(v);
+
+        if (mix) return over(resolve(theme, mix[1], ground), Number(mix[2]) / 100, ground);
+
+        const rgba = /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/i.exec(v);
+
+        if (rgba) {
+            const fg = `#${[rgba[1], rgba[2], rgba[3]].map((c) => hex2(Number(c))).join('')}`;
+
+            return over(fg, Number(rgba[4]), ground);
+        }
+
+        if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
+        throw new Error(`cannot resolve ${value}`);
+    };
+
+    const token = (theme: Record<string, string>, name: string, ground: string) => {
+        const value = theme[name];
+
+        if (value === undefined) throw new Error(`${name} is not defined`);
+        return resolve(theme, value, ground);
+    };
+
+    const ground = (theme: Record<string, string>, name: string) => resolve(theme, theme[name], '#000000');
+
+    /** Every failing pair as `fg on ground: ratio`, so one run names them all. */
+    const failures = (theme: Record<string, string>, fgs: readonly string[], grounds: readonly string[], floor: number) =>
+        Object.fromEntries(
+            fgs
+                .flatMap((fg) =>
+                    grounds.map((g) => {
+                        const bg = ground(theme, g);
+
+                        return [`${fg} on ${g}`, Number(contrast(token(theme, fg, bg), bg).toFixed(2))] as const;
+                    })
+                )
+                .filter(([, ratio]) => ratio < floor)
+        );
+
+    const TEXT = [
+        '--prism-text',
+        '--prism-text-2',
+        '--prism-text-muted',
+        '--prism-primary',
+        '--prism-link',
+        '--prism-accent',
+        '--prism-success',
+        '--prism-warn',
+        '--prism-danger',
+        '--prism-code-tag',
+        '--prism-code-attr',
+        '--prism-code-str',
+        '--prism-code-com'
+    ] as const;
+
+    it.each(THEMES)('%s theme: text roles hold 4.5:1 on every surface', (_n, theme) => {
+        expect(failures(theme, TEXT, SURFACES, 4.5)).toEqual({});
+    });
+
+    const TINTED = [
+        ['--prism-success', '--prism-success-bg'],
+        ['--prism-warn', '--prism-warn-bg'],
+        ['--prism-danger', '--prism-danger-bg'],
+        ['--prism-primary', '--prism-primary-bg']
+    ] as const;
+
+    it.each(THEMES)('%s theme: status text holds 4.5:1 on its own tint over chrome and content', (_n, theme) => {
+        const failing = Object.fromEntries(
+            TINTED.flatMap(([fg, tint]) =>
+                (['--prism-bg', '--prism-bg-surface'] as const).map((g) => {
+                    const bg = token(theme, tint, ground(theme, g));
+
+                    return [`${fg} on ${tint} over ${g}`, Number(contrast(token(theme, fg, bg), bg).toFixed(2))] as const;
+                })
+            ).filter(([, ratio]) => ratio < 4.5)
+        );
+
+        expect(failing).toEqual({});
+    });
+
+    const CONTOURS = [
+        '--prism-border-strong',
+        '--prism-primary-fill',
+        '--prism-facet-cyan',
+        '--prism-facet-blue',
+        '--prism-facet-violet',
+        '--prism-facet-magenta'
+    ] as const;
+
+    it.each(THEMES)('%s theme: control contours and icon facets hold 3:1 on every surface', (_n, theme) => {
+        expect(failures(theme, CONTOURS, SURFACES, 3)).toEqual({});
+    });
+
+    it.each(THEMES)('%s theme: on-primary holds 4.5:1 on the fill and its hover', (_n, theme) => {
+        const on = token(theme, '--prism-on-primary', '#000000');
+
+        expect(contrast(on, token(theme, '--prism-primary-fill', '#000000'))).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(on, token(theme, '--prism-primary-fill-hover', '#000000'))).toBeGreaterThanOrEqual(4.5);
+    });
+
+    /** The colour stops of a gradient token, after following aliases. */
+    const stops = (theme: Record<string, string>, name: string): string[] => {
+        let value = theme[name];
+        const alias = /^var\((--[a-z0-9-]+)\)$/i.exec(value ?? '');
+
+        if (alias) value = theme[alias[1]];
+        if (value === undefined) throw new Error(`${name} is not defined`);
+        return [...value.matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0]);
+    };
+
+    it.each(THEMES)('%s theme: every stop of the brand ink holds 3:1 on the chrome', (_n, theme) => {
+        // The ink paints tab indicators and the sidebar's light bar, which are
+        // state indicators (WCAG 1.4.11), so the faintest stop sets the floor.
+        const chrome = ground(theme, '--prism-bg');
+        const failing = stops(theme, '--prism-brand-ink').filter((c) => contrast(c, chrome) < 3);
+
+        expect(failing).toEqual([]);
+    });
+
+    it.each(THEMES)('%s theme: every stop of the active toggle track holds 3:1 against the knob and the surfaces', (_n, theme) => {
+        // An active switch is identified by its track (WCAG 1.4.11): the knob
+        // has to stand out on it, and the track on the surface it sits on.
+        const knob = token(theme, '--prism-on-primary', '#000000');
+        const failing = stops(theme, '--prism-toggle-on').flatMap((stop) =>
+            [knob, ground(theme, '--prism-bg-surface'), ground(theme, '--prism-bg-elevated')]
+                .filter((against) => contrast(stop, against) < 3)
+                .map((against) => `${stop} vs ${against}`)
+        );
+
+        expect(failing).toEqual([]);
+    });
+
+    it('paints the brand gradient identically in both themes', () => {
+        expect(PRISM_DARK_THEME['--prism-brand-gradient']).toBe('linear-gradient(90deg, #00CFEA 0%, #078BFA 38%, #244BFF 68%, #A20CF0 100%)');
+        expect(PRISM_LIGHT_THEME['--prism-brand-gradient']).toBe(PRISM_DARK_THEME['--prism-brand-gradient']);
+    });
+
+    it('keeps the absolute canvas grounds every VRT baseline was taken on', () => {
+        expect(PRISM_BASE_TOKENS['--prism-void-light']).toBe('#f7f5fc');
+        expect(PRISM_BASE_TOKENS['--prism-void-dark']).toBe('#07050f');
     });
 });

@@ -14,21 +14,21 @@
             [facts]="facts()" />
 
         @if (statusBadge(); as badge) {
-            <span
-                class="comp-status comp-status--{{ status() }}"
-                [attr.title]="badge.tooltip">
-                <span
-                    class="comp-status-mark"
-                    aria-hidden="true"></span>
-                {{ badge.label }}
-            </span>
+            <prism-badge
+                class="comp-status"
+                [class.comp-status--wip]="status() === 'wip'"
+                dot
+                [tone]="badge.tone"
+                [label]="badge.label"
+                [attr.title]="badge.tooltip" />
         }
-
-        <span class="comp-spacer"></span>
 
         @if (comp()) {
             <prism-head-gauge [metrics]="metrics()" />
         }
+
+        <span class="comp-spacer"></span>
+
         <span class="comp-head-end"><ng-content select="[headEnd]" /></span>
     </section>
 }

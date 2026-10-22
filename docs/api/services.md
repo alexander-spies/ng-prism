@@ -140,8 +140,8 @@ Manages sidebar, variant rail, and panel visibility. State is persisted to `loca
 | `addonsVisible`       | `Signal<boolean>`             | Whether the addon panel area is visible                                                                                                                                                      |
 | `toolbarVisible`      | `Signal<boolean>`             | Whether the variant rail (the variant ribbon above the canvas) is visible. The name predates the removal of the canvas toolbar band, which is now a floating rail and has no visibility flag |
 | `addonsOrientation`   | `Signal<'bottom' \| 'right'>` | Panel area orientation                                                                                                                                                                       |
-| `sidebarWidth`        | `Signal<number>`              | Sidebar width in pixels (160–600)                                                                                                                                                            |
-| `panelHeight`         | `Signal<number>`              | Addon panel height in pixels, used when orientation is `'bottom'` (100–600)                                                                                                                  |
+| `sidebarWidth`        | `Signal<number>`              | Sidebar width in pixels (200–360, default 280; since 22.7, before 160–600)                                                                                                                   |
+| `panelHeight`         | `Signal<number>`              | Addon panel height in pixels, used when orientation is `'bottom'` (200–560, default 300; since 22.7, before 100–600)                                                                         |
 | `panelWidth`          | `Signal<number>`              | Addon panel width in pixels, used when orientation is `'right'` (200–600)                                                                                                                    |
 | `toggleSidebar()`     | `void`                        | Toggle sidebar visibility                                                                                                                                                                    |
 | `toggleAddons()`      | `void`                        | Toggle addon panel visibility                                                                                                                                                                |
@@ -150,6 +150,21 @@ Manages sidebar, variant rail, and panel visibility. State is persisted to `loca
 | `setSidebarWidth(px)` | `void`                        | Set sidebar width with clamping                                                                                                                                                              |
 | `setPanelHeight(px)`  | `void`                        | Set panel height with clamping                                                                                                                                                               |
 | `setPanelWidth(px)`   | `void`                        | Set panel width with clamping                                                                                                                                                                |
+
+---
+
+## PrismThemeService
+
+The colour mode and the theme tokens. It keeps the mode in `localStorage` under the key `ng-prism-theme`, sets `data-theme` on `<html>`, writes the resolved tokens onto `document.documentElement` and sets the favicon.
+
+| Member                         | Type                                | Description                                                                                                                                                                                                                                                                    |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `theme`                        | `WritableSignal<'dark' \| 'light'>` | The active mode (default: `'dark'`)                                                                                                                                                                                                                                            |
+| `isDark`                       | `Signal<boolean>`                   | Whether the active mode is `'dark'`                                                                                                                                                                                                                                            |
+| `appTokens`                    | `Signal<Record<string, string>>`    | Since 22.7. Every token of the active mode, with the config's overrides. The header renders with the dark set, so a popover that opens from a header widget binds this as `[style]` to show the active theme again                                                             |
+| `headerTokens`                 | `Signal<Record<string, string>>`    | Since 22.7. The dark set with the `theme` and `darkTheme` overrides. The header binds it on its host: it is a navy band in both themes                                                                                                                                         |
+| `toggle()`                     | `void`                              | Switch between dark and light                                                                                                                                                                                                                                                  |
+| `applyConfigOverrides(config)` | `void`                              | Apply `theme`, `darkTheme` and `lightTheme` from the config. `PrismShellComponent` calls it at startup. Since 22.7 an override of a deprecated token is carried over to its successor where it has one, and the console warns once per token (see [Theming](guide/theming.md)) |
 
 ---
 

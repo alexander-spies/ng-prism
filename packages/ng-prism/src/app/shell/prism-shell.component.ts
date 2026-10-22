@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, HostListener, inject, untracked } from '@angular/core';
 import type { NgPrismConfig } from '../../plugin/plugin.types.js';
+import { canvasOverlayTokens } from '../canvas/canvas-overlay-tokens.js';
 import { PrismCanvasPinRowComponent } from '../canvas/prism-canvas-pin-row.component.js';
 import { PrismCanvasToolbarComponent } from '../canvas/prism-canvas-toolbar.component.js';
 import { PrismTemplatePopoverComponent } from '../canvas/prism-template-popover.component.js';
@@ -9,12 +10,14 @@ import { PrismHeaderComponent } from '../header/prism-header.component.js';
 import { PrismPageRendererComponent } from '../page-renderer/prism-page-renderer.component.js';
 import { PrismPanelHostComponent } from '../panels/panel-host/prism-panel-host.component.js';
 import { PrismRendererComponent } from '../renderer/prism-renderer.component.js';
-import { PrismLayoutService } from '../services/prism-layout.service.js';
+import { PANEL_HEIGHT, PrismLayoutService, SIDEBAR_WIDTH } from '../services/prism-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
 import { PrismPersistenceService } from '../services/prism-persistence.service.js';
 import { PrismThemeService } from '../services/prism-theme.service.js';
 import { PrismUrlStateService } from '../services/prism-url-state.service.js';
+import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
+import { PrismLogoComponent } from '../shared/prism-logo.component.js';
 import { PrismSidebarComponent } from '../sidebar/prism-sidebar.component.js';
 import { PRISM_CONFIG } from '../tokens/prism-tokens.js';
 import { PrismVariantRibbonComponent } from '../variant-ribbon/prism-variant-ribbon.component.js';
@@ -40,7 +43,8 @@ import { shouldSelectFirst } from './should-select-first.js';
         PrismResizerDirective,
         PrismCanvasToolbarComponent,
         PrismTemplatePopoverComponent,
-        PrismCanvasPinRowComponent
+        PrismCanvasPinRowComponent,
+        PrismLogoComponent
     ],
     templateUrl: './prism-shell.component.html',
     styleUrl: './prism-shell.component.css'
@@ -50,9 +54,15 @@ export class PrismShellComponent {
     protected readonly navigationService = inject(PrismNavigationService);
     private readonly themeService = inject(PrismThemeService);
     protected readonly layout = inject(PrismLayoutService);
+    protected readonly sidebarBounds = SIDEBAR_WIDTH;
+    protected readonly panelBounds = PANEL_HEIGHT;
     protected readonly panelService = inject(PrismPanelService);
     private readonly urlStateService = inject(PrismUrlStateService);
     private readonly persistenceService = inject(PrismPersistenceService);
+    private readonly variantBg = inject(PrismVariantBgService);
+
+    /** Overlays on the canvas follow its ground: light and dark are absolute, the others follow the theme. */
+    protected readonly overlayTokens = computed(() => canvasOverlayTokens(this.variantBg.effective()));
 
     protected readonly viewPanels = this.panelService.visibleViewPanels;
 

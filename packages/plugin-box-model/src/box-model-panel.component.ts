@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { BoxModelStateService } from './box-model-state.service.js';
+import { formatSide } from './box-model-utils.js';
 import type { BoxModelData } from './box-model.types.js';
 
 @Component({
@@ -15,7 +16,12 @@ export class BoxModelPanelComponent {
     readonly activeComponent = input<unknown>(null);
 
     fmt(value: number): string {
-        return value === 0 ? '-' : `${value}`;
+        return formatSide(value);
+    }
+
+    /** The outer size and the content size, for the diagram's tooltip. */
+    sizeTitle(bm: BoxModelData): string {
+        return `Border box ${Math.round(bm.content.width)} × ${Math.round(bm.content.height)} · content ${this.contentW(bm)} × ${this.contentH(bm)}`;
     }
 
     contentW(bm: BoxModelData): string {

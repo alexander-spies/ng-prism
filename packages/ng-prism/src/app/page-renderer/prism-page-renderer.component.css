@@ -14,8 +14,6 @@
     letter-spacing: -0.01em;
     background: var(--prism-bg-surface);
     border-bottom: 1px solid var(--prism-border);
-    border-left: 3px solid;
-    border-image: linear-gradient(180deg, var(--prism-primary-from), var(--prism-primary-to)) 1;
 }
 
 .prism-page-renderer__component {
@@ -27,56 +25,80 @@
 }
 
 /* Projected page content arrives through ngComponentOutlet and carries no
-   theme of its own. Without this scope a consuming app's plain <h2> renders
-   in the browser default colour on the styleguide's dark shell (measured at
-   rgb(26,26,46) on a dark ground), which is darker than the body text beneath
-   it and inverts the hierarchy. These are element selectors because
-   the content is authored by the consumer and carries no classes we know. */
-.prism-page-renderer__component :is(h1, h2, h3, h4, h5, h6) {
-    margin: var(--sp-6) 0 var(--sp-3);
-    font-family: var(--prism-font-sans);
-    font-weight: 600;
-    line-height: 1.25;
-    color: var(--prism-text);
-    letter-spacing: -0.01em;
-}
+   theme of its own. Without these rules a consuming app's plain <h2> renders
+   in the browser default colour on the styleguide's dark shell, darker than
+   the body text beneath it.
 
-.prism-page-renderer__component :is(h1, h2, h3, h4, h5, h6):first-child {
-    margin-top: 0;
-}
+   Under Emulated encapsulation a plain descendant selector here never reaches
+   the page's elements (they carry the page component's attribute, not this
+   one's), so the rules go through ::ng-deep. They sit in a cascade layer, so
+   every unlayered style wins whatever its specificity: the page's own, the
+   consumer's global stylesheet (a reset, a Tailwind preflight) and the styles
+   of the components a page renders. :where() keeps them light inside the
+   layer, too. These elements are the page's documentation chrome, not the
+   canvas: the playground canvas is untouched. */
+@layer prism-page-defaults {
+    :host ::ng-deep :where(.prism-page-renderer__component :is(h1, h2, h3, h4, h5, h6)) {
+        margin: var(--sp-6) 0 var(--sp-3);
+        font-family: var(--prism-font-sans);
+        font-weight: 600;
+        line-height: 1.25;
+        color: var(--prism-text);
+        letter-spacing: -0.01em;
+    }
 
-.prism-page-renderer__component h1 {
-    font-size: 24px;
-}
+    :host ::ng-deep :where(.prism-page-renderer__component :is(h1, h2, h3, h4, h5, h6):first-child) {
+        margin-top: 0;
+    }
 
-.prism-page-renderer__component h2 {
-    font-size: 20px;
-}
+    :host ::ng-deep :where(.prism-page-renderer__component h1) {
+        font-size: 24px;
+    }
 
-.prism-page-renderer__component h3 {
-    font-size: 17px;
-}
+    :host ::ng-deep :where(.prism-page-renderer__component h2) {
+        font-size: 20px;
+    }
 
-.prism-page-renderer__component :is(h4, h5, h6) {
-    font-size: var(--fs-xl);
-}
+    :host ::ng-deep :where(.prism-page-renderer__component h3) {
+        font-size: 17px;
+    }
 
-.prism-page-renderer__component :is(p, ul, ol) {
-    margin: 0 0 var(--sp-4);
-}
+    :host ::ng-deep :where(.prism-page-renderer__component :is(h4, h5, h6)) {
+        font-size: var(--fs-xl);
+    }
 
-.prism-page-renderer__component :is(strong, b) {
-    color: var(--prism-text);
-}
+    :host ::ng-deep :where(.prism-page-renderer__component :is(p, ul, ol)) {
+        margin: 0 0 var(--sp-4);
+    }
 
-.prism-page-renderer__component a {
-    color: var(--prism-primary);
-}
+    :host ::ng-deep :where(.prism-page-renderer__component :is(strong, b)) {
+        color: var(--prism-text);
+    }
 
-.prism-page-renderer__component :is(code, pre) {
-    font-family: var(--prism-font-mono);
-    font-size: var(--fs-md);
-    color: var(--prism-text);
+    :host ::ng-deep :where(.prism-page-renderer__component a) {
+        font-weight: 500;
+        color: var(--prism-link);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-decoration-color: color-mix(in srgb, var(--prism-link) 45%, transparent);
+        text-underline-offset: 3px;
+    }
+
+    :host ::ng-deep :where(.prism-page-renderer__component a:hover) {
+        text-decoration-color: var(--prism-link);
+    }
+
+    :host ::ng-deep :where(.prism-page-renderer__component a:focus-visible) {
+        outline: 2px solid var(--prism-link);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    :host ::ng-deep :where(.prism-page-renderer__component :is(code, pre)) {
+        font-family: var(--prism-font-mono);
+        font-size: var(--fs-md);
+        color: var(--prism-text);
+    }
 }
 
 .prism-page-renderer__json {

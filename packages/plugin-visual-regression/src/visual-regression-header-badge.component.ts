@@ -2,9 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { PrismMetricBadgeComponent } from '@ng-prism/core';
 import { PRISM_MANIFEST } from '@ng-prism/core/plugin';
 import type { RuntimeManifest } from '@ng-prism/core/plugin';
+import { vrtLibraryTone } from './thresholds.js';
 import type { VrtManifestMeta } from './visual-regression.types.js';
-
-type Variant = 'ok' | 'warn' | 'danger';
 
 @Component({
     selector: 'prism-visual-regression-header-badge',
@@ -22,7 +21,7 @@ export class VisualRegressionHeaderBadgeComponent {
         if (!meta?.found || !meta.total) return null;
 
         const { total, thresholds } = meta;
-        const variant: Variant = total.score >= thresholds.score ? 'ok' : total.score >= thresholds.score * 0.75 ? 'warn' : 'danger';
+        const variant = vrtLibraryTone(total.score, thresholds);
 
         // `new` and `excluded` stay out of the headline counts: neither
         // has regressed, so both are reported but never framed as a fault.

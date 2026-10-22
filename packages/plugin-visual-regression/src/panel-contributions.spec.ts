@@ -59,7 +59,7 @@ describe('reviewBadge', () => {
     it('counts only what is waiting on a person', () => {
         const badge = reviewBadge(withVariants('changed', ...Array<VrtStatus>(14).fill('unchanged')));
 
-        expect(badge).toEqual({ text: '1', variant: 'danger' });
+        expect(badge).toEqual({ kind: 'issues', text: '1', tone: 'danger', label: '1 to review' });
     });
 
     it('counts every kind of open item, not just the changed ones', () => {
@@ -71,11 +71,11 @@ describe('reviewBadge', () => {
     it('stays amber while nothing has actually regressed', () => {
         // Resized and new could not be compared. Neither is a regression, so
         // neither gets the regression colour.
-        expect(reviewBadge(withVariants('new', 'size-mismatch'))?.variant).toBe('warn');
+        expect(reviewBadge(withVariants('new', 'size-mismatch'))?.tone).toBe('warn');
     });
 
     it('turns red as soon as one variant really changed', () => {
-        expect(reviewBadge(withVariants('new', 'changed'))?.variant).toBe('danger');
+        expect(reviewBadge(withVariants('new', 'changed'))?.tone).toBe('danger');
     });
 
     it('ignores excluded variants entirely', () => {

@@ -116,6 +116,14 @@ export function notesPlugin(): NgPrismPlugin {
   `@ng-prism/core/plugin`.
 - `isVisible`, `badge` and a decoration's `badge` run during change detection: keep them pure and cheap, and decide
   verdicts in `onComponentScanned`.
+- A panel's `badge` returns `{ kind?: 'count' | 'issues', text, tone?: 'primary' | 'warn' | 'danger', label? }` or
+  `null` (since 22.7). `issues` is a number of open findings, a filled pill in `tone` (default `danger`), hidden at
+  `'0'`; `count` is a plain muted figure. `label` is what a screen reader hears after the tab label. `variant` is
+  deprecated (removed in 23.0.0) and still mapped: `warn`/`danger` → `issues`, `default` → `count`, `ok` → nothing.
+- Grade a figure with `statusFor(value, { ok, warn, direction? })` or `thresholdFromTarget(target)` from
+  `@ng-prism/core/plugin` (warn down to 75 % of the target, danger below), and `worstTone()` for several. The header
+  badge, the sidebar and the built-in panels grade the same way, so a plugin that does too never disagrees with them.
+
 - Panel ids are not deduplicated: prefix yours and avoid the built-in `overview`, `controls`, `events` and `a11y`.
 - Decoration ids are deduplicated: built-ins first (only `a11y`), then plugins in registration order. The first
   definition of an id wins, later ones are dropped silently. The orders 10, 20 and 30 belong to a11y, visual regression
@@ -123,6 +131,27 @@ export function notesPlugin(): NgPrismPlugin {
 - The first control whose `matchType` matches wins, in registration order.
 - `wrapComponent` and a panel's `position` are in the typings, but nothing has ever read them; they are deprecated
   (removed in 23.0.0). Don't use them. Where a panel appears is `placement`.
+
+## Panel look
+
+Since 22.7 the built-in panels share one anatomy, and the same primitives are exported from `@ng-prism/core`:
+`prism-panel-toolbar` (slots `[toolbarStart]`, `[toolbarEnd]`), `prism-tabs` (`items`, `[(active)]`, `size`),
+`prism-segmented`, `prism-metric-card` (`label`, `value`, `unit`, `tone`, `statusLabel`, `fraction`, `threshold`,
+`title`), `prism-list-row` (`selected`, `interactive`; slots `[rowBadge]`, `[rowTitle]`, `[rowDescription]`,
+`[rowMeta]`), `prism-badge` (`tone`, `variant`, `size`, `label`, `value`), `button[prismButton]`,
+`button[prismIconButton]`, plus `toneForStatus(status)` for a badge tone. Use them instead of styling your own, and
+follow the rules the built-ins follow:
+
+- A toolbar only when the panel has sub-tabs (`prism-tabs size="sm"`) or actions; no meta text in it, put counts,
+  timestamps and thresholds in tooltips.
+- Measured values as metric cards without a visible subtitle (details in `title`); findings as list rows, a selected
+  row tinted, never a coloured left border.
+- A graded value in its status colour, a plain quantity in `--prism-primary`; the brand gradient is not for data.
+- Content padded 16 × 18 px on a 12 px grid, following the dragged panel height; images and charts fit.
+- Background `--prism-bg-surface`, embeds too. Actions right in the toolbar, `prismButton` `sm`, secondary before
+  primary.
+- Colours only through `--prism-*` tokens, so the panel works in both themes; `plugins/writing-plugins.md`
+  (Panel Guidelines) has a full example.
 
 ## Packaging for npm
 
@@ -141,13 +170,15 @@ runtime contributions only:
             "default": "./dist/index.js"
         }
     },
-    "peerDependencies": { "@angular/core": ">=20.0.0", "@ng-prism/core": "^22.5.0-0" }
+    "peerDependencies": { "@angular/core": ">=20.0.0", "@ng-prism/core": "^22.7.0-0" }
 }
 ```
 
 - `index.ts` exports the factory with hooks and contributions; `index.browser.ts` exports a factory of the same name
   without the hooks. Both export the same names, since they share one `index.d.ts`.
-- Angular and `@ng-prism/core` are `peerDependencies`, never bundled.
+- Angular and `@ng-prism/core` are `peerDependencies`, never bundled. Start the `@ng-prism/core` range at the release
+  whose APIs the plugin uses: `statusFor`, the UI primitives and `PanelBadge.kind` exist from 22.7.0, so a plugin that
+  follows this skill needs `^22.7.0-0`.
 - Optional `ng add`: a schematic that calls `addPluginToConfig(tree, path, { importName, importFrom, call })` from
   `@ng-prism/core/schematics/utils`, with `path` pointing at `ng-prism.config.ts`.
 

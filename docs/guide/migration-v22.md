@@ -2,7 +2,7 @@
 
 `@ng-prism/core@22.0.0` moves the auto-generated `prism-manifest.ts` out of your source tree into a workspace-level cache directory and switches the import to a tsconfig path mapping. This is a **breaking change**: the previous layout will not work against the new pipeline.
 
-> **This guide is for existing ng-prism installations** being upgraded from `21.x` to `22.x`. If you have not used ng-prism in this workspace before, you want a fresh install instead; see [Installation & Setup](installation.md).
+> **This guide is for existing ng-prism installations** being upgraded from `21.x` to `22.x`. If you have not used ng-prism in this workspace before, you want a fresh install instead; see [Installation & Setup](guide/installation.md).
 
 ## Prerequisites
 
@@ -56,7 +56,7 @@ You probably used `--next=true`. That flag looks for a `next` dist-tag specifica
 
 **`ng update` says "already up to date"**
 
-No older ng-prism is installed, so there is nothing to migrate. If you intended a fresh install, use `ng add @ng-prism/core@beta` (see [Installation & Setup](installation.md)). If `ng add` reports "Package does not provide any `ng add` actions", run the schematic directly:
+No older ng-prism is installed, so there is nothing to migrate. If you intended a fresh install, use `ng add @ng-prism/core@beta` (see [Installation & Setup](guide/installation.md)). If `ng add` reports "Package does not provide any `ng add` actions", run the schematic directly:
 
 ```bash
 ng generate @ng-prism/core:ng-add --project=<your-library>
@@ -313,22 +313,22 @@ Relative paths resolve against `workspaceRoot`. If you set this option, also upd
 - **`PrismLayoutService.templatePopoverVisible`, `toggleTemplatePopover()` and `closeTemplatePopover()` are gone.** The Angular-template popover now uses the platform [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API): open and close are wired through `popovertarget`/`popovertargetaction` attributes instead of a service call. If your own code called any of these three members directly, replace the call with a `popovertarget="prism-template"` attribute on your trigger element; there is no programmatic open/close anymore.
 - **`Alt+T` toggles only the variant rail now.** The component head no longer hides with it, because it carries the Playground/API view switcher. If you built tooling that asserts on the component head disappearing after `Alt+T`, update it to expect only the variant ribbon to hide.
 - **Four internal class names are gone from the DOM:** `.comp-desc`, `.comp-tags`, `.comp-selector`, `.comp-head-stats` on the component head, and the variant ribbon's `--vc` custom property. None of these were documented public API, but a `themeStylesheet` or browser extension that targeted them will no longer match. The description and tags now render inside the component head's details popover (behind the ⓘ glyph); the selector lives there too; the stat row was replaced by the head gauge. The variant ribbon no longer assigns a per-tab colour via `--vc`. Each tab reads a slice of `--prism-spectrum` instead, positioned with `--i`/`--n`.
-- **The canvas toolbar is no longer a band.** It used to occupy a fixed-height strip between the variant ribbon and the canvas stage; it is now a floating rail (`.prism-toolrail`) absolutely positioned inside `.prism-canvas-wrap`, plus a popover menu for the background and zoom choosers. See [Theming: Marks, Measurement and Stage Tokens](theming.md#marks-measurement-and-stage-tokens) for the recommendation marker's replacement (a tinted border instead of a star).
+- **The canvas toolbar is no longer a band.** It used to occupy a fixed-height strip between the variant ribbon and the canvas stage; it is now a floating rail (`.prism-toolrail`) absolutely positioned inside `.prism-canvas-wrap`, plus a popover menu for the background and zoom choosers. See [Theming: Measurement and Stage Tokens](guide/theming.md#measurement-and-stage-tokens) for the recommendation marker's replacement (a tinted border instead of a star).
 - **The gauge readout in the component head shows three values instead of five:** coverage, a11y score and VRT diff. The variant count moved to the details popover behind the ⓘ glyph, next to the selector and the tags, because it is a property of the component and has no threshold. The bundle-size figure was dropped: `bundleSize()` read `gzipKb`/`sizeKb` while `@ng-prism/plugin-perf` writes `sourceSize`/`gzipEstimate`, so the value was always `null`.
 
-None of this affects `ShowcaseConfig`, the manifest format, or any plugin's public API. See [`PrismMetricBadgeComponent` and `PrismIconComponent`](../plugins/writing-plugins.md#header-and-panel-widgets) if you are building a header widget and want the same building blocks the built-in gauge uses.
+None of this affects `ShowcaseConfig`, the manifest format, or any plugin's public API. See [`PrismMetricBadgeComponent` and `PrismIconComponent`](plugins/writing-plugins.md#header-and-panel-widgets) if you are building a header widget and want the same building blocks the built-in gauge uses.
 
 ## Breaking changes and deprecations in 22.7.0
 
-`22.7.0` adds [services](showcasing-services.md) and [pipes](showcasing-pipes.md) to the styleguide. Everything else is additive: for components and directives, `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. The exception is a class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe`, which used to be scanned as a component and now leaves `components`, as described below. Its Playground never rendered it, so nothing that worked is lost; a tool that enumerated `components` simply no longer sees it. The one breaking change in application code is a type-level one. The deprecation below changes nothing in 22.x.
+`22.7.0` adds [services](guide/showcasing-services.md) and [pipes](guide/showcasing-pipes.md) to the styleguide. Everything else is additive: for components and directives, `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. The exception is a class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe`, which used to be scanned as a component and now leaves `components`, as described below. Its Playground never rendered it, so nothing that worked is lost; a tool that enumerated `components` simply no longer sees it. The one breaking change in application code is a type-level one. The deprecations below change nothing in 22.x. The release also brings the [new look](#new-look-palette-header-and-panels).
 
 Before 22.7.0 every class with `@Showcase` was a component, so a class with `@Showcase` and `@Pipe` was in `components` (with the selector `''`), in `__PRISM_MANIFEST__` and in `onComponentScanned`, and its Playground never rendered it. In 22.7.0 it depends on the pipe:
 
-- **Standalone, without component-only fields:** it leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`. With `jsDocPlugin()` from `@ng-prism/plugin-jsdoc` 22.7.0 or newer it is listed under **Pipes** and goes through `onPipeScanned`; without it the build leaves it out and says so once, see [Showcasing Pipes: Without the JSDoc plugin](showcasing-pipes.md#without-the-jsdoc-plugin).
-- **`standalone: false`, or a `name` the scanner cannot read, without component-only fields:** it is dropped with a warning, which fails a [`strictShowcase`](../api/ng-prism-config.md#strictshowcase) build.
+- **Standalone, without component-only fields:** it leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`. With `jsDocPlugin()` from `@ng-prism/plugin-jsdoc` 22.7.0 or newer it is listed under **Pipes** and goes through `onPipeScanned`; without it the build leaves it out and says so once, see [Showcasing Pipes: Without the JSDoc plugin](guide/showcasing-pipes.md#without-the-jsdoc-plugin).
+- **`standalone: false`, or a `name` the scanner cannot read, without component-only fields:** it is dropped with a warning, which fails a [`strictShowcase`](api/ng-prism-config.md#strictshowcase) build.
 - **With a component-only field** such as `renderPage`: it stays a component until 23.0.0, with a notice, see [the deprecation below](#deprecation-injectables-and-pipes-with-component-only-fields). From 23.0.0 a standalone pipe is shown as a pipe and one declared in an NgModule is dropped.
 
-A class with `@Injectable` or `@Service` moves the same way: without component-only fields it leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`, and with `jsDocPlugin()` 22.7.0 or newer it is listed under **Services** and goes through `onServiceScanned`, see [Showcasing Services](showcasing-services.md).
+A class with `@Injectable` or `@Service` moves the same way: without component-only fields it leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`, and with `jsDocPlugin()` 22.7.0 or newer it is listed under **Services** and goes through `onServiceScanned`, see [Showcasing Services](guide/showcasing-services.md).
 
 ### Breaking change: NavigationItem has two new kinds
 
@@ -353,13 +353,62 @@ function label(item: NavigationItem): string {
 }
 ```
 
-The same goes for a `switch` that ends in `never` and for a lookup typed on the union. At runtime nothing changes until your styleguide actually contains a service or a pipe. The members `PrismNavigationService.activeService`, `selectService()`, `activePipe` and `selectPipe()` and the `service` and `pipe` URL parameters are new and change nothing for existing code. See [`NavigationItem`](../api/types.md#navigationitem).
+The same goes for a `switch` that ends in `never` and for a lookup typed on the union. At runtime nothing changes until your styleguide actually contains a service or a pipe. The members `PrismNavigationService.activeService`, `selectService()`, `activePipe` and `selectPipe()` and the `service` and `pipe` URL parameters are new and change nothing for existing code. See [`NavigationItem`](api/types.md#navigationitem).
 
 ### Deprecation: injectables and pipes with component-only fields
 
-**Deprecated since 22.7.0, removed in 23.0.0. Nothing changes in 22.x.** Before services and pipes had a page, a class with `@Showcase` and `@Injectable` or `@Pipe` landed in `components`, and with `renderPage` it had a working page. It keeps that page in 22.x: a class with `@Injectable`, `@Service` or `@Pipe` that declares `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or `renderPage` stays a component, and the build prints a notice (it does not count for [`strictShowcase`](../api/ng-prism-config.md#strictshowcase)). From 23.0.0 it is shown as a service or a pipe and those fields are dropped. To switch now, remove the fields, or move the page to a [component page](component-pages.md) and keep the service or pipe on its own. See [Showcasing Services: Compatibility until 23.0.0](showcasing-services.md#compatibility-until-2300) and [Showcasing Pipes: Compatibility until 23.0.0](showcasing-pipes.md#compatibility-until-2300).
+**Deprecated since 22.7.0, removed in 23.0.0. Nothing changes in 22.x.** Before services and pipes had a page, a class with `@Showcase` and `@Injectable` or `@Pipe` landed in `components`, and with `renderPage` it had a working page. It keeps that page in 22.x: a class with `@Injectable`, `@Service` or `@Pipe` that declares `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or `renderPage` stays a component, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)). From 23.0.0 it is shown as a service or a pipe and those fields are dropped. To switch now, remove the fields, or move the page to a [component page](guide/component-pages.md) and keep the service or pipe on its own. See [Showcasing Services: Compatibility until 23.0.0](guide/showcasing-services.md#compatibility-until-2300) and [Showcasing Pipes: Compatibility until 23.0.0](guide/showcasing-pipes.md#compatibility-until-2300).
 
 A `@Pipe` declared in an NgModule (`standalone: false`) goes one step further. ng-prism shows standalone pipes only, so such a pipe without component-only fields is already dropped with a warning in 22.7.0 (see above), and one with component-only fields keeps its page in 22.x and loses it in 23.0.0. The notice in 22.x says so: `From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.` Make the pipe standalone and remove the fields to have it shown as a pipe, or move the page to a component page.
+
+### New look: palette, header and panels
+
+`22.7.0` also gives the styleguide its new logo and palette and reworks the chrome and every built-in panel. No config, no plugin and no showcase has to change to keep building and running. What a theme override or a plugin of your own may notice:
+
+- **Every colour changes.** Primary is blue instead of violet (`--prism-primary` `#60a5fa` dark, `#1d4ed8` light, was `#a78bfa` and `#7c3aed`), the surfaces are slate and navy instead of violet-tinted, `--prism-accent` is violet instead of pink, and success, warning and danger have new values. A page or panel of your own that reads the tokens recolours with them. One that was matched to the old violet by eye is worth a look.
+- **The light theme swaps two roles.** `--prism-bg` (chrome: header, sidebar, tab bars) is grey `#f1f5f9`, `--prism-bg-surface` (content) is white; before it was the other way round. If you override only one of them for the light theme, check that the two still read as chrome and content.
+- **Primary has two roles.** `--prism-primary` is the text and indicator colour. Fills (primary buttons, active toggles, checked checkboxes) read `--prism-primary-fill` and `--prism-primary-fill-hover` with `--prism-on-primary` on top, and a switched-on toggle `--prism-toggle-on`. If you override `--prism-primary` alone, they follow it, and so do the selection tints and the tab and sidebar indicators (`--prism-brand-ink`), so your colour still reaches every control. Only the wordmark and the tool rail on the absolute `light` and `dark` canvas grounds keep ng-prism's colours. With a light primary of your own, also set `--prism-on-primary`. See [Theming: Color Properties](guide/theming.md#color-properties).
+- **The header is a navy brand band in both themes** and renders with the dark token set, your `darkTheme` overrides included. A custom `title` replaces the wordmark and is shown in neutral text, not in the gradient. With both `logo.light` and `logo.dark` set, the header shows `logo.dark` in both themes now; `logo.light` is shown only when it is the one you set. Header widgets read the dark tokens there without code of their own; [`PrismMetricBadgeComponent`](api/ng-prism-plugin.md#prismmetricbadgecomponent) gains an optional `shortLabel` for the look of the built-in badges.
+- **The canvas grounds of a visual regression baseline are unchanged.** `--prism-void-light` (`#f7f5fc`) and `--prism-void-dark` (`#07050f`) stay as they were, so a variant on `bg: 'light'`, `'dark'` or `'transparent'` is captured on the same ground. Two things can still move a few pixels: a component that inherits its text colour from the styleguide picks up the new `--prism-text` (dark `#f1f5f9`, was `#ede9f8`; light `#0f172a`, was `#1c1530`), which stays under the default tolerance of common comparers but shows in a strict one, and `dots`, `plain` and `checker`, which follow the theme and are not recommended for a baseline, look different.
+- **The a11y verdict has a danger tier everywhere.** A score below 75 % of the configured threshold is danger in the sidebar, the component head and the panel, not only in the header badge. The threshold, and the build gate on it, are unchanged.
+- **The Coverage tab has no badge any more.** The figures are in the panel and the header badge.
+- **The JSDoc API table drops its Required column.** A required input carries a `required` badge on its name.
+- **The sidebar and the addon panel resize within new bounds.** `PrismLayoutService` clamps the sidebar to 200–360 px (default 280, was 160–600) and the panel height to 200–560 px (default 300, was 100–600). A size stored from an earlier version is clamped on load.
+- **Internal class names changed.** The panels are built from shared primitives now, so classes such as `.vrt__summary`, `.perf-card` or `.st-tab` are gone from the DOM. None of them was public API, but a stylesheet or test that targeted them no longer matches.
+
+### Deprecation: mark, spectrum and primary gradient tokens
+
+**Deprecated since 22.7.0, removed in 23.0.0.** Core no longer reads these tokens:
+
+| Token                                                                     | Since 22.7.0                                                                | Use instead                                         |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------- |
+| `--prism-mark-nominal`, `--prism-mark-attention`, `--prism-mark-critical` | Aliases of the status colours. An override is carried over to its successor | `--prism-success`, `--prism-warn`, `--prism-danger` |
+| `--prism-spectrum`                                                        | An alias of `--prism-brand-gradient`. Nothing reads an override             | `--prism-brand-gradient` for brand moments          |
+| `--prism-primary-from`, `--prism-primary-to`                              | Still set, but nothing paints from them                                     | `--prism-brand-gradient`, `--prism-primary-fill`    |
+
+```typescript
+// before 22.7.0
+theme: { '--prism-mark-critical': '#dc2626' }
+
+// from 22.7.0
+theme: { '--prism-danger': '#dc2626' }
+```
+
+Every override of one of these tokens, in `theme`, `darkTheme` or `lightTheme`, is reported twice: the build prints `⚠ ng-prism: ng-prism.config.ts sets <token> in "<option>": <token> is deprecated since 22.7.0 and will be removed in 23.0.0. <effect>; override <successor> instead.`, and the styleguide warns once per token in the browser console with `[ng-prism] <token> is deprecated since 22.7.0 …`. The effect reads `Until then its value is carried over to <successor>` for a mark and `Nothing reads it any more` for the others.
+
+### Deprecation: `PanelBadge.variant`
+
+**Deprecated since 22.7.0, removed in 23.0.0.** A panel's tab badge says what it counts with `kind` instead of a colour: `kind: 'issues'` is a number of open findings, a filled pill in `tone` (`danger` by default, `warn` or `primary`), and `kind: 'count'` is a plain muted figure. `label` names it for a screen reader. A badge that still sets `variant` keeps rendering: `warn` and `danger` become `issues` in that tone, `default` or no variant becomes `count`, and `ok` is not rendered, as before. The styleguide warns once per panel in the browser console: `[ng-prism] The badge of panel "<id>" sets variant, which is deprecated since 22.7.0 and will be removed in 23.0.0. It is mapped to kind and tone until then; set those instead.` See [`PanelBadge`](api/ng-prism-plugin.md#panelbadge).
+
+```typescript
+// before 22.7.0
+badge: (c) => (open(c) ? { text: String(open(c)), variant: 'danger' } : null);
+
+// from 22.7.0
+badge: (c) => (open(c) ? { kind: 'issues', text: String(open(c)), tone: 'danger', label: `${open(c)} to review` } : null);
+```
+
+Grade a figure with `statusFor()` and `thresholdFromTarget()` from `@ng-prism/core/plugin`, so a plugin's verdict matches the header, the sidebar and the built-in panels. The UI primitives the built-in panels use are exported from `@ng-prism/core`, see [Writing a Plugin: Panel Guidelines](plugins/writing-plugins.md#panel-guidelines).
 
 ## Related
 

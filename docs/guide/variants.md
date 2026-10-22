@@ -335,7 +335,7 @@ Only the targets that pass get the class. When no target of a pseudo-class does,
 
 A state with several pseudo-classes fits only if each of them does, and the reason names the first that does not, in the order `hover`, `active`, `focus`, `focus-visible`, `focus-within`.
 
-The reason shows up where you look at the combination: an empty, dashed cell in the Overview, the tooltip of the chip in the tools menu and, for a runner, the `data-prism-excluded` attribute on `.demo-wrap`, see [A state that does not apply](guide/external-tooling.md#a-state-that-does-not-apply). The rule is checked again whenever the component's DOM changes, so switching the `removable` control of a chip on and off moves it between fitting and not fitting. A target that renders only later, behind `@defer` or after an HTTP call, is not there when the combination is first judged and reads as `matches nothing`.
+The reason shows up where you look at the combination: the tooltip of an empty, dashed cell in the Overview, the tooltip of the chip in the tools menu and, for a runner, the `data-prism-excluded` attribute on `.demo-wrap`, see [A state that does not apply](guide/external-tooling.md#a-state-that-does-not-apply). The rule is checked again whenever the component's DOM changes, so switching the `removable` control of a chip on and off moves it between fitting and not fitting. A target that renders only later, behind `@defer` or after an HTTP call, is not there when the combination is first judged and reads as `matches nothing`.
 
 The demo styleguide has an example of each:
 
@@ -345,7 +345,7 @@ The demo styleguide has an example of each:
 | Card      | `Hover` on `.sg-card--clickable`       | `Clickable`                                                                  | `Basic`: `.sg-card--clickable matches nothing`                                                      |
 | Button    | `Hover` and `Focus visible` on `.btn`  | every variant except `Disabled` (`Full width` opts out with `states: false`) | `Disabled`: `Hover` reads `.btn has pointer-events: none`, `Focus visible` reads `.btn is disabled` |
 
-A state that fits no variant at all is almost certainly a selector with a typo. The Overview warns once in the console (`[ng-prism] State "<name>" of <Class> fits no variant; check its selectors.`) and marks the header of its column: `fits 0 of <n>` turns to the attention colour, and the tooltip says the same as the warning. The scanner cannot catch this, because it does not render. An empty state, which forces nothing, is left out of both: it has no selector to check, and the scanner has reported it already.
+A state that fits no variant at all is almost certainly a selector with a typo. The Overview warns once in the console (`[ng-prism] State "<name>" of <Class> fits no variant; check its selectors.`) and marks the header of its column: `0/<n>` turns to the warning colour, and the tooltip says the same as the warning. The scanner cannot catch this, because it does not render. An empty state, which forces nothing, is left out of both: it has no selector to check, and the scanner has reported it already.
 
 ### Opting a variant out
 
@@ -471,16 +471,16 @@ Each cell renders its variant as declared:
 
 The Overview is a stage, not a workbench: it has no controls, no density or zoom settings, and no addon panel. Control values you changed in the Playground do not leak into it. Every cell shows the variant as the decorator declares it.
 
-Every cell opens in the Playground. Click it, or focus it and press Enter or Space, and the Playground shows exactly that combination: the variant and, in the matrix, the state. That holds for components without states as well.
+Every cell opens in the Playground. Click it, or focus it and press Enter or Space, and the Playground shows exactly that combination: the variant and, in the matrix, the state. That holds for components without states as well. A hovered cell and the one the Playground currently shows have a primary-coloured frame.
 
 ### With states
 
 The matrix has a row per variant and a column per state, Default first and then the states in the order they are declared:
 
-- **Row header**: the variant name, with a note below it where there is something to say: the variant's own `bg` (`bg: dark`), or `states: false`.
-- **Column header**: the state's name, what it forces (`hover + active → .btn`, with a group per target when the pseudo-classes name different ones: `hover → .pill; focus-visible → .pill__close`), and how many variants it fits (`fits 2 of 5`). The count is of the variants the state is combined with, so those with `states: false` are not in it. The Default column says `no state`.
+- **Row header**: the variant name. Where there is something to add, the variant's own `bg` (`bg: dark`) or `states: false`, it is the header's tooltip.
+- **Column header**: the state's name, what it forces (`hover + active → .btn`, with a group per target when the pseudo-classes name different ones: `hover → .pill; focus-visible → .pill__close`), and how many variants it fits (`2/5` next to the name, spelled out in its tooltip). The count is of the variants the state is combined with, so those with `states: false` are not in it. The Default column says `no state`. The corner above the row headers reads `Variant \ State`.
 - **Background and layout** belong to the row: a variant's `bg` paints every cell of its row, and a `stretch` variant fills its cells.
-- **A cell that does not fit** is empty and dashed, with the reason in it, see [When a state fits](#when-a-state-fits).
+- **A cell that does not fit** is empty and dashed, with only a `–` in it. The reason is the cell's tooltip and part of its accessible name, see [When a state fits](#when-a-state-fits).
 - **A variant with `states: false`** has a single cell across all columns, because it is combined with none of them.
 
 Each cell shows the variant with the state of its column forced, and only there, like a variant's own `pseudo`. Many states or a wide component make the matrix scroll horizontally. The header row and the variant column stay in view, and the columns have a minimum width instead of being squeezed.

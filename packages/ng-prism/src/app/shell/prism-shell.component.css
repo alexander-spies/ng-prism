@@ -28,9 +28,10 @@
     background: var(--prism-void);
 }
 
+/* The resizer takes no width of its own: it overlays the sidebar's edge. */
 .prism-body {
     display: grid;
-    grid-template-columns: var(--sw, 264px) 4px 1fr;
+    grid-template-columns: var(--sw, 280px) 0 1fr;
     min-height: 0;
 }
 
@@ -58,36 +59,66 @@
     align-items: center;
     padding: 10px 14px;
     font-size: 11px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     border-top: 1px solid var(--prism-border);
 }
 
-.prism-sidebar-foot__logo {
-    flex-shrink: 0;
-    width: 16px;
-}
-
 .prism-sidebar-foot__link {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-decoration: none;
     transition: color var(--dur-fast);
 }
 
 .prism-sidebar-foot__link:hover {
-    color: var(--prism-text-2);
+    color: var(--prism-text);
 }
 
-.prism-resizer-col {
+/* Resize grips: a visible handle at rest, an 8 px hit zone around a zero-width
+   edge, and a 2 px primary line while hovered, dragged or focused. */
+.prism-resizer-col,
+.prism-resizer-row {
     position: relative;
     z-index: 5;
-    width: 4px;
-    background: transparent;
-    transition: background var(--dur-fast) var(--ease-default);
+    outline: none;
 }
 
-.prism-resizer-col:hover,
-.prism-resizer-col.active {
+.prism-resizer-col::before,
+.prism-resizer-row::before {
+    position: absolute;
+    content: '';
+}
+
+.prism-resizer-col::before {
+    inset: 0 -4px;
+}
+
+.prism-resizer-row::before {
+    inset: -4px 0;
+}
+
+.prism-resizer-col::after,
+.prism-resizer-row::after {
+    position: absolute;
+    pointer-events: none;
+    content: '';
+    transition:
+        background var(--dur-fast) var(--ease-default),
+        inset var(--dur-fast) var(--ease-default);
+}
+
+/* Sidebar edge: a 3 × 28 px pill. */
+.prism-resizer-col::after {
+    inset: calc(50% - 14px) -1.5px;
+    background: var(--prism-border-strong);
+    border-radius: 2px;
+}
+
+.prism-resizer-col:hover::after,
+.prism-resizer-col.active::after,
+.prism-resizer-col:focus-visible::after {
+    inset: 0 -1px;
     background: var(--prism-primary);
+    border-radius: 0;
 }
 
 .prism-main {
@@ -99,16 +130,20 @@
 }
 
 .prism-resizer-row {
-    position: relative;
-    z-index: 5;
     flex-shrink: 0;
-    height: 4px;
-    background: transparent;
-    transition: background var(--dur-fast) var(--ease-default);
+    height: 0;
 }
 
-.prism-resizer-row:hover,
-.prism-resizer-row.active {
+/* Panel divider: three dots. */
+.prism-resizer-row::after {
+    inset: -1.5px calc(50% - 9px);
+    background: radial-gradient(circle, var(--prism-border-strong) 1.5px, transparent 1.6px) 0 0 / 6px 3px repeat-x;
+}
+
+.prism-resizer-row:hover::after,
+.prism-resizer-row.active::after,
+.prism-resizer-row:focus-visible::after {
+    inset: -1px 0;
     background: var(--prism-primary);
 }
 
@@ -116,6 +151,15 @@
    stage, they float over it from a rail absolutely positioned against
    this element. The position: relative below is what anchors it. */
 .prism-canvas-wrap {
+    /* Overlay colours on the canvas. These defaults follow the theme; the
+       shell overrides them inline on the two absolute grounds. */
+    --prism-canvas-overlay-bg: var(--prism-bg-elevated);
+    --prism-canvas-overlay-fg: var(--prism-text);
+    --prism-canvas-overlay-muted: var(--prism-text-2);
+    --prism-canvas-overlay-border: var(--prism-border-strong);
+    --prism-canvas-overlay-primary: var(--prism-primary);
+    --prism-canvas-overlay-active: var(--prism-primary-bg);
+
     position: relative;
     display: grid;
     flex: 1;
@@ -133,7 +177,7 @@
 
 .prism-main__panel {
     flex-shrink: 0;
-    height: var(--ph, 260px);
+    height: var(--ph, 300px);
     min-height: 0;
     overflow: hidden;
 }
@@ -147,22 +191,38 @@
     justify-content: center;
 }
 
-.prism-shell__empty-icon {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 8px;
-    color: var(--prism-text-ghost);
+/* The mark in its own refracted light: the one large brand moment in the app. */
+.prism-shell__empty-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    margin-bottom: 12px;
+    isolation: isolate;
+}
+
+.prism-shell__empty-mark::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: -1;
+    width: 340px;
+    height: 200px;
+    pointer-events: none;
+    content: '';
+    background: var(--prism-brand-glow);
+    filter: blur(18px);
+    transform: translate(-50%, -50%);
 }
 
 .prism-shell__empty-text {
     margin: 0;
     font-size: var(--fs-xl);
     font-weight: 500;
-    color: var(--prism-text-muted);
+    color: var(--prism-text);
 }
 
 .prism-shell__empty-hint {
     margin: 0;
     font-size: var(--fs-lg);
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }

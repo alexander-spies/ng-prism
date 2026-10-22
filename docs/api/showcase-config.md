@@ -359,9 +359,9 @@ UI impact:
     - `'wip'`: the leading icon becomes a dashed circle (`circle-dashed`) instead of the regular `box`, with a native tooltip "Work in progress".
     - `'deprecated'`: component name is rendered struck-through and dimmed, with a native tooltip "Deprecated / Legacy".
     - `'stable'` / `'beta'` / unset: no sidebar decoration.
-- **Component head:** an outlined status chip renders inline with the title for every explicit value (Stable, Beta, Work in progress, Deprecated). The `<selector>` itself has moved into the details popover behind the ⓘ glyph.
+- **Component head:** a status badge with a dot renders inline with the title for every explicit value (Stable, Beta, Work in progress, Deprecated); its tooltip says what the status means. The `<selector>` itself has moved into the details popover behind the ⓘ glyph.
 
-All colors come from the `--prism-mark-*` role tokens (plus `--prism-text-muted` for `stable`) and adapt automatically to light/dark mode. The chip is always an outline and never a filled surface, so `deprecated` separates itself by hue rather than by weight.
+The badge is a soft-tinted [`prism-badge`](api/ng-prism-plugin.md#ui-primitives): `stable` in `--prism-success`, `beta` and `wip` in `--prism-warn` (`wip` with a hollow dot, the one status without a settled state), `deprecated` in `--prism-danger`. The colours adapt to light and dark mode (since `22.7.0`; before, the chip was an outline in the `--prism-mark-*` colours).
 
 ---
 

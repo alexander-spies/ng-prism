@@ -1,6 +1,6 @@
 import type { NavigationDecorationDefinition, RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { NavigationItem } from '../services/navigation-item.types.js';
-import { decorateItem, lifecycleIcon, resolveNavigationDecorations, rollupCategory } from './navigation-decorations.js';
+import { categoryCount, decorateItem, lifecycleIcon, resolveNavigationDecorations, rollupCategory, sectionFacet } from './navigation-decorations.js';
 
 function component(className: string): RuntimeComponent {
     return {
@@ -189,5 +189,42 @@ describe('lifecycleIcon', () => {
         expect(lifecycleIcon('wip', 'plug')).toBe('circle-dashed');
         expect(lifecycleIcon('stable', 'plug')).toBe('plug');
         expect(lifecycleIcon(undefined, 'plug')).toBe('plug');
+    });
+});
+
+/**
+ * The category head shows its size plus, when something needs review, a chip
+ * with the number of entries in the worst tone. Replaces the earlier "2/4".
+ */
+describe('categoryCount', () => {
+    it('shows a problem chip in the worst tone with a tooltip', () => {
+        expect(categoryCount({ problems: 2, variant: 'danger' }, 4)).toEqual({
+            total: '4',
+            chip: { text: '2', tone: 'danger' },
+            title: '2 of 4 entries need review'
+        });
+    });
+
+    it('leaves a clean category with its plain size', () => {
+        expect(categoryCount({ problems: 0, variant: null }, 3)).toEqual({ total: '3', chip: null, title: null });
+    });
+
+    it('speaks of one entry in the singular', () => {
+        expect(categoryCount({ problems: 1, variant: 'warn' }, 1).title).toBe('1 of 1 entry needs review');
+    });
+});
+
+describe('sectionFacet', () => {
+    it.each([
+        ['Components', 'cyan'],
+        ['Directives', 'violet'],
+        ['Services', 'magenta'],
+        ['Pipes', 'blue']
+    ])('colours the %s section icon in the %s facet', (name, facet) => {
+        expect(sectionFacet(name)).toBe(facet);
+    });
+
+    it('leaves an unknown section in the primary colour', () => {
+        expect(sectionFacet('Widgets')).toBeNull();
     });
 });

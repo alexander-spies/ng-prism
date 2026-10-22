@@ -55,6 +55,6 @@ describe('deriveCoverageSummary', () => {
     });
 
     it('names the score and the target', () => {
-        expect(deriveCoverageSummary(61, T).label).toBe('Coverage: 61% (target 80%)');
+        expect(deriveCoverageSummary(61, T).label).toBe('Coverage 61% · target 80%');
     });
 });

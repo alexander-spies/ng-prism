@@ -333,17 +333,25 @@ export class ServiceNotesComponent {
 
 ```typescript
 interface PanelBadge {
+    kind?: 'count' | 'issues';
     text: string;
+    tone?: 'primary' | 'warn' | 'danger';
+    label?: string;
+    /** @deprecated since 22.7.0, removed in 23.0.0 */
     variant?: 'default' | 'ok' | 'warn' | 'danger';
 }
 ```
 
-A short marker on a panel's tab, returned by [`PanelDefinition.badge`](#paneldefinition).
+A short marker on a panel's tab, returned by [`PanelDefinition.badge`](#paneldefinition). A filled badge means exactly one thing: open findings. Everything else is a plain figure.
 
-| Field     | Description                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------------- |
-| `text`    | Usually a count. Keep it to a couple of characters, since the tab bar scrolls horizontally on a narrow panel. |
-| `variant` | Colour role. `default` is a neutral tint for a plain count; `ok` / `warn` / `danger` carry a judgement.       |
+| Field   | Description                                                                                                                                            |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kind`  | `issues`: a number of open findings, drawn as a pill in `tone` and hidden at `'0'`. `count`: a plain quantity, drawn as a muted figure without a fill. |
+| `text`  | The figure. Keep it to a couple of characters, since the tab bar scrolls horizontally on a narrow panel.                                               |
+| `tone`  | Tone of an `issues` badge: `danger` (default) for findings that are failures, `warn` for ones that only need a look, `primary` for neutral news.       |
+| `label` | Read after the tab's label by assistive technology, e.g. `'3 to review'` becomes "Visual Regression, 3 to review". Defaults to `text`.                 |
+
+A badge that still sets the deprecated `variant` keeps rendering until 23.0.0, mapped to `kind` and `tone`, and the browser console warns once per panel. See [Migration: `PanelBadge.variant`](guide/migration-v22.md#deprecation-panelbadgevariant).
 
 ```typescript
 panels: [
@@ -352,12 +360,14 @@ panels: [
         label: 'Visual Regression',
         badge: (component) => {
             const open = countOpenItems(component);
-            return open ? { text: String(open), variant: 'danger' } : null;
+            return open ? { kind: 'issues', text: String(open), tone: 'danger', label: `${open} to review` } : null;
         },
         loadComponent: () => import('./panel.component.js').then((m) => m.Panel)
     }
 ];
 ```
+
+> **Deprecated since 22.7.0, removed in 23.0.0: `variant`.** Badges that still set it keep rendering: `warn` and `danger` become `kind: 'issues'` in that tone, `default` (or no variant) becomes `kind: 'count'`, and `ok` is not rendered, as before. Move to `kind` and `tone`.
 
 Two rules make the difference between a badge and decoration:
 
@@ -414,15 +424,16 @@ Exported from the main `@ng-prism/core` entry (not `@ng-prism/core/plugin`, sinc
 import { PrismMetricBadgeComponent } from '@ng-prism/core';
 ```
 
-| Input     | Type                         | Required | Description                                                                                                                                                                                                                                 |
-| --------- | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icon`    | `string`                     | yes      | Name from the built-in icon registry (`ICON_NAMES`). Convention: reuse the same icon the source contributes to `navigationDecorations` and its panel tab, so one glyph means one source everywhere it appears.                              |
-| `value`   | `string`                     | yes      | The already-formatted figure, e.g. `'87%'`. The component does no formatting or unit conversion of its own.                                                                                                                                 |
-| `label`   | `string`                     | yes      | Human-readable name for the metric, e.g. `'Library coverage'`. Composed with `value` into the accessible name (`"label: value"`), so the figure cannot be dropped by a caller that only sets `label`.                                       |
-| `title`   | `string`                     | no       | Full text for the hover tooltip. Defaults to `label` when omitted.                                                                                                                                                                          |
-| `variant` | `'ok' \| 'warn' \| 'danger'` | no       | Colour role, drawn from `--prism-mark-attention` / `--prism-mark-critical`. Default `'ok'`, which renders with no accent colour at all (see [Marks, Measurement and Stage Tokens](../guide/theming.md#marks-measurement-and-stage-tokens)). |
+| Input        | Type                         | Required | Description                                                                                                                                                                                                         |
+| ------------ | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon`       | `string`                     | yes      | Name from the built-in icon registry (`ICON_NAMES`). Convention: reuse the same icon the source contributes to `navigationDecorations` and its panel tab, so one glyph means one source everywhere it appears.      |
+| `value`      | `string`                     | yes      | The already-formatted figure, e.g. `'87%'`. The component does no formatting or unit conversion of its own.                                                                                                         |
+| `label`      | `string`                     | yes      | Human-readable name for the metric, e.g. `'Library coverage'`. Composed with `value` into the accessible name (`"label: value"`), so the figure cannot be dropped by a caller that only sets `label`.               |
+| `title`      | `string`                     | no       | Full text for the hover tooltip. Defaults to `label` when omitted.                                                                                                                                                  |
+| `variant`    | `'ok' \| 'warn' \| 'danger'` | no       | Colour role: `--prism-success`, `--prism-warn` or `--prism-danger` on its `-bg` tint. Default `'ok'`. Grade the figure with `statusFor` from `@ng-prism/core/plugin` so the header agrees with every other surface. |
+| `shortLabel` | `string`                     | no       | A short visible label such as `'Coverage'` or `'VRT'`. When set it replaces the icon, and the badge reads "Coverage 53%". The built-in widgets all set one.                                                         |
 
-The icon is `aria-hidden`; the badge's own `role="img"` and computed `aria-label` carry the accessible name instead.
+The icon and the short label are `aria-hidden`; the badge's own `role="img"` and computed `aria-label` carry the accessible name instead. The header renders with the dark token set in both themes (it is a navy band since 22.7), so a widget reads colours that fit it without code of its own.
 
 ---
 
@@ -448,7 +459,7 @@ The shipped `@ng-prism/plugin-coverage` header badge is the reference for this p
 ```typescript
 // coverage-header-badge.component.ts
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { PRISM_MANIFEST, type RuntimeManifest } from '@ng-prism/core/plugin';
+import { PRISM_MANIFEST, type RuntimeManifest, statusFor, thresholdFromTarget } from '@ng-prism/core/plugin';
 import { PrismMetricBadgeComponent } from '@ng-prism/core';
 
 @Component({
@@ -470,7 +481,7 @@ export class CoverageHeaderBadgeComponent {
         if (!meta?.total?.found) return null;
         return {
             score: meta.total.score,
-            variant: 'ok' as const,
+            variant: statusFor(meta.total.score, thresholdFromTarget(80)),
             title: 'Library coverage'
         };
     });
@@ -493,6 +504,81 @@ headerWidgets: [
 `PrismIconComponent` is available the same way for a panel or header widget that needs a bare glyph rather than a full metric badge: `<prism-icon name="camera" [size]="14" />`.
 
 ---
+
+## UI primitives
+
+Since 22.7 the chrome is built from a small set of shared components, and plugins get the same ones from `@ng-prism/core` (the main entry, like `PrismMetricBadgeComponent`). Using them keeps a plugin panel indistinguishable from a built-in one in both themes, and keeps its contrast where the defaults are tested.
+
+```typescript
+import { PrismBadgeComponent, PrismMetricCardComponent, PrismPanelToolbarComponent, PrismTabsComponent } from '@ng-prism/core';
+```
+
+| Component                    | Selector                  | Inputs                                                                                                                                                         | Use it for                                                                                     |
+| ---------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `PrismBadgeComponent`        | `prism-badge`             | `tone`: `neutral` \| `primary` \| `success` \| `warn` \| `danger`; `variant`: `soft` \| `outline`; `size`: `sm` \| `md`; `dot`; `label` (sans); `value` (mono) | Statuses, severities, counts inside content. Words in sentence case, never capitals.           |
+| `PrismTabsComponent`         | `prism-tabs`              | `items: PrismTabItem[]` (`id`, `label`, `icon?`, `badge?`, `title?`); `[(active)]`; `size`: `md` \| `sm`; `ariaLabel`; `panelIdPrefix`                         | Sub-tabs in a panel toolbar (`sm`). Full tab semantics and arrow-key navigation built in.      |
+| `PrismSegmentedComponent`    | `prism-segmented`         | `options: PrismSegmentOption[]` (`value`, `label`, `title?`); `[(value)]`; `ariaLabel`; `size`                                                                 | Choosing one of a few values: zoom, fit, mode.                                                 |
+| `PrismPanelToolbarComponent` | `prism-panel-toolbar`     | slots `[toolbarStart]`, `[toolbarEnd]`                                                                                                                         | The 36 px toolbar of a panel. Only when the panel has sub-tabs or actions; no meta text in it. |
+| `PrismListRowComponent`      | `prism-list-row`          | `selected`, `interactive`; slots `[rowBadge]`, `[rowTitle]`, `[rowDescription]`, `[rowMeta]`                                                                   | Findings and results in a list. Selection is a tint, never a coloured edge.                    |
+| `PrismMetricCardComponent`   | `prism-metric-card`       | `label`, `value`, `unit`, `tone`, `statusLabel`, `fraction` (0–1), `threshold` (0–1), `title`; slot `[metricVisual]`                                           | A measured value with an optional bar and threshold tick. No subtitle: details go in `title`.  |
+| `PrismIconButtonComponent`   | `button[prismIconButton]` | `size`: `md` (32 px) \| `sm` (28 px) \| `xs` (26 px); `pressed`                                                                                                | Icon-only actions and toggles. Give it an `aria-label`.                                        |
+| `PrismButtonComponent`       | `button[prismButton]`     | `variant`: `secondary` \| `primary` \| `ghost`; `size`: `sm` (26 px) \| `md`                                                                                   | Text actions in a toolbar, secondary before primary.                                           |
+
+`toneForStatus(status)` maps a status verdict (`'ok' | 'warn' | 'danger'`, see [Status grading](#status-grading)) to the badge tone.
+
+The types the primitives take are exported from `@ng-prism/core` too:
+
+```typescript
+/** Colour roles of `prism-badge`, also the tone of a tab badge. */
+type BadgeTone = 'neutral' | 'primary' | 'success' | 'warn' | 'danger';
+
+/** A tab's badge in `PrismTabItem.badge`. */
+interface PrismTabBadge {
+    kind: 'count' | 'issues'; // count: a plain quantity, muted; issues: open findings, a pill in `tone`
+    text: string;
+    tone?: BadgeTone;
+    label: string; // read after the tab's label by assistive technology, e.g. "A11y, 1 violation"
+}
+```
+
+`PrismTabBadge` mirrors a panel's [`PanelBadge`](#panelbadge) with the same field names; the panel host turns a `PanelBadge` into one, taking `kind` from a deprecated `variant` and `label` from `text` when they are missing.
+
+## Status grading
+
+Since 22.7 every key figure the styleguide grades, the a11y score, coverage, the visual regression share and the perf budgets, goes through one rule, exported from `@ng-prism/core/plugin` so a plugin grades the same way. It is framework-free, so the same call works in a build-time hook in Node and in a panel in the browser.
+
+```typescript
+import { STATUS_DANGER_RATIO, statusFor, thresholdFromTarget, worstTone } from '@ng-prism/core/plugin';
+import type { StatusThreshold, StatusTone } from '@ng-prism/core/plugin';
+
+type StatusTone = 'ok' | 'warn' | 'danger';
+
+interface StatusThreshold {
+    ok: number;
+    warn: number;
+    direction?: 'higher' | 'lower';
+}
+
+function statusFor(value: number, threshold: StatusThreshold): StatusTone;
+function thresholdFromTarget(target: number): StatusThreshold;
+function worstTone(tones: Iterable<StatusTone>): StatusTone;
+const STATUS_DANGER_RATIO = 0.75;
+```
+
+| Export                | Description                                                                                                                                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `statusFor`           | Grades a value. With `direction: 'higher'` (the default) it is `ok` from `ok` up, `warn` from `warn` up and `danger` below. With `'lower'`, for budgets such as a size, it is `ok` up to `ok`, `warn` up to `warn` and `danger` above. |
+| `thresholdFromTarget` | A threshold from a single target, the shape of every built-in threshold option: `ok` at the target, `warn` down to `STATUS_DANGER_RATIO` of it. `thresholdFromTarget(80)` is `{ ok: 80, warn: 60 }`.                                   |
+| `worstTone`           | The most severe of several verdicts, `ok` when there are none. The tab of a panel that grades several figures takes this one.                                                                                                          |
+| `STATUS_DANGER_RATIO` | `0.75`: how far below its target a value may fall before it is danger.                                                                                                                                                                 |
+
+```typescript
+statusFor(72, thresholdFromTarget(80)); // 'warn' (60 ≤ 72 < 80)
+statusFor(12.4, { ok: 10, warn: 12.5, direction: 'lower' }); // 'warn'
+worstTone(['ok', 'danger', 'warn']); // 'danger'
+```
+
+A verdict feeds [`PrismMetricBadgeComponent`](#prismmetricbadgecomponent)'s `variant` directly; for a [`prism-badge`](#ui-primitives) or a metric card, map it with `toneForStatus()` from `@ng-prism/core`.
 
 ## NavigationDecorationDefinition
 

@@ -1,3 +1,4 @@
+import { statusFor, type StatusTone, thresholdFromTarget } from '@ng-prism/core/plugin';
 import type { VrtThresholds } from './visual-regression.types.js';
 
 /**
@@ -19,4 +20,9 @@ export function resolveVrtThresholds(input?: number | Partial<VrtThresholds>): V
     if (input === undefined) return { ...DEFAULT_VRT_THRESHOLDS };
     if (typeof input === 'number') return { score: input };
     return { ...DEFAULT_VRT_THRESHOLDS, ...input };
+}
+
+/** The library-wide verdict: the share of unchanged variants against the configured target. */
+export function vrtLibraryTone(score: number, thresholds: VrtThresholds): StatusTone {
+    return statusFor(score, thresholdFromTarget(thresholds.score));
 }

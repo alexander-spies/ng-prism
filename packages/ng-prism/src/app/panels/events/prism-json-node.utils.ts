@@ -34,3 +34,12 @@ export function summarizeValue(val: unknown, depth = 0, visited = new WeakSet<ob
     }
     return String(val);
 }
+
+/**
+ * True for an output that was emitted without a value (`emit()` on a void
+ * output). The events log shows a muted dash for it instead of the word
+ * "undefined", which reads like a bug in the component.
+ */
+export function isEmptyPayload(value: unknown): boolean {
+    return value === undefined;
+}

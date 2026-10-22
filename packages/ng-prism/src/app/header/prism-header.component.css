@@ -1,37 +1,64 @@
+/* The host carries the dark token set inline (see the component), so every
+   token below resolves to the navy band in both themes. */
+:host {
+    display: block;
+}
+
 .prism-header {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(min-content, var(--sw, 264px)) 1fr auto;
     align-items: center;
     height: var(--band-header);
     padding: 0 14px 0 0;
+    color: var(--prism-text);
     background: var(--prism-bg);
     border-bottom: 1px solid var(--prism-border);
 }
 
+/* The brand edge: one of the few places the gradient appears outside the logo. */
+.prism-header::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    pointer-events: none;
+    content: '';
+    background: var(--prism-brand-gradient);
+}
+
+/* In the light theme the band sets itself apart; a hairline under it only adds noise. */
+:host-context(html[data-theme='light']) .prism-header {
+    border-bottom-color: transparent;
+}
+
 .prism-header__brand {
+    position: relative;
     display: flex;
-    gap: 10px;
+    gap: 9px;
     align-items: center;
     padding: 0 16px;
     white-space: nowrap;
     cursor: pointer;
+    isolation: isolate;
 }
 
-.prism-header__logo-default {
-    flex: 0 0 26px;
-    width: 26px;
-    height: 26px;
-    color: var(--prism-primary);
-    filter: drop-shadow(0 0 8px var(--prism-glow-strong));
-}
-
-.prism-header__logo-default img {
-    width: 30px;
+/* Light through the prism: a soft refraction behind the mark, never on it. */
+.prism-header__glow {
+    position: absolute;
+    top: -16px;
+    left: 4px;
+    z-index: -1;
+    width: 150px;
+    height: 68px;
+    pointer-events: none;
+    background: var(--prism-brand-glow);
+    border-radius: 50%;
+    filter: blur(10px);
 }
 
 .prism-header__logo-img {
     width: auto;
-    height: 26px;
+    height: 24px;
     object-fit: contain;
 }
 
@@ -41,64 +68,27 @@
     line-height: 1.1;
 }
 
-.prism-header__brand-name {
-    font-size: var(--fs-xl);
+/* The wordmark runs through the brand gradient end to end (brand guide). */
+.prism-header__wordmark {
+    font-size: 16.5px;
     font-weight: 700;
     color: transparent;
-    letter-spacing: -0.01em;
-    background: linear-gradient(90deg, var(--prism-primary), var(--prism-accent) 60%, var(--prism-primary-to));
+    letter-spacing: -0.035em;
+    background: var(--prism-brand-gradient);
     background-clip: text;
+}
+
+.prism-header__brand-name {
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    color: var(--prism-text);
+    letter-spacing: -0.01em;
 }
 
 .prism-header__brand-sub {
     font-family: var(--font-mono);
     font-size: var(--fs-xs);
-    color: var(--prism-text-ghost);
-}
-
-.prism-header__cmdbar {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-self: center;
-    width: 100%;
-    max-width: 540px;
-    height: 32px;
-    padding: 0 12px;
-    font-size: var(--fs-lg);
     color: var(--prism-text-muted);
-    cursor: pointer;
-    background: var(--prism-input-bg);
-    border: 1px solid var(--prism-border);
-    border-radius: 8px;
-    transition:
-        border-color var(--dur-fast),
-        background var(--dur-fast);
-}
-
-.prism-header__cmdbar:hover {
-    color: var(--prism-text-2);
-    border-color: var(--prism-border-strong);
-}
-
-.prism-header__cmdbar-text {
-    flex: 1;
-    text-align: left;
-}
-
-.prism-header__cmdbar-shortcut {
-    display: flex;
-    gap: 3px;
-}
-
-.prism-header__cmdbar-shortcut kbd {
-    padding: 1px 5px;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--prism-text-muted);
-    background: var(--prism-input-bg);
-    border: 1px solid var(--prism-border);
-    border-radius: 4px;
 }
 
 .prism-header__build-pill {
@@ -106,7 +96,7 @@
     font-family: var(--font-mono);
     font-size: var(--fs-xs);
     line-height: 1.4;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     white-space: nowrap;
     background: var(--prism-input-bg);
     border: 1px solid var(--prism-border);
@@ -130,25 +120,6 @@
 .prism-header__widgets--start {
     justify-content: flex-start;
     padding-left: 4px;
-}
-
-.prism-header__icon-btn {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: none;
-    border-radius: 8px;
-    transition: all var(--dur-fast);
-}
-
-.prism-header__icon-btn:hover {
-    color: var(--prism-text);
-    background: var(--prism-input-bg);
 }
 
 :focus-visible {

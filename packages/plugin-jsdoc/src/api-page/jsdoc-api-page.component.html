@@ -310,7 +310,6 @@
                             <th>Name</th>
                             <th>Type</th>
                             <th>Default</th>
-                            <th>Required</th>
                             <th>Description</th>
                         </tr>
                     </thead>
@@ -319,6 +318,9 @@
                             <tr [class.prism-jsdoc-panel__row--deprecated]="isDeprecated(input.tags)">
                                 <td class="prism-jsdoc-panel__cell--name">
                                     <code>{{ input.name }}</code>
+                                    @if (input.required) {
+                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--required prism-jsdoc-panel__badge--small">required</span>
+                                    }
                                     @if (isDeprecated(input.tags)) {
                                         <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
                                     }
@@ -329,13 +331,6 @@
                                 <td class="prism-jsdoc-panel__cell--default prism-jsdoc-api-page__default">
                                     @if (input.defaultValue !== undefined) {
                                         <code>{{ input.defaultValue }}</code>
-                                    } @else {
-                                        <span class="prism-jsdoc-panel__muted">—</span>
-                                    }
-                                </td>
-                                <td class="prism-jsdoc-panel__cell--required">
-                                    @if (input.required) {
-                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--required">required</span>
                                     } @else {
                                         <span class="prism-jsdoc-panel__muted">—</span>
                                     }

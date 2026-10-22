@@ -3,9 +3,12 @@
     [class.stat--ok]="variant() === 'ok'"
     [class.stat--warn]="variant() === 'warn'"
     [class.stat--danger]="variant() === 'danger'">
-    <span
-        class="stat__dot"
-        aria-hidden="true"></span>
-    <span class="stat__lbl">{{ label() }}</span>
+    <span class="stat__lbl"
+        ><span
+            class="stat__dot"
+            aria-hidden="true"></span
+        >{{ label() }}</span
+    >
+    <span class="stat__thr">{{ threshold() }}</span>
     <span class="stat__val">{{ value() }}</span>
 </div>

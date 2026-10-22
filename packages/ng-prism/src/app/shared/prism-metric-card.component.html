@@ -1,0 +1,28 @@
+<div class="prism-metric-card__head">
+    <span class="prism-metric-card__label">{{ label() }}</span>
+    @if (statusLabel() && tone()) {
+        <prism-badge
+            size="sm"
+            [tone]="tone()!"
+            [label]="statusLabel()" />
+    }
+</div>
+<div class="prism-metric-card__body">
+    <ng-content select="[metricVisual]" />
+    <span class="prism-metric-card__value"
+        >{{ value() }}
+        @if (unit()) {
+            <small>{{ unit() }}</small>
+        }
+    </span>
+</div>
+@if (bar(); as b) {
+    <div
+        class="prism-metric-card__bar"
+        aria-hidden="true">
+        <i [style.width]="b.width"></i>
+        @if (b.tick) {
+            <b [style.left]="b.tick"></b>
+        }
+    </div>
+}

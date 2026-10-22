@@ -1,57 +1,25 @@
 <div class="vrt-cmp">
     @if (showToolbar()) {
-        <div class="vrt-cmp__bar">
-            <div class="vrt-cmp__modes">
-                @for (mode of availableModes(); track mode) {
-                    <button
-                        type="button"
-                        class="vrt-cmp__mode"
-                        [class.vrt-cmp__mode--active]="mode === activeMode()"
-                        (click)="requestedMode.set(mode)">
-                        {{ MODE_LABEL[mode] }}
-                    </button>
-                }
-            </div>
-
-            <div class="vrt-cmp__right">
-                <span class="vrt-cmp__meta">
-                    @if (variant().width && variant().height) {
-                        <span>{{ variant().width }}×{{ variant().height }}</span>
-                    }
-                    @if (variant().diffPixels !== undefined) {
-                        <span>{{ variant().diffPixels!.toLocaleString() }} px</span>
-                    }
-                    @if (variant().diffRatio !== undefined) {
-                        <span
-                            class="vrt-cmp__ratio"
-                            [attr.data-hot]="variant().diffRatio! > 0 ? '' : null"
-                            >{{ percent(variant().diffRatio!) }}</span
-                        >
-                    }
-                    @if (variant().bg; as bg) {
-                        <span
-                            class="vrt-cmp__bg"
-                            title="The canvas background this capture was taken on"
-                            >on {{ bg }}</span
-                        >
-                    }
-                </span>
-
-                @if (canZoom()) {
-                    <div class="vrt-cmp__zooms">
-                        @for (z of ZOOMS; track z) {
-                            <button
-                                type="button"
-                                class="vrt-cmp__zoom"
-                                [class.vrt-cmp__zoom--active]="z === zoom()"
-                                (click)="zoom.set(z)">
-                                {{ z === 'fit' ? 'Fit' : z + '×' }}
-                            </button>
-                        }
-                    </div>
-                }
-            </div>
-        </div>
+        <prism-panel-toolbar>
+            @if (availableModes().length > 0) {
+                <prism-tabs
+                    toolbarStart
+                    size="sm"
+                    ariaLabel="Comparison"
+                    [items]="modeItems()"
+                    [active]="activeMode()"
+                    (activeChange)="selectMode($event)" />
+            }
+            @if (canZoom()) {
+                <prism-segmented
+                    toolbarEnd
+                    size="sm"
+                    ariaLabel="Zoom"
+                    [options]="zoomOptions"
+                    [value]="'' + zoom()"
+                    (valueChange)="selectZoom($event)" />
+            }
+        </prism-panel-toolbar>
     }
     @if (variant().status === 'excluded') {
         <div class="vrt-cmp__note">
@@ -83,10 +51,16 @@
         @if (images(); as img) {
             @switch (activeMode()) {
                 @case ('wipe') {
-                    <div class="vrt-cmp__stage">
+                    <div
+                        class="vrt-cmp__stage"
+                        [title]="metaTitle()">
                         <div
                             class="vrt-cmp__frame"
                             [style]="frameStyle()">
+                            <div class="vrt-cmp__legend">
+                                <span>{{ img.leftLabel }}</span>
+                                <span>{{ img.rightLabel }}</span>
+                            </div>
                             <div
                                 class="vrt-cmp__shot vrt-cmp__wipe"
                                 [style]="currentSurface()">
@@ -116,15 +90,13 @@
                                 aria-label="Comparison position"
                                 [value]="wipe()"
                                 (input)="wipe.set(+$any($event.target).value)" />
-                            <div class="vrt-cmp__legend">
-                                <span>{{ img.leftLabel }}</span>
-                                <span>{{ img.rightLabel }}</span>
-                            </div>
                         </div>
                     </div>
                 }
                 @case ('side-by-side') {
-                    <div class="vrt-cmp__stage vrt-cmp__stage--split">
+                    <div
+                        class="vrt-cmp__stage vrt-cmp__stage--split"
+                        [title]="metaTitle()">
                         <figure
                             class="vrt-cmp__frame"
                             [style]="frameStyle()">
@@ -154,7 +126,9 @@
                     </div>
                 }
                 @case ('diff') {
-                    <div class="vrt-cmp__stage">
+                    <div
+                        class="vrt-cmp__stage"
+                        [title]="metaTitle()">
                         <div
                             class="vrt-cmp__frame"
                             [style]="frameStyle()">
@@ -175,7 +149,9 @@
                 <b>{{ single.title }}</b>
                 <span>{{ single.note }}</span>
             </div>
-            <div class="vrt-cmp__stage">
+            <div
+                class="vrt-cmp__stage"
+                [title]="metaTitle()">
                 <div
                     class="vrt-cmp__frame"
                     [style]="frameStyle()">

@@ -1,38 +1,13 @@
 <div class="a11y-panel">
-    <div class="subtabs">
-        <button
-            class="st-tab"
-            [class.st-tab--active]="state.activeTab() === 'violations'"
-            (click)="state.activeTab.set('violations')">
-            Violations
-            @if (violationCount() !== null) {
-                <span
-                    class="st-badge"
-                    [class.st-badge--ok]="violationCount() === 0"
-                    [class.st-badge--warn]="violationCount()! > 0">
-                    {{ violationCount() }}
-                </span>
-            }
-        </button>
-        <button
-            class="st-tab"
-            [class.st-tab--active]="state.activeTab() === 'keyboard'"
-            (click)="state.activeTab.set('keyboard')">
-            Keyboard
-        </button>
-        <button
-            class="st-tab"
-            [class.st-tab--active]="state.activeTab() === 'tree'"
-            (click)="state.activeTab.set('tree')">
-            ARIA Tree
-        </button>
-        <button
-            class="st-tab"
-            [class.st-tab--active]="state.activeTab() === 'sr'"
-            (click)="state.activeTab.set('sr')">
-            Screen Reader
-        </button>
-    </div>
+    <prism-panel-toolbar>
+        <prism-tabs
+            toolbarStart
+            size="sm"
+            ariaLabel="Accessibility views"
+            [items]="tabs()"
+            [active]="state.activeTab()"
+            (activeChange)="selectTab($event)" />
+    </prism-panel-toolbar>
 
     <div class="a11y-content">
         @if (disabled()) {

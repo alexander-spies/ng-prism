@@ -38,16 +38,18 @@
     padding: 1px 5px;
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     border: 1px solid var(--prism-border);
     border-radius: 3px;
 }
 
 .sb-scroll {
     flex: 1;
-    padding: 10px 0 16px;
-    padding-top: 0;
+    padding: 0 0 16px;
+    margin-right: 6px;
     overflow-y: auto;
+    scrollbar-color: var(--prism-border-strong) transparent;
+    scrollbar-width: thin;
 }
 
 .sb-scroll::-webkit-scrollbar {
@@ -64,23 +66,21 @@
 }
 
 .sb-pinned {
-    padding: 0 0 10px;
-    margin-bottom: 4px;
-    border-top: 1px solid var(--prism-border);
-    border-bottom: 1px solid var(--prism-border);
+    padding: 0 0 6px;
 }
 
 .sb-section-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 14px 6px;
+    padding: 12px 14px 6px;
     margin-top: 6px;
-    font-size: 10.5px;
-    font-weight: 700;
-    color: var(--prism-text-ghost);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--prism-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.07em;
+    border-top: 1px solid var(--prism-border);
 }
 
 .sb-section-head-l {
@@ -93,29 +93,6 @@
     color: var(--prism-primary);
 }
 
-.sb-pinned-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 14px 6px;
-    margin-top: 6px;
-    font-size: 10.5px;
-    font-weight: 700;
-    color: var(--prism-text-ghost);
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-}
-
-.sb-pinned-head-l {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-}
-
-.sb-pinned-pin {
-    color: var(--prism-accent);
-}
-
 .sb-group {
     margin-bottom: 4px;
 }
@@ -125,26 +102,24 @@
     gap: 6px;
     align-items: center;
     width: 100%;
-    padding: 8px 14px 6px;
+    padding: 6px 14px 4px;
     font-family: var(--font-sans);
-    font-size: 10.5px;
-    font-weight: 700;
-    color: var(--prism-text-ghost);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--prism-text-2);
     text-align: left;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
     cursor: pointer;
     user-select: none;
     background: none;
     border: none;
 }
 
-.sb-group-head prism-icon {
-    color: var(--prism-text-ghost);
+.sb-group-head > prism-icon {
+    color: var(--prism-text-muted);
     transition: transform var(--dur-fast);
 }
 
-.sb-group--collapsed .sb-group-head prism-icon {
+.sb-group--collapsed .sb-group-head > prism-icon {
     transform: rotate(-90deg);
 }
 
@@ -156,19 +131,14 @@
 }
 
 .sb-group-count {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
     margin-left: auto;
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 500;
-    color: var(--prism-text-ghost);
-}
-
-.sb-group-count--warn {
-    color: var(--prism-mark-attention);
-}
-
-.sb-group-count--danger {
-    color: var(--prism-mark-critical);
+    color: var(--prism-text-muted);
 }
 
 .sb-item {
@@ -196,13 +166,19 @@
 }
 
 .sb-item--active {
+    position: relative;
     font-weight: 500;
-    background: color-mix(in srgb, var(--prism-primary) 12%, transparent);
+    color: var(--prism-text);
+    background: var(--prism-primary-bg);
 }
 
 .sb-item-icon {
     flex: 0 0 12px;
-    opacity: 0.7;
+    color: var(--prism-text-muted);
+}
+
+.sb-item--active .sb-item-icon {
+    color: var(--prism-primary);
 }
 
 .sb-item-name {
@@ -242,21 +218,63 @@
 }
 
 .sb-health--warn {
-    color: color-mix(in srgb, var(--prism-mark-attention) 80%, transparent);
+    color: var(--prism-warn);
 }
 
 .sb-health--danger {
-    color: var(--prism-mark-critical);
+    color: var(--prism-danger);
 }
 
 .sb-item--deprecated .sb-item-name {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-decoration: line-through;
     text-decoration-thickness: 1px;
-    opacity: 0.7;
 }
 
 :focus-visible {
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;
+}
+
+/* The first section sits right under the filter and needs no rule above it. */
+.sb-section-head--first {
+    margin-top: 0;
+    border-top: 0;
+}
+
+.sb-section-icon--muted {
+    color: var(--prism-text-muted);
+}
+
+/* Section icons in the logo's facet colours. */
+.sb-section-icon[data-facet='cyan'] {
+    color: var(--prism-facet-cyan);
+}
+
+.sb-section-icon[data-facet='blue'] {
+    color: var(--prism-facet-blue);
+}
+
+.sb-section-icon[data-facet='violet'] {
+    color: var(--prism-facet-violet);
+}
+
+.sb-section-icon[data-facet='magenta'] {
+    color: var(--prism-facet-magenta);
+}
+
+/* The active entry carries a short ray of the brand light on its inner edge.
+   The ink is a horizontal gradient, so the ray is drawn lying down and turned
+   upright: cyan at the top, magenta at the bottom. */
+.sb-item--active::before {
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    width: 16px;
+    height: 3px;
+    margin-top: -1.5px;
+    content: '';
+    background: var(--prism-brand-ink);
+    border-radius: 2px;
+    transform: rotate(90deg);
 }

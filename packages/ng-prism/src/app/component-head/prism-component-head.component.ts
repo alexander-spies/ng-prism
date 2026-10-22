@@ -1,8 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import type { ComponentStatus } from '../../decorator/showcase.types.js';
+import type { NgPrismConfig, RuntimeManifest } from '../../plugin/plugin.types.js';
 import { A11yAuditService } from '../panels/a11y/a11y-audit.service.js';
+import { resolveA11yThresholds } from '../panels/a11y/a11y-thresholds.js';
+import type { A11yManifestMeta } from '../panels/a11y/a11y.types.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
-import type { HeadMetric } from './head-metrics.js';
+import { PrismBadgeComponent } from '../shared/prism-badge.component.js';
+import { PRISM_CONFIG, PRISM_MANIFEST } from '../tokens/prism-tokens.js';
+import { headMetrics } from './head-metrics.js';
 import { pipeFacts } from './pipe-facts.js';
 import { PrismHeadGaugeComponent } from './prism-head-gauge.component.js';
 import { PrismHeadInfoComponent } from './prism-head-info.component.js';
@@ -11,24 +16,29 @@ import { serviceFacts } from './service-facts.js';
 interface StatusBadge {
     label: string;
     tooltip: string;
+    tone: 'success' | 'warn' | 'danger';
 }
 
 const STATUS_BADGES: Record<ComponentStatus, StatusBadge> = {
     stable: {
         label: 'Stable',
-        tooltip: 'Migrated and production-ready'
+        tooltip: 'Migrated and production-ready',
+        tone: 'success'
     },
     beta: {
         label: 'Beta',
-        tooltip: 'Beta: API may change'
+        tooltip: 'Beta: API may change',
+        tone: 'warn'
     },
     wip: {
         label: 'Work in progress',
-        tooltip: 'Migration in progress'
+        tooltip: 'Migration in progress',
+        tone: 'warn'
     },
     deprecated: {
         label: 'Deprecated',
-        tooltip: 'Deprecated / Legacy. Do not use in new code'
+        tooltip: 'Deprecated / Legacy. Do not use in new code',
+        tone: 'danger'
     }
 };
 
@@ -36,13 +46,15 @@ const STATUS_BADGES: Record<ComponentStatus, StatusBadge> = {
     selector: 'prism-component-head',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismHeadInfoComponent, PrismHeadGaugeComponent],
+    imports: [PrismHeadInfoComponent, PrismHeadGaugeComponent, PrismBadgeComponent],
     templateUrl: './prism-component-head.component.html',
     styleUrl: './prism-component-head.component.css'
 })
 export class PrismComponentHeadComponent {
     private readonly navigationService = inject(PrismNavigationService);
     private readonly auditService = inject(A11yAuditService);
+    private readonly manifest = inject<RuntimeManifest>(PRISM_MANIFEST);
+    private readonly config = inject<NgPrismConfig>(PRISM_CONFIG);
 
     protected readonly comp = computed(() => this.navigationService.activeComponent());
     protected readonly service = computed(() => this.navigationService.activeService());
@@ -92,80 +104,25 @@ export class PrismComponentHeadComponent {
         return s ? STATUS_BADGES[s] : null;
     });
 
-    protected readonly coveragePercent = computed<number | null>(() => {
-        const meta = this.componentMeta();
-        const coverage = meta?.['coverage'] as Record<string, unknown> | undefined;
-
-        if (coverage?.['found'] && typeof coverage['score'] === 'number') return coverage['score'];
-        return null;
-    });
-
-    /*
-     * No bundle metric here. Reading `meta.perf.bundle.gzipKb`/`.sizeKb` finds
-     * nothing: `@ng-prism/plugin-perf` stores `sourceSize` and `gzipEstimate`
-     * (see `perf.types.ts`), so the tile would read `Bundle —` everywhere.
-     *
-     * Before wiring it to the real keys, settle with the perf plugin whether
-     * `gzipEstimate` is bytes or kilobytes.
-     */
-
-    protected readonly a11yScore = computed<number | null>(() => {
-        return this.auditService.scoreResult()?.score ?? null;
-    });
-
     /**
-     * The visual regression headline, as the plugin already derived it.
-     *
-     * Read whole rather than recomputed: the colour follows the plugin's status
-     * semantics (red for any changed variant, amber for ones that could not be
-     * compared), and duplicating that rule here would mean the stat and the
-     * plugin's own panel could disagree about the same component.
+     * The configured a11y thresholds, resolved the way the panel host and the
+     * header badge resolve them, so the gauge grades the live audit on the
+     * same scale as the tab and the sidebar.
      */
-    protected readonly vrtStat = computed<{
-        value: string;
-        variant: 'ok' | 'warn' | 'danger';
-    } | null>(() => {
-        const vrt = this.componentMeta()?.['visualRegression'] as { found?: boolean; summary?: { value: string; variant: string } } | undefined;
+    private readonly a11yThresholds = computed(() => {
+        const meta = this.manifest.meta?.['a11y'] as A11yManifestMeta | undefined;
 
-        if (!vrt?.found || !vrt.summary) return null;
-        const { value, variant } = vrt.summary;
-
-        return variant === 'ok' || variant === 'warn' || variant === 'danger' ? { value, variant } : null;
+        return resolveA11yThresholds({ ...meta?.thresholds, ...this.config.a11y?.thresholds });
     });
 
-    /**
-     * The full metric list for the gauge, in source order.
-     *
-     * Order matters: `summarizeMetrics` breaks severity ties by position, so
-     * this sequence is what makes the chip show a stable metric rather than
-     * flickering between two equally bad ones.
-     */
-    protected readonly metrics = computed<HeadMetric[]>(() => {
-        const coverage = this.coveragePercent();
-        const a11y = this.a11yScore();
-        const vrt = this.vrtStat();
-
-        return [
-            {
-                id: 'coverage',
-                label: 'Coverage',
-                value: coverage === null ? '—' : `${coverage}%`,
-                variant: coverage === null ? 'none' : coverage >= 90 ? 'ok' : 'warn'
-            },
-            {
-                id: 'a11y',
-                label: 'A11y score',
-                value: a11y === null ? '—' : String(a11y),
-                variant: a11y === null ? 'none' : a11y >= 90 ? 'ok' : 'warn'
-            },
-            {
-                id: 'vrt',
-                label: 'VRT diff',
-                value: vrt === null ? '—' : vrt.value,
-                variant: vrt === null ? 'none' : vrt.variant
-            }
-        ];
-    });
+    /** The full metric list for the gauge, in source order. */
+    protected readonly metrics = computed(() =>
+        headMetrics({
+            meta: this.componentMeta(),
+            a11y: this.auditService.scoreResult(),
+            a11yThresholds: this.a11yThresholds()
+        })
+    );
 
     private readonly componentMeta = computed(() => {
         const c = this.comp();

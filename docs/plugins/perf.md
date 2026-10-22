@@ -59,15 +59,11 @@ The panel colours its values against these built-in thresholds:
 
 ### Render Panel
 
-Shows timing for the last N renders with a mini sparkline chart. Values are color-coded against the built-in thresholds:
-
-- Green: within warning threshold
-- Yellow: between warning and critical
-- Red: exceeds critical threshold
+Shows timing for the last N renders as metric cards and a trace. The initial render is graded against the built-in budget (warning above 5 ms, critical above 16 ms) and carries an "OK", "Warning" or "Critical" badge in that colour; the other figures are plain quantities. **Profile** and **Pause** start and stop recording, **Clear** drops the samples; the number of samples and change-detection runs is in the Profile button's tooltip.
 
 ### Bundle Panel
 
-Analyzes the component's static import graph at build time:
+Analyzes the component's static import graph at build time. Source size and gzip estimate are graded against the bundle budget (warning above 20 kb, critical above 50 kb); the size breakdown draws both against the 20 kb budget ("8.4 / 20 kb").
 
 | Metric         | Description                            |
 | -------------- | -------------------------------------- |
@@ -79,4 +75,4 @@ Analyzes the component's static import graph at build time:
 
 ### Memory Panel
 
-Measures heap usage before and after rendering the component, using `performance.memory` (Chromium-only). Detects potential memory leaks by tracking heap growth across re-renders.
+Measures heap usage before and after rendering the component, using `performance.memory` (Chromium-only). Detects potential memory leaks by tracking heap growth across re-renders. **Snapshot** captures the heap before and after creating the component, **Clear** drops the snapshots.

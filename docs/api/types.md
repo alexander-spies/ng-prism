@@ -378,6 +378,12 @@ See [NgPrismPlugin: ControlDefinition](api/ng-prism-plugin.md#controldefinition)
 
 ---
 
+## StatusTone and StatusThreshold
+
+`StatusTone` (`'ok' | 'warn' | 'danger'`) and `StatusThreshold` (`{ ok, warn, direction? }`) are the verdict and the threshold of `statusFor()`, exported from `@ng-prism/core/plugin` since `22.7.0`. See [NgPrismPlugin: Status grading](api/ng-prism-plugin.md#status-grading).
+
+---
+
 ## StyleguidePage
 
 Discriminated union for sidebar pages.

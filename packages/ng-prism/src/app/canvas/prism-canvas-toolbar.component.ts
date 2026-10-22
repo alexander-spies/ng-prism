@@ -10,6 +10,8 @@ import { PrismNavigationService } from '../services/prism-navigation.service.js'
 import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
+import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
+import { railToggleTitle, zoomTitle } from './canvas-overlay-tokens.js';
 import { buildStateChips, chipFits, type PseudoSource, type StateChip, toggleTitle } from './state-chips.js';
 
 /**
@@ -18,8 +20,7 @@ import { buildStateChips, chipFits, type PseudoSource, type StateChip, toggleTit
  * Things you toggle constantly (guides, rulers, the viewport constraint) get
  * their own button; things you set once (background, forced state, zoom,
  * viewport width) live in the menu. The template is a view rather than a setting and keeps its own
- * button. Zoom and the active viewport width are shown as readouts; the width
- * only appears while the viewport constraint is on.
+ * button. Zoom is shown as a readout, with the viewport width in its tooltip.
  *
  * The host generates no box. The rail must be a direct child of
  * `.prism-canvas-wrap` outside the stage, because that is what capture mode's
@@ -31,7 +32,7 @@ import { buildStateChips, chipFits, type PseudoSource, type StateChip, toggleTit
     selector: 'prism-canvas-toolbar',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismIconComponent],
+    imports: [PrismIconComponent, PrismIconButtonComponent],
     templateUrl: './prism-canvas-toolbar.component.html',
     styleUrl: './prism-canvas-toolbar.component.css'
 })
@@ -110,6 +111,12 @@ export class PrismCanvasToolbarComponent {
 
     /** Angular templates resolve names against the component, not the global scope. */
     protected readonly Math = Math;
+
+    protected readonly zoomTitle = computed(() => zoomTitle(this.canvas.zoom(), this.canvas.viewportWidth()));
+
+    protected railTitle(label: string, on: boolean): string {
+        return railToggleTitle(label, on);
+    }
 
     protected setBg(bg: CanvasBg): void {
         if (this.variantBg.recommended() !== null) {

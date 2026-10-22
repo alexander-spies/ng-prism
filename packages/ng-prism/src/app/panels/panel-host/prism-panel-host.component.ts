@@ -1,18 +1,22 @@
 import { NgComponentOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, EnvironmentInjector, inject, signal, type Type, untracked } from '@angular/core';
 import type { NgPrismConfig, PanelDefinition, RuntimeManifest } from '../../../plugin/plugin.types.js';
-import { PrismIconComponent } from '../../icons/prism-icon.component.js';
+import { PrismEventLogService } from '../../services/prism-event-log.service.js';
 import { PrismNavigationService } from '../../services/prism-navigation.service.js';
 import { PrismPanelService } from '../../services/prism-panel.service.js';
 import { PrismPluginService } from '../../services/prism-plugin.service.js';
 import { PrismRendererService } from '../../services/prism-renderer.service.js';
+import { type PrismTabItem, PrismTabsComponent } from '../../shared/prism-tabs.component.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../../tokens/prism-tokens.js';
 import { A11yAuditService } from '../a11y/a11y-audit.service.js';
 import { resolveA11yThresholds } from '../a11y/a11y-thresholds.js';
 import type { A11yCoreConfig, A11yManifestMeta } from '../a11y/a11y.types.js';
 import { BUILTIN_PANELS } from '../builtin-panels.js';
 import { addonPanelsFor } from './addon-panels.js';
-import { resolvePanelBadge } from './panel-badge.js';
+import { deprecatedBadgeVariantNotice, normalizePanelBadge, resolvePanelBadge } from './panel-badge.js';
+
+/** Panels whose badge still sets `variant`, warned about once per page load. */
+const warnedVariantBadges = new Set<string>();
 
 type RenderedPanelEntry = {
     id: string;
@@ -25,7 +29,7 @@ type RenderedPanelEntry = {
     selector: 'prism-panel-host',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgComponentOutlet, PrismIconComponent],
+    imports: [NgComponentOutlet, PrismTabsComponent],
     templateUrl: './prism-panel-host.component.html',
     styleUrl: './prism-panel-host.component.css'
 })
@@ -59,13 +63,27 @@ export class PrismPanelHostComponent {
         return comp?.meta.inputs.length ?? 0;
     });
 
-    protected panelBadge(panel: PanelDefinition) {
-        return resolvePanelBadge(panel, this.nav.activeComponent(), {
+    private readonly eventLog = inject(PrismEventLogService);
+
+    private panelBadge(panel: PanelDefinition) {
+        const badge = resolvePanelBadge(panel, this.nav.activeComponent(), {
             inputCount: this.inputCount(),
+            eventCount: this.eventLog.events().length,
             a11yResult: this.auditService.scoreResult(),
             a11yThresholds: this.a11yThresholds()
         });
+        const notice = deprecatedBadgeVariantNotice(panel.id, badge);
+
+        if (notice && !warnedVariantBadges.has(panel.id)) {
+            warnedVariantBadges.add(panel.id);
+            console.warn(`[ng-prism] ${notice}`);
+        }
+        return normalizePanelBadge(badge);
     }
+
+    protected readonly tabItems = computed<PrismTabItem[]>(() =>
+        this.allPanels().map((panel) => ({ id: panel.id, label: panel.label, icon: panel.icon, badge: this.panelBadge(panel) }))
+    );
 
     private readonly builtInPanels = BUILTIN_PANELS;
 

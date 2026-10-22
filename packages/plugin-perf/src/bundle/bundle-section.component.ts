@@ -1,12 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { PrismBadgeComponent, PrismMetricCardComponent, toneForStatus } from '@ng-prism/core';
+import type { StatusTone } from '@ng-prism/core/plugin';
+import { perfStatus } from '../perf-status.js';
 import type { BundleMetrics } from '../perf.types.js';
 
 @Component({
     selector: 'perf-bundle-section',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [PrismMetricCardComponent, PrismBadgeComponent],
     templateUrl: './bundle-section.component.html',
-    styleUrl: './bundle-section.component.css'
+    styleUrls: ['../perf-section.css', './bundle-section.component.css']
 })
 export class BundleSectionComponent {
     readonly metrics = input<BundleMetrics | null>(null);
@@ -20,63 +24,25 @@ export class BundleSectionComponent {
         return Math.round((m.gzipEstimate / m.sourceSize) * 100);
     });
 
+    /** Bar fill against the warning budget: the bar is a quantity, the card above carries the verdict. */
     readonly sourceBarPercent = computed(() => {
         const m = this.metrics();
 
-        if (!m) return 0;
-        const maxKb = this.critKb() * 1.2;
-
-        return Math.min(100, (m.sourceSize / 1024 / maxKb) * 100);
+        return m ? Math.min(100, (m.sourceSize / 1024 / this.warnKb()) * 100) : 0;
     });
 
     readonly gzipBarPercent = computed(() => {
         const m = this.metrics();
 
-        if (!m) return 0;
-        const maxKb = this.critKb() * 1.2;
-
-        return Math.min(100, (m.gzipEstimate / 1024 / maxKb) * 100);
+        return m ? Math.min(100, (m.gzipEstimate / 1024 / this.warnKb()) * 100) : 0;
     });
 
-    readonly sizeStatus = computed(() => {
-        const m = this.metrics();
+    readonly sourceStatus = computed(() => perfStatus((this.metrics()?.sourceSize ?? 0) / 1024, this.warnKb(), this.critKb()));
+    readonly gzipStatus = computed(() => perfStatus((this.metrics()?.gzipEstimate ?? 0) / 1024, this.warnKb(), this.critKb()));
 
-        if (!m) return '';
-        const kb = m.sourceSize / 1024;
-
-        if (kb >= this.critKb()) return 'crit';
-        if (kb >= this.warnKb()) return 'warn';
-        return 'good';
-    });
-
-    readonly sizeStatusText = computed(() => {
-        const s = this.sizeStatus();
-
-        if (s === 'good') return 'good';
-        if (s === 'warn') return 'warn';
-        if (s === 'crit') return 'crit';
-        return '';
-    });
-
-    readonly gzipStatus = computed(() => {
-        const m = this.metrics();
-
-        if (!m) return '';
-        const kb = m.gzipEstimate / 1024;
-
-        if (kb >= this.critKb()) return 'crit';
-        if (kb >= this.warnKb()) return 'warn';
-        return 'good';
-    });
-
-    readonly gzipStatusText = computed(() => {
-        const s = this.gzipStatus();
-
-        if (s === 'good') return 'good';
-        if (s === 'warn') return 'warn';
-        if (s === 'crit') return 'crit';
-        return '';
-    });
+    toneOf(tone: StatusTone) {
+        return toneForStatus(tone);
+    }
 
     readonly visibleImports = computed(() => {
         const m = this.metrics();
@@ -99,10 +65,5 @@ export class BundleSectionComponent {
         const kb = bytes / 1024;
 
         return kb < 10 ? kb.toFixed(1) : Math.round(kb).toString();
-    }
-
-    chipClass(imp: string): string {
-        if (imp.startsWith('@angular/')) return 'angular';
-        return '';
     }
 }

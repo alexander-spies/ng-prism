@@ -1,38 +1,30 @@
 <div class="layout-menu">
     <button
-        class="layout-menu__trigger"
+        prismIconButton
+        size="md"
+        aria-label="Layout options"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="open()"
+        [pressed]="open() ? true : null"
         (click)="open.set(!open())"
-        [class.layout-menu__trigger--active]="open()"
         title="Layout options">
-        <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none">
-            <circle
-                cx="8"
-                cy="3"
-                r="1.25"
-                fill="currentColor" />
-            <circle
-                cx="8"
-                cy="8"
-                r="1.25"
-                fill="currentColor" />
-            <circle
-                cx="8"
-                cy="13"
-                r="1.25"
-                fill="currentColor" />
-        </svg>
+        <prism-icon
+            name="more-vertical"
+            [size]="16" />
     </button>
     @if (open()) {
         <div
             class="layout-menu__backdrop"
             (click)="open.set(false)"></div>
-        <div class="layout-menu__dropdown">
+        <div
+            class="layout-menu__dropdown"
+            role="menu"
+            aria-label="Layout"
+            [style]="theme.appTokens()">
             <button
                 class="layout-menu__item"
+                role="menuitemcheckbox"
+                [attr.aria-checked]="layout.sidebarVisible()"
                 (click)="toggle('sidebar')">
                 <span
                     class="layout-menu__check"
@@ -55,6 +47,8 @@
             </button>
             <button
                 class="layout-menu__item"
+                role="menuitemcheckbox"
+                [attr.aria-checked]="layout.toolbarVisible()"
                 (click)="toggle('toolbar')">
                 <span
                     class="layout-menu__check"
@@ -77,6 +71,8 @@
             </button>
             <button
                 class="layout-menu__item"
+                role="menuitemcheckbox"
+                [attr.aria-checked]="layout.addonsVisible()"
                 (click)="toggle('addons')">
                 <span
                     class="layout-menu__check"

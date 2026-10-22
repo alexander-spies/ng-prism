@@ -15,6 +15,14 @@
    renderer in the shell, so an equal z-index let the rulers paint over
    the buttons. */
 .prism-toolrail {
+    /* The rail's buttons take the overlay colours of the canvas ground. */
+    --prism-icon-button-fg: var(--prism-canvas-overlay-muted);
+    --prism-icon-button-fg-hover: var(--prism-canvas-overlay-fg);
+    --prism-icon-button-bg-hover: color-mix(in srgb, var(--prism-canvas-overlay-fg) 8%, transparent);
+    --prism-icon-button-active-fg: var(--prism-canvas-overlay-primary);
+    --prism-icon-button-active-bg: var(--prism-canvas-overlay-active);
+    --prism-icon-button-focus: var(--prism-canvas-overlay-primary);
+
     position: absolute;
     top: var(--prism-canvas-overlay-top, 12px);
     right: var(--prism-canvas-overlay-inline, 20px);
@@ -25,10 +33,10 @@
     align-items: center;
     padding: var(--sp-2);
     anchor-name: --prism-toolrail;
-    background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
+    background: var(--prism-canvas-overlay-bg);
+    border: 1px solid var(--prism-canvas-overlay-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 4px 16px -6px rgb(0 0 0 / 40%);
+    box-shadow: var(--prism-shadow-md);
 }
 
 .prism-toolrail.has-rulers {
@@ -40,52 +48,23 @@
     width: 100%;
     padding-bottom: var(--sp-1);
     font-family: var(--font-mono);
-    font-size: 9px;
-    color: var(--prism-text-ghost);
+    font-size: 11px;
+    color: var(--prism-canvas-overlay-muted);
     text-align: center;
-    border-bottom: 1px solid var(--prism-border);
+    cursor: default;
+    border-bottom: 1px solid var(--prism-canvas-overlay-border);
 }
 
-/* The one number on this rail that is not a percentage, so it takes the
-   measurement colour the theme already reserves for rulers and guides
-   rather than a second neutral that would read as a second zoom. */
-.prism-toolrail__vp {
-    display: block;
-    color: var(--prism-measure);
-}
-
-.prism-toolrail__btn {
-    display: grid;
-    place-items: center;
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: transparent;
-    border: 0;
-    border-radius: var(--radius-xs);
-}
-
-.prism-toolrail__btn:hover {
-    color: var(--prism-text);
-}
-
-.prism-toolrail__btn:focus-visible {
-    outline: 2px solid var(--prism-primary);
-    outline-offset: 1px;
-}
-
-.prism-toolrail__btn.is-on {
-    color: var(--prism-text);
-    background: color-mix(in srgb, var(--prism-primary) 18%, transparent);
+/* A pressed tool also gets an edge, so "on" never rests on the tint alone. */
+.prism-toolrail .prism-icon-button--pressed {
+    box-shadow: inset 0 -1.5px 0 0 var(--prism-canvas-overlay-primary);
 }
 
 .prism-toolrail__sep {
     width: 14px;
     height: 1px;
     margin: var(--sp-1) 0;
-    background: var(--prism-border);
+    background: var(--prism-canvas-overlay-border);
 }
 
 .prism-toolmenu {
@@ -98,9 +77,9 @@
     position-anchor: --prism-toolrail;
     position-try-fallbacks: flip-inline;
     background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 8px 28px -10px rgb(0 0 0 / 45%);
+    box-shadow: var(--prism-shadow-md);
 }
 
 /* display belongs on :popover-open and nowhere else (see the note in
@@ -114,7 +93,7 @@
 
 .prism-toolmenu__lbl {
     font-size: var(--fs-xs);
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -132,18 +111,24 @@
     white-space: nowrap;
     cursor: pointer;
     background: transparent;
-    border: 1px solid var(--prism-border);
+    border: 1px solid var(--prism-border-strong);
     border-radius: var(--radius-xs);
 }
 
-.prism-toolmenu__row button.is-on {
+.prism-toolmenu__row button:hover {
     color: var(--prism-text);
-    background: color-mix(in srgb, var(--prism-primary) 16%, transparent);
-    border-color: color-mix(in srgb, var(--prism-primary) 38%, transparent);
+    background: var(--prism-input-bg);
 }
 
+.prism-toolmenu__row button.is-on {
+    color: var(--prism-primary);
+    background: var(--prism-primary-bg);
+    border-color: color-mix(in srgb, var(--prism-primary) 55%, transparent);
+}
+
+/* The variant's own recommendation: a primary contour, so it reads without the tooltip. */
 .prism-toolmenu__row button.is-rec {
-    border-color: color-mix(in srgb, var(--prism-primary) 30%, transparent);
+    border-color: var(--prism-primary);
 }
 
 /* A state that does not fit the shown variant: still selectable, but nothing shows. The tooltip names why. */
@@ -152,5 +137,5 @@
 }
 
 .prism-toolmenu__row button.is-na:not(.is-on) {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }

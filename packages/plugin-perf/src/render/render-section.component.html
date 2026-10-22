@@ -1,56 +1,58 @@
 @if (renderService(); as svc) {
     @if (svc.initialRender() !== null || svc.rerenders().length > 0) {
-        <div class="perf-body">
-            <div class="perf-card">
-                <div class="perf-card-head"><span class="perf-card-name">Initial Render</span></div>
-                <div
-                    class="perf-card-val"
-                    [style.color]="colorFor(svc.initialRender())"
-                    >{{ formatMs(svc.initialRender()) }}<span>ms</span></div
-                >
-            </div>
-            <div class="perf-card">
-                <div class="perf-card-head"><span class="perf-card-name">Avg Re-Render</span></div>
-                <div class="perf-card-val">{{ formatMs(svc.avgRerender()) }}<span>ms</span></div>
-                <div class="perf-card-sub">{{ svc.sampleCount() }} samples</div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-card-head"><span class="perf-card-name">Slowest</span></div>
-                <div class="perf-card-val">{{ formatMs(svc.maxRerender()) }}<span>ms</span></div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-card-head"><span class="perf-card-name">P95</span></div>
-                <div class="perf-card-val">{{ formatMs(svc.p95Rerender()) }}<span>ms</span></div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-card-head"><span class="perf-card-name">Last Render</span></div>
-                <div class="perf-card-val">{{ formatMs(svc.lastRerender()) }}<span>ms</span></div>
-            </div>
+        <div class="perf-grid">
+            @let initial = statusOf(svc.initialRender());
+            <prism-metric-card
+                label="Initial render"
+                unit="ms"
+                [value]="formatMs(svc.initialRender())"
+                [tone]="initial?.tone ?? null"
+                [statusLabel]="initial?.label ?? null"
+                [title]="budgetTitle('First render of the component')" />
+            <prism-metric-card
+                label="Avg re-render"
+                unit="ms"
+                [value]="formatMs(svc.avgRerender())"
+                [title]="svc.sampleCount() + ' samples'" />
+            <prism-metric-card
+                label="Slowest"
+                unit="ms"
+                [value]="formatMs(svc.maxRerender())" />
+            <prism-metric-card
+                label="P95"
+                unit="ms"
+                [value]="formatMs(svc.p95Rerender())" />
+            <prism-metric-card
+                label="Last render"
+                unit="ms"
+                [value]="formatMs(svc.lastRerender())" />
         </div>
 
         @if (svc.rerenders().length > 1) {
-            <div class="perf-detail">
-                <div class="perf-card perf-card--block">
-                    <div class="perf-card-head">
-                        <span class="perf-card-name">Render Time Trace &mdash; Last {{ svc.sampleCount() }} Samples</span>
-                        <span class="perf-sparkline-legend"
-                            >avg <span class="perf-sparkline-hl">{{ formatMs(svc.avgRerender()) }} ms</span> &middot; max
-                            <span class="perf-sparkline-hl">{{ formatMs(svc.maxRerender()) }} ms</span></span
-                        >
-                    </div>
-                    <div class="perf-sparkline-wrap">
-                        <perf-sparkline
-                            [samples]="svc.rerenders()"
-                            [thresholdWarn]="warnMs()"
-                            [height]="80" />
-                    </div>
-                </div>
+            <div
+                class="perf-block"
+                [title]="
+                    'Last ' +
+                    svc.sampleCount() +
+                    ' samples · avg ' +
+                    formatMs(svc.avgRerender()) +
+                    ' ms · max ' +
+                    formatMs(svc.maxRerender()) +
+                    ' ms · line at ' +
+                    warnMs() +
+                    ' ms'
+                ">
+                <span class="perf-block__label">Render time trace</span>
+                <perf-sparkline
+                    [samples]="svc.rerenders()"
+                    [thresholdWarn]="warnMs()"
+                    [height]="80" />
             </div>
         }
     } @else {
         <div class="perf-empty">
-            <div class="perf-empty-text">No profiling data yet</div>
-            <div class="perf-empty-hint">Click Profile to start recording render times</div>
+            <span>No profiling data yet</span>
+            <span>Click Profile to start recording render times</span>
         </div>
     }
 }

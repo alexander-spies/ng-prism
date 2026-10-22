@@ -55,18 +55,18 @@ describe('mark roles', () => {
      * made "measured and fine" look like "not measured at all". Those read this
      * token; nothing has been added to the sidebar.
      */
-    it.each(themes)('%s theme gives the nominal state a colour', (_n, theme) => {
-        expect(theme['--prism-mark-nominal']).toMatch(/^#[0-9a-f]{6}$/);
+    /**
+     * Since 22.7 the marks are aliases of the one status family, so a status
+     * colour and its mark can no longer drift apart.
+     */
+    it.each(themes)('%s theme points every mark at its status colour', (_n, theme) => {
+        expect(theme['--prism-mark-nominal']).toBe('var(--prism-success)');
+        expect(theme['--prism-mark-attention']).toBe('var(--prism-warn)');
+        expect(theme['--prism-mark-critical']).toBe('var(--prism-danger)');
     });
 
-    it.each(themes)('%s theme declares attention and critical', (_n, theme) => {
-        expect(theme['--prism-mark-attention']).toMatch(/^#[0-9a-f]{6}$/);
-        expect(theme['--prism-mark-critical']).toMatch(/^#[0-9a-f]{6}$/);
-    });
-
-    it.each(themes)('%s theme builds the spectrum from theme colours', (_n, theme) => {
-        expect(theme['--prism-spectrum']).toContain('var(--prism-accent)');
-        expect(theme['--prism-spectrum']).toContain('var(--prism-primary)');
+    it.each(themes)('%s theme keeps the deprecated spectrum pointing at the brand gradient', (_n, theme) => {
+        expect(theme['--prism-spectrum']).toBe('var(--prism-brand-gradient)');
     });
 });
 

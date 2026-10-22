@@ -6,14 +6,20 @@ import { BUILTIN_HEADER_WIDGETS } from '../panels/builtin-header-widgets.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
 import { PrismSearchService } from '../services/prism-search.service.js';
 import { PrismThemeService } from '../services/prism-theme.service.js';
+import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
+import { PrismLogoComponent } from '../shared/prism-logo.component.js';
 import { PRISM_CONFIG } from '../tokens/prism-tokens.js';
+import { headerBrand } from './header-brand.js';
 import { PrismHeaderWidgetHostComponent } from './prism-header-widget-host.component.js';
 
 @Component({
     selector: 'prism-header',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismIconComponent, PrismLayoutMenuComponent, PrismHeaderWidgetHostComponent],
+    imports: [PrismIconComponent, PrismLayoutMenuComponent, PrismHeaderWidgetHostComponent, PrismLogoComponent, PrismIconButtonComponent],
+    // The header is a navy brand band in both themes: it renders with the dark
+    // token set, which plugin widgets inside it inherit without code of their own.
+    host: { '[style]': 'themeService.headerTokens()' },
     templateUrl: './prism-header.component.html',
     styleUrl: './prism-header.component.css'
 })
@@ -33,16 +39,12 @@ export class PrismHeaderComponent {
         )
     );
 
-    protected readonly logoUrl = computed(() => {
-        const logo = this.config.logo;
+    protected readonly brand = computed(() => headerBrand(this.config));
+    protected readonly brandTitle = computed(() => {
+        const brand = this.brand();
 
-        if (!logo) return null;
-        const isDark = this.themeService.isDark();
-
-        return (isDark ? (logo.dark ?? logo.light) : (logo.light ?? logo.dark)) ?? null;
+        return brand.kind === 'title' ? brand.title : null;
     });
-
-    protected readonly title = computed(() => this.config.title ?? 'ng-prism');
     protected readonly subtitle = computed(() => this.config.subtitle ?? null);
 
     protected readonly buildInfoLabel = computed(() => {

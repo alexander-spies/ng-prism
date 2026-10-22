@@ -1,85 +1,74 @@
 @if (memoryService(); as svc) {
     @if (!svc.available()) {
         <div class="perf-empty">
-            <div class="perf-empty-text">Memory API not available</div>
-            <div class="perf-empty-hint">performance.memory is Chrome-only (non-standard)</div>
+            <span>Memory API not available</span>
+            <span>performance.memory is Chrome-only (non-standard)</span>
         </div>
     } @else if (svc.snapshots().length > 0) {
-        <div class="perf-body">
-            <div class="perf-card">
-                <div class="perf-card-head"><span class="perf-card-name">Before Create</span></div>
-                <div class="perf-card-val">{{ formatMb(svc.beforeCreate()?.bytes) }}<span>MB</span></div>
-                <div class="perf-card-sub">baseline heap</div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-card-head">
-                    <span class="perf-card-name">After Create</span>
-                    @if (svc.delta() !== null && svc.delta()! > 0) {
-                        <span class="perf-card-status warn">watch</span>
-                    }
-                </div>
-                <div
-                    class="perf-card-val"
-                    [style.color]="afterCreateColor()"
-                    >{{ formatMb(svc.afterCreate()?.bytes) }}<span>MB</span></div
-                >
-                <div class="perf-card-sub">{{ deltaText() }}</div>
-            </div>
-            <div class="perf-card">
-                <div class="perf-card-head"><span class="perf-card-name">After Destroy</span></div>
-                <div
-                    class="perf-card-val"
-                    [style.color]="destroyColor()"
-                    >{{ formatMb(svc.afterDestroy()?.bytes) }}<span>MB</span></div
-                >
-            </div>
+        <div class="perf-grid">
+            <prism-metric-card
+                label="Before create"
+                unit="MB"
+                title="Baseline heap"
+                [value]="formatMb(svc.beforeCreate()?.bytes)" />
+            <prism-metric-card
+                label="After create"
+                unit="MB"
+                [value]="formatMb(svc.afterCreate()?.bytes)"
+                [tone]="afterCreateTone()"
+                [statusLabel]="afterCreateTone() ? 'Watch' : null"
+                [title]="deltaText() || 'Heap right after the component was created'" />
+            <prism-metric-card
+                label="After destroy"
+                unit="MB"
+                [value]="formatMb(svc.afterDestroy()?.bytes)"
+                [tone]="destroyTone()"
+                [statusLabel]="destroyTone() === 'danger' ? 'Leak' : destroyTone() === 'success' ? 'OK' : null"
+                [title]="residualText() || 'Heap after the component was destroyed'" />
         </div>
 
         @if (svc.beforeCreate() && svc.afterCreate()) {
-            <div class="perf-detail">
-                <div class="perf-card perf-card--block">
-                    <div class="perf-card-head"><span class="perf-card-name">Heap Comparison</span></div>
-                    <div class="perf-bars">
-                        <span class="perf-bar-label">before</span>
-                        <div class="perf-bar-track"
-                            ><div
-                                class="perf-bar-fill"
-                                [style.width.%]="barPercent(svc.beforeCreate()?.bytes)"></div
-                        ></div>
-                        <span class="perf-bar-val">{{ formatMb(svc.beforeCreate()?.bytes) }} MB</span>
-                        <span class="perf-bar-label">after create</span>
-                        <div class="perf-bar-track"
-                            ><div
-                                class="perf-bar-fill perf-bar-fill--warn"
-                                [style.width.%]="barPercent(svc.afterCreate()?.bytes)"></div
-                        ></div>
-                        <span class="perf-bar-val perf-bar-val--warn">{{ formatMb(svc.afterCreate()?.bytes) }} MB</span>
-                    </div>
+            <div class="perf-block">
+                <span class="perf-block__label">Heap comparison</span>
+                <div class="perf-bars">
+                    <span class="perf-bar-label">before</span>
+                    <div class="perf-bar-track"
+                        ><div
+                            class="perf-bar-fill"
+                            [style.width.%]="barPercent(svc.beforeCreate()?.bytes)"></div
+                    ></div>
+                    <span class="perf-bar-val">{{ formatMb(svc.beforeCreate()?.bytes) }} MB</span>
+                    <span class="perf-bar-label">after create</span>
+                    <div class="perf-bar-track"
+                        ><div
+                            class="perf-bar-fill"
+                            [style.width.%]="barPercent(svc.afterCreate()?.bytes)"></div
+                    ></div>
+                    <span class="perf-bar-val">{{ formatMb(svc.afterCreate()?.bytes) }} MB</span>
                 </div>
             </div>
         }
 
-        <div class="perf-detail perf-detail--last">
-            <div class="perf-card perf-card--block">
-                <div class="perf-card-head"><span class="perf-card-name">Leak Analysis</span></div>
-                @if (svc.leakStatus() === 'ok') {
-                    <div class="perf-leak-badge perf-leak-badge--ok">
-                        <span class="perf-leak-dot"></span>
-                        No significant leak detected
-                    </div>
-                } @else if (svc.leakStatus() === 'warn') {
-                    <div class="perf-leak-badge perf-leak-badge--warn">
-                        <span class="perf-leak-dot"></span>
-                        Possible leak &mdash; +{{ formatMb(svc.residual()!) }} MB not reclaimed
-                    </div>
-                }
-                <div class="perf-disclaimer">&#9432; performance.memory is Chrome-only (non-standard). Not available in other browsers.</div>
-            </div>
+        <div
+            class="perf-block"
+            title="performance.memory is Chrome-only (non-standard) and not available in other browsers">
+            <span class="perf-block__label">Leak analysis</span>
+            @if (svc.leakStatus() === 'ok') {
+                <prism-badge
+                    dot
+                    tone="success"
+                    label="No significant leak detected" />
+            } @else if (svc.leakStatus() === 'warn') {
+                <prism-badge
+                    dot
+                    tone="danger"
+                    [label]="'Possible leak: +' + formatMb(svc.residual()!) + ' MB not reclaimed'" />
+            }
         </div>
     } @else {
         <div class="perf-empty">
-            <div class="perf-empty-text">No memory snapshots yet</div>
-            <div class="perf-empty-hint">Click Snapshot to capture heap data</div>
+            <span>No memory snapshots yet</span>
+            <span>Click Snapshot to capture heap data</span>
         </div>
     }
 }

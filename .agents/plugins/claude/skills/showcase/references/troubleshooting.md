@@ -133,6 +133,10 @@ out`): the scanner failed on the class and skipped it, so that the rest of the l
   **`plugin "<name>" sets position on panel "<id>", which is deprecated and will be removed in 23.0.0. …`** and
   **`perfPlugin() option "<option>" is deprecated and will be removed in 23.0.0. …`**: delete the option; nothing
   changes, since it never had an effect.
+- **`<config file> sets <token> in "<option>": <token> is deprecated since 22.7.0 and will be removed in 23.0.0. …;
+override <successor> instead.`** (for `--prism-mark-*`, `--prism-spectrum`, `--prism-primary-from` or
+  `--prism-primary-to` in `theme`, `darkTheme` or `lightTheme`): move the override to the successor the notice names.
+  A `--prism-mark-*` override still works until 23.0.0; the others have no effect any more.
 - **`ng-prism: plugin "<name>" failed in <hook> for …: <cause>`** (an error): a plugin's build hook threw. On the first
   build this stops `serve` and `prism-build`; on a rescan the previous manifest stays.
 
@@ -159,6 +163,12 @@ out`): the scanner failed on the class and skipped it, so that the rest of the l
   **`[ng-prism] Cannot force pseudo states in <stylesheet>: its rules are cross-origin and cannot be read. …`** (dev
   mode only): the browser rejected the rewritten selector, or the stylesheet comes from another origin. Serve it from
   the same origin, or with CORS and a `crossorigin` attribute.
+- **`[ng-prism] <token> is deprecated since 22.7.0 and will be removed in 23.0.0. …`**: the same deprecated theme
+  token override the build reports, warned once per token. Fix it the same way.
+- **`[ng-prism] The badge of panel "<id>" sets variant, which is deprecated since 22.7.0 and will be removed in
+23.0.0. …`**: a plugin's `badge` callback returns `variant`. Return `kind` and `tone` instead: `warn` and `danger`
+  become `kind: 'issues'` with that tone, `default` becomes `kind: 'count'`, and for `ok` return `null`. If the plugin
+  isn't the user's, tell them; the badge keeps rendering until 23.0.0.
 
 ## `screenshot.mjs --state` exits with 4
 

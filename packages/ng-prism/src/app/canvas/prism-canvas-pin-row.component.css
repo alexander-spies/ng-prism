@@ -4,7 +4,7 @@
     align-items: center;
     padding: var(--sp-2) var(--sp-3);
     overflow-x: auto;
-    background: var(--prism-bg-surface);
+    background: var(--prism-canvas-overlay-bg);
     border-top: 1px solid var(--prism-border);
 }
 
@@ -18,7 +18,7 @@
     font-variant-numeric: tabular-nums;
     color: var(--prism-measure);
     white-space: nowrap;
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-canvas-overlay-border);
     border-radius: var(--radius-xs);
 }
 

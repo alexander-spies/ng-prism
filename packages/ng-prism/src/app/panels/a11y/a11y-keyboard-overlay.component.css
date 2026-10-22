@@ -9,10 +9,10 @@
 .prism-a11y-kbd-ov__highlight {
     position: absolute;
     pointer-events: none;
-    background: rgb(129 140 248 / 6%);
-    border: 2px solid rgb(129 140 248 / 50%);
+    background: color-mix(in srgb, var(--prism-primary-fill) 6%, transparent);
+    border: 2px solid color-mix(in srgb, var(--prism-primary-fill) 70%, transparent);
     border-radius: 4px;
-    box-shadow: 0 0 0 4px rgb(129 140 248 / 8%);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--prism-primary-fill) 10%, transparent);
 }
 
 .prism-a11y-kbd-ov__badge {
@@ -25,12 +25,12 @@
     font-family: var(--prism-font-sans, system-ui, sans-serif);
     font-size: 10px;
     font-weight: 700;
-    color: white;
+    color: var(--prism-on-primary);
     pointer-events: auto;
     cursor: default;
-    background: var(--prism-primary);
+    background: var(--prism-primary-fill);
     border-radius: 50%;
     box-shadow:
-        0 0 0 2px white,
-        0 2px 6px rgb(0 0 0 / 30%);
+        0 0 0 2px var(--prism-on-primary),
+        var(--prism-shadow-sm);
 }

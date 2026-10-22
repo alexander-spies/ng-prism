@@ -85,13 +85,17 @@ describe('visual regression panel scrolling', () => {
         }
     });
 
-    /** The summary belongs to the list column, never above both of them. */
-    it('should keep the summary inside the aside, not across the panel', () => {
+    /**
+     * The segment bar is gone (F14): the status breakdown is the list
+     * headings' tooltip, so it stays with the list column by construction.
+     */
+    it('should carry the status breakdown on the list headings instead of a bar', () => {
         const { host } = mountPanel();
 
-        const summary = host.querySelector('.vrt__summary');
+        expect(host.querySelector('.vrt__summary')).toBeNull();
+        const heading = host.querySelector('.vrt__aside .vrt__group');
 
-        expect(summary).not.toBeNull();
-        expect(summary!.closest('.vrt__aside')).not.toBeNull();
+        // The raw template is mounted, so the binding shows as its attribute.
+        expect(heading?.getAttribute('[title]')).toBe('breakdown()');
     });
 });

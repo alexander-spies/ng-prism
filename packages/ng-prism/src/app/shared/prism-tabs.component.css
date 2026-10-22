@@ -1,0 +1,112 @@
+:host {
+    display: flex;
+    min-width: 0;
+    height: 100%;
+}
+
+.prism-tabs {
+    display: flex;
+    flex: 1;
+    gap: 2px;
+    align-items: stretch;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.prism-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.prism-tab {
+    position: relative;
+    display: flex;
+    flex: none;
+    gap: 7px;
+    align-items: center;
+    padding: 0 12px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--prism-text-muted);
+    white-space: nowrap;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    transition: color var(--dur-fast) var(--ease-default);
+}
+
+.prism-tab:hover {
+    color: var(--prism-text-2);
+}
+
+.prism-tab--active {
+    color: var(--prism-text);
+}
+
+/* md: the brand ink, the one gradient a tab ever carries. */
+.prism-tab--active::after {
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    left: 8px;
+    height: 2px;
+    content: '';
+    background: var(--prism-brand-ink);
+    border-radius: 2px;
+}
+
+.prism-tab:focus-visible {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: -2px;
+    border-radius: var(--radius-xs);
+}
+
+:host(.prism-tabs--sm) .prism-tab {
+    gap: 6px;
+    padding: 0 10px;
+    font-size: 12.5px;
+}
+
+:host(.prism-tabs--sm) .prism-tab--active::after {
+    right: 6px;
+    left: 6px;
+    height: 1.5px;
+    background: var(--prism-primary);
+}
+
+.prism-tab__count {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--prism-text-muted);
+}
+
+.prism-tab__issues {
+    display: grid;
+    place-items: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    border-radius: 8px;
+}
+
+.prism-tab__issues[data-tone='danger'] {
+    color: var(--prism-danger);
+    background: var(--prism-danger-bg);
+}
+
+.prism-tab__issues[data-tone='warn'] {
+    color: var(--prism-warn);
+    background: var(--prism-warn-bg);
+}
+
+.prism-tab__issues[data-tone='primary'] {
+    color: var(--prism-primary);
+    background: var(--prism-primary-bg);
+}

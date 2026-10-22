@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import type { RuntimeComponent } from '../../../plugin/plugin.types.js';
+import { PrismPanelToolbarComponent } from '../../shared/prism-panel-toolbar.component.js';
+import { type PrismTabItem, PrismTabsComponent } from '../../shared/prism-tabs.component.js';
+import { a11yViolationBadge, normalizePanelBadge } from '../panel-host/panel-badge.js';
 import { A11yAuditService } from './a11y-audit.service.js';
 import { A11yKeyboardComponent } from './a11y-keyboard.component.js';
 import { A11yPanelStateService } from './a11y-panel-state.service.js';
@@ -11,7 +14,7 @@ import type { A11yCoreConfig } from './a11y.types.js';
 @Component({
     selector: 'prism-a11y-panel',
     standalone: true,
-    imports: [A11yViolationsComponent, A11yKeyboardComponent, A11yTreeComponent, A11ySrComponent],
+    imports: [A11yViolationsComponent, A11yKeyboardComponent, A11yTreeComponent, A11ySrComponent, PrismPanelToolbarComponent, PrismTabsComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './a11y-panel.component.html',
     styleUrl: './a11y-panel.component.css'
@@ -29,9 +32,15 @@ export class A11yPanelComponent {
         return config?.disable === true;
     });
 
-    protected readonly violationCount = computed(() => {
-        const r = this.auditService.results();
+    /** The sub-tabs; Violations carries the same open-findings badge as the panel's own tab. */
+    protected readonly tabs = computed<PrismTabItem[]>(() => [
+        { id: 'violations', label: 'Violations', badge: normalizePanelBadge(a11yViolationBadge(this.auditService.scoreResult())) },
+        { id: 'keyboard', label: 'Keyboard' },
+        { id: 'tree', label: 'ARIA Tree' },
+        { id: 'sr', label: 'Screen Reader' }
+    ]);
 
-        return r ? r.violations.length : null;
-    });
+    protected selectTab(id: string | null): void {
+        if (id === 'violations' || id === 'keyboard' || id === 'tree' || id === 'sr') this.state.activeTab.set(id);
+    }
 }

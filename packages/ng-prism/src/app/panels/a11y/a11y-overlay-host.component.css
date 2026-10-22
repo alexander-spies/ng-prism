@@ -8,9 +8,11 @@
     pointer-events: none;
 }
 
+/* Overlays sit on the user's component, so they paint with the canvas overlay
+   tokens and the fill blue, not with the theme surfaces. */
 .outline {
-    background: rgb(59 130 246 / 8%);
-    border: 2px solid rgb(59 130 246 / 95%);
+    background: color-mix(in srgb, var(--prism-primary-fill) 8%, transparent);
+    border: 2px solid var(--prism-primary-fill);
     border-radius: 4px;
 }
 
@@ -18,13 +20,15 @@
     display: inline-block;
     padding: 2px 6px;
     font: 11px/1.4 var(--font-mono);
-    color: var(--prism-text-light, #fff);
+    color: var(--prism-canvas-overlay-fg);
     white-space: nowrap;
-    background: rgb(17 24 39 / 92%);
+    background: var(--prism-canvas-overlay-bg);
+    border: 1px solid var(--prism-canvas-overlay-border);
     border-radius: 4px;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+    box-shadow: var(--prism-shadow-sm);
 }
 
 .kb .tag {
-    background: rgb(5 150 105 / 95%);
+    color: var(--prism-canvas-overlay-primary);
+    border-color: var(--prism-canvas-overlay-primary);
 }

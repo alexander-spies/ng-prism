@@ -9,13 +9,24 @@ import { UnionControlComponent } from '../../controls/union-control.component.js
 import { PrismNavigationService } from '../../services/prism-navigation.service.js';
 import { PrismPluginService } from '../../services/prism-plugin.service.js';
 import { PrismRendererService } from '../../services/prism-renderer.service.js';
+import { PrismButtonComponent } from '../../shared/prism-button.component.js';
+import { PrismPanelToolbarComponent } from '../../shared/prism-panel-toolbar.component.js';
 import { isNonEditableInputType } from './non-editable-input-types.js';
 
 @Component({
     selector: 'prism-controls-panel',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgComponentOutlet, BooleanControlComponent, StringControlComponent, NumberControlComponent, UnionControlComponent, JsonControlComponent],
+    imports: [
+        NgComponentOutlet,
+        BooleanControlComponent,
+        StringControlComponent,
+        NumberControlComponent,
+        UnionControlComponent,
+        JsonControlComponent,
+        PrismPanelToolbarComponent,
+        PrismButtonComponent
+    ],
     templateUrl: './prism-controls-panel.component.html',
     styleUrl: './prism-controls-panel.component.css'
 })

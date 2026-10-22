@@ -23,10 +23,21 @@
     color: var(--prism-text);
 }
 
+/* Each section opens with its heading over a rule in the primary colour,
+   which no table or card border on the page has, so the rule reads as a
+   section break. 36px between sections, collapsed with the heading's margin. */
+.prism-jsdoc-panel__section + .prism-jsdoc-panel__section {
+    margin-top: 36px;
+}
+
 .prism-jsdoc-api-page__heading {
     display: flex;
     gap: 8px;
     align-items: center;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    color: var(--prism-text);
+    border-bottom: 1px solid color-mix(in srgb, var(--prism-primary) 50%, transparent);
 }
 
 .prism-jsdoc-api-page__heading-note {
@@ -94,7 +105,7 @@
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
     color: var(--prism-text);
-    background: var(--prism-bg-surface);
+    background: var(--prism-input-bg);
     border: 1px solid var(--prism-border);
     border-left: 2px solid var(--prism-primary);
     border-radius: 8px;
@@ -176,8 +187,11 @@
 :host ::ng-deep .prism-jsdoc-api-page__ref {
     padding: 0;
     font: inherit;
-    color: inherit;
-    text-decoration: underline dotted color-mix(in srgb, var(--prism-primary) 70%, transparent);
+    font-weight: 500;
+    color: var(--prism-link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, var(--prism-link) 45%, transparent);
     text-underline-offset: 3px;
     cursor: pointer;
     background: none;
@@ -186,7 +200,14 @@
 
 .prism-jsdoc-api-page__ref:hover,
 :host ::ng-deep .prism-jsdoc-api-page__ref:hover {
-    text-decoration-style: solid;
+    text-decoration-color: var(--prism-link);
+}
+
+.prism-jsdoc-api-page__ref:focus-visible,
+:host ::ng-deep .prism-jsdoc-api-page__ref:focus-visible {
+    outline: 2px solid var(--prism-link);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 /* A deprecation message is rendered Markdown inside the badge: its code and links take the badge's colour, not the description's blue. */
