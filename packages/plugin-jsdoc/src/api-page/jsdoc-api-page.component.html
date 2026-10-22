@@ -190,12 +190,11 @@
             @for (chip of page().chips; track chip.label) {
                 @if (chip.deprecated) {
                     <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated">
-                        <span
-                            >{{ chip.label }}
-                            @if (chip.value) {
-                                : <span [innerHTML]="renderInline(chip.value)"></span>
-                            }
-                        </span>
+                        @if (chip.value) {
+                            <span>{{ chip.label }}: <span [innerHTML]="renderInline(chip.value)"></span></span>
+                        } @else {
+                            {{ chip.label }}
+                        }
                     </span>
                 } @else if (chip.value) {
                     <span class="prism-jsdoc-panel__meta-item">
@@ -259,12 +258,11 @@
                             /></code>
                             @if (isDeprecated(entry.tags)) {
                                 <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">
-                                    <span
-                                        >deprecated
-                                        @if (deprecatedMessage(entry.tags); as message) {
-                                            : <span [innerHTML]="renderInline(message)"></span>
-                                        }
-                                    </span>
+                                    @if (deprecatedMessage(entry.tags); as message) {
+                                        <span>deprecated: <span [innerHTML]="renderInline(message)"></span></span>
+                                    } @else {
+                                        deprecated
+                                    }
                                 </span>
                             }
                         </div>
