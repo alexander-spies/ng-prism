@@ -1,12 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { type BadgeTone, PrismBadgeComponent, PrismMetricCardComponent } from '@ng-prism/core';
 import type { PerfMemoryService } from './perf-memory.service.js';
 
 @Component({
     selector: 'perf-memory-section',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [PrismMetricCardComponent, PrismBadgeComponent],
     templateUrl: './memory-section.component.html',
-    styleUrl: './memory-section.component.css'
+    styleUrl: '../perf-section.css'
 })
 export class MemorySectionComponent {
     readonly memoryService = input.required<PerfMemoryService>();
@@ -32,22 +34,23 @@ export class MemorySectionComponent {
         return `+${this.formatMb(r)} MB residual`;
     });
 
-    readonly afterCreateColor = computed(() => {
+    /** A heap that grew on create is worth a look, not a verdict. */
+    readonly afterCreateTone = computed<BadgeTone | null>(() => {
         const d = this.memoryService().delta();
 
-        if (d !== null && d > 0) return 'var(--prism-warn)';
-        return '';
+        return d !== null && d > 0 ? 'warn' : null;
     });
 
-    readonly destroyColor = computed(() => {
+    /** Whether the heap came back after destroy: the leak verdict. */
+    readonly destroyTone = computed<BadgeTone | null>(() => {
         const svc = this.memoryService();
 
-        if (!svc.afterDestroy()) return 'var(--prism-text-ghost)';
+        if (!svc.afterDestroy()) return null;
         const status = svc.leakStatus();
 
-        if (status === 'ok') return 'var(--prism-success)';
-        if (status === 'warn') return 'var(--prism-danger)';
-        return '';
+        if (status === 'ok') return 'success';
+        if (status === 'warn') return 'danger';
+        return null;
     });
 
     barPercent(bytes: number | undefined): number {

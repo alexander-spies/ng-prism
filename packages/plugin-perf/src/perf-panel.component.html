@@ -1,64 +1,56 @@
 <div class="prism-perf-panel">
-    <div class="prism-subtabs">
-        <button
-            class="prism-st-tab"
-            [class.prism-st-tab--active]="activeTab() === 'bundle'"
-            (click)="activeTab.set('bundle')">
-            Bundle
-        </button>
-        <button
-            class="prism-st-tab"
-            [class.prism-st-tab--active]="activeTab() === 'render'"
-            (click)="activeTab.set('render')">
-            Render
-        </button>
-        <button
-            class="prism-st-tab"
-            [class.prism-st-tab--active]="activeTab() === 'memory'"
-            (click)="activeTab.set('memory')">
-            Memory
-        </button>
-        <div class="prism-subtabs-actions">
+    <prism-panel-toolbar>
+        <prism-tabs
+            toolbarStart
+            size="sm"
+            ariaLabel="Performance views"
+            [items]="tabs"
+            [active]="activeTab()"
+            (activeChange)="selectTab($event)" />
+        <div
+            toolbarEnd
+            class="prism-perf-actions">
             @if (activeTab() === 'render') {
+                <button
+                    prismButton
+                    variant="secondary"
+                    (click)="renderService.clear()">
+                    Clear
+                </button>
                 @if (renderService.isRecording()) {
                     <button
-                        class="prism-tool-btn"
+                        prismButton
+                        variant="primary"
+                        [title]="profileTitle()"
                         (click)="renderService.stopRecording()">
-                        &#9208; Pause
+                        Pause
                     </button>
                 } @else {
                     <button
-                        class="prism-tool-btn"
+                        prismButton
+                        variant="primary"
+                        [title]="profileTitle()"
                         (click)="renderService.startRecording()">
-                        &#9654; Profile
+                        Profile
                     </button>
-                }
-                <button
-                    class="prism-tool-btn"
-                    (click)="renderService.clear()">
-                    &#10005; Clear
-                </button>
-                @if (renderService.isRecording()) {
-                    <span class="prism-perf-status"> <span class="prism-perf-status-dot"></span> live &middot; {{ renderService.sampleCount() }} samples </span>
                 }
             }
             @if (activeTab() === 'memory') {
                 <button
-                    class="prism-tool-btn"
-                    (click)="captureMemorySnapshots()">
-                    &#9654; Snapshot
+                    prismButton
+                    variant="secondary"
+                    (click)="memoryService.clear()">
+                    Clear
                 </button>
                 <button
-                    class="prism-tool-btn"
-                    (click)="memoryService.clear()">
-                    &#10005; Clear
+                    prismButton
+                    variant="primary"
+                    (click)="captureMemorySnapshots()">
+                    Snapshot
                 </button>
             }
-            @if (renderService.cdRunCount() > 0) {
-                <span class="prism-perf-cd-badge"> {{ renderService.cdRunCount() }} CD runs </span>
-            }
         </div>
-    </div>
+    </prism-panel-toolbar>
 
     <div class="prism-perf-content">
         @switch (activeTab()) {
