@@ -5,7 +5,7 @@ import type { ApiDocTags, ApiMethod, ApiProperty, ApiTypeDoc } from '@ng-prism/c
 import { Highlight } from 'ngx-highlightjs';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from '../markdown.js';
 import { activeTocId, buildApiPageToc, declaredParamSegments, documentsParams, setupSignature, splitReachedFrom, typeAnchor, typeSegments } from './api-page.helpers.js';
-import type { ApiPageModel } from './api-page.model.js';
+import type { ApiOutputRow, ApiPageModel } from './api-page.model.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
 const SCROLL_OFFSET = 12;
@@ -20,9 +20,10 @@ const JUMP_SETTLE_MS = 150;
 const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
 
 /**
- * The API page of a service or a pipe: what it is, how to bring it in, what it
- * offers and the types its API reaches, with an "On this page" list next to
- * it. It renders an `ApiPageModel`, so both kinds share one look.
+ * The API page of a component, a directive, a service or a pipe: what it is,
+ * how to bring it in, what it offers and the types its API reaches, with an
+ * "On this page" list next to it. It renders an `ApiPageModel`, so all four
+ * kinds share one look.
  *
  * The host is the scroll container (the panel stylesheet gives it `overflow:
  * auto`), so every jump scrolls it, never the window or the shell around it.
@@ -43,7 +44,8 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
     styleUrls: ['../jsdoc-panel.component.css', './jsdoc-api-page.component.css'],
     host: {
         '[attr.data-prism-service-rendered]': "kind() === 'service' ? className() : null",
-        '[attr.data-prism-pipe-rendered]': "kind() === 'pipe' ? className() : null"
+        '[attr.data-prism-pipe-rendered]': "kind() === 'pipe' ? className() : null",
+        '[attr.data-prism-component-rendered]': "kind() === 'component' || kind() === 'directive' ? className() : null"
     }
 })
 export class JsDocApiPageComponent {
@@ -55,8 +57,10 @@ export class JsDocApiPageComponent {
     /** Kind and class name, not the page object: a manifest update during `serve` hands over a new page for the same class. */
     protected readonly kind = computed(() => this.page().kind);
     protected readonly className = computed(() => this.page().className);
+    protected readonly inputs = computed(() => this.page().inputs ?? []);
+    protected readonly outputs = computed(() => this.page().outputs ?? []);
     protected readonly serviceProperties = computed(() => this.page().properties ?? []);
-    protected readonly serviceMethods = computed(() => this.page().methods ?? []);
+    protected readonly pageMethods = computed(() => this.page().methods ?? []);
     protected readonly transformSignatures = computed(() => this.page().transform ?? []);
     protected readonly toc = computed(() => buildApiPageToc(this.page()));
     protected readonly renderedDescription = computed(() => this.renderBlock(this.page().description));
@@ -91,7 +95,7 @@ export class JsDocApiPageComponent {
 
     constructor() {
         // The panel keeps this instance when the reader moves to another
-        // service or pipe, so the page starts over at the top for the new one.
+        // component, service or pipe, so the page starts over at the top for the new one.
         effect(() => {
             this.kind();
             this.className();
@@ -184,6 +188,11 @@ export class JsDocApiPageComponent {
 
     protected hasDefaults(properties: ApiProperty[]): boolean {
         return properties.some((property) => property.tags.default !== undefined);
+    }
+
+    /** The scanner reads an output's payload from the source; without it the column would be empty. */
+    protected hasPayloads(outputs: ApiOutputRow[]): boolean {
+        return outputs.some((output) => output.payload !== undefined);
     }
 
     protected hasParams(methods: ApiMethod[]): boolean {

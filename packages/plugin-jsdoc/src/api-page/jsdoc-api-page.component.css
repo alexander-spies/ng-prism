@@ -1,8 +1,7 @@
 /* The panel stylesheet comes first in styleUrls: it supplies the shared look
    (description, meta chips, headings, code blocks, tables, badges) and makes
    :host the scroll container (display: block, height: 100%, overflow: auto).
-   This file adds the layout and the parts only the API page of a service or
-   pipe has. */
+   This file adds the layout and the parts only the API page has. */
 :host {
     container-type: inline-size;
 }

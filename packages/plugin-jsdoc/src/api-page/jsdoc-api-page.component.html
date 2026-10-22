@@ -277,6 +277,105 @@
             </section>
         }
 
+        @if (inputs().length) {
+            <section class="prism-jsdoc-panel__section">
+                <h3
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
+                    data-toc-id="inputs">
+                    Inputs
+                </h3>
+                <table class="prism-jsdoc-panel__table prism-jsdoc-api-page__table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Required</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (input of inputs(); track input.name) {
+                            <tr [class.prism-jsdoc-panel__row--deprecated]="isDeprecated(input.tags)">
+                                <td class="prism-jsdoc-panel__cell--name">
+                                    <code>{{ input.name }}</code>
+                                    @if (isDeprecated(input.tags)) {
+                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
+                                    }
+                                </td>
+                                <td class="prism-jsdoc-panel__cell--type">
+                                    <code><ng-container *ngTemplateOutlet="typeText; context: { $implicit: segmentsOf(input.type) }" /></code>
+                                </td>
+                                <td class="prism-jsdoc-panel__cell--default prism-jsdoc-api-page__default">
+                                    @if (input.defaultValue !== undefined) {
+                                        <code>{{ input.defaultValue }}</code>
+                                    } @else {
+                                        <span class="prism-jsdoc-panel__muted">—</span>
+                                    }
+                                </td>
+                                <td class="prism-jsdoc-panel__cell--required">
+                                    @if (input.required) {
+                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--required">required</span>
+                                    } @else {
+                                        <span class="prism-jsdoc-panel__muted">—</span>
+                                    }
+                                </td>
+                                <td class="prism-jsdoc-panel__cell--doc">
+                                    <ng-container *ngTemplateOutlet="docCell; context: { $implicit: input.description, tags: input.tags }" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+
+        @if (outputs().length) {
+            @let payloads = hasPayloads(outputs());
+            <section class="prism-jsdoc-panel__section">
+                <h3
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
+                    data-toc-id="outputs">
+                    Outputs
+                </h3>
+                <table class="prism-jsdoc-panel__table prism-jsdoc-api-page__table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            @if (payloads) {
+                                <th>Payload</th>
+                            }
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (output of outputs(); track output.name) {
+                            <tr [class.prism-jsdoc-panel__row--deprecated]="isDeprecated(output.tags)">
+                                <td class="prism-jsdoc-panel__cell--name">
+                                    <code>{{ output.name }}</code>
+                                    @if (isDeprecated(output.tags)) {
+                                        <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
+                                    }
+                                </td>
+                                @if (payloads) {
+                                    <td class="prism-jsdoc-panel__cell--type">
+                                        @if (output.payload; as payload) {
+                                            <code><ng-container *ngTemplateOutlet="typeText; context: { $implicit: segmentsOf(payload) }" /></code>
+                                        } @else {
+                                            <span class="prism-jsdoc-panel__muted">—</span>
+                                        }
+                                    </td>
+                                }
+                                <td class="prism-jsdoc-panel__cell--doc">
+                                    <ng-container *ngTemplateOutlet="docCell; context: { $implicit: output.description, tags: output.tags }" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+
         @if (serviceProperties().length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
@@ -322,14 +421,14 @@
             </section>
         }
 
-        @if (serviceMethods().length) {
+        @if (pageMethods().length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
                     class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                     data-toc-id="methods">
                     Methods
                 </h3>
-                <ng-container *ngTemplateOutlet="methodTable; context: { $implicit: serviceMethods(), label: 'Name', params: true }" />
+                <ng-container *ngTemplateOutlet="methodTable; context: { $implicit: pageMethods(), label: 'Name', params: true }" />
             </section>
         }
 
