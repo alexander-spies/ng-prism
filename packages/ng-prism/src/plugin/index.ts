@@ -1,5 +1,6 @@
 // Plugin API exports
 export type {
+    ComponentApi,
     ControlDefinition,
     DiscoveryComponent,
     DiscoveryManifest,

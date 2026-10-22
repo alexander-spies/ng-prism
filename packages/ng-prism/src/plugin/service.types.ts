@@ -10,6 +10,8 @@ export type PanelTarget = 'component' | 'service' | 'pipe';
 export interface ApiDocTags {
     deprecated?: string | true;
     since?: string;
+    /** From `@version`. */
+    version?: string;
     see?: string[];
     example?: string[];
     /** From `@default`. Prose such as "Default `x`." is not read. */
@@ -24,7 +26,7 @@ export interface ApiDocTags {
 export interface ApiTypeRef {
     /** Display text, e.g. `ToastOptions`, `Signal<boolean>`, `number | null`. */
     text: string;
-    /** Ids of the `types` entries of the `ServiceApi` or `PipeApi` whose names occur in `text`. Omitted when none. */
+    /** Ids of the entries in the page's `types` (service, pipe or component) whose names occur in `text`. Omitted when none. */
     links?: string[];
 }
 
@@ -62,7 +64,7 @@ export interface ApiProperty {
 
 /** @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release. */
 export interface ApiTypeDoc {
-    /** Unique within one service or pipe: the name, or `${name}@${importPath}` when two reachable types share a name. */
+    /** Unique within one page's `types` (service, pipe or component): the name, or `${name}@${importPath}` when two reachable types share a name. */
     id: string;
     name: string;
     kind: 'interface' | 'class' | 'type' | 'enum';

@@ -24,6 +24,12 @@ describe('doc tags', () => {
             expect(readDocTags(decl).since).toBe('1.2.0');
         });
 
+        it('reads @version', () => {
+            const decl = parseClass(`/** Text. @version 2.1.0 */ class Subject {}`);
+
+            expect(readDocTags(decl)).toEqual({ version: '2.1.0' });
+        });
+
         it('collects every @example', () => {
             const decl = parseClass(['/**', ' * @example one()', ' * @example two()', ' */', 'class Subject {}'].join('\n'));
 

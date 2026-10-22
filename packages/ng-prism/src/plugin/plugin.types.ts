@@ -3,7 +3,7 @@ import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import type { StyleguidePage } from './page.types.js';
 import type { RuntimePipe, ScannedPipe } from './pipe.types.js';
-import type { PanelTarget, RuntimeService, ScannedService } from './service.types.js';
+import type { ApiDocTags, ApiMethod, ApiTypeDoc, ApiTypeRef, PanelTarget, RuntimeService, ScannedService } from './service.types.js';
 
 export interface NgPrismPlugin {
     /** Unique plugin name, used for debugging and conflict detection */
@@ -175,8 +175,35 @@ export interface ScannedComponent {
      * manifest does not carry it.
      */
     baseClasses?: { className: string; filePath: string }[];
+    /**
+     * What the API page needs beyond `inputs` and `outputs`. Absent when a plugin
+     * hook builds the component, or in the manifest of an older core.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    api?: ComponentApi;
     /** Arbitrary plugin metadata */
     meta?: Record<string, unknown>;
+}
+
+/**
+ * What the API page of a component or directive needs beyond `inputs` and `outputs`.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+ */
+export interface ComponentApi {
+    /** The class's own description (Markdown, `{@link}` kept), as for services and pipes. */
+    description?: string;
+    tags: ApiDocTags;
+    /** The type of each input by member name, as written, with links. */
+    inputTypes: Record<string, ApiTypeRef>;
+    /** The payload type of each `output()` by member name. */
+    outputTypes: Record<string, ApiTypeRef>;
+    /** One entry per `model()` input: the change output Angular adds for it. `input` is the member name. */
+    modelChanges: { input: string; event: string; type: ApiTypeRef }[];
+    /** Public methods with JSDoc of their own or inherited, signatures from the code. */
+    methods: ApiMethod[];
+    types: ApiTypeDoc[];
 }
 
 export interface InputMeta {

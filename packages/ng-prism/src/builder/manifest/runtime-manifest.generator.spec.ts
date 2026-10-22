@@ -315,6 +315,33 @@ describe('generateRuntimeManifest', () => {
     });
 });
 
+describe('generateRuntimeManifest component API', () => {
+    it('writes the API of a component', () => {
+        const withApi: ScannedComponent = {
+            ...BUTTON,
+            api: {
+                tags: {},
+                inputTypes: { variant: { text: 'Variant', links: ['Variant'] } },
+                outputTypes: {},
+                modelChanges: [],
+                methods: [],
+                types: []
+            }
+        };
+        const source = generateRuntimeManifest({ components: [withApi], libraryImportPath: 'my-lib' });
+
+        expect(source).toContain('api: {');
+        expect(source).toContain('links: [');
+        expect(source).toContain('"Variant"');
+    });
+
+    it('leaves out a missing API', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], libraryImportPath: 'my-lib' });
+
+        expect(source).not.toContain('api:');
+    });
+});
+
 const TOAST: ScannedService = {
     className: 'ToastService',
     filePath: 'src/lib/toast/toast.service.ts',

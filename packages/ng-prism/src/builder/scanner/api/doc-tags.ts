@@ -36,7 +36,7 @@ export function readDescription(node: ts.Node): string | undefined {
     return commentText(readDocBlock(node)?.comment);
 }
 
-/** The tags of a node. `@version` and tags without a place in {@link ApiDocTags} are not read. */
+/** The tags of a node. Tags without a place in {@link ApiDocTags} are not read. */
 export function readDocTags(node: ts.Node): ApiDocTags {
     const result: ApiDocTags = {};
 
@@ -49,6 +49,9 @@ export function readDocTags(node: ts.Node): ApiDocTags {
                 break;
             case 'since':
                 if (comment) result.since = comment;
+                break;
+            case 'version':
+                if (comment) result.version = comment;
                 break;
             case 'default':
                 if (comment) result.default = comment;
