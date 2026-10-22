@@ -30,7 +30,7 @@ await page.goto(source, { waitUntil: 'networkidle' });
 // Evaluated in the page, where `document` exists; passed as a string so the Node lint scope stays clean.
 await page.evaluate('document.fonts.ready');
 await page.locator('#cover').screenshot({ path: join(root, 'docs/prism_cover.png') });
-await page.locator('#lockup').screenshot({ path: join(root, 'docs/prism_logo_docs.png'), omitBackground: true });
+await page.locator('#lockup').screenshot({ path: join(root, 'docs/logo_withtext_small.png'), omitBackground: true });
 await browser.close();
 
 console.log('rendered docs/prism_cover.png and docs/prism_logo_docs.png');
