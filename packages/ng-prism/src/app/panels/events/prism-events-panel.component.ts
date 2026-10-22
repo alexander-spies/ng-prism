@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import type { RuntimeComponent } from '../../../plugin/plugin.types.js';
 import { PrismEventLogService } from '../../services/prism-event-log.service.js';
 import { PrismJsonNodeComponent } from './prism-json-node.component.js';
+import { isEmptyPayload } from './prism-json-node.utils.js';
 
 @Component({
     selector: 'prism-events-panel',
@@ -15,6 +16,8 @@ export class PrismEventsPanelComponent {
     protected readonly eventLogService = inject(PrismEventLogService);
 
     readonly activeComponent = input<RuntimeComponent | null>(null);
+
+    protected readonly isEmptyPayload = isEmptyPayload;
 
     protected formatTime(ts: number): string {
         const d = new Date(ts);
