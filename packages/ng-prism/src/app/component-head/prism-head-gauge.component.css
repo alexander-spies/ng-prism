@@ -4,61 +4,17 @@
 
 .gauge {
     display: inline-flex;
-    gap: var(--sp-2);
-    align-items: center;
-    height: 20px;
-    padding: 0 var(--sp-3);
+    padding: 0;
     anchor-name: --prism-head-gauge;
-    font-family: var(--font-mono);
-    font-size: var(--fs-xs);
-    font-variant-numeric: tabular-nums;
-    color: var(--prism-text-muted);
-    white-space: nowrap;
     cursor: pointer;
-    background: transparent;
-    border: 1px solid var(--prism-border);
-    border-radius: var(--radius-xs);
+    background: none;
+    border: 0;
+    border-radius: 4px;
 }
 
 .gauge:focus-visible {
     outline: 2px solid var(--prism-primary);
-    outline-offset: 1px;
-}
-
-.gauge__dot {
-    width: 5px;
-    height: 5px;
-    background: currentcolor;
-    border-radius: 50%;
-    opacity: 0.5;
-}
-
-.gauge__more {
-    opacity: 0.6;
-}
-
-/* The quiet state is green now, not grey: the gauge says "these values
-   were measured and all of them are fine", which is a result, not an
-   absence. A metric with no data at all stays grey in the readout rows. */
-.gauge--ok {
-    color: var(--prism-success);
-    border-color: color-mix(in srgb, var(--prism-success) 40%, transparent);
-}
-
-.gauge--warn {
-    color: var(--prism-warn);
-    border-color: color-mix(in srgb, var(--prism-warn) 40%, transparent);
-}
-
-.gauge--danger {
-    color: var(--prism-danger);
-    border-color: color-mix(in srgb, var(--prism-danger) 45%, transparent);
-}
-
-.gauge--ok .gauge__dot,
-.gauge--warn .gauge__dot,
-.gauge--danger .gauge__dot {
-    opacity: 1;
+    outline-offset: 2px;
 }
 
 .gauge-card {
@@ -67,7 +23,7 @@
     min-width: 200px;
     padding: var(--sp-2);
     margin: 0;
-    position-area: block-end span-inline-start;
+    position-area: block-end span-inline-end;
     position-anchor: --prism-head-gauge;
     position-try-fallbacks: flip-block, flip-inline;
     background: var(--prism-bg-elevated);
@@ -83,4 +39,20 @@
 .gauge-card:popover-open {
     display: flex;
     flex-direction: column;
+}
+
+.gauge-card__row--head {
+    display: grid;
+    grid-template-columns: minmax(110px, 1fr) 90px 70px;
+    gap: var(--sp-4);
+    padding: var(--sp-2) var(--sp-3) var(--sp-1);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--prism-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.gauge-card__row--head span:last-child {
+    text-align: right;
 }

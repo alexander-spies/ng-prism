@@ -55,11 +55,13 @@
 }
 
 .prism-badge__dot {
+    box-sizing: border-box;
     flex: none;
     width: 6px;
     height: 6px;
-    background: currentcolor;
+    background: var(--prism-badge-dot-fill, currentcolor);
     border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px currentcolor;
 }
 
 :host(.prism-badge--sm) .prism-badge__dot {

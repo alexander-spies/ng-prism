@@ -1,6 +1,7 @@
 .stat {
-    display: flex;
-    gap: var(--sp-3);
+    display: grid;
+    grid-template-columns: var(--prism-stat-columns, minmax(110px, 1fr) 90px 70px);
+    gap: var(--sp-4);
     align-items: center;
     padding: var(--sp-2) var(--sp-3);
     font-size: var(--fs-md);
@@ -9,9 +10,12 @@
 }
 
 .stat__dot {
+    display: inline-block;
     flex: none;
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
+    margin-right: var(--sp-3);
+    vertical-align: 1px;
     background: transparent;
     border-radius: 50%;
 }
@@ -20,11 +24,18 @@
     white-space: nowrap;
 }
 
+.stat__thr {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--prism-text-muted);
+    white-space: nowrap;
+}
+
 .stat__val {
-    margin-left: auto;
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--prism-text);
+    text-align: right;
 }
 
 /* Four states, four treatments. "ok" gets the nominal green, and "none"

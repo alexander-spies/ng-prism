@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, input } from '@angular/core';
 import type { BadgeTone } from './badge.types.js';
 
 /**
@@ -23,7 +23,7 @@ export class PrismBadgeComponent {
     readonly variant = input<'soft' | 'outline'>('soft');
     readonly size = input<'sm' | 'md'>('md');
     /** A leading dot in the tone's colour. */
-    readonly dot = input(false);
+    readonly dot = input(false, { transform: booleanAttribute });
     readonly label = input<string | null>(null);
     readonly value = input<string | null>(null);
 }
