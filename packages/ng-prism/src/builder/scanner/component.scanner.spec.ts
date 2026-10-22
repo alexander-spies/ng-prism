@@ -1,7 +1,9 @@
 import path from 'node:path';
 import ts from 'typescript';
+import type { ScannedComponent } from '../../plugin/plugin.types.js';
+import { buildExportIndex } from './api/export-index.js';
 import { scanComponents } from './component.scanner.js';
-import { resolveEntryPointExports } from './entry-point.scanner.js';
+import { type ResolvedEntryPoint, resolveEntryPointExports } from './entry-point.scanner.js';
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
 
@@ -927,5 +929,35 @@ describe('scanComponents with pipes in the entry point', () => {
                 'From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.'
         );
         expect(diagnostics).toEqual([]);
+    });
+});
+
+describe('scanComponents with an export index', () => {
+    let checker: ts.TypeChecker;
+    let entries: ResolvedEntryPoint[];
+
+    beforeAll(() => {
+        const dir = path.join(FIXTURES_DIR, 'component-api');
+        const result = resolveEntryPointExports(
+            [
+                { entryFile: path.join(dir, 'component-api.ts'), importPath: 'fixture/components' },
+                { entryFile: path.join(dir, 'component-api-types.ts'), importPath: 'fixture/types' }
+            ],
+            compilerOptions
+        );
+
+        checker = result.program.getTypeChecker();
+        entries = result.entries;
+    });
+
+    it('sets the API of a component', () => {
+        const tabsOf = (components: ScannedComponent[]) => components.find((c) => c.className === 'FixtureTabsComponent')!;
+        const indexed = tabsOf(scanComponents(entries[0].exports, checker, [], new Set(), buildExportIndex(entries, checker)));
+        const plain = tabsOf(scanComponents(entries[0].exports, checker));
+
+        expect(indexed.api!.types.map((t) => t.name)).toEqual(['FixtureVariant', 'FixtureTab', 'FixtureSize', 'FixtureBadge']);
+        expect(indexed.api!.inputTypes['items']).toEqual({ text: 'FixtureTab[]', links: ['FixtureTab'] });
+        expect(plain.api!.types).toEqual([]);
+        expect(plain.api!.inputTypes['items']).toEqual({ text: 'FixtureTab[]' });
     });
 });

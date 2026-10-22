@@ -17,7 +17,7 @@ interface ReachedType {
     path: string;
 }
 
-/** A {@link TypeRefResolver} that links the documented types it meets and collects them for `ServiceApi.types`. */
+/** A {@link TypeRefResolver} that links the documented types it meets and collects them for the `types` of an API page. */
 export interface TypeCollector extends TypeRefResolver {
     /** A resolver for the members of the value at `path`, e.g. the options of a setup function's `config`. */
     within(path: string): TypeRefResolver;
@@ -26,10 +26,11 @@ export interface TypeCollector extends TypeRefResolver {
 }
 
 /**
- * Collects the types a service's API reaches. A type is documented when it is
- * an interface, class, type alias or enum, a scanned entry point exports it,
- * and it is not tagged `@internal`. Anything else, `Signal` or `Provider` or a
- * type the library keeps to itself, stays text without a link.
+ * Collects the types the API of a service, pipe or component reaches. A type
+ * is documented when it is an interface, class, type alias or enum, a scanned
+ * entry point exports it, and it is not tagged `@internal`. Anything else,
+ * `Signal` or `Provider` or a type the library keeps to itself, stays text
+ * without a link.
  *
  * Each type is documented once, under the id it got when it was first
  * reached: its name, or `${name}@${importPath}` when a type of that name was

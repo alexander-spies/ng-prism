@@ -1,7 +1,7 @@
 import path from 'node:path';
 import ts from 'typescript';
 import { resolveEntryPointExports } from '../entry-point.scanner.js';
-import { extractMembers, textOnlyResolver } from './member.extractor.js';
+import { extractDocumentedMethods, extractMembers, textOnlyResolver } from './member.extractor.js';
 
 const FIXTURES_DIR = path.join(__dirname, '..', '__fixtures__', 'services');
 
@@ -112,8 +112,8 @@ describe('member extractor', () => {
     });
 
     describe('declaration shapes', () => {
-        /** Members of `Subject` in a source text, checked in a program of its own. */
-        function extract(source: string) {
+        /** Class `Subject` in a source text, checked in a program of its own. */
+        function compile(source: string): { decl: ts.ClassDeclaration; checker: ts.TypeChecker } {
             const fileName = path.join(FIXTURES_DIR, '__inline__.ts');
             const host = ts.createCompilerHost(compilerOptions);
             const original = host.getSourceFile.bind(host);
@@ -126,11 +126,17 @@ describe('member extractor', () => {
             )(host.fileExists.bind(host));
 
             const program = ts.createProgram([fileName], compilerOptions, host);
-            const inlineChecker = program.getTypeChecker();
             const decl = program
                 .getSourceFile(fileName)!
                 .statements.filter(ts.isClassDeclaration)
                 .find((c) => c.name?.text === 'Subject')!;
+
+            return { decl, checker: program.getTypeChecker() };
+        }
+
+        /** Members of `Subject` in a source text. */
+        function extract(source: string) {
+            const { decl, checker: inlineChecker } = compile(source);
 
             return extractMembers(decl, inlineChecker, textOnlyResolver(inlineChecker));
         }
@@ -232,6 +238,32 @@ describe('member extractor', () => {
                     description: 'Loads it.',
                     tags: { since: '1.0.0' }
                 }
+            ]);
+        });
+
+        it('extractDocumentedMethods leaves out undocumented methods and keeps inherited docs', () => {
+            const { decl, checker: inlineChecker } = compile(
+                [
+                    'class Base {',
+                    '  /** Loads it. */',
+                    '  load(id: string): void {}',
+                    '  /** Saves it. */',
+                    '  save(): void {}',
+                    '  plain(): void {}',
+                    '}',
+                    'class Subject extends Base {',
+                    '  override load(id: string): void {}',
+                    '  own(): void {}',
+                    '  /** @internal */',
+                    '  hidden(): void {}',
+                    '}'
+                ].join('\n')
+            );
+            const methods = extractDocumentedMethods(decl, inlineChecker, textOnlyResolver(inlineChecker));
+
+            expect(methods.map((m) => [m.name, m.description])).toEqual([
+                ['load', 'Loads it.'],
+                ['save', 'Saves it.']
             ]);
         });
 

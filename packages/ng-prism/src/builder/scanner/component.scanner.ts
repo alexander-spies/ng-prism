@@ -4,6 +4,8 @@ import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { CANVAS_BGS, type CanvasBg } from '../../shared/canvas-bg.type.js';
 import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.type.js';
 import { classifyShowcaseClass } from './api/angular-decorators.js';
+import { extractComponentApi } from './api/component-api.extractor.js';
+import type { ExportIndex } from './api/export-index.js';
 import { findSetupProperty } from './api/setup.reader.js';
 import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, UNEVALUABLE } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
@@ -91,8 +93,18 @@ export function createReporters(diagnostics: string[], notices: Set<string>): { 
  * component exported from several of them from repeating its warnings.
  * `notices` does the same for warnings about what a component inherits,
  * which are not diagnostics.
+ *
+ * `exportIndex` tells the API of a component which of the types it names a
+ * consumer can import; without one the API has their text, but no links and
+ * no `types`.
  */
-export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, diagnostics: string[] = [], notices = new Set<string>()): ScannedComponent[] {
+export function scanComponents(
+    exports: ts.Symbol[],
+    checker: ts.TypeChecker,
+    diagnostics: string[] = [],
+    notices = new Set<string>(),
+    exportIndex: ExportIndex = new Map()
+): ScannedComponent[] {
     const components: ScannedComponent[] = [];
     const { report, notify } = createReporters(diagnostics, notices);
 
@@ -155,7 +167,8 @@ export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, di
             // Plugins look a base class up by name, so an anonymous one is of no use to them.
             baseClasses: hierarchy.classes
                 .slice(1)
-                .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : []))
+                .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : [])),
+            api: extractComponentApi(classDecl, inputs, outputs, hierarchy, checker, exportIndex)
         });
     }
 

@@ -16,7 +16,7 @@ export interface TypeRefResolver {
     ref(typeNode: ts.TypeNode | undefined, type: ts.Type, reachedFrom: string, site?: TypeSite): ApiTypeRef;
 }
 
-/** The lifecycle hooks Angular calls on a service; they are not part of what a user calls. */
+/** The lifecycle hooks Angular calls on a service or a component; they are not part of what a user calls. */
 const LIFECYCLE_HOOKS = new Set([
     'ngOnInit',
     'ngOnDestroy',
@@ -62,6 +62,41 @@ export function textOnlyResolver(checker: ts.TypeChecker): TypeRefResolver {
 export function extractMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker, types: TypeRefResolver): { properties: ApiProperty[]; methods: ApiMethod[] } {
     const properties: ApiProperty[] = [];
     const methods: ApiMethod[] = [];
+
+    for (const { name, group, declaration, docs } of collectPublicMembers(classDecl, checker)) {
+        if (ts.isMethodDeclaration(declaration)) methods.push(extractMethod(name, declaration, docs, checker, types));
+        else properties.push(extractProperty(name, group as PropertyLike[], declaration, docs, checker, types));
+    }
+
+    return { properties, methods };
+}
+
+/**
+ * The methods {@link extractMembers} lists, but only those with docs of their
+ * own or taken from a base class member of that name. A component's public
+ * methods are often only there for its own template; the documented ones are
+ * those meant to be called from outside.
+ */
+export function extractDocumentedMethods(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker, types: TypeRefResolver): ApiMethod[] {
+    return collectPublicMembers(classDecl, checker).flatMap(({ name, declaration, docs }) =>
+        ts.isMethodDeclaration(declaration) && isDocumented(docs) ? [extractMethod(name, declaration, docs, checker, types)] : []
+    );
+}
+
+/** A public member, found by {@link collectPublicMembers}. */
+interface PublicMember {
+    name: string;
+    /** Its declarations in the class that declares it: the overloads of a method, or a getter and its setter. */
+    group: NamedMember[];
+    /** The one of them that carries the doc block, or the first. */
+    declaration: NamedMember;
+    /** The node its docs are read from: `declaration`, or the base class member it takes them from. */
+    docs: NamedMember;
+}
+
+/** The walk behind {@link extractMembers}: hierarchy, exclusions and inherited docs, properties and methods in one list. */
+function collectPublicMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): PublicMember[] {
+    const members: PublicMember[] = [];
     const declared = new Set<string>();
     const levels = getClassHierarchy(classDecl, checker).classes.map(({ classDecl: current }) => groupByName(current));
 
@@ -76,14 +111,13 @@ export function extractMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeC
 
             const docs = hasOwnDocs(declaration) ? declaration : (findInheritedDocs(levels.slice(level + 1), name) ?? declaration);
 
-            if (ts.isMethodDeclaration(declaration)) methods.push(extractMethod(name, declaration, docs, checker, types));
-            else properties.push(extractProperty(name, group as PropertyLike[], declaration, docs, checker, types));
+            members.push({ name, group, declaration, docs });
         }
 
         for (const name of groups.keys()) declared.add(name);
     });
 
-    return { properties, methods };
+    return members;
 }
 
 /**

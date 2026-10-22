@@ -73,13 +73,13 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             const allPipes: ScannedPipe[] = [];
             const diagnostics: string[] = [];
             const notices = new Set<string>();
-            // A setup function or a type is often exported by another entry point than the service or pipe that names it.
+            // A setup function or a type is often exported by another entry point than the component, service or pipe that names it.
             const exportIndex = buildExportIndex(entries, checker);
 
             const fromPrimary = new Set<object>();
 
             for (const { exports, importPath, primary } of entries) {
-                const components = scanComponents(exports, checker, diagnostics, notices);
+                const components = scanComponents(exports, checker, diagnostics, notices, exportIndex);
                 const services = scanServices(exports, checker, { exportIndex, diagnostics, notices });
                 const pipes = scanPipes(exports, checker, { exportIndex, diagnostics, notices });
 
