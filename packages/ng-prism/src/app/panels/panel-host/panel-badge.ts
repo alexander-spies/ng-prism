@@ -1,5 +1,5 @@
 import type { PanelBadge, PanelDefinition, RuntimeComponent } from '../../../plugin/plugin.types.js';
-import { deriveA11ySummary } from '../a11y/a11y-summary.js';
+import type { PrismTabBadge } from '../../shared/prism-tabs.component.js';
 import type { A11yScoreResult, A11yThresholds } from '../a11y/a11y.types.js';
 
 /**
@@ -18,6 +18,7 @@ import type { A11yScoreResult, A11yThresholds } from '../a11y/a11y.types.js';
  */
 export interface PanelBadgeContext {
     inputCount: number;
+    eventCount: number;
     a11yResult: A11yScoreResult | null;
     a11yThresholds: A11yThresholds;
 }
@@ -42,20 +43,58 @@ export function resolvePanelBadge(panel: PanelDefinition, component: RuntimeComp
     }
 
     if (panel.id === 'controls') {
-        return context.inputCount > 0 ? { text: String(context.inputCount), variant: 'default' } : null;
+        return countBadge(context.inputCount, 'input');
+    }
+
+    if (panel.id === 'events') {
+        return countBadge(context.eventCount, 'event');
     }
 
     if (panel.id === 'a11y') {
-        // `=== null` rather than a falsy check: a score of 0 is a real, and the
-        // most urgent, thing to show.
+        // A number of open findings, not the score: the score is graded in the
+        // gauge, the sidebar and the panel. The tone follows the most severe
+        // violation, the same split the build gate draws.
         const result = context.a11yResult;
 
         if (result === null) return null;
+        const violations = result.critical + result.serious + result.moderate + result.minor;
+
+        if (violations === 0) return null;
         return {
-            text: String(result.score),
-            variant: deriveA11ySummary(result, context.a11yThresholds).variant
+            kind: 'issues',
+            text: String(violations),
+            tone: result.critical + result.serious > 0 ? 'danger' : 'warn',
+            label: plural(violations, 'violation')
         };
     }
 
     return null;
+}
+
+const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
+
+function countBadge(n: number, noun: string): PanelBadge | null {
+    return n > 0 ? { kind: 'count', text: String(n), label: plural(n, noun) } : null;
+}
+
+/** The tab badge the tab bar renders. Same shape as {@link PrismTabBadge}. */
+export type NormalizedPanelBadge = PrismTabBadge;
+
+/**
+ * Reads a badge the way the tab bar renders it, including badges written
+ * before 22.7 that only set `variant`.
+ */
+export function normalizePanelBadge(badge: PanelBadge | null): NormalizedPanelBadge | null {
+    if (badge === null) return null;
+    if (!badge.kind && badge.variant === 'ok') return null;
+
+    const kind = badge.kind ?? (badge.variant === 'warn' || badge.variant === 'danger' ? 'issues' : 'count');
+    const ariaLabel = badge.label ?? badge.text;
+
+    if (kind === 'count') return { kind, text: badge.text, ariaLabel };
+    if (badge.text === '0') return null;
+
+    const legacyTone = badge.variant === 'warn' || badge.variant === 'danger' ? badge.variant : undefined;
+
+    return { kind, text: badge.text, tone: badge.tone ?? legacyTone ?? 'danger', ariaLabel };
 }

@@ -1,11 +1,11 @@
 import type { PanelDefinition, RuntimeComponent } from '../../../plugin/plugin.types.js';
-import { deriveA11ySummary } from '../a11y/a11y-summary.js';
 import { DEFAULT_A11Y_THRESHOLDS } from '../a11y/a11y-thresholds.js';
 import type { A11yScoreResult } from '../a11y/a11y.types.js';
-import { type PanelBadgeContext, resolvePanelBadge } from './panel-badge.js';
+import { normalizePanelBadge, type PanelBadgeContext, resolvePanelBadge } from './panel-badge.js';
 
 const EMPTY_CONTEXT: PanelBadgeContext = {
     inputCount: 0,
+    eventCount: 0,
     a11yResult: null,
     a11yThresholds: DEFAULT_A11Y_THRESHOLDS
 };
@@ -94,65 +94,86 @@ describe('resolvePanelBadge', () => {
                 ...EMPTY_CONTEXT,
                 inputCount: 6
             })
-        ).toEqual({ text: '6', variant: 'default' });
+        ).toEqual({ kind: 'count', text: '6', label: '6 inputs' });
     });
 
     it('leaves the controls tab bare when there is nothing to control', () => {
         expect(resolvePanelBadge(panel('controls'), COMPONENT, EMPTY_CONTEXT)).toBeNull();
     });
 
-    it('grades the a11y tab against the configured thresholds', () => {
-        // The tab and the navigation marker look at different numbers (a running
-        // audit versus the build-time report) but never at different scales. The
-        // expectations come from the same derivation the marker uses, so a change
-        // to one cannot leave the other behind unnoticed.
-        const thresholds = { ...DEFAULT_A11Y_THRESHOLDS, score: 80 };
-        const grade = (result: A11yScoreResult) =>
-            resolvePanelBadge(panel('a11y'), COMPONENT, {
-                ...EMPTY_CONTEXT,
-                a11yResult: result,
-                a11yThresholds: thresholds
-            });
+    it('counts open violations on the a11y tab, not the score', () => {
+        const badge = resolvePanelBadge(panel('a11y'), COMPONENT, {
+            ...EMPTY_CONTEXT,
+            a11yResult: auditResult({ score: 90, moderate: 2, minor: 1 })
+        });
 
-        for (const result of [auditResult({ score: 85 }), auditResult({ score: 79 }), auditResult({ score: 65 }), auditResult({ score: 95, serious: 1 })]) {
-            expect(grade(result)).toEqual({
-                text: String(result.score),
-                variant: deriveA11ySummary(result, thresholds).variant
-            });
-        }
+        expect(badge).toEqual({ kind: 'issues', text: '3', tone: 'warn', label: '3 violations' });
     });
 
-    it('does not call a component amber on the tab and green in the sidebar', () => {
-        // The concrete disagreement the shared derivation removes: 85 was 'warn'
-        // on the old hardcoded 90/70 scale and 'ok' against a configured 80.
-        const thresholds = { ...DEFAULT_A11Y_THRESHOLDS, score: 80 };
+    it('takes the a11y tone from the most severe violation', () => {
+        const badge = resolvePanelBadge(panel('a11y'), COMPONENT, {
+            ...EMPTY_CONTEXT,
+            a11yResult: auditResult({ score: 95, serious: 1 })
+        });
 
-        expect(
-            resolvePanelBadge(panel('a11y'), COMPONENT, {
-                ...EMPTY_CONTEXT,
-                a11yResult: auditResult({ score: 85 }),
-                a11yThresholds: thresholds
-            })
-        ).toEqual({ text: '85', variant: 'ok' });
+        expect(badge).toEqual({ kind: 'issues', text: '1', tone: 'danger', label: '1 violation' });
     });
 
-    it('shows a zero score rather than hiding it', () => {
-        // Distinct from "no score yet": an audit that ran and found the component
-        // unusable is the single most important thing the tab can say.
-        expect(
-            resolvePanelBadge(panel('a11y'), COMPONENT, {
-                ...EMPTY_CONTEXT,
-                a11yResult: auditResult({ score: 0, critical: 3 })
-            })
-        ).toEqual({ text: '0', variant: 'danger' });
+    it('leaves a clean a11y tab bare whatever the score', () => {
+        expect(resolvePanelBadge(panel('a11y'), COMPONENT, { ...EMPTY_CONTEXT, a11yResult: auditResult({ score: 100 }) })).toBeNull();
+        expect(resolvePanelBadge(panel('a11y'), COMPONENT, EMPTY_CONTEXT)).toBeNull();
+    });
+
+    it('counts recorded events on the events tab', () => {
+        expect(resolvePanelBadge(panel('events'), COMPONENT, { ...EMPTY_CONTEXT, eventCount: 2 })).toEqual({ kind: 'count', text: '2', label: '2 events' });
+        expect(resolvePanelBadge(panel('events'), COMPONENT, EMPTY_CONTEXT)).toBeNull();
     });
 
     it('has nothing to say about the coverage tab', () => {
-        // The coverage plugin badges its own tab now, using its own thresholds.
+        // A percentage is not a number of open findings; the coverage plugin
+        // declares no badge either.
         expect(resolvePanelBadge(panel('coverage'), COMPONENT, EMPTY_CONTEXT)).toBeNull();
     });
 
     it('has nothing to say about a panel it does not know', () => {
-        expect(resolvePanelBadge(panel('events'), COMPONENT, EMPTY_CONTEXT)).toBe(null);
+        expect(resolvePanelBadge(panel('figma'), COMPONENT, EMPTY_CONTEXT)).toBe(null);
+    });
+});
+
+/**
+ * Plugins written before 22.7 return `{ text, variant }`. Their badges keep
+ * rendering, mapped onto the two kinds: a plain figure is a neutral count, a
+ * judgement is a pill of open findings, and `ok` stays as invisible as it was.
+ */
+describe('normalizePanelBadge', () => {
+    it('reads a warn or danger variant as open findings in that tone', () => {
+        expect(normalizePanelBadge({ text: '3', variant: 'warn' })).toEqual({ kind: 'issues', text: '3', tone: 'warn', ariaLabel: '3' });
+        expect(normalizePanelBadge({ text: '1', variant: 'danger' })).toEqual({ kind: 'issues', text: '1', tone: 'danger', ariaLabel: '1' });
+    });
+
+    it('hides findings that number zero', () => {
+        expect(normalizePanelBadge({ text: '0', variant: 'danger' })).toBeNull();
+        expect(normalizePanelBadge({ kind: 'issues', text: '0' })).toBeNull();
+    });
+
+    it('reads a plain figure as a neutral count', () => {
+        expect(normalizePanelBadge({ text: '7' })).toEqual({ kind: 'count', text: '7', ariaLabel: '7' });
+        expect(normalizePanelBadge({ text: '7', variant: 'default' })).toEqual({ kind: 'count', text: '7', ariaLabel: '7' });
+    });
+
+    it('keeps an ok variant invisible', () => {
+        expect(normalizePanelBadge({ text: '90', variant: 'ok' })).toBeNull();
+    });
+
+    it('defaults open findings to the danger tone', () => {
+        expect(normalizePanelBadge({ kind: 'issues', text: '2' })?.tone).toBe('danger');
+    });
+
+    it('names the badge with its label for assistive technology', () => {
+        expect(normalizePanelBadge({ kind: 'issues', text: '2', tone: 'warn', label: '2 violations' })?.ariaLabel).toBe('2 violations');
+    });
+
+    it('passes no badge through as none', () => {
+        expect(normalizePanelBadge(null)).toBeNull();
     });
 });

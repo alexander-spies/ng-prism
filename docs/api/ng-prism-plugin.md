@@ -333,17 +333,23 @@ export class ServiceNotesComponent {
 
 ```typescript
 interface PanelBadge {
+    kind?: 'count' | 'issues';
     text: string;
+    tone?: 'primary' | 'warn' | 'danger';
+    label?: string;
+    /** @deprecated since 22.7.0, removed in 23.0.0 */
     variant?: 'default' | 'ok' | 'warn' | 'danger';
 }
 ```
 
-A short marker on a panel's tab, returned by [`PanelDefinition.badge`](#paneldefinition).
+A short marker on a panel's tab, returned by [`PanelDefinition.badge`](#paneldefinition). A filled badge means exactly one thing: open findings. Everything else is a plain figure.
 
-| Field     | Description                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------------- |
-| `text`    | Usually a count. Keep it to a couple of characters, since the tab bar scrolls horizontally on a narrow panel. |
-| `variant` | Colour role. `default` is a neutral tint for a plain count; `ok` / `warn` / `danger` carry a judgement.       |
+| Field   | Description                                                                                                                                            |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kind`  | `issues`: a number of open findings, drawn as a pill in `tone` and hidden at `'0'`. `count`: a plain quantity, drawn as a muted figure without a fill. |
+| `text`  | The figure. Keep it to a couple of characters, since the tab bar scrolls horizontally on a narrow panel.                                               |
+| `tone`  | Tone of an `issues` badge: `danger` (default) for findings that are failures, `warn` for ones that only need a look, `primary` for neutral news.       |
+| `label` | Read after the tab's label by assistive technology, e.g. `'3 to review'` becomes "Visual Regression, 3 to review". Defaults to `text`.                 |
 
 ```typescript
 panels: [
@@ -352,12 +358,14 @@ panels: [
         label: 'Visual Regression',
         badge: (component) => {
             const open = countOpenItems(component);
-            return open ? { text: String(open), variant: 'danger' } : null;
+            return open ? { kind: 'issues', text: String(open), tone: 'danger', label: `${open} to review` } : null;
         },
         loadComponent: () => import('./panel.component.js').then((m) => m.Panel)
     }
 ];
 ```
+
+> **Deprecated since 22.7.0, removed in 23.0.0: `variant`.** Badges that still set it keep rendering: `warn` and `danger` become `kind: 'issues'` in that tone, `default` (or no variant) becomes `kind: 'count'`, and `ok` is not rendered, as before. Move to `kind` and `tone`.
 
 Two rules make the difference between a badge and decoration:
 

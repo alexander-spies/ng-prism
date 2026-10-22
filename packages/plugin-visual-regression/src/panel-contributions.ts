@@ -50,7 +50,9 @@ export function reviewBadge(component: RuntimeComponent): PanelBadge | null {
     }
     if (count === 0) return null;
 
-    return { text: String(count), variant: changed ? 'danger' : 'warn' };
+    // The same split statSummary draws for the sidebar and the gauge, so the
+    // tab cannot be red while the marker for the same component is amber.
+    return { kind: 'issues', text: String(count), tone: changed ? 'danger' : 'warn', label: `${count} to review` };
 }
 
 /**

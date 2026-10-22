@@ -1,34 +1,12 @@
 <div class="panel">
-    <nav
-        class="panel-tabs"
-        role="tablist">
-        @for (panel of allPanels(); track panel.id) {
-            <button
-                class="p-tab"
-                [class.p-tab--active]="panelService.activePanelId() === panel.id"
-                (click)="panelService.activePanelId.set(panel.id)"
-                role="tab"
-                [attr.aria-selected]="panelService.activePanelId() === panel.id"
-                [attr.aria-controls]="panelService.activePanelId() === panel.id ? 'panel-' + panel.id : null">
-                @if (panel.icon) {
-                    <prism-icon
-                        [name]="panel.icon"
-                        [size]="13" />
-                }
-                {{ panel.label }}
-                @if (panelBadge(panel); as badge) {
-                    @if (badge.variant !== 'ok') {
-                        <span
-                            class="p-tab-badge"
-                            [class.warn]="badge.variant === 'warn'"
-                            [class.danger]="badge.variant === 'danger'"
-                            >{{ badge.text }}</span
-                        >
-                    }
-                }
-            </button>
-        }
-    </nav>
+    <div class="panel-tabs">
+        <prism-tabs
+            ariaLabel="Panels"
+            panelIdPrefix="panel-"
+            [items]="tabItems()"
+            [active]="panelService.activePanelId()"
+            (activeChange)="$event && panelService.activePanelId.set($event)" />
+    </div>
     <div
         class="panel-body"
         [id]="'panel-' + panelService.activePanelId()"
