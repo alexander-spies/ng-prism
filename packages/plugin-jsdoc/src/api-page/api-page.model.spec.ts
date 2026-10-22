@@ -193,20 +193,33 @@ describe('componentApiPage', () => {
         ]);
     });
 
-    it('writes defaults as the code does: strings quoted, the rest as is', () => {
+    it('writes defaults as the code does: strings quoted, arrays and objects as JSON, the rest as is', () => {
         const component = makeComponent(
             {
                 inputs: [
                     { name: 'variant', type: 'string', required: false, defaultValue: 'filled' },
                     { name: 'disabled', type: 'boolean', required: false, defaultValue: false },
                     { name: 'count', type: 'number', required: false, defaultValue: 0 },
+                    { name: 'parent', type: 'string | null', required: false, defaultValue: null },
+                    { name: 'tabs', type: 'TabItem[]', required: false, defaultValue: [] },
+                    { name: 'ids', type: 'string[]', required: false, defaultValue: ['a', 'b'] },
+                    { name: 'config', type: 'Config', required: false, defaultValue: { size: 'm' } },
                     { name: 'label', type: 'string', required: false }
                 ]
             },
             {}
         );
 
-        expect(componentApiPage(component).inputs?.map((row) => row.defaultValue)).toEqual(["'filled'", 'false', '0', undefined]);
+        expect(componentApiPage(component).inputs?.map((row) => row.defaultValue)).toEqual([
+            "'filled'",
+            'false',
+            '0',
+            'null',
+            '[]',
+            '["a","b"]',
+            '{"size":"m"}',
+            undefined
+        ]);
     });
 
     it('shows an output by its public name with its payload, then one for each model', () => {

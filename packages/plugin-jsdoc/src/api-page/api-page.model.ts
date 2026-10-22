@@ -185,9 +185,10 @@ function valueChip(label: string, value: string | undefined): ApiPageChip[] {
     return value ? [{ label, value }] : [];
 }
 
-/** As the code writes a default: a string in quotes, anything else by its `String()`. */
+/** As the code writes a default: a string in quotes, an array or object as JSON (`String()` would give `a,b` and `[object Object]`), anything else by its `String()`. */
 function formatDefault(value: InputMeta['defaultValue']): string {
-    return typeof value === 'string' ? `'${value}'` : String(value);
+    if (typeof value === 'string') return `'${value}'`;
+    return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
 }
 
 /** A method of the jsdoc plugin's data as a signature: it knows no more of the types than their names. */
