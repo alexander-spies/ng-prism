@@ -281,12 +281,22 @@
 }
 
 :host ::ng-deep .prism-jsdoc-panel__description a {
-    color: var(--prism-primary);
-    text-decoration: none;
+    font-weight: 500;
+    color: var(--prism-link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, var(--prism-link) 45%, transparent);
+    text-underline-offset: 3px;
 }
 
 :host ::ng-deep .prism-jsdoc-panel__description a:hover {
-    text-decoration: underline;
+    text-decoration-color: var(--prism-link);
+}
+
+:host ::ng-deep .prism-jsdoc-panel__description a:focus-visible {
+    outline: 2px solid var(--prism-link);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 :host ::ng-deep .prism-jsdoc-panel__description strong {

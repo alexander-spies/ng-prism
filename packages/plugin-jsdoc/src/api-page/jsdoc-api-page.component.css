@@ -176,8 +176,11 @@
 :host ::ng-deep .prism-jsdoc-api-page__ref {
     padding: 0;
     font: inherit;
-    color: inherit;
-    text-decoration: underline dotted color-mix(in srgb, var(--prism-primary) 70%, transparent);
+    font-weight: 500;
+    color: var(--prism-link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, var(--prism-link) 45%, transparent);
     text-underline-offset: 3px;
     cursor: pointer;
     background: none;
@@ -186,7 +189,14 @@
 
 .prism-jsdoc-api-page__ref:hover,
 :host ::ng-deep .prism-jsdoc-api-page__ref:hover {
-    text-decoration-style: solid;
+    text-decoration-color: var(--prism-link);
+}
+
+.prism-jsdoc-api-page__ref:focus-visible,
+:host ::ng-deep .prism-jsdoc-api-page__ref:focus-visible {
+    outline: 2px solid var(--prism-link);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 /* A deprecation message is rendered Markdown inside the badge: its code and links take the badge's colour, not the description's blue. */

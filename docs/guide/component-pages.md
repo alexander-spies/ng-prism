@@ -60,7 +60,7 @@ A page renders in the styleguide's own document, on the dark or light background
 }
 ```
 
-Text without a colour of its own inherits `--prism-text-2` and the styleguide's sans font. [Theming](guide/theming.md) lists every token with its dark and light value. For anything a token cannot express, such as an image per theme, `data-theme` on `<html>` reads `dark` or `light`, see [Dark and Light Themes](guide/theming.md#dark-and-light-themes).
+Text without a colour of its own inherits `--prism-text-2` and the styleguide's sans font. Headings, paragraphs, lists, code and links without styles of their own get the styleguide's defaults (links in `--prism-link`, underlined). Those defaults carry no more weight than a single attribute selector, so any rule your page sets for the same element wins. [Theming](guide/theming.md) lists every token with its dark and light value. For anything a token cannot express, such as an image per theme, `data-theme` on `<html>` reads `dark` or `light`, see [Dark and Light Themes](guide/theming.md#dark-and-light-themes).
 
 ## Registering Pages
 
