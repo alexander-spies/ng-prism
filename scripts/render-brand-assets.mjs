@@ -22,7 +22,8 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1100, height: 600 }, deviceScaleFactor: 2 });
 
 await page.goto(source, { waitUntil: 'networkidle' });
-await page.evaluate(() => document.fonts.ready);
+// Evaluated in the page, where `document` exists; passed as a string so the Node lint scope stays clean.
+await page.evaluate('document.fonts.ready');
 await page.locator('#cover').screenshot({ path: join(root, 'docs/prism_cover.png') });
 await page.locator('#lockup').screenshot({ path: join(root, 'docs/prism_logo_docs.png'), omitBackground: true });
 await browser.close();
