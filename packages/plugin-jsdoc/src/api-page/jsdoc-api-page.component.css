@@ -23,10 +23,9 @@
     color: var(--prism-text);
 }
 
-/* Sections are told apart by their headings, not by a rule of their own: a
-   full-width line would look like one more table or card border. The heading
-   is in the text colour and trails a line that fades out, so the line reads
-   as part of it. 36px between sections, collapsed with the heading's margin. */
+/* Each section opens with its heading over a rule in the primary colour,
+   which no table or card border on the page has, so the rule reads as a
+   section break. 36px between sections, collapsed with the heading's margin. */
 .prism-jsdoc-panel__section + .prism-jsdoc-panel__section {
     margin-top: 36px;
 }
@@ -35,15 +34,10 @@
     display: flex;
     gap: 8px;
     align-items: center;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
     color: var(--prism-text);
-}
-
-.prism-jsdoc-api-page__heading::after {
-    flex: 1;
-    height: 1px;
-    margin-left: 4px;
-    content: '';
-    background: linear-gradient(90deg, var(--prism-border-strong), transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--prism-primary) 50%, transparent);
 }
 
 .prism-jsdoc-api-page__heading-note {

@@ -95,11 +95,13 @@
     letter-spacing: 0.08em;
 }
 
+/* A faint tint over the page rather than a surface colour of its own, so the
+   block stands off the content area in either theme. */
 .prism-jsdoc-panel__code {
     padding: 0;
     margin: 0 0 8px;
     overflow: auto;
-    background: var(--prism-bg-surface);
+    background: var(--prism-input-bg);
     border: 1px solid var(--prism-border);
     border-radius: 8px;
 }
