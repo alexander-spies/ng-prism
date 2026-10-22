@@ -10,6 +10,7 @@ interface NgPrismPlugin {
     onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
+    componentApi?: boolean; // experimental
     panels?: PanelDefinition[];
     controls?: ControlDefinition[];
     headerWidgets?: HeaderWidgetDefinition[];
@@ -56,7 +57,7 @@ async onComponentScanned(component) {
 }
 ```
 
-`ScannedComponent.api` (since `22.7.0`) is the extracted API of the component or directive: the type of each input, the payload of each output, the change event of each `model()`, the documented methods and the types they reach. A hook reads it as it does the rest, for example `component.api?.types`. Its shape is experimental, see [`ComponentApi`](api/types.md#componentapi). The runtime manifest carries it, so a panel reads it at `activeComponent()?.meta.api`. A component that a hook builds from scratch has none, and the API page of the JSDoc plugin then shows its `inputs` and `outputs` without links.
+`ScannedComponent.api` (since `22.7.0`) is the extracted API of the component or directive: the type of each input, the payload of each output, the change event of each `model()`, the documented methods and the types they reach. The scan only reads it when a plugin in the config sets [`componentApi`](#componentapi), `jsDocPlugin()` does. A hook then reads it as it does the rest, for example `component.api?.types`. Its shape is experimental, see [`ComponentApi`](api/types.md#componentapi). The runtime manifest carries it, so a panel reads it at `activeComponent()?.meta.api`. Without a plugin that asks for it, a component has none, and neither does one that a hook builds from scratch: the API page of the JSDoc plugin then shows its `inputs` and `outputs` without links.
 
 ---
 
@@ -75,7 +76,7 @@ onServiceScanned(service) {
 
 Services never reach `onComponentScanned`, and components never reach this hook. A service does not appear in `PrismManifest.components`: the manifest has a separate `services` list, so every plugin written before services existed sees the same components as before.
 
-The hook only runs when a plugin shows services. A service page is made by a view [panel](#paneldefinition) (`placement: 'view'`) whose `appliesTo` includes `'service'`, and when no plugin in the config has one (in practice: no `jsDocPlugin()` from 22.7.0 or newer), the build leaves the services out of the manifest, runs no `onServiceScanned` and prints a hint instead, see [Showcasing Services](guide/showcasing-services.md#without-the-jsdoc-plugin). The build reads `placement` and `appliesTo` from the panels of the plugin's Node entry, so a plugin with a browser entry declares both in both.
+The hook only runs when a plugin shows services. A service page is made by a view [panel](#paneldefinition) (`placement: 'view'`) whose `appliesTo` includes `'service'`, and when no plugin in the config has one (in practice: no `jsDocPlugin()` from 22.7.0 or newer), the build only counts the services: it reads neither their API nor their `setup`, so none of their warnings appear, leaves them out of the manifest, runs no `onServiceScanned` and prints a hint instead, see [Showcasing Services](guide/showcasing-services.md#without-the-jsdoc-plugin). The build reads `placement` and `appliesTo` from the panels of the plugin's Node entry, so a plugin with a browser entry declares both in both.
 
 `ScannedService.api` is the extracted API of the service. Its shape is experimental, see [`ScannedService`](api/types.md#scannedservice).
 
@@ -96,7 +97,7 @@ onPipeScanned(pipe) {
 
 Pipes never reach `onComponentScanned` or `onServiceScanned`, and components and services never reach this hook. A pipe does not appear in `PrismManifest.components`: the manifest has a separate `pipes` list, so every plugin written before pipes had a page sees the same components and services as before.
 
-The hook only runs when a plugin shows pipes, decided apart from services: a view [panel](#paneldefinition) (`placement: 'view'`) whose `appliesTo` includes `'pipe'`. When no plugin in the config has one (in practice: no `jsDocPlugin()` from 22.7.0 or newer), the build leaves the pipes out of the manifest, runs no `onPipeScanned` and prints a hint instead, see [Showcasing Pipes](guide/showcasing-pipes.md#without-the-jsdoc-plugin). A panel for services alone does not keep the pipes. As for services, a plugin with a browser entry declares `placement` and `appliesTo` in both entries.
+The hook only runs when a plugin shows pipes, decided apart from services: a view [panel](#paneldefinition) (`placement: 'view'`) whose `appliesTo` includes `'pipe'`. When no plugin in the config has one (in practice: no `jsDocPlugin()` from 22.7.0 or newer), the build only counts the pipes: it reads neither their API nor their `setup` and `@Pipe` metadata, so none of their warnings appear, leaves them out of the manifest, runs no `onPipeScanned` and prints a hint instead, see [Showcasing Pipes](guide/showcasing-pipes.md#without-the-jsdoc-plugin). A panel for services alone does not keep the pipes. As for services, a plugin with a browser entry declares `placement` and `appliesTo` in both entries.
 
 `ScannedPipe.api` is the extracted API of the pipe, with `transform` as one entry per overload signature. Its shape is experimental, see [`ScannedPipe`](api/types.md#scannedpipe).
 
@@ -128,6 +129,26 @@ onManifestReady(manifest) {
   );
 }
 ```
+
+---
+
+### `componentApi`
+
+> **Experimental until 23.0.0**, like [`ComponentApi`](api/types.md#componentapi): it may change in a 22.x minor release.
+
+Set it (since `22.7.0`) when a hook or a panel of the plugin reads `ScannedComponent.api`. Reading the API of every component costs the scan time on each build and on each rebuild of `serve`, and its types make up a large part of the manifest, so the scan reads it, and the manifest carries it, only when a plugin in the config sets `componentApi: true`. `jsDocPlugin()` does, so a config with it needs nothing more.
+
+```typescript
+{
+    name: '@my-org/plugin-api-stats',
+    componentApi: true,
+    onComponentScanned(component) {
+        return { ...component, meta: { ...component.meta, methodCount: component.api?.methods.length ?? 0 } };
+    }
+}
+```
+
+The build reads it from the plugin's Node entry, like the build-time hooks; a browser entry needs no copy. Even with it, a component can come without `api`: when the scan cannot read it (the build prints a notice) or a hook builds the component from scratch. Read it with `?.`.
 
 ---
 
@@ -281,7 +302,7 @@ An addon panel (`placement: 'addon'`, the default) only ever appears below the c
 - **Only the inputs of the named targets.** A panel only receives the inputs of the targets it names, so a component-only panel never logs a warning about an input it does not declare.
 - **`placement: 'view'`** is what a service or pipe page shows: its view tab bar, with no Playground or Overview in front of it. A panel for services or pipes with `placement: 'addon'` has no area on those pages and never shows. Say `placement: 'view'`. A component view that is still selected when the reader opens a service or a pipe is not drawn there.
 - **`isVisible` and `badge`** take a component and are only called for component pages. On a service or pipe page every panel that applies to it is offered.
-- **The build looks at this field, once per kind.** A service goes into the manifest only when some plugin has a view panel that applies to services, and a pipe only when one applies to pipes; otherwise the build drops them and prints a hint, see [`onServiceScanned`](#onservicescanned) and [`onPipeScanned`](#onpipescanned). `jsDocPlugin()` from 22.7.0 on is the panel that does both.
+- **The build looks at this field, once per kind.** A service is read and goes into the manifest only when some plugin has a view panel that applies to services, and a pipe only when one applies to pipes; otherwise the build only counts them and prints a hint, see [`onServiceScanned`](#onservicescanned) and [`onPipeScanned`](#onpipescanned). `jsDocPlugin()` from 22.7.0 on is the panel that does both.
 
 ```typescript
 panels: [

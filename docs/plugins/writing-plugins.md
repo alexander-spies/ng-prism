@@ -14,6 +14,7 @@ interface NgPrismPlugin {
     onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
+    componentApi?: boolean; // experimental: have the scan read ScannedComponent.api
 
     // Runtime contributions (run in the browser)
     panels?: PanelDefinition[];
@@ -47,7 +48,21 @@ export function myPlugin(): NgPrismPlugin {
 }
 ```
 
-`component.api` (since `22.7.0`) holds the extracted API of the component or directive: the type of each input, the payload of each output, the documented methods and the types they reach, see [`ComponentApi`](api/types.md#componentapi). Its shape is experimental until 23.0.0 and may change in a 22.x minor release, and it is absent on a component that another hook built from scratch; `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Keep your own data in `meta` and read `component.api` knowing it can change.
+`component.api` (since `22.7.0`) holds the extracted API of the component or directive: the type of each input, the payload of each output, the documented methods and the types they reach, see [`ComponentApi`](api/types.md#componentapi). The scan only reads it when a plugin in the config sets `componentApi: true` (`jsDocPlugin()` does), so a plugin that reads it sets the flag itself, in its Node entry:
+
+```typescript
+export function apiStatsPlugin(): NgPrismPlugin {
+    return {
+        name: 'api-stats',
+        componentApi: true,
+        onComponentScanned(component) {
+            return { ...component, meta: { ...component.meta, methodCount: component.api?.methods.length ?? 0 } };
+        }
+    };
+}
+```
+
+Its shape, and the flag, are experimental until 23.0.0 and may change in a 22.x minor release. It is absent without such a plugin, when the scan cannot read it, and on a component that another hook built from scratch; `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Keep your own data in `meta` and read `component.api` with `?.`, knowing it can change.
 
 ### `onServiceScanned`
 
@@ -62,7 +77,7 @@ onServiceScanned(service) {
 }
 ```
 
-`service.api` holds the extracted API (members, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `importPath`, `showcaseConfig`, `provision` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to services](#panels-for-services-and-pipes), otherwise the build drops the services.
+`service.api` holds the extracted API (members, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `importPath`, `showcaseConfig`, `provision` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to services](#panels-for-services-and-pipes), otherwise the build only counts the services, without reading them, and leaves them out.
 
 ### `onPipeScanned`
 
@@ -77,7 +92,7 @@ onPipeScanned(pipe) {
 }
 ```
 
-`pipe.api` holds the extracted API (`transform` signatures, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `pipeName`, `pure`, `importPath`, `showcaseConfig` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to pipes](#panels-for-services-and-pipes), otherwise the build drops the pipes. Services and pipes are decided apart: a panel for services alone does not keep the pipes.
+`pipe.api` holds the extracted API (`transform` signatures, setup, types). Its shape is experimental until 23.0.0 and may change in a 22.x minor release; `className`, `pipeName`, `pure`, `importPath`, `showcaseConfig` and `meta` are stable. The hook only runs when some plugin has a panel that [applies to pipes](#panels-for-services-and-pipes), otherwise the build only counts the pipes, without reading them, and leaves them out. Services and pipes are decided apart: a panel for services alone does not keep the pipes.
 
 ### `onPageScanned`
 
@@ -168,7 +183,7 @@ export class ServiceNotesComponent {
 }
 ```
 
-`activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0). On a pipe page, a panel with `appliesTo: ['pipe']` declares `readonly activePipe = input<RuntimePipe | null>(null);` and reads `activePipe()?.meta.api.transform` (`PipeApi`, experimental until 23.0.0) and `activePipe()?.meta.pipeName`. On a component page, a panel reads `activeComponent()?.meta.api` (`ComponentApi`, experimental until 23.0.0), which is absent on a component that a hook built from scratch.
+`activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0). On a pipe page, a panel with `appliesTo: ['pipe']` declares `readonly activePipe = input<RuntimePipe | null>(null);` and reads `activePipe()?.meta.api.transform` (`PipeApi`, experimental until 23.0.0) and `activePipe()?.meta.pipeName`. On a component page, a panel reads `activeComponent()?.meta.api` (`ComponentApi`, experimental until 23.0.0). The manifest only carries it when a plugin in the config sets `componentApi: true`, so a plugin whose panel reads it sets the flag in its Node entry; it is also absent on a component that a hook built from scratch.
 
 ### `controls`
 

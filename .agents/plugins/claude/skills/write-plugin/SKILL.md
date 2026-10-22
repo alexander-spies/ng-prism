@@ -48,8 +48,11 @@ export function notesPlugin(): NgPrismPlugin {
 - **`component.api` (`ComponentApi`, since 22.7.0) is experimental until 23.0.0** and may change in a 22.x minor, so
   read it knowing that and keep your own data in `showcaseConfig.meta`, as below. It holds the type of each
   input and the payload of each output (`ApiTypeRef`: text and links to cards), the change event of each `model()`, the
-  documented methods and the types they reach. It is absent on a component a hook builds from scratch and in the
-  manifest of an older core, so check for it. `inputs`, `outputs` and the other fields of `ScannedComponent` are stable.
+  documented methods and the types they reach. The scan only reads it when a plugin in the config sets
+  `componentApi: true` on its plugin object (also experimental; in the Node entry, like the hooks): a plugin that reads
+  `api`, in a hook or a panel, sets it. `jsDocPlugin()` does, but don't rely on another plugin. It is also absent when
+  the scan cannot read it, on a component a hook builds from scratch and in the manifest of an older core, so check for
+  it. `inputs`, `outputs` and the other fields of `ScannedComponent` are stable.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the
   whole library goes into `manifest.meta`, read in the browser with `inject(PRISM_MANIFEST).meta`.
 - The manifest that carries these results to the browser is generated source code: only JSON-like data survives. In
@@ -65,7 +68,7 @@ export function notesPlugin(): NgPrismPlugin {
   stable; **`service.api` (`ServiceApi`: members, setup, types) is experimental until 23.0.0** and may change in a 22.x
   minor, so read it knowing that and keep your own data in `service.meta`. Services only reach the manifest, and the
   hook only runs, when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'service'`;
-  otherwise the build drops them and logs a hint
+  otherwise the build only counts them, without reading them, and logs a hint once per run
   (`ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; …`). `navigationDecorations` are not
   called for services.
 - **Pipes have their own hook and list too** (since 22.7.0). A class with `@Showcase` and `@Pipe` is a pipe: it is in
@@ -74,8 +77,8 @@ export function notesPlugin(): NgPrismPlugin {
   `importPath`, `showcaseConfig`, `pipeName`, `pure` (absent when it can't be read) and `meta` are stable;
   **`pipe.api` (`PipeApi`: `transform` signatures, setup, types) is experimental until 23.0.0**, so keep your own
   data in `pipe.meta`. Pipes reach the manifest, and the hook runs, only when some plugin has a view panel
-  (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services; otherwise the build drops
-  them and logs a hint (`ng-prism: <n> pipe(s) with @Showcase found, but no plugin shows pipes; …`).
+  (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services; otherwise the build only
+  counts them and logs a hint (`ng-prism: <n> pipe(s) with @Showcase found, but no plugin shows pipes; …`).
   `navigationDecorations` are not called for pipes.
 - A hook that throws stops the build with `ng-prism: plugin "<name>" failed in <hook> for …`; during `serve`, a failed
   rescan keeps the previous manifest.
@@ -95,7 +98,8 @@ export function notesPlugin(): NgPrismPlugin {
   pulls its imports into the file that also runs in Node. Controls only have `component`.
 - `RuntimeComponent.meta` is the whole scanned component, so the user's showcase meta is
   `activeComponent()?.meta.showcaseConfig.meta`, and a panel reads the API at `activeComponent()?.meta.api`
-  (experimental, and `undefined` for a component without one).
+  (experimental, `undefined` for a component without one, and only in the manifest when a plugin sets
+  `componentApi: true`, so set it on yours).
 - **Panels for services and pipes.** `appliesTo: ('component' | 'service' | 'pipe')[]` (since 22.7.0) says where a
   panel appears, default `['component']`. A service or pipe page has no canvas and offers only the panels that apply
   to it, as view tabs: such a panel needs `placement: 'view'`, since there is no addon area. An addon panel shows on

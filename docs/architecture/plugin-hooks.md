@@ -68,7 +68,7 @@ onComponentScanned(component) {
 
 **Chaining:** When plugin A and plugin B both implement `onComponentScanned`, the `ScannedComponent` passed to plugin B is the (possibly modified) output from plugin A.
 
-`component.api` (since `22.7.0`) is experimental until 23.0.0: its shape may change in a 22.x minor release, and a component that another hook built from scratch has none. `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Add your own data to `component.meta`, and read `component.api` knowing it can change.
+`component.api` (since `22.7.0`) is experimental until 23.0.0: its shape may change in a 22.x minor release. The scan only reads it when a plugin in the config sets [`componentApi`](api/ng-prism-plugin.md#componentapi), so a plugin that reads it sets the flag, and a component that another hook built from scratch has none. `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Add your own data to `component.meta`, and read `component.api` knowing it can change.
 
 **Typical uses:**
 
@@ -97,7 +97,7 @@ onServiceScanned(service) {
 
 **A separate hook, not a second kind of component.** A service has no inputs, outputs, selector or canvas, and the four plugins that implement `onComponentScanned` (coverage, jsdoc, perf and visual regression) read exactly those. Giving services their own list and hook means none of them is ever called with one, and the manifest they write stays what it was. The JSDoc plugin does not need the hook: its service page reads `service.api` in the browser.
 
-**It may not run.** Services go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'service'`. Without one the pipeline drops them before the hooks, so `onServiceScanned` is not called, and logs a hint, see the services gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.services` only when they were kept.
+**It may not run.** Services go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'service'`. Without one the scan only counts them, without reading them, so `onServiceScanned` is not called, and the pipeline logs a hint, see the services gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.services` only when they were kept.
 
 `service.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `service.meta`, which is stable, and read `service.api` knowing it can change.
 
@@ -124,7 +124,7 @@ onPipeScanned(pipe) {
 
 **A separate hook, for the same reason.** A pipe has no inputs, outputs, selector or canvas, and it is not a service either: it has a template name, a purity and `transform()` signatures instead of members and a provision. Its own list and hook keep it away from `onComponentScanned` and `onServiceScanned`, so none of the plugins that implement those is called with one. The JSDoc plugin does not need the hook: its pipe page reads `pipe.api` in the browser.
 
-**It may not run.** Pipes go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services. Without one the pipeline drops them before the hooks, so `onPipeScanned` is not called, and logs a hint, see the services and pipes gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.pipes` only when they were kept.
+**It may not run.** Pipes go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services. Without one the scan only counts them, without reading them, so `onPipeScanned` is not called, and the pipeline logs a hint, see the services and pipes gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.pipes` only when they were kept.
 
 `pipe.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `pipe.meta`, which is stable, and read `pipe.api` knowing it can change.
 

@@ -105,7 +105,7 @@ The API tab shows the class description, a usage snippet, the inputs with their 
 
 ## How It Works
 
-**Build time:** The `onComponentScanned` hook uses `ts.createSourceFile` with `setParentNodes: true` and `ts.getJSDocTags()` to extract JSDoc data. The extracted data is injected into `showcaseConfig.meta.jsdoc`.
+**Build time:** The plugin sets `componentApi: true`, which has the core scanner read `ScannedComponent.api` for every component; a config without a plugin that sets it skips that work. The `onComponentScanned` hook uses `ts.createSourceFile` with `setParentNodes: true` and `ts.getJSDocTags()` to extract JSDoc data, keeping each parsed file while its mtime and size stay the same, so a rebuild of `serve` only parses the files that changed. The extracted data is injected into `showcaseConfig.meta.jsdoc`.
 
 **Runtime:** The `JsDocPanelComponent` is lazy-loaded via `loadComponent`. It builds the API page from `ScannedComponent.api`, which the core scanner fills with the types, payloads, methods and links, and from the JSDoc data in `showcaseConfig.meta.jsdoc`, and renders it. Services and pipes get the same page from their own scanned data.
 

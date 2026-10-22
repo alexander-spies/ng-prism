@@ -21,6 +21,9 @@ interface NgPrismPlugin {
     onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
+    // The scan reads ScannedComponent.api, and the manifest carries it, only when a plugin sets this (since 22.7.0,
+    // experimental). Set it in the Node entry when a hook or panel reads `api`; jsDocPlugin() does.
+    componentApi?: boolean;
 
     // Runtime contributions (embedded in the Prism app)
     panels?: PanelDefinition[];
@@ -114,8 +117,8 @@ interface PanelDefinition {
     position?: 'bottom' | 'right'; // deprecated since 22.6.0, never had an effect
     placement?: 'addon' | 'view';
     // Default ['component']. 'service' and 'pipe' only count on a view panel: they give the inputs activeService and
-    // activePipe, and the build keeps services (pipes) in the manifest only when such a panel exists for them, decided
-    // apart (read from the Node entry). Since 22.7.0.
+    // activePipe, and the build reads services (pipes) and keeps them in the manifest only when such a panel exists
+    // for them, decided apart (read from the Node entry); otherwise it only counts them. Since 22.7.0.
     appliesTo?: readonly ('component' | 'service' | 'pipe')[];
     providers?: Provider[];
     isVisible?: (component: RuntimeComponent) => boolean; // components only
@@ -183,6 +186,7 @@ Prism app ships.
 - [ ] Plugin factory function with options parameter
 - [ ] Unique `name` property
 - [ ] Build-time hooks return modified object or void
+- [ ] `componentApi: true` in the Node entry if a hook or panel reads `ScannedComponent.api`
 - [ ] Runtime components are standalone Angular components
 - [ ] Exported from package index
 - [ ] Tests for hook behavior

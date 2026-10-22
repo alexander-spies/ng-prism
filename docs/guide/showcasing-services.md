@@ -135,7 +135,7 @@ A class is a service when it
 
 `@Service` does not exist in Angular 20, and the builder does not need it to: it recognises the decorator in your source and imports nothing from `@angular/core`, so a library on Angular 20 with `@Injectable` works the same. `@ng-prism/core` keeps its peer dependency on `>=20.0.0`.
 
-The import counts as well as the name. A `@Service()` from a dependency injection package (TypeDI has one) is not Angular's and makes no service. The decorator has to be written under its own name: one imported under another (`import { Injectable as Service } from '@angular/core'`) is not recognised, and the class is not a service.
+The import counts, not the name in your file. A `@Service()` from a dependency injection package (TypeDI has one) is not Angular's and makes no service. A decorator imported under another name is recognised by the one it has in `@angular/core`: with `import { Injectable as Service } from '@angular/core'`, `@Service({ providedIn: 'root' })` is Angular's `Injectable`, and its `providedIn` decides the provision. A namespace import works too: `@ng.Injectable()` and `@ng.Service()` with `import * as ng from '@angular/core'`.
 
 A service is only listed when you mark it. There is no automatic discovery of every `@Injectable` in the library.
 
@@ -223,6 +223,8 @@ The snippet is generated from the scanned API, not written by hand, so it says n
 
 Methods are listed without JSDoc on purpose. That differs from the API tab of a component, which leaves undocumented methods out.
 
+An overloaded method gets one row per overload signature, each with its own parameters and return type; the implementation signature is left out, since no caller can use it. An overload without a doc block of its own takes the one of the implementation, then the description and `@param` texts of the first documented overload (not its tags, so a `@deprecated` stays on the overload it is written on), then the one of the method in the nearest base class. Documenting the implementation or the first overload is enough.
+
 Left out: `private`, `protected` and `#private` members, names that start with `_`, Angular's lifecycle hooks (`ngOnDestroy` and the others), the constructor itself, static members, and anything tagged `@internal`. A constructor parameter with `public`, `readonly` or `override` is a property: it is listed where the constructor stands, typed from its annotation or its default, and described by the constructor's `@param` for it. Members of base classes are included, nearest class first. A member the subclass declares hides the one of the base class; an override without JSDoc of its own keeps its signature and takes the description, tags and `@param` texts from the base class.
 
 The type is the annotation as written, or what the compiler infers when there is none (`Signal<boolean>`).
@@ -266,13 +268,13 @@ A type is only documented when a scanned entry point exports it and it is not `@
 
 ## Without the JSDoc plugin
 
-A service page is made by a view panel that applies to services. When no plugin in `ng-prism.config.ts` has one, nothing could show the services, so the build leaves them out of the manifest and the sidebar and prints one notice:
+A service page is made by a view panel that applies to services. When no plugin in `ng-prism.config.ts` has one, nothing could show the services, so the build only counts them, leaves them out of the manifest and the sidebar, and prints one notice per build or `serve` run:
 
 ```
 ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
 ```
 
-It is a notice, not a warning: nothing is wrong with the library, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail the build over it. Add the plugin with `ng add @ng-prism/plugin-jsdoc`, or see [JSDoc Plugin](plugins/jsdoc.md). If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for services.
+It is a notice, not a warning: nothing is wrong with the library, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail the build over it. Since the services are not read, none of the [warnings](#warnings) below appear for them either, and `strictShowcase` cannot fail over one. Add the plugin with `ng add @ng-prism/plugin-jsdoc`, or see [JSDoc Plugin](plugins/jsdoc.md). If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for services.
 
 ## Compatibility until 23.0.0
 
@@ -295,15 +297,25 @@ The builder prints these while it scans. Each one is printed once per run, and `
 ⚠ ng-prism: <Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is neither a function nor an InjectionToken; it was dropped.
 ⚠ ng-prism: <Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is not exported from any library entry point, so the styleguide cannot show where to import it from; it was dropped.
 ⚠ ng-prism: <Class> › setup (<file>:<line>:<col>) only applies to services and pipes (@Injectable, @Service or @Pipe); it was dropped.
+⚠ ng-prism: <Class> › setup (<file>:<line>:<col>) was dropped: setup only applies to services and pipes, and the class is still a component because it declares <fields>.
 ```
 
-All four are lost values, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) turns them into a build error. The notice for a [legacy component](#compatibility-until-2300) and the hint [without the JSDoc plugin](#without-the-jsdoc-plugin) do not. A `@Showcase` argument that cannot be read at all skips the service, with the same warning as a component. The [Claude Code skill](guide/ai-agents.md) lists each with its fix.
+The fourth is printed for a component, the fifth for a [legacy component](#compatibility-until-2300): an `@Injectable` or `@Service` that its component-only fields keep a component. All five are lost values, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) turns them into a build error. They only appear when a plugin shows services; without one the services are not read, see [Without the JSDoc plugin](#without-the-jsdoc-plugin).
+
+Two more lines are notices, which `strictShowcase` ignores, like the notice for a [legacy component](#compatibility-until-2300) and the hint [without the JSDoc plugin](#without-the-jsdoc-plugin):
+
+```
+⚠ ng-prism: <Class>: could not read its API (<reason>); the service is left out of the styleguide.
+⚠ ng-prism: <Class>: could not read its API for the API page (<reason>); the page falls back to its inputs and outputs.
+```
+
+The first means the scanner failed on the service and left it out, so that the other services and components still get their pages. The second is the same for a component, which keeps its page without type links. Neither is caused by your `@Showcase`; please report it with the class that triggers it. A `@Showcase` argument that cannot be read at all skips the service, with the same warning as a component. The [Claude Code skill](guide/ai-agents.md) lists each with its fix.
 
 ## Limits
 
 - **Experimental data model.** The shape of the extracted API (`ServiceApi` and everything below it) is experimental until 23.0.0 and may change in a 22.x minor release. The upper fields of `ScannedService` and `RuntimeService`, the `onServiceScanned` hook and `PanelDefinition.appliesTo` are stable. See [Type Reference](api/types.md#scannedservice).
 - **`@returns` text** is not shown. The return type comes from the code; say what it means in the description of the method.
-- **Overloads** appear once, with the documented overload's signature, or the first one. **Generic type parameters** and **static members** are not listed.
+- **Generic type parameters** and **static members** are not listed.
 - **Renamed types.** A type imported or re-exported under another name appears under its declared name and may stay unlinked.
 - **Renamed setup exports.** A setup function or token exported under another name (`export { impl as provideToast }`) is imported in the usage snippet under its declared name, which the entry point does not export. Export it under the name it is declared with.
 - **No live demo.** A service has no playground. A hand-written [component page](guide/component-pages.md) still does that job.

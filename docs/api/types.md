@@ -57,22 +57,22 @@ interface ScannedComponent {
 }
 ```
 
-| Field                       | Description                                                                                                                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `className`                 | TypeScript class name                                                                                                                                                          |
-| `filePath`                  | Absolute path to the source file                                                                                                                                               |
-| `showcaseConfig`            | The `ShowcaseConfig` passed to `@Showcase`                                                                                                                                     |
-| `inputs`                    | Array of extracted `InputMeta` for each `input()` signal, base classes included                                                                                                |
-| `outputs`                   | Array of extracted `OutputMeta` for each `output()` signal, base classes included                                                                                              |
-| `componentMeta.selector`    | Angular element selector                                                                                                                                                       |
-| `componentMeta.standalone`  | Whether the component is standalone                                                                                                                                            |
-| `componentMeta.isDirective` | `true` if decorated with `@Directive`, `false` for `@Component`                                                                                                                |
-| `importPath`                | Import path of the entry point that exports the component (e.g. `'my-lib'` or `'my-lib/atoms'`). The scanner sets it for every entry point it scans, the primary one included  |
-| `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest                                                                            |
-| `api`                       | What the API page needs beyond `inputs` and `outputs`, see [`ComponentApi`](#componentapi) (since `22.7.0`). Missing when a plugin hook builds the component. **Experimental** |
-| `meta`                      | Plugin-injected metadata                                                                                                                                                       |
+| Field                       | Description                                                                                                                                                                                                                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `className`                 | TypeScript class name                                                                                                                                                                                                                                                            |
+| `filePath`                  | Absolute path to the source file                                                                                                                                                                                                                                                 |
+| `showcaseConfig`            | The `ShowcaseConfig` passed to `@Showcase`                                                                                                                                                                                                                                       |
+| `inputs`                    | Array of extracted `InputMeta` for each `input()` signal, base classes included                                                                                                                                                                                                  |
+| `outputs`                   | Array of extracted `OutputMeta` for each `output()` signal, base classes included                                                                                                                                                                                                |
+| `componentMeta.selector`    | Angular element selector                                                                                                                                                                                                                                                         |
+| `componentMeta.standalone`  | Whether the component is standalone                                                                                                                                                                                                                                              |
+| `componentMeta.isDirective` | `true` if decorated with `@Directive`, `false` for `@Component`                                                                                                                                                                                                                  |
+| `importPath`                | Import path of the entry point that exports the component (e.g. `'my-lib'` or `'my-lib/atoms'`). The scanner sets it for every entry point it scans, the primary one included                                                                                                    |
+| `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest                                                                                                                                                                              |
+| `api`                       | What the API page needs beyond `inputs` and `outputs`, see [`ComponentApi`](#componentapi) (since `22.7.0`). Only read when a plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi), missing otherwise and when a plugin hook builds the component. **Experimental** |
+| `meta`                      | Plugin-injected metadata                                                                                                                                                                                                                                                         |
 
-The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them.
+The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them.
 
 `className`, `filePath`, `showcaseConfig`, `inputs`, `outputs`, `componentMeta`, `importPath` and `meta` follow semver as they are. The shape of `api` does not, see below.
 
@@ -82,7 +82,7 @@ The runtime manifest carries every field of `ScannedComponent` except `baseClass
 
 > **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `ComponentApi`, which is `ScannedComponent.api`. The `Api*` types it uses are the ones of [`ServiceApi`](#serviceapi) and share its status.
 
-What the API page of a component or directive needs beyond `inputs` and `outputs`, as the scanner extracts it for every component and directive (since `22.7.0`). The JSDoc plugin draws the API tab from it, see [Components and Directives](plugins/jsdoc.md#components-and-directives). It shares `ApiDocTags`, `ApiTypeRef`, `ApiMethod` and `ApiTypeDoc` with `ServiceApi`, shown there.
+What the API page of a component or directive needs beyond `inputs` and `outputs`, as the scanner extracts it for every component and directive (since `22.7.0`) when a plugin in the config sets [`componentApi`](api/ng-prism-plugin.md#componentapi). The JSDoc plugin draws the API tab from it, see [Components and Directives](plugins/jsdoc.md#components-and-directives). It shares `ApiDocTags`, `ApiTypeRef`, `ApiMethod` and `ApiTypeDoc` with `ServiceApi`, shown there.
 
 ```typescript
 interface ComponentApi {
@@ -103,10 +103,10 @@ interface ComponentApi {
 | `inputTypes`   | The type of each input by member name (`InputMeta.name`, not the alias), as written in `input<T>()`, `model<T>()` or the annotation, else as the compiler infers it, with `links` to the cards. An input a generic base class declares in terms of its type parameters has the type the component instantiates it with |
 | `outputTypes`  | The payload of each output by member name: the type argument of `output<T>()`, `EventEmitter<T>` or the annotation, `void` for an `output()` without one                                                                                                                                                               |
 | `modelChanges` | One entry per `model()` input: `input` is its member name, `event` the change output Angular adds for it (`${alias ?? name}Change`) and `type` the type of the model. `ScannedComponent.outputs` has no entry for it                                                                                                   |
-| `methods`      | The public methods that have a doc block of their own or an inherited one, with signatures from the code. The rules of what is left out are those of a service, see [Showcasing Services](guide/showcasing-services.md#members)                                                                                        |
+| `methods`      | The public methods that have a doc block of their own or an inherited one, with signatures from the code: one entry per overload signature, so a name can repeat. The rules of what is left out are those of a service, see [Showcasing Services](guide/showcasing-services.md#members)                                |
 | `types`        | The documented types that the inputs, outputs and methods reach, recursively. A type is documented when any scanned entry point exports it and it is not `@internal`. An `id` is unique within this list                                                                                                               |
 
-The other `ScannedComponent` fields, `InputMeta`, `OutputMeta` and the plugin data `showcaseConfig.meta.jsdoc` stay as they were: `api` only adds. A component built by a plugin hook, or read from the manifest of an older core, has no `api`, and a reader falls back to `inputs` and `outputs`.
+The other `ScannedComponent` fields, `InputMeta`, `OutputMeta` and the plugin data `showcaseConfig.meta.jsdoc` stay as they were: `api` only adds. A component in a build without a plugin that sets `componentApi`, one whose API the scan could not read, one built by a plugin hook, or one read from the manifest of an older core has no `api`, and a reader falls back to `inputs` and `outputs`.
 
 ---
 
@@ -156,7 +156,7 @@ type ServiceProvision = 'auto' | 'manual';
 
 ## ServiceApi
 
-> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `ServiceApi` and every `Api*` type below it: members, signatures, type cards, setup and the links between them. The first model is deliberately simple, and overloads, generics and statics can be refined in later minors. Read it in a plugin if you must, and expect to adjust it.
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `ServiceApi` and every `Api*` type below it: members, signatures, type cards, setup and the links between them. The first model is deliberately simple, and generics and statics can be refined in later minors. Read it in a plugin if you must, and expect to adjust it.
 
 The documentation of one service, as the scanner extracts it. The JSDoc plugin draws the service page from it.
 
@@ -237,6 +237,8 @@ interface ApiSetupEntry {
     config?: ApiProperty[]; // options of the first parameter, or of the token's type argument
 }
 ```
+
+An overloaded method is one `ApiMethod` per overload signature, in source order, in `methods` and in the `methods` of a type card alike: the name repeats, and the implementation signature is left out. Each takes the doc block of its own, else the one of the implementation, else the description and `@param` texts of the first documented overload (not its tags), else the docs of the method in the nearest base class.
 
 `ServiceProvision`, `PanelTarget`, `ServiceApi`, `ComponentApi`, `ApiDocTags`, `ApiTypeRef`, `ApiParam`, `ApiMethod`, `ApiProperty`, `ApiTypeDoc` and `ApiSetupEntry` are exported from `@ng-prism/core/plugin` (and `@ng-prism/core`), with `ScannedService` and `RuntimeService`. What is listed and what is left out is described in [Showcasing Services](guide/showcasing-services.md#members).
 

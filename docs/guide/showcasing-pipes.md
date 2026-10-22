@@ -125,7 +125,7 @@ A class is a pipe when it
 - carries `@Pipe` imported from `@angular/core`, and
 - carries neither `@Component` nor `@Directive`. A class with one of those stays what it is, whatever else it has.
 
-A class with `@Pipe` and `@Injectable` is a pipe. The decorator has to be written under its own name and come from `@angular/core`, as for [services](guide/showcasing-services.md#what-counts-as-a-service).
+A class with `@Pipe` and `@Injectable` is a pipe. The decorator has to come from `@angular/core`, as for [services](guide/showcasing-services.md#what-counts-as-a-service): it is recognised by the name it has there, so `import { Pipe as NgPipe }` and `@ng.Pipe()` with `import * as ng from '@angular/core'` work too.
 
 A pipe is only listed when you mark it. Two things about the pipe itself decide whether it can be shown:
 
@@ -170,13 +170,13 @@ The class description is the pipe's own JSDoc. A pipe without one does not take 
 
 ## Without the JSDoc plugin
 
-A pipe page is made by a view panel that applies to pipes. When no plugin in `ng-prism.config.ts` has one, the build leaves the pipes out of the manifest and the sidebar and prints one notice:
+A pipe page is made by a view panel that applies to pipes. When no plugin in `ng-prism.config.ts` has one, the build only counts the pipes, leaves them out of the manifest and the sidebar, and prints one notice per build or `serve` run:
 
 ```
 ng-prism: 2 pipe(s) with @Showcase found, but no plugin shows pipes; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
 ```
 
-It is a notice, not a warning, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail the build over it. Add the plugin with `ng add @ng-prism/plugin-jsdoc`, or see [JSDoc Plugin](plugins/jsdoc.md). If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for pipes.
+It is a notice, not a warning, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail the build over it. Since the pipes are not read, none of the [warnings](#warnings) below appear for them either. Add the plugin with `ng add @ng-prism/plugin-jsdoc`, or see [JSDoc Plugin](plugins/jsdoc.md). If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for pipes.
 
 ## Compatibility until 23.0.0
 
@@ -205,7 +205,7 @@ The builder prints these while it scans, once per run. `<Class>` is the pipe cla
 ⚠ ng-prism: <Class> › @Pipe name (<file>:<line>:<col>) cannot be evaluated statically, so the pipe was dropped.
 ```
 
-A pipe takes the `setup` warnings of services as well, see [Warnings](guide/showcasing-services.md#warnings). The one for `setup` on a class that has no use for it names both: `<Class> › setup (<file>:<line>:<col>) only applies to services and pipes (@Injectable, @Service or @Pipe); it was dropped.` All of these are lost values, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) turns them into a build error. The notice for a [legacy component](#compatibility-until-2300) and the hint [without the JSDoc plugin](#without-the-jsdoc-plugin) do not. A `@Showcase` argument that cannot be read at all skips the pipe, with the same warning as a component. The [Claude Code skill](guide/ai-agents.md) lists each with its fix.
+A pipe takes the `setup` warnings of services as well, see [Warnings](guide/showcasing-services.md#warnings). On a [legacy component](#compatibility-until-2300) the one for `setup` says why the class has no use for it: `<Class> › setup (<file>:<line>:<col>) was dropped: setup only applies to services and pipes, and the class is still a component because it declares <fields>.` All of these are lost values, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) turns them into a build error. They only appear when a plugin shows pipes, see [Without the JSDoc plugin](#without-the-jsdoc-plugin). The notice for a [legacy component](#compatibility-until-2300), the hint [without the JSDoc plugin](#without-the-jsdoc-plugin) and the notice `<Class>: could not read its API (<reason>); the pipe is left out of the styleguide.`, printed when the scanner fails on a pipe and goes on with the others, do not. A `@Showcase` argument that cannot be read at all skips the pipe, with the same warning as a component. The [Claude Code skill](guide/ai-agents.md) lists each with its fix.
 
 ## Limits
 
