@@ -170,7 +170,9 @@ describe('runPrismPipeline integration', () => {
 
     it('merges the per-component a11y entry into showcaseConfig.meta', async () => {
         tmp = createTempWorkspace();
-        writeA11yReport(tmp, 55);
+        // 70 sits in the warn band (from 0.75 of the default target 80 up);
+        // below 60 the summary is critical since 22.7.
+        writeA11yReport(tmp, 70);
 
         await runPrismPipeline(defaultOptions, createMockContext(tmp), createPipelineState());
 
@@ -226,7 +228,9 @@ describe('runPrismPipeline integration', () => {
         // config with no a11y report or a plugin that leaves no trace in
         // `showcaseConfig.meta`, so none of them would catch it.
         tmp = createTempWorkspace();
-        writeA11yReport(tmp, 55);
+        // 70 sits in the warn band (from 0.75 of the default target 80 up);
+        // below 60 the summary is critical since 22.7.
+        writeA11yReport(tmp, 70);
         // `Object.assign` rather than object-spread: this file is transpiled and
         // then dynamically `import()`-ed from a temp path outside the workspace
         // (see config-loader.ts), which Jest's own transform also reaches for,
