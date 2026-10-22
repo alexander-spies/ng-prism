@@ -114,6 +114,20 @@ describe('generateComponentUsage', () => {
             );
         });
 
+        it('reads the element of a string host that has content and a closing tag, and drops both', () => {
+            const required = makeDirective('[libTooltip]', {
+                inputs: [input('libTooltip', { required: true })],
+                showcaseConfig: { title: 'Tooltip', host: '<button class="btn">Hover me</button>' }
+            });
+            const optional = makeDirective('[fxHint]', {
+                inputs: [input('fxHint')],
+                showcaseConfig: { title: 'Hint', host: '<p>Some text</p>' }
+            });
+
+            expect(templateLine(required)).toBe('<button class="btn" [libTooltip]="libTooltip"></button>');
+            expect(templateLine(optional)).toBe('<p fxHint></p>');
+        });
+
         it('falls back to the element of the selector when the string host is no tag', () => {
             expect(templateLine(makeDirective('input[fxMask]', { showcaseConfig: { title: 'Mask', host: 'not a tag' } }))).toBe('<input fxMask />');
         });

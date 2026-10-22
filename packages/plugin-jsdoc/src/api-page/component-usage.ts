@@ -85,9 +85,15 @@ function parseSelector(selector: string): ParsedSelector {
     return { element, attributes };
 }
 
-/** The tag of a string host and its attributes as written; undefined when the string is no tag. */
+/**
+ * The opening tag a string host starts with and its attributes as written;
+ * undefined when the string does not start with a tag. A host may carry
+ * content and a closing tag (`<button class="btn">Hover me</button>`): the
+ * showcase renders all of it, the snippet only needs the element to put the
+ * directive on.
+ */
 function parseHostString(host: string): { element: string; attributes: string[] } | undefined {
-    const match = host.trim().match(/^<\s*([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^>]*?)?)\s*\/?\s*>$/);
+    const match = host.match(/^\s*<\s*([a-zA-Z][\w-]*)([^>]*?)\s*\/?\s*>/);
 
     if (!match) return undefined;
     return { element: match[1], attributes: match[2].trim() ? [match[2].trim()] : [] };
