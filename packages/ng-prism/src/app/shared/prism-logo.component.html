@@ -11,10 +11,11 @@
         @for (g of gradients; track g.id) {
             <linearGradient
                 [attr.id]="uid + g.id"
-                x1="0"
-                y1="0"
+                [attr.x1]="g.x1"
+                [attr.y1]="g.y1"
                 [attr.x2]="g.x2"
-                [attr.y2]="g.y2">
+                [attr.y2]="g.y2"
+                gradientUnits="userSpaceOnUse">
                 @for (stop of g.stops; track $index) {
                     <stop
                         [attr.offset]="stop[0]"
@@ -24,9 +25,8 @@
         }
     </defs>
     @for (facet of facets; track $index) {
-        <polygon
-            [attr.points]="facet.points"
-            [attr.fill]="fill(facet)"
-            [attr.opacity]="facet.opacity ?? null" />
+        <path
+            [attr.d]="facet.d"
+            [attr.fill]="fill(facet)" />
     }
 </svg>
