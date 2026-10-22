@@ -173,7 +173,7 @@ The page is made of the sections Usage, Setup, Examples, Transform and Types, in
 A reference in your JSDoc jumps to the card of a type on the same page (since `22.7.0`), on the page of a component, a directive, a service and a pipe alike:
 
 - **`@see X`** is a `See:` chip on the class or on a type card, and `X` is a button that scrolls to the card of `X` and lights it up. A `@see` that names no card, a URL included, stays plain text.
-- **`{@link X}` and `{@link X | text}`** in any description the page renders: the class, inputs, outputs, methods and parameters, `setup` entries and the type cards. The text after the target, behind a bar or a space, is what the button says. `{@linkcode X}` and `{@linkplain X}` work the same way.
+- **`{@link X}` and `{@link X | text}`** in any description the page renders: the class, inputs, outputs, methods and parameters, `setup` entries, the type cards and the message of a `@deprecated`. The text after the target, behind a bar or a space, is what the button says. `{@linkcode X}` and `{@linkplain X}` work the same way.
 
 `X` has a card when it is one of the types of the page's Types section: a type that the signatures of the page reach and that an entry point exports, see [Components and Directives](#components-and-directives). A type that exists but is not reached by anything on the page has no card. `X.member` and `X#member` jump to the card of `X`, since members have no anchor of their own. When two reachable types share a name, the second one's id is `name@importPath`. Only `@see Item@my-lib/atoms` can name it: TypeScript reads `{@link Item@my-lib/atoms}` as the target `Item` followed by the text `@my-lib/atoms`, so that link jumps to the first `Item`.
 

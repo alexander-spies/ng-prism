@@ -254,7 +254,7 @@ An input or output declared with an alias keeps its member name as `name` and ge
 | Object / interface                  | `'object'`        | `ts.TypeFlags.Object`                |
 | Everything else                     | `'unknown'`       |                                      |
 
-`rawType` is the original TypeScript type string produced by `checker.typeToString()`, used by plugins and displayed in the JSDoc panel.
+`rawType` is the original TypeScript type string produced by `checker.typeToString()`, used by plugins. The API page of the JSDoc plugin shows `api.inputTypes[name].text`, the type as written with its links, and falls back to `rawType` for a component without `api`.
 
 ### Directive detection
 

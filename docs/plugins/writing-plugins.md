@@ -47,6 +47,8 @@ export function myPlugin(): NgPrismPlugin {
 }
 ```
 
+`component.api` (since `22.7.0`) holds the extracted API of the component or directive: the type of each input, the payload of each output, the documented methods and the types they reach, see [`ComponentApi`](api/types.md#componentapi). Its shape is experimental until 23.0.0 and may change in a 22.x minor release, and it is absent on a component that another hook built from scratch; `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Keep your own data in `meta` and read `component.api` knowing it can change.
+
 ### `onServiceScanned`
 
 Called once per `@Showcase`-decorated [service](guide/showcasing-services.md), with the `ScannedService`. Same pattern as `onComponentScanned`, and a service never goes through that hook: it has its own list, `manifest.services`.
@@ -166,7 +168,7 @@ export class ServiceNotesComponent {
 }
 ```
 
-`activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0). On a pipe page, a panel with `appliesTo: ['pipe']` declares `readonly activePipe = input<RuntimePipe | null>(null);` and reads `activePipe()?.meta.api.transform` (`PipeApi`, experimental until 23.0.0) and `activePipe()?.meta.pipeName`.
+`activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0). On a pipe page, a panel with `appliesTo: ['pipe']` declares `readonly activePipe = input<RuntimePipe | null>(null);` and reads `activePipe()?.meta.api.transform` (`PipeApi`, experimental until 23.0.0) and `activePipe()?.meta.pipeName`. On a component page, a panel reads `activeComponent()?.meta.api` (`ComponentApi`, experimental until 23.0.0), which is absent on a component that a hook built from scratch.
 
 ### `controls`
 

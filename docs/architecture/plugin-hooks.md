@@ -68,6 +68,8 @@ onComponentScanned(component) {
 
 **Chaining:** When plugin A and plugin B both implement `onComponentScanned`, the `ScannedComponent` passed to plugin B is the (possibly modified) output from plugin A.
 
+`component.api` (since `22.7.0`) is experimental until 23.0.0: its shape may change in a 22.x minor release, and a component that another hook built from scratch has none. `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Add your own data to `component.meta`, and read `component.api` knowing it can change.
+
 **Typical uses:**
 
 - Extract JSDoc from `component.filePath` using `ts.createSourceFile()` (JSDoc plugin)
