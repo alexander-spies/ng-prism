@@ -87,7 +87,7 @@ export class BadgeComponent {
     /** Text inside the badge. A count works too, passed as a string. */
     readonly text = input.required<string>();
 
-    /** Semantic colour of the badge, see `BadgeVariantType`. */
+    /** Semantic colour of the badge, see {@link BadgeVariantType}. */
     readonly variant = input<BadgeVariantType>('default');
 
     protected readonly ariaLabel = computed(() => `${this.variant()} badge: ${this.text()}`);

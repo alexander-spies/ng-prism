@@ -62,7 +62,7 @@ export class TooltipDirective implements OnDestroy {
     /** Text of the tooltip, set through the directive's own attribute. */
     readonly libTooltip = input.required<string>();
 
-    /** Side of the host the tooltip appears on, see `TooltipDirectivePositionType`. */
+    /** Side of the host the tooltip appears on, see {@link TooltipDirectivePositionType}. */
     readonly tooltipPosition = input<TooltipDirectivePositionType>('top');
 
     private readonly el = inject(ElementRef);

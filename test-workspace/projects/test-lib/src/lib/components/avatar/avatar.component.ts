@@ -109,7 +109,7 @@ export class AvatarComponent {
     /** Full name of the person: the source of the initials and the image's `alt` text. */
     readonly name = input<string>('');
 
-    /** Diameter of the avatar, see `AvatarSizeType`. */
+    /** Diameter of the avatar, see {@link AvatarSizeType}. */
     readonly size = input<AvatarSizeType>('md');
 
     protected readonly initials = computed(() => {

@@ -142,7 +142,7 @@ export type AlertSeverityType = 'info' | 'success' | 'warning' | 'error';
     `
 })
 export class AlertComponent {
-    /** Severity of the message, see `AlertSeverityType`. Sets the background and the accent border. */
+    /** Severity of the message, see {@link AlertSeverityType}. Sets the background and the accent border. */
     readonly severity = input<AlertSeverityType>('info');
 
     /** The message itself, as plain text. */

@@ -92,7 +92,7 @@ export type SpinnerSizeType = 'sm' | 'md' | 'lg';
     `
 })
 export class SpinnerComponent {
-    /** Diameter of the spinner, see `SpinnerSizeType`. */
+    /** Diameter of the spinner, see {@link SpinnerSizeType}. */
     readonly size = input<SpinnerSizeType>('md');
 
     /** Text next to the spinner. Left out when empty. */

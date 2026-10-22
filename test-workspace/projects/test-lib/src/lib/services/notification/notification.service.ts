@@ -13,7 +13,7 @@ interface OpenNotification {
  * Shows short messages in an overlay at the edge of the viewport, stacked newest first.
  *
  * - A notification closes after the configured duration (5000 ms by default), see `provideNotifications()`.
- * - `show()` returns a `NotificationRef`, so the caller can close that one notification early.
+ * - `show()` returns a {@link NotificationRef}, so the caller can close that one notification early.
  * - `dismissAll()` closes every open notification at once.
  *
  * @since 1.4.0
