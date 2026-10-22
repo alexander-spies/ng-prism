@@ -1,56 +1,54 @@
 @if (coverage()?.found) {
     <div class="cov-body">
-        <div class="cov-summary">
-            @for (stat of summaryStats(); track stat.label) {
-                <div class="cov-stat">
-                    <div class="cov-stat-k">{{ stat.label }}</div>
-                    <div class="cov-stat-v">{{ stat.pct }}<small>%</small></div>
-                    <div class="cov-bar">
-                        <div
-                            class="cov-bar-fill"
-                            [style.width.%]="stat.pct"></div>
-                    </div>
+        @for (stat of summaryStats(); track stat.label) {
+            <prism-metric-card
+                unit="%"
+                [label]="stat.label"
+                [value]="'' + stat.pct"
+                [tone]="stat.tone"
+                [statusLabel]="stat.statusLabel"
+                [fraction]="stat.pct / 100"
+                [threshold]="stat.threshold / 100"
+                [title]="stat.title" />
+        }
+    </div>
+
+    @if (files().length) {
+        <div class="cov-files">
+            <div class="cov-file cov-file--header">
+                <span>File</span>
+                <span>Lines</span>
+                <span>Branch</span>
+                <span>Func</span>
+                <span>Stmt</span>
+            </div>
+            @for (file of files(); track file.path) {
+                <div class="cov-file">
+                    <span class="cov-file-name">{{ fileName(file.path) }}</span>
+                    <span
+                        class="cov-file-val"
+                        [class.bad]="file.lines.pct < thresholds().lines"
+                        >{{ file.lines.pct }}%</span
+                    >
+                    <span
+                        class="cov-file-val"
+                        [class.bad]="file.branches.pct < thresholds().branches"
+                        >{{ file.branches.pct }}%</span
+                    >
+                    <span
+                        class="cov-file-val"
+                        [class.bad]="file.functions.pct < thresholds().functions"
+                        >{{ file.functions.pct }}%</span
+                    >
+                    <span
+                        class="cov-file-val"
+                        [class.bad]="file.statements.pct < thresholds().statements"
+                        >{{ file.statements.pct }}%</span
+                    >
                 </div>
             }
         </div>
-
-        @if (files().length) {
-            <div class="cov-files">
-                <div class="cov-file cov-file--header">
-                    <span>File</span>
-                    <span>Lines</span>
-                    <span>Branch</span>
-                    <span>Func</span>
-                    <span>Stmt</span>
-                </div>
-                @for (file of files(); track file.path) {
-                    <div class="cov-file">
-                        <span class="cov-file-name">{{ fileName(file.path) }}</span>
-                        <span
-                            class="cov-file-val"
-                            [class.bad]="file.lines.pct < thresholds().lines"
-                            >{{ file.lines.pct }}%</span
-                        >
-                        <span
-                            class="cov-file-val"
-                            [class.bad]="file.branches.pct < thresholds().branches"
-                            >{{ file.branches.pct }}%</span
-                        >
-                        <span
-                            class="cov-file-val"
-                            [class.bad]="file.functions.pct < thresholds().functions"
-                            >{{ file.functions.pct }}%</span
-                        >
-                        <span
-                            class="cov-file-val"
-                            [class.bad]="file.statements.pct < thresholds().statements"
-                            >{{ file.statements.pct }}%</span
-                        >
-                    </div>
-                }
-            </div>
-        }
-    </div>
+    }
 } @else {
     <div class="cov-empty">
         <p>No coverage data. Run tests with coverage enabled.</p>
