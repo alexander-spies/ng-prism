@@ -1,5 +1,5 @@
 import type { ScannedComponent } from '@ng-prism/core/plugin';
-import { joinUsageBlocks } from './service-usage.js';
+import { importLines, joinUsageBlocks } from './service-usage.js';
 
 /** Elements that have no closing tag. */
 const VOID_ELEMENTS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
@@ -20,21 +20,10 @@ export function generateComponentUsage(component: ScannedComponent): string {
     const hostImport = host && typeof host !== 'string' ? host.import : undefined;
 
     return joinUsageBlocks([
-        importLines(component, hostImport),
+        importLines(component, hostImport ? [hostImport] : []),
         ['// in the component that uses it', `@Component({ imports: [${[className, hostImport?.name].filter(Boolean).join(', ')}], … })`],
         ['// in its template', templateLine(component, host)]
     ]);
-}
-
-/** One line per entry point, the class first. A class the scanner could not place has no import path: there is nothing true to write for it. */
-function importLines({ className, importPath }: ScannedComponent, hostImport: { name: string; from: string } | undefined): string[] {
-    const groups = new Map<string, string[]>();
-    const add = (path: string, name: string) => groups.set(path, [...(groups.get(path) ?? []), name]);
-
-    if (importPath) add(importPath, className);
-    if (hostImport) add(hostImport.from, hostImport.name);
-
-    return [...groups].map(([path, names]) => `import { ${names.join(', ')} } from '${path}';`);
 }
 
 function templateLine({ inputs, componentMeta }: ScannedComponent, host: ScannedComponent['showcaseConfig']['host']): string {

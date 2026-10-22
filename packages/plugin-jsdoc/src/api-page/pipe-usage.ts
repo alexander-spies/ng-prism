@@ -1,5 +1,5 @@
 import type { ApiMethod, ScannedPipe } from '@ng-prism/core/plugin';
-import { importLines, joinUsageBlocks, setupBlock } from './service-usage.js';
+import { importLines, joinUsageBlocks, setupBlock, setupImports } from './service-usage.js';
 
 /**
  * The snippet that shows how to use a pipe: the imports, the `providers`
@@ -16,7 +16,7 @@ export function generatePipeUsage(pipe: ScannedPipe): string {
     const signature = api.transform.find((method) => !method.tags.deprecated) ?? api.transform[0];
 
     return joinUsageBlocks([
-        importLines(pipe),
+        importLines(pipe, setupImports(api.setup)),
         setupBlock(api.setup),
         ['// in the component that uses it', `@Component({ imports: [${className}], … })`],
         ['// in its template', `{{ value | ${pipeName}${pipeArguments(signature)} }}`]
