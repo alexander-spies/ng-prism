@@ -52,3 +52,6 @@ export { enablePrismHmr } from './hmr.js';
 // public API decision.
 export { PrismMetricBadgeComponent } from './shared/prism-metric-badge.component.js';
 export { PrismIconComponent } from './icons/prism-icon.component.js';
+export { PrismBadgeComponent } from './shared/prism-badge.component.js';
+export { toneForStatus } from './shared/badge.types.js';
+export type { BadgeTone, StatusTone } from './shared/badge.types.js';
