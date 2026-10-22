@@ -46,7 +46,15 @@ export class NotificationService {
      * @param options What the notification shows and how long it stays.
      * @returns A handle to close this notification early.
      */
-    show(options: NotificationOptions): NotificationRef {
+    show(options: NotificationOptions): NotificationRef;
+    /**
+     * Opens a notification with only a message, for the app-wide duration.
+     * @param message Text of the notification.
+     * @returns A handle to close this notification early.
+     */
+    show(message: string): NotificationRef;
+    show(optionsOrMessage: NotificationOptions | string): NotificationRef {
+        const options = typeof optionsOrMessage === 'string' ? { message: optionsOrMessage } : optionsOrMessage;
         const id = this.nextId++;
 
         this.open.update((open) => [{ id, options }, ...open]);
