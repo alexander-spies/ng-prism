@@ -157,6 +157,18 @@ export function scanComponents(
             notify(describeUnreadableBase(className, base));
         }
 
+        // The API only feeds the API page, which has a fallback for a component without one: a class the extractor
+        // cannot read must not take the scan down. A notice, not a diagnostic, so strictShowcase does not fail over it.
+        let api: ScannedComponent['api'];
+
+        try {
+            api = extractComponentApi(classDecl, inputs, outputs, hierarchy, checker, exportIndex);
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+
+            notify(`${className}: could not read its API for the API page (${reason}); the page falls back to its inputs and outputs.`);
+        }
+
         components.push({
             className,
             filePath,
@@ -168,7 +180,7 @@ export function scanComponents(
             baseClasses: hierarchy.classes
                 .slice(1)
                 .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : [])),
-            api: extractComponentApi(classDecl, inputs, outputs, hierarchy, checker, exportIndex)
+            api
         });
     }
 

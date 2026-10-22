@@ -1,9 +1,17 @@
 import path from 'node:path';
 import ts from 'typescript';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
+import { extractComponentApi } from './api/component-api.extractor.js';
 import { buildExportIndex } from './api/export-index.js';
 import { scanComponents } from './component.scanner.js';
 import { type ResolvedEntryPoint, resolveEntryPointExports } from './entry-point.scanner.js';
+
+// The real extractor with a seam: a test makes it throw for one class and leaves the others alone.
+jest.mock('./api/component-api.extractor.js', () => {
+    const actual = jest.requireActual('./api/component-api.extractor.js');
+
+    return { ...actual, extractComponentApi: jest.fn(actual.extractComponentApi) };
+});
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
 
@@ -959,5 +967,57 @@ describe('scanComponents with an export index', () => {
         expect(indexed.api!.inputTypes['items']).toEqual({ text: 'FixtureTab[]', links: ['FixtureTab'] });
         expect(plain.api!.types).toEqual([]);
         expect(plain.api!.inputTypes['items']).toEqual({ text: 'FixtureTab[]' });
+    });
+});
+
+describe('scanComponents when the API of a component cannot be read', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+    const extract = jest.mocked(extractComponentApi);
+    const realExtract = extract.getMockImplementation()!;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'component-api', 'component-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture/components' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        extract.mockImplementation((classDecl, ...rest) => {
+            if (classDecl.name?.text === 'FixtureTabsComponent') throw new Error('boom');
+            return realExtract(classDecl, ...rest);
+        });
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+        extract.mockImplementation(realExtract);
+    });
+
+    it('keeps scanning the component, without an API, and the others with theirs', () => {
+        const components = scanComponents(exports, checker);
+        const tabs = components.find((c) => c.className === 'FixtureTabsComponent')!;
+
+        expect(tabs).toBeDefined();
+        expect(tabs.api).toBeUndefined();
+        expect(tabs.inputs.map((i) => i.name)).toContain('items');
+        expect(components.filter((c) => c !== tabs).every((c) => c.api !== undefined)).toBe(true);
+    });
+
+    it('says so once, however often the component is scanned, and does not count it as a diagnostic', () => {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+
+        scanComponents(exports, checker, diagnostics, notices);
+        scanComponents(exports, checker, diagnostics, notices);
+
+        const messages = warnSpy.mock.calls.map((call) => String(call[0])).filter((message) => message.includes('FixtureTabsComponent'));
+
+        expect(messages).toEqual(['⚠ ng-prism: FixtureTabsComponent: could not read its API for the API page (boom); the page falls back to its inputs and outputs.']);
+        expect(diagnostics).toEqual([]);
     });
 });
