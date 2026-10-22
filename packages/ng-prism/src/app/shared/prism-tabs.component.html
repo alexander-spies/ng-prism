@@ -11,7 +11,7 @@
             class="prism-tab"
             [class.prism-tab--active]="item.id === active()"
             [attr.aria-selected]="item.id === active()"
-            [attr.tabindex]="item.id === active() ? 0 : -1"
+            [attr.tabindex]="$index === tabStop() ? 0 : -1"
             [attr.aria-controls]="panelId(item)"
             [attr.aria-label]="accessibleName(item)"
             [attr.title]="item.title ?? null"

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, input, model, viewChildren } from '@angular/core';
-import { nextRovingIndex } from './roving-focus.js';
+import { nextRovingIndex, rovingTabStop } from './roving-focus.js';
 
 export interface PrismSegmentOption<T extends string = string> {
     value: T;
@@ -46,9 +46,14 @@ export class PrismSegmentedComponent<T extends string = string> {
         this.segments()[next]?.nativeElement.focus();
     }
 
-    protected isFocusable(option: PrismSegmentOption<T>, index: number): boolean {
-        const value = this.value();
-
-        return value === null ? index === 0 : option.value === value;
+    /** The segment in the tab order: the chosen one, or the first when the value matches none. */
+    protected isFocusable(index: number): boolean {
+        return (
+            index ===
+            rovingTabStop(
+                this.options().map((option) => option.value),
+                this.value()
+            )
+        );
     }
 }

@@ -11,7 +11,7 @@
             class="prism-segment"
             [class.prism-segment--on]="option.value === value()"
             [attr.aria-checked]="option.value === value()"
-            [attr.tabindex]="isFocusable(option, i) ? 0 : -1"
+            [attr.tabindex]="isFocusable(i) ? 0 : -1"
             [attr.title]="option.title ?? null"
             (click)="choose(option)">
             {{ option.label }}

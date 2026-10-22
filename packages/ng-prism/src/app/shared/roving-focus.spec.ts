@@ -1,4 +1,4 @@
-import { nextRovingIndex } from './roving-focus.js';
+import { nextRovingIndex, rovingTabStop } from './roving-focus.js';
 
 describe('nextRovingIndex', () => {
     it.each([
@@ -20,5 +20,22 @@ describe('nextRovingIndex', () => {
 
     it('has nowhere to go without items', () => {
         expect(nextRovingIndex(0, 'ArrowRight', 0)).toBeNull();
+    });
+});
+
+describe('rovingTabStop', () => {
+    it('should put the tab stop on the active item', () => {
+        expect(rovingTabStop(['a', 'b', 'c'], 'b')).toBe(1);
+    });
+
+    // Regression: the active panel can be filtered out (Figma, VRT), and the
+    // tab bar then had no tab in the tab order at all.
+    it('should fall back to the first item when nothing matches', () => {
+        expect(rovingTabStop(['a', 'b'], 'gone')).toBe(0);
+        expect(rovingTabStop(['a', 'b'], null)).toBe(0);
+    });
+
+    it('should have no tab stop without items', () => {
+        expect(rovingTabStop([], 'a')).toBe(-1);
     });
 });

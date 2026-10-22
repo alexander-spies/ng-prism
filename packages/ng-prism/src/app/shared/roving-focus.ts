@@ -20,3 +20,15 @@ export function nextRovingIndex(current: number, key: string, count: number): nu
             return null;
     }
 }
+
+/**
+ * The one item of a roving group that is in the tab order: the active one, or
+ * the first when nothing matches (the active panel was filtered out, or no
+ * value is set), so the group can always be reached. `-1` for an empty group.
+ */
+export function rovingTabStop<T>(values: readonly T[], active: T | null): number {
+    if (values.length === 0) return -1;
+    const index = active === null ? -1 : values.indexOf(active);
+
+    return index < 0 ? 0 : index;
+}

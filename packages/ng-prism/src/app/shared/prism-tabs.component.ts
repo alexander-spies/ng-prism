@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, effect, ElementRef, input, model, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, model, viewChildren } from '@angular/core';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import type { BadgeTone } from './badge.types.js';
-import { nextRovingIndex } from './roving-focus.js';
+import { nextRovingIndex, rovingTabStop } from './roving-focus.js';
 
 /** A tab's badge: `count` is a plain quantity, `issues` a number of open findings. */
 export interface PrismTabBadge {
@@ -46,6 +46,14 @@ export class PrismTabsComponent {
     readonly panelIdPrefix = input<string | null>(null);
 
     private readonly tabs = viewChildren<ElementRef<HTMLButtonElement>>('tab');
+
+    /** The tab in the tab order: the active one, or the first when the active id matches none. */
+    protected readonly tabStop = computed(() =>
+        rovingTabStop(
+            this.items().map((item) => item.id),
+            this.active()
+        )
+    );
 
     constructor() {
         effect(() => {
