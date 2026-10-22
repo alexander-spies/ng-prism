@@ -27,12 +27,6 @@
     min-height: 0;
 }
 
-.vrt__summary {
-    flex: none;
-    padding: 12px 12px 11px 16px;
-    border-bottom: 1px solid var(--prism-border);
-}
-
 .vrt__list {
     flex: 1;
     min-height: 0;
@@ -56,9 +50,9 @@
    way, which is what keeps the two from jumping as groups appear. */
 .vrt__group {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     width: 100%;
     padding: 10px 8px 6px;
     margin: 0;
@@ -78,109 +72,21 @@
 }
 
 .vrt__group-label {
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    color: var(--prism-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--prism-text-2);
     transition: color var(--dur-fast);
 }
 
 .vrt__caret {
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     transition: transform var(--dur-fast) var(--ease-default);
 }
 
 .vrt__caret--open {
     transform: rotate(90deg);
-}
-
-/* Same card-with-severity-edge as the a11y violations list, so the two
-   panels read as one product. */
-.vrt__row {
-    display: grid;
-    grid-template-areas: 'name diff' 'status diff';
-    grid-template-columns: 1fr auto;
-    gap: 0 10px;
-    align-items: center;
-    width: 100%;
-    padding: 8px 11px;
-    font: inherit;
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-    background: var(--prism-bg-surface);
-    border: 1px solid var(--prism-border);
-    border-left: 3px solid var(--tone-color, var(--prism-border-strong));
-    border-radius: var(--radius-md);
-    transition:
-        border-color var(--dur-fast),
-        background var(--dur-fast);
-}
-
-.vrt__row:hover {
-    border-color: var(--prism-border-strong);
-    border-left-color: var(--tone-color, var(--prism-border-strong));
-}
-
-.vrt__row--active {
-    background: color-mix(in srgb, var(--prism-primary) 10%, var(--prism-bg-surface));
-    border-color: color-mix(in srgb, var(--prism-primary) 40%, transparent);
-    border-left-color: var(--tone-color, var(--prism-primary));
-}
-
-.vrt__name {
-    grid-area: name;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: var(--fs-md);
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.vrt__status {
-    grid-area: status;
-    justify-self: start;
-    padding: 2px 6px;
-    margin-top: 3px;
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    font-weight: 700;
-    color: var(--tone-color);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: color-mix(in srgb, var(--tone-color) 15%, transparent);
-    border-radius: var(--radius-xs);
-}
-
-.vrt__diff {
-    grid-area: diff;
-    font-family: var(--font-mono);
-    font-size: var(--fs-sm);
-    color: var(--prism-text-muted);
-    white-space: nowrap;
-}
-
-[data-tone='success'] {
-    --tone-color: var(--prism-success);
-}
-
-[data-tone='danger'] {
-    --tone-color: var(--prism-danger);
-}
-
-[data-tone='warn'] {
-    --tone-color: var(--prism-warn);
-}
-
-[data-tone='neutral'] {
-    --tone-color: var(--prism-primary);
-}
-
-[data-tone='muted'] {
-    --tone-color: var(--prism-text-muted);
 }
 
 .vrt__viewer {

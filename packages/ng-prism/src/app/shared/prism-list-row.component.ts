@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core';
 
 /**
  * A row in a panel list: badge, title and description, meta on the right.
@@ -30,8 +30,8 @@ import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@
     }
 })
 export class PrismListRowComponent {
-    readonly selected = input(false);
-    readonly interactive = input(false);
+    readonly selected = input(false, { transform: booleanAttribute });
+    readonly interactive = input(false, { transform: booleanAttribute });
 
     private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 

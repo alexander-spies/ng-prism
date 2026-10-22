@@ -297,3 +297,28 @@ export function statSummary(summary: VrtSummary): VrtStat {
         label: `Visual regression: ${value} max diff`
     };
 }
+
+const BADGE_TONE: Record<VrtTone, 'success' | 'danger' | 'warn' | 'primary' | 'neutral'> = {
+    success: 'success',
+    danger: 'danger',
+    warn: 'warn',
+    // A variant without a baseline is news, not a failure: the primary tone.
+    neutral: 'primary',
+    muted: 'neutral'
+};
+
+/** A row's badge: the status as a word, in the badge tone of its colour role. */
+export function statusBadge(status: VrtStatus): { label: string; tone: 'success' | 'danger' | 'warn' | 'primary' | 'neutral' } {
+    return { label: STATUS_LABEL[status], tone: BADGE_TONE[STATUS_TONE[status]] };
+}
+
+/**
+ * The breakdown the list headings carry as their tooltip: every status with its
+ * count, in display order, and the largest diff. Replaces the segment bar.
+ */
+export function summaryTitle(summary: VrtSummary): string {
+    const parts = summarySegments(summary).map((s) => `${s.count} ${s.label.toLowerCase()}`);
+
+    if (summary.maxDiffRatio !== null) parts.push(`max diff ${formatPercent(summary.maxDiffRatio)}`);
+    return parts.join(' · ');
+}

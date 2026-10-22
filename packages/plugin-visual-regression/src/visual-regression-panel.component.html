@@ -2,48 +2,47 @@
     @if (m.found) {
         <div class="vrt">
             <div class="vrt__aside">
-                <div class="vrt__summary">
-                    <prism-vrt-summary [summary]="summary()" />
-                </div>
-
                 <div class="vrt__list">
                     @for (group of groups(); track group.key) {
                         @if (group.collapsible) {
                             <button
                                 type="button"
                                 class="vrt__group vrt__group--toggle"
+                                [title]="breakdown()"
                                 [attr.aria-expanded]="isExpanded(group.key)"
                                 (click)="toggleGroup(group.key)">
-                                <span class="vrt__group-label">{{ group.label }} · {{ group.count }}</span>
                                 <span
                                     class="vrt__caret"
                                     [class.vrt__caret--open]="isExpanded(group.key)"
                                     aria-hidden="true"
-                                    >&#9654;</span
+                                    >▸</span
                                 >
+                                <span class="vrt__group-label">{{ group.label }} · {{ group.count }}</span>
                             </button>
                         } @else {
-                            <p class="vrt__group">
+                            <p
+                                class="vrt__group"
+                                [title]="breakdown()">
                                 <span class="vrt__group-label">{{ group.label }} · {{ group.count }}</span>
                             </p>
                         }
                         @if (!group.collapsible || isExpanded(group.key)) {
-                            <ul class="vrt__rows">
+                            <div class="vrt__rows">
                                 @for (row of group.rows; track row.key) {
-                                    <li>
-                                        <button
-                                            type="button"
-                                            class="vrt__row"
-                                            [attr.data-tone]="row.tone"
-                                            [class.vrt__row--active]="row.variant === selected()"
-                                            (click)="selectedKey.set(row.key)">
-                                            <span class="vrt__name">{{ row.label }}</span>
-                                            <span class="vrt__status">{{ row.statusLabel }}</span>
-                                            <span class="vrt__diff">{{ row.diffLabel }}</span>
-                                        </button>
-                                    </li>
+                                    <prism-list-row
+                                        interactive
+                                        [selected]="row.variant === selected()"
+                                        (click)="selectedKey.set(row.key)">
+                                        <prism-badge
+                                            rowBadge
+                                            size="sm"
+                                            [tone]="row.badge.tone"
+                                            [label]="row.badge.label" />
+                                        <span rowTitle>{{ row.label }}</span>
+                                        <span rowMeta>{{ row.diffLabel }}</span>
+                                    </prism-list-row>
                                 }
-                            </ul>
+                            </div>
                         }
                     }
                 </div>
