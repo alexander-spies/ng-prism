@@ -5,68 +5,63 @@
 <div
     class="prism-toolrail"
     [class.has-rulers]="canvas.rulers()">
-    <span class="prism-toolrail__zoom">
-        {{ Math.round(canvas.zoom() * 100) }}%
-        @if (canvas.viewportWidth() !== null) {
-            <span class="prism-toolrail__vp">{{ canvas.viewportWidth() }}px</span>
-        }
-    </span>
+    <span
+        class="prism-toolrail__zoom"
+        [attr.title]="zoomTitle()"
+        >{{ Math.round(canvas.zoom() * 100) }}%</span
+    >
 
     <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.guides()"
+        prismIconButton
+        size="xs"
+        [pressed]="canvas.guides()"
         (click)="canvas.toggleGuides()"
-        title="Toggle guides"
-        aria-label="Toggle guides"
-        [attr.aria-pressed]="canvas.guides()">
+        [title]="railTitle('Guides', canvas.guides())"
+        aria-label="Guides">
         <prism-icon
             name="crosshair"
             [size]="14" />
     </button>
 
     <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.rulers()"
+        prismIconButton
+        size="xs"
+        [pressed]="canvas.rulers()"
         (click)="canvas.toggleRulers()"
-        title="Toggle rulers"
-        aria-label="Toggle rulers"
-        [attr.aria-pressed]="canvas.rulers()">
+        [title]="railTitle('Rulers', canvas.rulers())"
+        aria-label="Rulers">
         <prism-icon
             name="move"
             [size]="14" />
     </button>
 
     <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.viewportWidth() !== null"
+        prismIconButton
+        size="xs"
+        [pressed]="canvas.viewportWidth() !== null"
         (click)="canvas.toggleViewport()"
-        title="Toggle viewport width"
-        aria-label="Toggle viewport width"
-        [attr.aria-pressed]="canvas.viewportWidth() !== null">
+        [title]="railTitle('Viewport width', canvas.viewportWidth() !== null)"
+        aria-label="Viewport width">
         <prism-icon
             name="ruler-dimension"
             [size]="14" />
     </button>
 
     <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.measure()"
+        prismIconButton
+        size="xs"
+        [pressed]="canvas.measure()"
         (click)="canvas.toggleMeasure()"
-        title="Toggle measure tool"
-        aria-label="Toggle measure tool"
-        [attr.aria-pressed]="canvas.measure()">
+        [title]="railTitle('Measure', canvas.measure())"
+        aria-label="Measure">
         <prism-icon
             name="ruler"
             [size]="14" />
     </button>
 
     <button
-        type="button"
-        class="prism-toolrail__btn"
+        prismIconButton
+        size="xs"
         popovertarget="prism-tools"
         title="Canvas, state, zoom and width"
         aria-label="Canvas, state, zoom and width">
@@ -78,11 +73,11 @@
     <span class="prism-toolrail__sep"></span>
 
     <button
-        type="button"
-        class="prism-toolrail__btn"
+        prismIconButton
+        size="xs"
         popovertarget="prism-template"
-        title="Toggle Angular template"
-        aria-label="Toggle Angular template">
+        title="Angular template"
+        aria-label="Angular template">
         <prism-icon
             name="code"
             [size]="14" />

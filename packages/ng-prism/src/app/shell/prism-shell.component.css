@@ -111,6 +111,15 @@
    stage, they float over it from a rail absolutely positioned against
    this element. The position: relative below is what anchors it. */
 .prism-canvas-wrap {
+    /* Overlay colours on the canvas. These defaults follow the theme; the
+       shell overrides them inline on the two absolute grounds. */
+    --prism-canvas-overlay-bg: var(--prism-bg-elevated);
+    --prism-canvas-overlay-fg: var(--prism-text);
+    --prism-canvas-overlay-muted: var(--prism-text-2);
+    --prism-canvas-overlay-border: var(--prism-border-strong);
+    --prism-canvas-overlay-primary: var(--prism-primary);
+    --prism-canvas-overlay-active: var(--prism-primary-bg);
+
     position: relative;
     display: grid;
     flex: 1;

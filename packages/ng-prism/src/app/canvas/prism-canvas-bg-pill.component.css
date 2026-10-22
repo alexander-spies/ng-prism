@@ -22,10 +22,10 @@
     padding: 4px 4px 4px 10px;
     font-family: var(--font-sans);
     font-size: var(--fs-xs);
-    color: var(--prism-text-muted);
+    color: var(--prism-canvas-overlay-muted);
     pointer-events: auto;
-    background: color-mix(in srgb, var(--prism-bg-elevated) 90%, transparent);
-    border: 1px solid var(--prism-border);
+    background: color-mix(in srgb, var(--prism-canvas-overlay-bg) 92%, transparent);
+    border: 1px solid var(--prism-canvas-overlay-border);
     border-radius: 999px;
     backdrop-filter: blur(8px);
     animation: fade-in var(--dur-base) ease-out;
@@ -41,16 +41,16 @@
     font-family: inherit;
     font-size: inherit;
     font-weight: 500;
-    color: var(--prism-text);
+    color: var(--prism-canvas-overlay-fg);
     cursor: pointer;
-    background: color-mix(in srgb, var(--prism-primary) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--prism-primary) 25%, transparent);
+    background: var(--prism-canvas-overlay-active);
+    border: 1px solid color-mix(in srgb, var(--prism-canvas-overlay-primary) 45%, transparent);
     border-radius: 999px;
     transition: background var(--dur-fast);
 }
 
 .reset:hover {
-    background: color-mix(in srgb, var(--prism-primary) 20%, transparent);
+    background: color-mix(in srgb, var(--prism-canvas-overlay-primary) 22%, transparent);
 }
 
 @keyframes fade-in {

@@ -43,7 +43,9 @@
                     @if (layout.toolbarVisible()) {
                         <prism-variant-ribbon />
                     }
-                    <div class="prism-canvas-wrap">
+                    <div
+                        class="prism-canvas-wrap"
+                        [style]="overlayTokens()">
                         <prism-canvas-toolbar />
                         <prism-renderer />
                         <prism-template-popover />

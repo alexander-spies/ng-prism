@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, ElementRef, inject, viewChild } from '@angular/core';
 import { PrismCanvasService } from '../services/prism-canvas.service.js';
 import { PrismThemeService } from '../services/prism-theme.service.js';
+import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 
 const R = 20;
 
@@ -20,6 +21,8 @@ export class PrismCanvasRulersComponent {
 
     protected readonly canvas = inject(PrismCanvasService);
     private readonly themeService = inject(PrismThemeService);
+    private readonly variantBg = inject(PrismVariantBgService);
+    private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
     private readonly rulerTop = viewChild<ElementRef<HTMLCanvasElement>>('rulerTop');
     private readonly rulerLeft = viewChild<ElementRef<HTMLCanvasElement>>('rulerLeft');
@@ -32,6 +35,8 @@ export class PrismCanvasRulersComponent {
             const zoom = this.canvas.zoom();
 
             this.themeService.theme();
+            // The rulers sit on the canvas, so they follow its ground, not the theme.
+            this.variantBg.effective();
 
             if (!show) {
                 this.ro?.disconnect();
@@ -82,10 +87,10 @@ export class PrismCanvasRulersComponent {
 
         ctx.scale(dpr, dpr);
 
-        const cs = getComputedStyle(document.documentElement);
-        const bg = cs.getPropertyValue('--prism-bg').trim() || '#080d19';
-        const fg = cs.getPropertyValue('--prism-text-muted').trim() || '#94a3b8';
-        const border = cs.getPropertyValue('--prism-border').trim() || 'rgba(255,255,255,0.08)';
+        const cs = getComputedStyle(this.host.nativeElement);
+        const bg = cs.getPropertyValue('--prism-canvas-overlay-bg').trim() || '#1a2335';
+        const fg = cs.getPropertyValue('--prism-canvas-overlay-muted').trim() || '#cbd5e1';
+        const border = cs.getPropertyValue('--prism-border').trim() || '#1f2b3e';
 
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, w, h);
@@ -146,10 +151,10 @@ export class PrismCanvasRulersComponent {
 
         ctx.scale(dpr, dpr);
 
-        const cs = getComputedStyle(document.documentElement);
-        const bg = cs.getPropertyValue('--prism-bg').trim() || '#080d19';
-        const fg = cs.getPropertyValue('--prism-text-muted').trim() || '#94a3b8';
-        const border = cs.getPropertyValue('--prism-border').trim() || 'rgba(255,255,255,0.08)';
+        const cs = getComputedStyle(this.host.nativeElement);
+        const bg = cs.getPropertyValue('--prism-canvas-overlay-bg').trim() || '#1a2335';
+        const fg = cs.getPropertyValue('--prism-canvas-overlay-muted').trim() || '#cbd5e1';
+        const border = cs.getPropertyValue('--prism-border').trim() || '#1f2b3e';
 
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, w, h);
