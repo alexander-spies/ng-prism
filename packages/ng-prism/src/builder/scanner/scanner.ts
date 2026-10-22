@@ -3,7 +3,7 @@ import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
 import { buildExportIndex } from './api/export-index.js';
-import { scanComponents } from './component.scanner.js';
+import { findShowcasedClasses, scanComponents } from './component.scanner.js';
 import { type EntryPointInput, resolveEntryPointExports } from './entry-point.scanner.js';
 import { scanPipes } from './pipe.scanner.js';
 import { scanServices } from './service.scanner.js';
@@ -14,17 +14,35 @@ export interface CreateScannerOptions {
     compilerOptions?: ts.CompilerOptions;
 }
 
+/**
+ * What the scan reads beyond the components, each `true` when not given. The
+ * build reads only what a plugin in the config uses: services and pipes are
+ * then only counted, and components come without `api`.
+ */
+export interface ScanOptions {
+    /** {@link ScannedComponent.api}, read for a plugin with `componentApi`. */
+    componentApi?: boolean;
+    /** Services, read for a plugin with a view panel that applies to them. */
+    services?: boolean;
+    /** Pipes, read for a plugin with a view panel that applies to them. */
+    pipes?: boolean;
+}
+
 export interface ScanResult {
     components: ScannedComponent[];
+    /** Empty when {@link ScanOptions.services} is `false`. */
     services: ScannedService[];
+    /** Empty when {@link ScanOptions.pipes} is `false`. */
     pipes: ScannedPipe[];
+    /** The showcased services and pipes the options left unread, counted once each however many entry points export them. */
+    unread: { services: number; pipes: number };
     /** One message per @Showcase value the scan had to drop, already printed as a warning. */
     diagnostics: string[];
 }
 
 export interface Scanner {
     /** Scan all entry points. Reuses TypeScript program state from previous scans. */
-    scan(): ScanResult;
+    scan(options?: ScanOptions): ScanResult;
 }
 
 const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
@@ -61,7 +79,7 @@ export function createScanner(options: CreateScannerOptions): Scanner {
     let previousProgram: ts.Program | undefined;
 
     return {
-        scan(): ScanResult {
+        scan({ componentApi = true, services: readServices = true, pipes: readPipes = true }: ScanOptions = {}): ScanResult {
             const { program, entries } = resolveEntryPointExports(options.entryPoints, compilerOptions, previousProgram, sourceFiles.host);
 
             previousProgram = program;
@@ -71,17 +89,26 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             const allComponents: ScannedComponent[] = [];
             const allServices: ScannedService[] = [];
             const allPipes: ScannedPipe[] = [];
+            const unreadServices = new Set<ts.ClassDeclaration>();
+            const unreadPipes = new Set<ts.ClassDeclaration>();
             const diagnostics: string[] = [];
             const notices = new Set<string>();
             // A setup function or a type is often exported by another entry point than the component, service or pipe that names it.
             const exportIndex = buildExportIndex(entries, checker);
+            const context = { exportIndex, diagnostics, notices };
 
             const fromPrimary = new Set<object>();
 
             for (const { exports, importPath, primary } of entries) {
-                const components = scanComponents(exports, checker, diagnostics, notices, exportIndex);
-                const services = scanServices(exports, checker, { exportIndex, diagnostics, notices });
-                const pipes = scanPipes(exports, checker, { exportIndex, diagnostics, notices });
+                const showcased = findShowcasedClasses(exports, checker);
+                const components = scanComponents(showcased, checker, { ...context, api: componentApi });
+                const services = readServices ? scanServices(showcased, checker, context) : [];
+                const pipes = readPipes ? scanPipes(showcased, checker, context) : [];
+
+                for (const { classDecl, kind } of showcased) {
+                    if (!readServices && kind.kind === 'service') unreadServices.add(classDecl);
+                    if (!readPipes && kind.kind === 'pipe') unreadPipes.add(classDecl);
+                }
 
                 for (const c of components) c.importPath = importPath;
                 if (primary) {
@@ -96,6 +123,7 @@ export function createScanner(options: CreateScannerOptions): Scanner {
                 components: dedupe(allComponents, fromPrimary),
                 services: dedupe(allServices, fromPrimary),
                 pipes: dedupe(allPipes, fromPrimary),
+                unread: { services: unreadServices.size, pipes: unreadPipes.size },
                 diagnostics
             };
         }

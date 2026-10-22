@@ -1,12 +1,12 @@
 import ts from 'typescript';
 import type { ScannedPipe } from '../../plugin/pipe.types.js';
-import { classifyShowcaseClass, readPipeOptions } from './api/angular-decorators.js';
+import { readPipeOptions } from './api/angular-decorators.js';
 import type { ExportIndex } from './api/export-index.js';
 import { extractPipeApi } from './api/pipe-api.extractor.js';
 import { readSetupRefs } from './api/setup.reader.js';
-import { createReporters, extractShowcaseConfig, findShowcasedClass } from './component.scanner.js';
+import { createReporters, extractShowcaseConfig, type ShowcasedClass } from './component.scanner.js';
 import { pickServiceFields } from './service.scanner.js';
-import { describePipeNameUnreadable, describePipeNotStandalone } from './showcase-diagnostics.js';
+import { describePipeNameUnreadable, describePipeNotStandalone, describeUnreadableApi } from './showcase-diagnostics.js';
 
 export interface ScanPipesOptions {
     /** Built from every entry point of the library, since a setup function or a type is often exported by another one than the pipe. */
@@ -17,7 +17,7 @@ export interface ScanPipesOptions {
 }
 
 /**
- * Scan exported symbols for pipes annotated with @Showcase: classes with
+ * Read the pipes among the showcased classes of an entry point: classes with
  * `@Pipe` from `@angular/core`, unless they declare fields only a component
  * can use. Components are left to {@link scanComponents}, services to
  * {@link scanServices}.
@@ -29,20 +29,14 @@ export interface ScanPipesOptions {
  *
  * Nothing is run and the class is never imported: the pipe is read from the
  * source, its API from the declarations, its `setup` from the array literal
- * the arrow function returns.
+ * the arrow function returns. A pipe whose API cannot be read is left out with
+ * a notice, so that it does not take the whole scan down.
  */
-export function scanPipes(exports: ts.Symbol[], checker: ts.TypeChecker, { exportIndex, diagnostics, notices }: ScanPipesOptions): ScannedPipe[] {
+export function scanPipes(showcased: ShowcasedClass[], checker: ts.TypeChecker, { exportIndex, diagnostics, notices }: ScanPipesOptions): ScannedPipe[] {
     const pipes: ScannedPipe[] = [];
-    const { report } = createReporters(diagnostics, notices);
+    const { report, notify } = createReporters(diagnostics, notices);
 
-    for (const sym of exports) {
-        const showcased = findShowcasedClass(sym, checker);
-
-        if (!showcased) continue;
-
-        const { symbol, classDecl, decorator, argument } = showcased;
-        const classKind = classifyShowcaseClass(classDecl, argument, checker);
-
+    for (const { symbol, classDecl, decorator, argument, kind: classKind } of showcased) {
         if (classKind.kind !== 'pipe') continue;
 
         const className = classDecl.name?.text ?? 'Anonymous';
@@ -62,12 +56,21 @@ export function scanPipes(exports: ts.Symbol[], checker: ts.TypeChecker, { expor
             continue;
         }
 
+        let api: ScannedPipe['api'];
+
+        try {
+            api = extractPipeApi(classDecl, readSetupRefs(argument, className, checker, exportIndex, report), checker, exportIndex);
+        } catch (error) {
+            notify(describeUnreadableApi(className, error, 'pipe'));
+            continue;
+        }
+
         const pipe: ScannedPipe = {
             className,
             filePath: classDecl.getSourceFile().fileName,
             showcaseConfig: pickServiceFields(showcaseConfig),
             pipeName: options.name,
-            api: extractPipeApi(classDecl, readSetupRefs(argument, className, checker, exportIndex, report), checker, exportIndex)
+            api
         };
         const importPath = exportIndex.get(symbol);
 

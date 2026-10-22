@@ -245,6 +245,30 @@ describe('createScanner', () => {
             expect(result.diagnostics.filter((message) => message.startsWith('UnexportedService'))).toHaveLength(1);
             expect(new Set(result.diagnostics).size).toBe(result.diagnostics.length);
         });
+
+        it('only counts the services when told not to read them, once each however many entry points export them', () => {
+            const scanner = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/toast' },
+                    { entryFile: barrelEntry, importPath: 'lib', primary: true }
+                ]
+            });
+            const read = scanner.scan();
+            const counted = scanner.scan({ services: false });
+
+            expect(read.unread.services).toBe(0);
+            expect(counted.services).toEqual([]);
+            expect(counted.unread.services).toBe(read.services.length);
+            expect(counted.diagnostics.filter((message) => message.startsWith('UnexportedService'))).toEqual([]);
+            expect(counted.components.map((c) => c.className)).toEqual(read.components.map((c) => c.className));
+        });
+    });
+
+    it('leaves the API of the components out when told to', () => {
+        const scanner = createScanner({ entryPoints });
+
+        expect(scanner.scan().components.every((c) => c.api !== undefined)).toBe(true);
+        expect(scanner.scan({ componentApi: false }).components.every((c) => c.api === undefined)).toBe(true);
     });
 
     describe('pipes', () => {

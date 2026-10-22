@@ -519,6 +519,56 @@ describe('runPrismPipeline services', () => {
         expect(hintsLogged(ctx)).toHaveLength(1);
     });
 
+    it('logs the hint once per builder run, not on every rebuild of serve', async () => {
+        tmp = createServicesWorkspace('export default { plugins: [] };');
+        const ctx = createMockContext(tmp);
+        const state = createPipelineState();
+
+        await runPrismPipeline(options, ctx, state);
+        await runPrismPipeline(options, ctx, state);
+
+        expect(hintsLogged(ctx)).toHaveLength(1);
+
+        await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(hintsLogged(ctx)).toHaveLength(2);
+    });
+
+    it('only counts the services when nothing shows them, so what it cannot read in them does not fail strictShowcase', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            tmp = createServicesWorkspace('export default { strictShowcase: true, plugins: [] };');
+            const servicePath = join(tmp, 'lib', 'toast.service.ts');
+
+            writeFileSync(servicePath, readFileSync(servicePath, 'utf-8').replace('setup: () => [provideToast]', 'setup: provideToast'), 'utf-8');
+
+            const result = await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+            expect(result.serviceCount).toBe(0);
+            expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('ToastService › setup'));
+
+            writeFileSync(join(tmp, 'ng-prism.config.ts'), SERVICE_PANEL_CONFIG.replace('export default {', 'export default {\n      strictShowcase: true,'), 'utf-8');
+
+            await expect(runPrismPipeline(options, createMockContext(tmp), createPipelineState())).rejects.toThrow(/strictShowcase is enabled and 1 @Showcase value/);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('writes the API of a component into the manifest only when a plugin asks for it', async () => {
+        tmp = createServicesWorkspace('export default { plugins: [] };');
+
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(readManifest(tmp)).not.toContain('api:');
+
+        writeFileSync(join(tmp, 'ng-prism.config.ts'), "export default { plugins: [{ name: 'api-reader', componentApi: true }] };", 'utf-8');
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(readManifest(tmp)).toContain('api:');
+    });
+
     it('does not count an addon panel that applies to services as one that shows services', async () => {
         tmp = createServicesWorkspace(
             "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', appliesTo: ['service'] }, { id: 'b', label: 'B', placement: 'addon', appliesTo: ['component', 'service'] }] }] };"

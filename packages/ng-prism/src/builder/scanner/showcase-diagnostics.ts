@@ -113,6 +113,27 @@ export function describeSetupOnComponent(className: string, node: ts.Node): stri
 }
 
 /**
+ * {@link describeSetupOnComponent} for a service or pipe that its component-only `fields` still keep a component:
+ * the class has the decorator the generic message names, so it says why that is not enough.
+ */
+export function describeSetupOnLegacyComponent(className: string, node: ts.Node, fields: string[]): string {
+    return `${className} › setup (${location(node)}) was dropped: setup only applies to services and pipes, and the class is still a component because it declares ${fields.join(', ')}.`;
+}
+
+/**
+ * The notice for an API the extractor could not read. A notice, not a diagnostic: no `@Showcase` value was dropped,
+ * so strictShowcase does not fail over it. A component keeps its page, which falls back to its inputs and outputs;
+ * a service or a pipe has nothing else to show and is left out.
+ */
+export function describeUnreadableApi(className: string, error: unknown, kind: 'component' | 'service' | 'pipe'): string {
+    const reason = error instanceof Error ? error.message : String(error);
+
+    return kind === 'component'
+        ? `${className}: could not read its API for the API page (${reason}); the page falls back to its inputs and outputs.`
+        : `${className}: could not read its API (${reason}); the ${kind} is left out of the styleguide.`;
+}
+
+/**
  * `setup` has to be readable without running anything: an arrow function whose
  * body is an array literal. Anything else drops the whole field, since there is
  * no telling which entries it would have listed.

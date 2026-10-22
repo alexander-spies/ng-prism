@@ -2,8 +2,9 @@ import path, { relative } from 'node:path';
 import ts from 'typescript';
 import { findAngularCoreDecorator } from './api/angular-decorators.js';
 import { buildExportIndex } from './api/export-index.js';
+import { extractPipeApi } from './api/pipe-api.extractor.js';
 import { getDecoratorArgument } from './ast-utils.js';
-import { scanComponents } from './component.scanner.js';
+import { findShowcasedClasses, scanComponents } from './component.scanner.js';
 import { resolveEntryPointExports } from './entry-point.scanner.js';
 import { scanPipes } from './pipe.scanner.js';
 import { scanServices } from './service.scanner.js';
@@ -18,6 +19,13 @@ const compilerOptions: ts.CompilerOptions = {
     strict: true,
     skipLibCheck: true
 };
+
+// The real extractor with a seam: a test makes it throw for one class and leaves the others alone.
+jest.mock('./api/pipe-api.extractor.js', () => {
+    const actual = jest.requireActual('./api/pipe-api.extractor.js');
+
+    return { ...actual, extractPipeApi: jest.fn(actual.extractPipeApi) };
+});
 
 describe('scanPipes', () => {
     let checker: ts.TypeChecker;
@@ -42,7 +50,7 @@ describe('scanPipes', () => {
     });
 
     function scan(diagnostics: string[] = [], notices = new Set<string>()) {
-        return scanPipes(entries[0].exports, checker, { exportIndex, diagnostics, notices });
+        return scanPipes(findShowcasedClasses(entries[0].exports, checker), checker, { exportIndex, diagnostics, notices });
     }
 
     function pipeDecorator(className: string): ts.Decorator {
@@ -166,10 +174,38 @@ describe('scanPipes', () => {
         expect(diagnostics.filter((message) => message.startsWith('LegacyPagePipe') || message.startsWith('NgModulePagePipe'))).toEqual([]);
     });
 
+    it('leaves out a pipe whose API it cannot read, says so once, and keeps scanning the others', () => {
+        const extract = jest.mocked(extractPipeApi);
+        const realExtract = extract.getMockImplementation()!;
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+
+        extract.mockImplementation((classDecl, ...rest) => {
+            if (classDecl.name?.text === 'ImpurePipe') throw new Error('boom');
+            return realExtract(classDecl, ...rest);
+        });
+
+        try {
+            scan(diagnostics, notices);
+            const pipes = scan(diagnostics, notices).map((p) => p.className);
+
+            expect(pipes).not.toContain('ImpurePipe');
+            expect(pipes).toContain('StandalonePipe');
+            expect(warn.mock.calls.filter(([message]) => String(message).includes('ImpurePipe'))).toEqual([
+                ['⚠ ng-prism: ImpurePipe: could not read its API (boom); the pipe is left out of the styleguide.']
+            ]);
+            expect(diagnostics.filter((d) => d.startsWith('ImpurePipe'))).toEqual([]);
+        } finally {
+            extract.mockImplementation(realExtract);
+        }
+    });
+
     it('is a counterpart of scanComponents and scanServices: a class is in exactly one of the three', () => {
         const pipes = scan().map((p) => p.className);
-        const components = scanComponents(entries[0].exports, checker, [], new Set()).map((c) => c.className);
-        const services = scanServices(entries[0].exports, checker, { exportIndex, diagnostics: [], notices: new Set() }).map((s) => s.className);
+        const components = scanComponents(findShowcasedClasses(entries[0].exports, checker), checker).map((c) => c.className);
+        const services = scanServices(findShowcasedClasses(entries[0].exports, checker), checker, { exportIndex, diagnostics: [], notices: new Set() }).map(
+            (s) => s.className
+        );
 
         expect(pipes.filter((name) => components.includes(name) || services.includes(name))).toEqual([]);
     });

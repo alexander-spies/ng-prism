@@ -4,6 +4,8 @@ import { extractJsDocData } from './jsdoc-extractor.js';
 export function jsDocPlugin(): NgPrismPlugin {
     return {
         name: '@ng-prism/plugin-jsdoc',
+        // The API page reads `ScannedComponent.api`, which the scan only reads for a plugin that asks for it.
+        componentApi: true,
         async onComponentScanned(component) {
             const jsdoc = extractJsDocData(component.filePath, component.className, component.baseClasses);
 

@@ -1,6 +1,6 @@
 export { AutoService, DynamicService, ManualService, OptOutService, PlatformService, RootService } from './provision.services.js';
 export { TypeDiService } from './typedi.service.js';
-export { LegacyPageService } from './legacy.service.js';
+export { LegacyPageService, LegacySetupService } from './legacy.service.js';
 export { SetupOnComponent } from './setup-on-component.component.js';
 export { provideToast, TOAST_LABELS } from './provide-toast.js';
 export { ToastRef } from './toast-ref.js';

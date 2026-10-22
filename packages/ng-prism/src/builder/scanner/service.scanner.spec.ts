@@ -1,9 +1,17 @@
 import path from 'node:path';
 import ts from 'typescript';
 import { buildExportIndex } from './api/export-index.js';
-import { scanComponents } from './component.scanner.js';
+import { extractServiceApi } from './api/service-api.extractor.js';
+import { findShowcasedClasses, scanComponents } from './component.scanner.js';
 import { resolveEntryPointExports } from './entry-point.scanner.js';
 import { scanServices } from './service.scanner.js';
+
+// The real extractor with a seam: a test makes it throw for one class and leaves the others alone.
+jest.mock('./api/service-api.extractor.js', () => {
+    const actual = jest.requireActual('./api/service-api.extractor.js');
+
+    return { ...actual, extractServiceApi: jest.fn(actual.extractServiceApi) };
+});
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__', 'services');
 
@@ -45,7 +53,7 @@ describe('scanServices', () => {
     });
 
     function scan(diagnostics: string[] = [], notices = new Set<string>()) {
-        return scanServices(entries[0].exports, checker, { exportIndex, diagnostics, notices });
+        return scanServices(findShowcasedClasses(entries[0].exports, checker), checker, { exportIndex, diagnostics, notices });
     }
 
     it('scans ToastService into a ScannedService', () => {
@@ -83,7 +91,7 @@ describe('scanServices', () => {
     });
 
     it('is the counterpart of scanComponents: a class is in exactly one of the two', () => {
-        const components = scanComponents(entries[0].exports, checker, [], new Set()).map((c) => c.className);
+        const components = scanComponents(findShowcasedClasses(entries[0].exports, checker), checker).map((c) => c.className);
         const services = scan().map((s) => s.className);
 
         expect(services.filter((name) => components.includes(name))).toEqual([]);
@@ -120,5 +128,31 @@ describe('scanServices', () => {
 
         expect(notArrow?.showcaseConfig.title).toBe('Not an arrow');
         expect(notArrow?.api.setup).toEqual([]);
+    });
+
+    it('leaves out a service whose API it cannot read, says so once, and keeps scanning the others', () => {
+        const extract = jest.mocked(extractServiceApi);
+        const realExtract = extract.getMockImplementation()!;
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+
+        extract.mockImplementation((classDecl, ...rest) => {
+            if (classDecl.name?.text === 'TreeService') throw new Error('boom');
+            return realExtract(classDecl, ...rest);
+        });
+
+        try {
+            scan(diagnostics, notices);
+            const services = scan(diagnostics, notices).map((s) => s.className);
+
+            expect(services).not.toContain('TreeService');
+            expect(services).toContain('ToastService');
+            expect(warn.mock.calls.filter(([message]) => String(message).includes('TreeService'))).toEqual([
+                ['⚠ ng-prism: TreeService: could not read its API (boom); the service is left out of the styleguide.']
+            ]);
+            expect(diagnostics.filter((d) => d.startsWith('TreeService'))).toEqual([]);
+        } finally {
+            extract.mockImplementation(realExtract);
+        }
     });
 });

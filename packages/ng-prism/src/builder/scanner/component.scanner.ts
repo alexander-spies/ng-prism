@@ -3,7 +3,7 @@ import type { ComponentStatus, ShowcaseConfig } from '../../decorator/showcase.t
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { CANVAS_BGS, type CanvasBg } from '../../shared/canvas-bg.type.js';
 import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.type.js';
-import { classifyShowcaseClass } from './api/angular-decorators.js';
+import { classifyShowcaseClass, type ShowcaseClassKind } from './api/angular-decorators.js';
 import { extractComponentApi } from './api/component-api.extractor.js';
 import type { ExportIndex } from './api/export-index.js';
 import { findSetupProperty } from './api/setup.reader.js';
@@ -16,7 +16,9 @@ import {
     describeLegacyPipeComponent,
     describeLegacyServiceComponent,
     describeSetupOnComponent,
+    describeSetupOnLegacyComponent,
     describeUnevaluable,
+    describeUnreadableApi,
     describeUnreadableBase
 } from './showcase-diagnostics.js';
 import { readShowcaseStates } from './showcase-states.js';
@@ -82,43 +84,41 @@ export function createReporters(diagnostics: string[], notices: Set<string>): { 
     };
 }
 
+export interface ScanComponentsOptions {
+    /**
+     * Shared across entry points, and with {@link scanServices} and {@link scanPipes}, so that a class exported from
+     * several of them does not repeat its warnings.
+     */
+    diagnostics?: string[];
+    notices?: Set<string>;
+    /**
+     * Tells the API of a component which of the types it names a consumer can import; without one the API has their
+     * text, but no links and no `types`.
+     */
+    exportIndex?: ExportIndex;
+    /** Whether to read {@link ScannedComponent.api}: only a plugin with `componentApi` reads it, so the build leaves it out without one. */
+    api?: boolean;
+}
+
 /**
- * Scan exported symbols for Angular components annotated with @Showcase.
+ * Read the Angular components among the showcased classes of an entry point.
  * A class with `@Injectable` or `@Service` is a service and one with `@Pipe` a
  * pipe, each left to its own scan, unless it declares fields only a component
  * can use.
  *
  * Every @Showcase value the scan has to drop is printed and collected in
- * `diagnostics`, once: sharing the array across entry points keeps a
- * component exported from several of them from repeating its warnings.
- * `notices` does the same for warnings about what a component inherits,
- * which are not diagnostics.
- *
- * `exportIndex` tells the API of a component which of the types it names a
- * consumer can import; without one the API has their text, but no links and
- * no `types`.
+ * `diagnostics`, once. `notices` does the same for warnings about what a
+ * component inherits, which are not diagnostics.
  */
-export function scanComponents(
-    exports: ts.Symbol[],
-    checker: ts.TypeChecker,
-    diagnostics: string[] = [],
-    notices = new Set<string>(),
-    exportIndex: ExportIndex = new Map()
-): ScannedComponent[] {
+export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChecker, options: ScanComponentsOptions = {}): ScannedComponent[] {
+    const { diagnostics = [], notices = new Set<string>(), exportIndex = new Map(), api: readApi = true } = options;
     const components: ScannedComponent[] = [];
     const { report, notify } = createReporters(diagnostics, notices);
 
-    for (const sym of exports) {
-        const showcased = findShowcasedClass(sym, checker);
-
-        if (!showcased) continue;
-
-        const { classDecl, decorator: showcaseDecorator, argument: showcaseArg } = showcased;
-        const className = classDecl.name?.text ?? 'Anonymous';
-        const classKind = classifyShowcaseClass(classDecl, showcaseArg, checker);
-
+    for (const { classDecl, decorator: showcaseDecorator, argument: showcaseArg, kind: classKind } of showcased) {
         if (classKind.kind === 'service' || classKind.kind === 'pipe') continue;
 
+        const className = classDecl.name?.text ?? 'Anonymous';
         const showcaseConfig = extractShowcaseConfig(showcaseDecorator, className, report, checker);
 
         if (!showcaseConfig) continue;
@@ -134,7 +134,10 @@ export function scanComponents(
 
         const setup = showcaseArg && findSetupProperty(showcaseArg);
 
-        if (setup) report(describeSetupOnComponent(className, setup));
+        if (setup)
+            report(
+                classKind.kind === 'legacy-component' ? describeSetupOnLegacyComponent(className, setup, classKind.fields) : describeSetupOnComponent(className, setup)
+            );
 
         const componentMeta = extractComponentMeta(classDecl, checker);
         const hierarchy = getClassHierarchy(classDecl, checker);
@@ -162,11 +165,9 @@ export function scanComponents(
         let api: ScannedComponent['api'];
 
         try {
-            api = extractComponentApi(classDecl, inputs, outputs, hierarchy, checker, exportIndex);
+            if (readApi) api = extractComponentApi(classDecl, inputs, outputs, hierarchy, checker, exportIndex);
         } catch (error) {
-            const reason = error instanceof Error ? error.message : String(error);
-
-            notify(`${className}: could not read its API for the API page (${reason}); the page falls back to its inputs and outputs.`);
+            notify(describeUnreadableApi(className, error, 'component'));
         }
 
         components.push({
@@ -187,15 +188,30 @@ export function scanComponents(
     return components;
 }
 
+/** An exported class with `@Showcase`, and which scan it belongs to. */
+export interface ShowcasedClass {
+    symbol: ts.Symbol;
+    classDecl: ts.ClassDeclaration;
+    decorator: ts.Decorator;
+    argument: ts.Expression | undefined;
+    kind: ShowcaseClassKind;
+}
+
 /**
- * The class an export resolves to, when it carries `@Showcase`: the common
- * start of the component, the service and the pipe scan, which each keep the
- * classes of their own kind.
+ * The classes with `@Showcase` among the exports of an entry point, each
+ * classified once: the component, the service and the pipe scan each keep
+ * the classes of their own kind.
  */
-export function findShowcasedClass(
-    sym: ts.Symbol,
-    checker: ts.TypeChecker
-): { symbol: ts.Symbol; classDecl: ts.ClassDeclaration; decorator: ts.Decorator; argument: ts.Expression | undefined } | undefined {
+export function findShowcasedClasses(exports: ts.Symbol[], checker: ts.TypeChecker): ShowcasedClass[] {
+    return exports.flatMap((sym) => {
+        const showcased = findShowcasedClass(sym, checker);
+
+        return showcased ? [{ ...showcased, kind: classifyShowcaseClass(showcased.classDecl, showcased.argument, checker) }] : [];
+    });
+}
+
+/** The class an export resolves to, when it carries `@Showcase`. */
+function findShowcasedClass(sym: ts.Symbol, checker: ts.TypeChecker): Omit<ShowcasedClass, 'kind'> | undefined {
     const symbol = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
     const classDecl = symbol.declarations?.find(ts.isClassDeclaration);
 

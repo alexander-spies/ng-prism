@@ -52,6 +52,11 @@ describe('jsDocPlugin', () => {
         expect(browserJsDocPlugin().panels![0].placement).toBe('view');
     });
 
+    // The scan only reads ScannedComponent.api for a plugin that asks for it, and the build reads the Node half.
+    it('asks the build for the API of the components', () => {
+        expect(jsDocPlugin().componentApi).toBe(true);
+    });
+
     it('should lazy-load the panel component', async () => {
         const plugin = jsDocPlugin();
         const panel = plugin.panels![0];

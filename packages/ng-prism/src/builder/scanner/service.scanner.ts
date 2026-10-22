@@ -1,11 +1,12 @@
 import ts from 'typescript';
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
-import { classifyShowcaseClass, readProvision } from './api/angular-decorators.js';
+import { readProvision } from './api/angular-decorators.js';
 import type { ExportIndex } from './api/export-index.js';
 import { extractServiceApi } from './api/service-api.extractor.js';
 import { readSetupRefs } from './api/setup.reader.js';
-import { createReporters, extractShowcaseConfig, findShowcasedClass } from './component.scanner.js';
+import { createReporters, extractShowcaseConfig, type ShowcasedClass } from './component.scanner.js';
+import { describeUnreadableApi } from './showcase-diagnostics.js';
 
 /**
  * The `@Showcase` fields that mean something for a service, and for a pipe, which the sidebar and the plugins treat the same way:
@@ -22,26 +23,20 @@ export interface ScanServicesOptions {
 }
 
 /**
- * Scan exported symbols for services annotated with @Showcase: classes with
- * `@Injectable` or `@Service`, unless they declare fields only a component
+ * Read the services among the showcased classes of an entry point: classes
+ * with `@Injectable` or `@Service`, unless they declare fields only a component
  * can use. Components are left to {@link scanComponents}.
  *
  * Nothing is run and the class is never imported: the service is read from the
  * source, its API from the declarations, its `setup` from the array literal
- * the arrow function returns.
+ * the arrow function returns. A service whose API cannot be read is left out
+ * with a notice, so that it does not take the whole scan down.
  */
-export function scanServices(exports: ts.Symbol[], checker: ts.TypeChecker, { exportIndex, diagnostics, notices }: ScanServicesOptions): ScannedService[] {
+export function scanServices(showcased: ShowcasedClass[], checker: ts.TypeChecker, { exportIndex, diagnostics, notices }: ScanServicesOptions): ScannedService[] {
     const services: ScannedService[] = [];
-    const { report } = createReporters(diagnostics, notices);
+    const { report, notify } = createReporters(diagnostics, notices);
 
-    for (const sym of exports) {
-        const showcased = findShowcasedClass(sym, checker);
-
-        if (!showcased) continue;
-
-        const { symbol, classDecl, decorator, argument } = showcased;
-        const classKind = classifyShowcaseClass(classDecl, argument, checker);
-
+    for (const { symbol, classDecl, decorator, argument, kind: classKind } of showcased) {
         if (classKind.kind !== 'service') continue;
 
         const className = classDecl.name?.text ?? 'Anonymous';
@@ -49,12 +44,21 @@ export function scanServices(exports: ts.Symbol[], checker: ts.TypeChecker, { ex
 
         if (!showcaseConfig || !argument) continue;
 
+        let api: ScannedService['api'];
+
+        try {
+            api = extractServiceApi(classDecl, readSetupRefs(argument, className, checker, exportIndex, report), checker, exportIndex);
+        } catch (error) {
+            notify(describeUnreadableApi(className, error, 'service'));
+            continue;
+        }
+
         const service: ScannedService = {
             className,
             filePath: classDecl.getSourceFile().fileName,
             showcaseConfig: pickServiceFields(showcaseConfig),
             provision: readProvision(classKind.decorator, checker),
-            api: extractServiceApi(classDecl, readSetupRefs(argument, className, checker, exportIndex, report), checker, exportIndex)
+            api
         };
         const importPath = exportIndex.get(symbol);
 

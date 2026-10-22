@@ -15,6 +15,14 @@ export interface NgPrismPlugin {
     onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
+    /**
+     * Set when a hook or a panel of the plugin reads {@link ScannedComponent.api}. The scan only reads the API of the
+     * components, and the manifest only carries it, when a plugin in the config sets this. Read from the plugin's
+     * Node entry, like the build-time hooks.
+     *
+     * @experimental Experimental until 23.0.0, like {@link ComponentApi}: it may change in a 22.x minor release.
+     */
+    componentApi?: boolean;
 
     // Runtime contributions (embedded into the Prism app)
     panels?: PanelDefinition[];
@@ -176,8 +184,10 @@ export interface ScannedComponent {
      */
     baseClasses?: { className: string; filePath: string }[];
     /**
-     * What the API page needs beyond `inputs` and `outputs`. Absent when a plugin
-     * hook builds the component, or in the manifest of an older core.
+     * What the API page needs beyond `inputs` and `outputs`. Read only when a
+     * plugin in the config sets {@link NgPrismPlugin.componentApi}. Absent
+     * without one, when the scan cannot read it, when a plugin hook builds the
+     * component, or in the manifest of an older core.
      *
      * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
      */
