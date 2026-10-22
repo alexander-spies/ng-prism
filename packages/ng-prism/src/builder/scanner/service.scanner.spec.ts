@@ -1,8 +1,8 @@
 import path from 'node:path';
 import ts from 'typescript';
+import { buildExportIndex } from './api/export-index.js';
 import { scanComponents } from './component.scanner.js';
 import { resolveEntryPointExports } from './entry-point.scanner.js';
-import { buildExportIndex } from './service/export-index.js';
 import { scanServices } from './service.scanner.js';
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__', 'services');

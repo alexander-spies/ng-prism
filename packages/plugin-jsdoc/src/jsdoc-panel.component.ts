@@ -2,15 +2,15 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { InputMeta, OutputMeta, RuntimePipe, RuntimeService } from '@ng-prism/core/plugin';
 import { Highlight } from 'ngx-highlightjs';
+import { type ApiPageModel, pipePage, servicePage } from './api-page/api-page.model.js';
+import { JsDocApiPageComponent } from './api-page/jsdoc-api-page.component.js';
 import type { JsDocData, MethodDoc } from './jsdoc.types.js';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from './markdown.js';
-import { type ApiPageModel, pipePage, servicePage } from './service-page/api-page.model.js';
-import { JsDocServicePageComponent } from './service-page/jsdoc-service-page.component.js';
 
 @Component({
     selector: 'prism-jsdoc-panel',
     standalone: true,
-    imports: [Highlight, JsDocServicePageComponent],
+    imports: [Highlight, JsDocApiPageComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './jsdoc-panel.component.html',
     styleUrl: './jsdoc-panel.component.css'

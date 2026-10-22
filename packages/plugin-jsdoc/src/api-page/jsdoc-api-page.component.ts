@@ -4,17 +4,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ApiDocTags, ApiMethod, ApiProperty, ApiTypeDoc } from '@ng-prism/core/plugin';
 import { Highlight } from 'ngx-highlightjs';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from '../markdown.js';
+import { activeTocId, buildApiPageToc, declaredParamSegments, documentsParams, setupSignature, splitReachedFrom, typeAnchor, typeSegments } from './api-page.helpers.js';
 import type { ApiPageModel } from './api-page.model.js';
-import {
-    activeTocId,
-    buildApiPageToc,
-    declaredParamSegments,
-    documentsParams,
-    setupSignature,
-    splitReachedFrom,
-    typeAnchor,
-    typeSegments
-} from './service-page.model.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
 const SCROLL_OFFSET = 12;
@@ -44,18 +35,18 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
  * script waits for.
  */
 @Component({
-    selector: 'prism-jsdoc-service-page',
+    selector: 'prism-jsdoc-api-page',
     standalone: true,
     imports: [Highlight, NgTemplateOutlet],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    templateUrl: './jsdoc-service-page.component.html',
-    styleUrls: ['../jsdoc-panel.component.css', './jsdoc-service-page.component.css'],
+    templateUrl: './jsdoc-api-page.component.html',
+    styleUrls: ['../jsdoc-panel.component.css', './jsdoc-api-page.component.css'],
     host: {
         '[attr.data-prism-service-rendered]': "kind() === 'service' ? className() : null",
         '[attr.data-prism-pipe-rendered]': "kind() === 'pipe' ? className() : null"
     }
 })
-export class JsDocServicePageComponent {
+export class JsDocApiPageComponent {
     readonly page = input.required<ApiPageModel>();
 
     private readonly sanitizer = inject(DomSanitizer);

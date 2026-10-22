@@ -3,12 +3,12 @@ import type { ComponentStatus, ShowcaseConfig } from '../../decorator/showcase.t
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { CANVAS_BGS, type CanvasBg } from '../../shared/canvas-bg.type.js';
 import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.type.js';
+import { classifyShowcaseClass } from './api/angular-decorators.js';
+import { findSetupProperty } from './api/setup.reader.js';
 import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, UNEVALUABLE } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
 import { describeValue, readPseudoStates } from './pseudo-states.js';
-import { classifyShowcaseClass } from './service/angular-decorators.js';
-import { findSetupProperty } from './service/setup.reader.js';
 import {
     describeDeprecatedProviders,
     describeLegacyPipeComponent,

@@ -2,10 +2,10 @@ import ts from 'typescript';
 import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
+import { buildExportIndex } from './api/export-index.js';
 import { scanComponents } from './component.scanner.js';
 import { type EntryPointInput, resolveEntryPointExports } from './entry-point.scanner.js';
 import { scanPipes } from './pipe.scanner.js';
-import { buildExportIndex } from './service/export-index.js';
 import { scanServices } from './service.scanner.js';
 import { createSourceFileCache } from './source-file-cache.js';
 

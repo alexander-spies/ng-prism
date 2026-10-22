@@ -20,7 +20,7 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
    `entryPoint`, e.g.
    public-api.ts)      →  service.scanner, pipe.scanner
                                ↓
-                        use service/ (decorators, setup,
+                        use api/ (decorators, setup,
                         members, types, export index;
                         pipe-api.extractor for transform)
 ```
@@ -29,24 +29,24 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
 
 ## Existing Modules
 
-| Module                          | Purpose                                                                                                                     |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `ast-utils.ts`                  | Static AST evaluation utilities                                                                                             |
-| `class-hierarchy.ts`            | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)                                          |
-| `entry-point.scanner.ts`        | Resolve exports from entry point                                                                                            |
-| `component.scanner.ts`          | Find @Showcase components, extract config                                                                                   |
-| `input.extractor.ts`            | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`)                                         |
-| `manifest.generator.ts`         | Generate prism-manifest.ts source code                                                                                      |
-| `pseudo-states.ts`              | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                     |
-| `showcase-diagnostics.ts`       | Word the warnings for `@Showcase` values the scan had to drop                                                               |
-| `showcase-states.ts`            | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                              |
-| `entry-point-discovery.ts`      | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`) |
-| `service.scanner.ts`            | Find @Showcase services (`@Injectable`/`@Service` from `@angular/core`), read provision, `setup` and API (`scanServices`)   |
-| `service/`                      | The service modules: Angular decorators and provision, `setup` reader, export index, member, type and API extraction        |
-| `pipe.scanner.ts`               | Find @Showcase pipes (`@Pipe` from `@angular/core`), read name, purity and standalone, extract `transform` (`scanPipes`)    |
-| `service/pipe-api.extractor.ts` | `PipeApi` of one pipe: `transform` overloads with their doc fallbacks, also from a `.d.ts` base, setup and types            |
-| `scanner.ts`                    | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components, services and pipes              |
-| `index.ts`                      | Public surface of the scanner (re-exports the functions and their types)                                                    |
+| Module                      | Purpose                                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ast-utils.ts`              | Static AST evaluation utilities                                                                                             |
+| `class-hierarchy.ts`        | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)                                          |
+| `entry-point.scanner.ts`    | Resolve exports from entry point                                                                                            |
+| `component.scanner.ts`      | Find @Showcase components, extract config                                                                                   |
+| `input.extractor.ts`        | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`)                                         |
+| `manifest.generator.ts`     | Generate prism-manifest.ts source code                                                                                      |
+| `pseudo-states.ts`          | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                     |
+| `showcase-diagnostics.ts`   | Word the warnings for `@Showcase` values the scan had to drop                                                               |
+| `showcase-states.ts`        | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                              |
+| `entry-point-discovery.ts`  | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`) |
+| `service.scanner.ts`        | Find @Showcase services (`@Injectable`/`@Service` from `@angular/core`), read provision, `setup` and API (`scanServices`)   |
+| `api/`                      | The service modules: Angular decorators and provision, `setup` reader, export index, member, type and API extraction        |
+| `pipe.scanner.ts`           | Find @Showcase pipes (`@Pipe` from `@angular/core`), read name, purity and standalone, extract `transform` (`scanPipes`)    |
+| `api/pipe-api.extractor.ts` | `PipeApi` of one pipe: `transform` overloads with their doc fallbacks, also from a `.d.ts` base, setup and types            |
+| `scanner.ts`                | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components, services and pipes              |
+| `index.ts`                  | Public surface of the scanner (re-exports the functions and their types)                                                    |
 
 ## Module Template
 

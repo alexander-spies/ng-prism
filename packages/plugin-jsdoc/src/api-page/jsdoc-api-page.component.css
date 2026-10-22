@@ -13,7 +13,7 @@
     }
 }
 
-.prism-jsdoc-service-page {
+.prism-jsdoc-api-page {
     display: grid;
     grid-template-columns: minmax(0, 880px) 200px;
     gap: 32px;
@@ -24,13 +24,13 @@
     color: var(--prism-text);
 }
 
-.prism-jsdoc-service-page__heading {
+.prism-jsdoc-api-page__heading {
     display: flex;
     gap: 8px;
     align-items: center;
 }
 
-.prism-jsdoc-service-page__heading-note {
+.prism-jsdoc-api-page__heading-note {
     font-size: 11px;
     font-weight: 500;
     color: var(--prism-text-muted);
@@ -40,16 +40,16 @@
 
 /* ──── Usage ──── */
 
-.prism-jsdoc-service-page__usage {
+.prism-jsdoc-api-page__usage {
     position: relative;
 }
 
-.prism-jsdoc-service-page__usage .prism-jsdoc-panel__code code {
+.prism-jsdoc-api-page__usage .prism-jsdoc-panel__code code {
     padding: 10px 40px 10px 12px;
     line-height: 1.6;
 }
 
-.prism-jsdoc-service-page__copy {
+.prism-jsdoc-api-page__copy {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -65,11 +65,11 @@
     border-radius: 5px;
 }
 
-.prism-jsdoc-service-page__copy:hover {
+.prism-jsdoc-api-page__copy:hover {
     color: var(--prism-text);
 }
 
-.prism-jsdoc-service-page__copy svg {
+.prism-jsdoc-api-page__copy svg {
     width: 12px;
     height: 12px;
     fill: none;
@@ -81,11 +81,11 @@
 
 /* ──── Setup ──── */
 
-.prism-jsdoc-service-page__setup + .prism-jsdoc-service-page__setup {
+.prism-jsdoc-api-page__setup + .prism-jsdoc-api-page__setup {
     margin-top: 16px;
 }
 
-.prism-jsdoc-service-page__sig {
+.prism-jsdoc-api-page__sig {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -101,11 +101,11 @@
     border-radius: 8px;
 }
 
-.prism-jsdoc-service-page__sig code {
+.prism-jsdoc-api-page__sig code {
     font-family: inherit;
 }
 
-.prism-jsdoc-service-page__fn {
+.prism-jsdoc-api-page__fn {
     color: var(--prism-code-tag);
 }
 
@@ -113,55 +113,55 @@
    page's own description. Comes after the panel stylesheet, so it wins over
    .prism-jsdoc-panel__description at the same specificity, and like the
    panel's Markdown rules it needs ::ng-deep to reach what [innerHTML] puts in. */
-.prism-jsdoc-service-page__lead {
+.prism-jsdoc-api-page__lead {
     margin: 0 0 10px;
     font-size: var(--fs-md);
     line-height: 1.6;
 }
 
-:host ::ng-deep .prism-jsdoc-service-page__lead p {
+:host ::ng-deep .prism-jsdoc-api-page__lead p {
     line-height: 1.6;
 }
 
-.prism-jsdoc-service-page__table {
+.prism-jsdoc-api-page__table {
     margin-bottom: 8px;
 }
 
 /* Next to the name in a type card or option table, where there is no Readonly column. */
-.prism-jsdoc-service-page__readonly {
+.prism-jsdoc-api-page__readonly {
     color: var(--prism-text-muted);
 }
 
 /* A default such as 'bottom-right' would otherwise break at its hyphen. */
-.prism-jsdoc-service-page__default {
+.prism-jsdoc-api-page__default {
     white-space: nowrap;
 }
 
 /* ──── Parameters ──── */
 
-.prism-jsdoc-service-page__param + .prism-jsdoc-service-page__param {
+.prism-jsdoc-api-page__param + .prism-jsdoc-api-page__param {
     margin-top: 6px;
 }
 
-.prism-jsdoc-service-page__param-doc {
+.prism-jsdoc-api-page__param-doc {
     margin-top: 3px;
     font-size: var(--fs-sm);
     line-height: 1.45;
     color: var(--prism-text-muted);
 }
 
-:host ::ng-deep .prism-jsdoc-service-page__param-doc code {
+:host ::ng-deep .prism-jsdoc-api-page__param-doc code {
     font-family: var(--font-mono);
     font-size: 0.95em;
     color: var(--prism-text-2);
 }
 
 /* Under a setup signature, outside a table: the code gets the look of a type cell. */
-.prism-jsdoc-service-page__params {
+.prism-jsdoc-api-page__params {
     margin: 0 0 10px;
 }
 
-.prism-jsdoc-service-page__params code {
+.prism-jsdoc-api-page__params code {
     padding: 1px 5px;
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
@@ -172,7 +172,7 @@
 
 /* ──── Type links ──── */
 
-.prism-jsdoc-service-page__ref {
+.prism-jsdoc-api-page__ref {
     padding: 0;
     font: inherit;
     color: inherit;
@@ -183,13 +183,13 @@
     border: 0;
 }
 
-.prism-jsdoc-service-page__ref:hover {
+.prism-jsdoc-api-page__ref:hover {
     text-decoration-style: solid;
 }
 
 /* ──── Type cards ──── */
 
-.prism-jsdoc-service-page__type {
+.prism-jsdoc-api-page__type {
     padding: 12px 14px 6px;
     margin-bottom: 12px;
     background: color-mix(in srgb, var(--prism-bg-surface) 60%, transparent);
@@ -200,12 +200,12 @@
         box-shadow 0.3s var(--ease-default);
 }
 
-.prism-jsdoc-service-page__type--highlighted {
+.prism-jsdoc-api-page__type--highlighted {
     border-color: color-mix(in srgb, var(--prism-primary) 60%, transparent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--prism-primary) 22%, transparent);
 }
 
-.prism-jsdoc-service-page__type-head {
+.prism-jsdoc-api-page__type-head {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -213,14 +213,14 @@
     margin-bottom: 6px;
 }
 
-.prism-jsdoc-service-page__type-name {
+.prism-jsdoc-api-page__type-name {
     font-family: var(--font-mono);
     font-size: 13px;
     font-weight: 500;
     color: var(--prism-text);
 }
 
-.prism-jsdoc-service-page__kind {
+.prism-jsdoc-api-page__kind {
     padding: 1px 5px;
     font-size: 9.5px;
     font-weight: 700;
@@ -231,27 +231,27 @@
     border-radius: 3px;
 }
 
-.prism-jsdoc-service-page__reached {
+.prism-jsdoc-api-page__reached {
     margin-left: auto;
     font-size: 11px;
     color: var(--prism-text-muted);
 }
 
-.prism-jsdoc-service-page__reached code {
+.prism-jsdoc-api-page__reached code {
     font-family: var(--font-mono);
     font-size: 10.5px;
     color: var(--prism-text-2);
 }
 
-.prism-jsdoc-service-page__type .prism-jsdoc-service-page__lead {
+.prism-jsdoc-api-page__type .prism-jsdoc-api-page__lead {
     margin-bottom: 8px;
 }
 
-.prism-jsdoc-service-page__type-meta {
+.prism-jsdoc-api-page__type-meta {
     margin-bottom: 8px;
 }
 
-.prism-jsdoc-service-page__union {
+.prism-jsdoc-api-page__union {
     display: flex;
     flex-wrap: wrap;
     column-gap: 0.6em;
@@ -262,11 +262,11 @@
     color: var(--prism-code-str);
 }
 
-.prism-jsdoc-service-page__union-bar {
+.prism-jsdoc-api-page__union-bar {
     color: var(--prism-text-ghost);
 }
 
-.prism-jsdoc-service-page__alias {
+.prism-jsdoc-api-page__alias {
     margin: 0 0 8px;
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
@@ -274,13 +274,13 @@
     color: var(--prism-text-2);
 }
 
-.prism-jsdoc-service-page__alias code {
+.prism-jsdoc-api-page__alias code {
     font-family: inherit;
 }
 
 /* ──── On this page ──── */
 
-.prism-jsdoc-service-page__toc {
+.prism-jsdoc-api-page__toc {
     position: sticky;
     top: 20px;
     max-height: calc(100vh - 120px);
@@ -290,7 +290,7 @@
     border-left: 1px solid var(--prism-border);
 }
 
-.prism-jsdoc-service-page__toc-title {
+.prism-jsdoc-api-page__toc-title {
     margin-bottom: 8px;
     font-size: 10.5px;
     font-weight: 700;
@@ -299,7 +299,7 @@
     letter-spacing: 0.08em;
 }
 
-.prism-jsdoc-service-page__toc-link {
+.prism-jsdoc-api-page__toc-link {
     display: block;
     width: 100%;
     padding: 3px 0;
@@ -314,16 +314,16 @@
     border: 0;
 }
 
-.prism-jsdoc-service-page__toc-link:hover {
+.prism-jsdoc-api-page__toc-link:hover {
     color: var(--prism-text);
 }
 
-.prism-jsdoc-service-page__toc-link--active {
+.prism-jsdoc-api-page__toc-link--active {
     font-weight: 500;
     color: var(--prism-primary);
 }
 
-.prism-jsdoc-service-page__toc-link--sub {
+.prism-jsdoc-api-page__toc-link--sub {
     padding-left: 12px;
     font-family: var(--font-mono);
     font-size: 11px;
@@ -331,11 +331,11 @@
 
 /* Too narrow for a second column: the list goes, the content keeps the width. */
 @container (max-width: 760px) {
-    .prism-jsdoc-service-page {
+    .prism-jsdoc-api-page {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .prism-jsdoc-service-page__toc {
+    .prism-jsdoc-api-page__toc {
         display: none;
     }
 }

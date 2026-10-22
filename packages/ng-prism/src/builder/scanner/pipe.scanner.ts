@@ -1,10 +1,10 @@
 import ts from 'typescript';
 import type { ScannedPipe } from '../../plugin/pipe.types.js';
+import { classifyShowcaseClass, readPipeOptions } from './api/angular-decorators.js';
+import type { ExportIndex } from './api/export-index.js';
+import { extractPipeApi } from './api/pipe-api.extractor.js';
+import { readSetupRefs } from './api/setup.reader.js';
 import { createReporters, extractShowcaseConfig, findShowcasedClass } from './component.scanner.js';
-import { classifyShowcaseClass, readPipeOptions } from './service/angular-decorators.js';
-import type { ExportIndex } from './service/export-index.js';
-import { extractPipeApi } from './service/pipe-api.extractor.js';
-import { readSetupRefs } from './service/setup.reader.js';
 import { pickServiceFields } from './service.scanner.js';
 import { describePipeNameUnreadable, describePipeNotStandalone } from './showcase-diagnostics.js';
 

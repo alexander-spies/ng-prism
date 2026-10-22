@@ -138,11 +138,11 @@ All three callers pass the checker. They treat a drop differently:
 
 ## Services
 
-A service is a class with `@Showcase` and `@Injectable` or `@Service`. `component.scanner.ts` and `service.scanner.ts` split the `@Showcase` classes between them, so a service is in `ScanResult.services` and never in `components`: the component list, `onComponentScanned` and the discovery manifest hold components and directives only (before 22.7.0 a showcased service or pipe was listed there too). The code is in `builder/scanner/service/`.
+A service is a class with `@Showcase` and `@Injectable` or `@Service`. `component.scanner.ts` and `service.scanner.ts` split the `@Showcase` classes between them, so a service is in `ScanResult.services` and never in `components`: the component list, `onComponentScanned` and the discovery manifest hold components and directives only (before 22.7.0 a showcased service or pipe was listed there too). The code is in `builder/scanner/api/`.
 
 ### Telling a service or pipe from a component
 
-`classifyShowcaseClass()` in `service/angular-decorators.ts` returns one of four kinds. It looks at the decorators in this order, `@Component` or `@Directive`, then `@Pipe`, then `@Service` or `@Injectable`, and the first it finds decides, so a class with `@Pipe` and `@Injectable` is a pipe:
+`classifyShowcaseClass()` in `api/angular-decorators.ts` returns one of four kinds. It looks at the decorators in this order, `@Component` or `@Directive`, then `@Pipe`, then `@Service` or `@Injectable`, and the first it finds decides, so a class with `@Pipe` and `@Injectable` is a pipe:
 
 | Kind               | When                                                                                                                                                                                                                          |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -172,7 +172,7 @@ On a component, `scanComponents()` reports `describeSetupOnComponent` and ignore
 
 ### The export index
 
-`buildExportIndex()` in `service/export-index.ts` maps every symbol the entry points export, resolved through aliases, to the import path of the first entry point that exports it. It is built from all entry points once per scan, because a setup function or a type is often exported by another entry point than the service. The same index decides which types get a card.
+`buildExportIndex()` in `api/export-index.ts` maps every symbol the entry points export, resolved through aliases, to the import path of the first entry point that exports it. It is built from all entry points once per scan, because a setup function or a type is often exported by another entry point than the service. The same index decides which types get a card.
 
 ### Members, tags and types
 
@@ -190,7 +190,7 @@ The shape of all of this, `ServiceApi` and the `Api*` types, is experimental unt
 
 A pipe is a class with `@Showcase` and `@Pipe`. `pipe.scanner.ts` runs like `scanServices()` and shares its export index, the dedupe across entry points and the `report` and `notify` channels, so a pipe is in `ScanResult.pipes` and never in `components` or `services`. `scanComponents()` and `scanServices()` skip it. The pieces a service already has are reused: `readSetupRefs()` for `setup`, the doc-tag reader, `extractMethod()` for signatures and the type collector.
 
-`readPipeOptions()` in `service/angular-decorators.ts` reads `name`, `pure` and `standalone` from the `@Pipe` metadata through the static evaluator, and guesses nothing that is not there:
+`readPipeOptions()` in `api/angular-decorators.ts` reads `name`, `pure` and `standalone` from the `@Pipe` metadata through the static evaluator, and guesses nothing that is not there:
 
 - **`name`** is the template name. A source that does not give it as a string constant leaves it out, and `scanPipes()` reports `describePipeNameUnreadable` and drops the pipe.
 - **`standalone`** is only `false` when the metadata says exactly that, since `true` is the default. A pipe with `standalone: false` is reported with `describePipeNotStandalone` and dropped: the usage snippet imports a pipe into a component, which an NgModule pipe does not allow, and finding the module is not attempted.

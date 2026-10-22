@@ -8,7 +8,7 @@
         @if (segment.link) {
             <button
                 type="button"
-                class="prism-jsdoc-service-page__ref"
+                class="prism-jsdoc-api-page__ref"
                 (click)="goTo(segment.link)">
                 {{ segment.text }}
             </button>
@@ -38,11 +38,11 @@
     #paramList
     let-params>
     @for (param of params; track param.name) {
-        <div class="prism-jsdoc-service-page__param">
+        <div class="prism-jsdoc-api-page__param">
             <code><ng-container *ngTemplateOutlet="typeText; context: { $implicit: declaredParamSegmentsOf(param) }" /></code>
             @if (param.description) {
                 <div
-                    class="prism-jsdoc-service-page__param-doc"
+                    class="prism-jsdoc-api-page__param-doc"
                     [innerHTML]="renderInline(param.description)"></div>
             }
         </div>
@@ -66,7 +66,7 @@
     let-label="label"
     let-defaults="defaults"
     let-owner="owner">
-    <table class="prism-jsdoc-panel__table prism-jsdoc-service-page__table">
+    <table class="prism-jsdoc-panel__table prism-jsdoc-api-page__table">
         <thead>
             <tr>
                 <th>{{ label }}</th>
@@ -86,7 +86,7 @@
                             <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--required prism-jsdoc-panel__badge--small">required</span>
                         }
                         @if (property.readonly) {
-                            <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--small prism-jsdoc-service-page__readonly">readonly</span>
+                            <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--small prism-jsdoc-api-page__readonly">readonly</span>
                         }
                         @if (isDeprecated(property.tags)) {
                             <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
@@ -96,7 +96,7 @@
                         <code><ng-container *ngTemplateOutlet="typeText; context: { $implicit: segmentsOf(property.type) }" /></code>
                     </td>
                     @if (defaults) {
-                        <td class="prism-jsdoc-panel__cell--default prism-jsdoc-service-page__default">
+                        <td class="prism-jsdoc-panel__cell--default prism-jsdoc-api-page__default">
                             @if (property.tags.default; as value) {
                                 <code>{{ value }}</code>
                             } @else {
@@ -119,7 +119,7 @@
     let-methods
     let-label="label"
     let-params="params">
-    <table class="prism-jsdoc-panel__table prism-jsdoc-service-page__table">
+    <table class="prism-jsdoc-panel__table prism-jsdoc-api-page__table">
         <thead>
             <tr>
                 <th>{{ label }}</th>
@@ -169,8 +169,8 @@
     }
 </ng-template>
 
-<div class="prism-jsdoc-service-page">
-    <div class="prism-jsdoc-service-page__content">
+<div class="prism-jsdoc-api-page">
+    <div class="prism-jsdoc-api-page__content">
         @if (renderedDescription(); as descHtml) {
             <div
                 class="prism-jsdoc-panel__description"
@@ -194,16 +194,16 @@
 
         <section class="prism-jsdoc-panel__section">
             <h3
-                class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                 data-toc-id="usage">
                 Usage
-                <small class="prism-jsdoc-service-page__heading-note">generated</small>
+                <small class="prism-jsdoc-api-page__heading-note">generated</small>
             </h3>
-            <div class="prism-jsdoc-service-page__usage">
+            <div class="prism-jsdoc-api-page__usage">
                 <pre class="prism-jsdoc-panel__code"><code [highlight]="page().usage" language="typescript"></code></pre>
                 <button
                     type="button"
-                    class="prism-jsdoc-service-page__copy"
+                    class="prism-jsdoc-api-page__copy"
                     [attr.aria-label]="copied() ? 'Copied' : 'Copy usage'"
                     [title]="copied() ? 'Copied' : 'Copy usage'"
                     (click)="copyUsage()">
@@ -229,15 +229,15 @@
         @if (page().setup.length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
-                    class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                     data-toc-id="setup">
                     Setup
                 </h3>
                 @for (entry of page().setup; track entry.name) {
-                    <div class="prism-jsdoc-service-page__setup">
-                        <div class="prism-jsdoc-service-page__sig">
+                    <div class="prism-jsdoc-api-page__setup">
+                        <div class="prism-jsdoc-api-page__sig">
                             <code
-                                ><span class="prism-jsdoc-service-page__fn">{{ entry.name }}</span
+                                ><span class="prism-jsdoc-api-page__fn">{{ entry.name }}</span
                                 ><ng-container *ngTemplateOutlet="typeText; context: { $implicit: signatureOf(entry) }"
                             /></code>
                             @if (isDeprecated(entry.tags)) {
@@ -248,11 +248,11 @@
                         </div>
                         @if (renderBlock(entry.description); as html) {
                             <div
-                                class="prism-jsdoc-panel__description prism-jsdoc-service-page__lead"
+                                class="prism-jsdoc-panel__description prism-jsdoc-api-page__lead"
                                 [innerHTML]="html"></div>
                         }
                         @if (documentsParams(entry.params)) {
-                            <div class="prism-jsdoc-service-page__params">
+                            <div class="prism-jsdoc-api-page__params">
                                 <ng-container *ngTemplateOutlet="paramList; context: { $implicit: entry.params }" />
                             </div>
                         }
@@ -268,10 +268,10 @@
         @if (page().examples.length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
-                    class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                     data-toc-id="examples">
                     Examples
-                    <small class="prism-jsdoc-service-page__heading-note">from &#64;example</small>
+                    <small class="prism-jsdoc-api-page__heading-note">from &#64;example</small>
                 </h3>
                 <ng-container *ngTemplateOutlet="exampleList; context: { $implicit: page().examples }" />
             </section>
@@ -280,11 +280,11 @@
         @if (serviceProperties().length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
-                    class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                     data-toc-id="properties">
                     Properties
                 </h3>
-                <table class="prism-jsdoc-panel__table prism-jsdoc-service-page__table">
+                <table class="prism-jsdoc-panel__table prism-jsdoc-api-page__table">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -325,7 +325,7 @@
         @if (serviceMethods().length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
-                    class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                     data-toc-id="methods">
                     Methods
                 </h3>
@@ -336,7 +336,7 @@
         @if (transformSignatures().length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
-                    class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                     data-toc-id="transform">
                     Transform
                 </h3>
@@ -347,28 +347,28 @@
         @if (page().types.length) {
             <section class="prism-jsdoc-panel__section">
                 <h3
-                    class="prism-jsdoc-panel__heading prism-jsdoc-service-page__heading"
+                    class="prism-jsdoc-panel__heading prism-jsdoc-api-page__heading"
                     data-toc-id="types">
                     Types
-                    <small class="prism-jsdoc-service-page__heading-note">reached from the signatures above</small>
+                    <small class="prism-jsdoc-api-page__heading-note">reached from the signatures above</small>
                 </h3>
                 @for (type of page().types; track type.id) {
                     @let anchor = typeAnchor(type.id);
                     @let properties = type.properties ?? [];
                     @let methods = type.methods ?? [];
                     <div
-                        class="prism-jsdoc-service-page__type"
-                        [class.prism-jsdoc-service-page__type--highlighted]="highlightedId() === anchor"
+                        class="prism-jsdoc-api-page__type"
+                        [class.prism-jsdoc-api-page__type--highlighted]="highlightedId() === anchor"
                         [attr.data-toc-id]="anchor">
-                        <div class="prism-jsdoc-service-page__type-head">
-                            <span class="prism-jsdoc-service-page__type-name">{{ type.name }}</span>
-                            <span class="prism-jsdoc-service-page__kind">{{ type.kind }}</span>
+                        <div class="prism-jsdoc-api-page__type-head">
+                            <span class="prism-jsdoc-api-page__type-name">{{ type.name }}</span>
+                            <span class="prism-jsdoc-api-page__kind">{{ type.kind }}</span>
                             @if (isDeprecated(type.tags)) {
                                 <span class="prism-jsdoc-panel__badge prism-jsdoc-panel__badge--deprecated prism-jsdoc-panel__badge--small">deprecated</span>
                             }
                             @if (type.reachedFrom; as reachedFrom) {
                                 @let reached = splitReachedFrom(reachedFrom);
-                                <span class="prism-jsdoc-service-page__reached">
+                                <span class="prism-jsdoc-api-page__reached">
                                     <span>{{ reached.text }}</span>
                                     @if (reached.code) {
                                         <code>{{ reached.code }}</code>
@@ -378,11 +378,11 @@
                         </div>
                         @if (renderBlock(type.description); as html) {
                             <div
-                                class="prism-jsdoc-panel__description prism-jsdoc-service-page__lead"
+                                class="prism-jsdoc-panel__description prism-jsdoc-api-page__lead"
                                 [innerHTML]="html"></div>
                         }
                         @if (type.tags.see?.length) {
-                            <div class="prism-jsdoc-panel__meta prism-jsdoc-service-page__type-meta">
+                            <div class="prism-jsdoc-panel__meta prism-jsdoc-api-page__type-meta">
                                 <ng-container *ngTemplateOutlet="seeChips; context: { $implicit: type.tags.see }" />
                             </div>
                         }
@@ -397,22 +397,22 @@
                             <ng-container *ngTemplateOutlet="methodTable; context: { $implicit: methods, label: 'Method', params: hasParams(methods) }" />
                         }
                         @if (type.union?.length) {
-                            <p class="prism-jsdoc-service-page__union">
+                            <p class="prism-jsdoc-api-page__union">
                                 @for (member of type.union; track $index) {
                                     @if (!$first) {
-                                        <span class="prism-jsdoc-service-page__union-bar">|</span>
+                                        <span class="prism-jsdoc-api-page__union-bar">|</span>
                                     }
                                     <span>{{ member }}</span>
                                 }
                             </p>
                         }
                         @if (type.text) {
-                            <p class="prism-jsdoc-service-page__alias">
+                            <p class="prism-jsdoc-api-page__alias">
                                 <code>{{ type.text }}</code>
                             </p>
                         }
                         @if (type.members?.length) {
-                            <table class="prism-jsdoc-panel__table prism-jsdoc-service-page__table">
+                            <table class="prism-jsdoc-panel__table prism-jsdoc-api-page__table">
                                 <thead>
                                     <tr>
                                         <th>Member</th>
@@ -454,15 +454,15 @@
     </div>
 
     <nav
-        class="prism-jsdoc-service-page__toc"
+        class="prism-jsdoc-api-page__toc"
         aria-label="On this page">
-        <div class="prism-jsdoc-service-page__toc-title">On this page</div>
+        <div class="prism-jsdoc-api-page__toc-title">On this page</div>
         @for (entry of toc(); track entry.id) {
             <button
                 type="button"
-                class="prism-jsdoc-service-page__toc-link"
-                [class.prism-jsdoc-service-page__toc-link--sub]="entry.level === 2"
-                [class.prism-jsdoc-service-page__toc-link--active]="activeId() === entry.id"
+                class="prism-jsdoc-api-page__toc-link"
+                [class.prism-jsdoc-api-page__toc-link--sub]="entry.level === 2"
+                [class.prism-jsdoc-api-page__toc-link--active]="activeId() === entry.id"
                 [attr.aria-current]="activeId() === entry.id ? 'location' : null"
                 [title]="entry.label"
                 (click)="goTo(entry.id)">

@@ -1,5 +1,4 @@
 import type { ApiSetupEntry, ApiTypeDoc, PipeApi, ScannedPipe, ScannedService, ServiceApi } from '@ng-prism/core/plugin';
-import { pipePage, servicePage } from './api-page.model.js';
 import {
     activeTocId,
     buildApiPageToc,
@@ -9,7 +8,8 @@ import {
     setupSignature,
     splitReachedFrom,
     typeSegments
-} from './service-page.model.js';
+} from './api-page.helpers.js';
+import { pipePage, servicePage } from './api-page.model.js';
 
 function typeDoc(name: string, id = name): ApiTypeDoc {
     return { id, name, kind: 'interface', importPath: 'fixture/toast', tags: {}, properties: [] };

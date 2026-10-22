@@ -1,11 +1,11 @@
 import ts from 'typescript';
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
+import { classifyShowcaseClass, readProvision } from './api/angular-decorators.js';
+import type { ExportIndex } from './api/export-index.js';
+import { extractServiceApi } from './api/service-api.extractor.js';
+import { readSetupRefs } from './api/setup.reader.js';
 import { createReporters, extractShowcaseConfig, findShowcasedClass } from './component.scanner.js';
-import { classifyShowcaseClass, readProvision } from './service/angular-decorators.js';
-import type { ExportIndex } from './service/export-index.js';
-import { extractServiceApi } from './service/service-api.extractor.js';
-import { readSetupRefs } from './service/setup.reader.js';
 
 /**
  * The `@Showcase` fields that mean something for a service, and for a pipe, which the sidebar and the plugins treat the same way:
