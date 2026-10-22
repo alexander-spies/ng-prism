@@ -111,9 +111,13 @@ describe('pseudoSignature', () => {
 });
 
 describe('fitLabel', () => {
-    it('labels the fit count', () => {
-        expect(fitLabel(2, 5)).toBe('fits 2 of 5');
-        expect(fitLabel(0, 3)).toBe('fits 0 of 3');
+    it('shows the fit count as a fraction and spells it out in the title', () => {
+        expect(fitLabel(7, 8)).toEqual({ text: '7/8', title: 'State applies to 7 of 8 variants' });
+        expect(fitLabel(0, 3)).toEqual({ text: '0/3', title: 'State applies to 0 of 3 variants' });
+    });
+
+    it('speaks of a single variant in the singular', () => {
+        expect(fitLabel(1, 1)).toEqual({ text: '1/1', title: 'State applies to 1 of 1 variant' });
     });
 });
 
@@ -241,11 +245,11 @@ describe('columnHeaders', () => {
     it('counts the fits of each state column and leaves the Default column without a count', () => {
         const headers = columnHeaders(results([[0, 0, FITS]]), matrix);
 
-        expect(headers.map(({ column, fit, fitsNowhere }) => [column.title, fit, fitsNowhere])).toEqual([
+        expect(headers.map(({ column, fit, fitsNowhere }) => [column.title, fit?.text ?? null, fitsNowhere])).toEqual([
             ['Default', null, false],
-            ['Hover', 'fits 1 of 2', false],
-            ['Typo', 'fits 0 of 2', false],
-            ['Gap', 'fits 0 of 2', false]
+            ['Hover', '1/2', false],
+            ['Typo', '0/2', false],
+            ['Gap', '0/2', false]
         ]);
     });
 

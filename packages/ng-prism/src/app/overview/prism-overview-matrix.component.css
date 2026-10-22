@@ -37,11 +37,13 @@
     background: var(--prism-bg-elevated);
 }
 
+/* Top-aligned: a title and its signature read from the same line in every
+   column, however long a neighbour's signature runs. */
 .matrix__corner,
 .matrix__head {
     top: 0;
     z-index: 2;
-    justify-content: flex-end;
+    justify-content: flex-start;
     border-bottom: 1px solid var(--matrix-edge);
 }
 
@@ -64,6 +66,14 @@
     justify-content: center;
 }
 
+.matrix__head-line {
+    display: flex;
+    gap: var(--sp-3);
+    align-items: baseline;
+    justify-content: space-between;
+    min-width: 0;
+}
+
 .matrix__title,
 .matrix__name {
     overflow: hidden;
@@ -75,14 +85,19 @@
 }
 
 .matrix__signature,
-.matrix__fit,
-.matrix__note {
+.matrix__fit {
     overflow: hidden;
     text-overflow: ellipsis;
     font-family: var(--prism-font-mono);
     font-size: var(--fs-xs);
     color: var(--prism-text-muted);
     white-space: nowrap;
+}
+
+.matrix__fit {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    cursor: help;
 }
 
 /* A state that fits no variant at all: most likely a selector with a typo. */
@@ -94,10 +109,11 @@
     color: var(--prism-warn);
 }
 
+/* 4px each side: 8px between neighbouring cells. */
 .matrix__slot {
     display: flex;
     min-width: 0;
-    padding: var(--sp-3);
+    padding: var(--sp-2);
 }
 
 /* A variant that opted out has a single cell, over Default and every state:

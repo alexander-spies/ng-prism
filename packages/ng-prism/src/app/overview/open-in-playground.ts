@@ -18,3 +18,24 @@ export function openInPlayground(
     renderer.selectState(stateIndex);
     panels.activeViewId.set('renderer');
 }
+
+/**
+ * Whether a cell shows what the Playground shows: the same variant under the
+ * same component state. A variant that opted out with `states: false` shows
+ * no state in either place, so only the variant counts for it.
+ */
+export function isPlaygroundCombination(
+    renderer: Pick<PrismRendererService, 'activeVariantIndex' | 'activeStateIndex'>,
+    variantIndex: number,
+    stateIndex: number | null,
+    statesOptedOut = false
+): boolean {
+    return renderer.activeVariantIndex() === variantIndex && (statesOptedOut || renderer.activeStateIndex() === stateIndex);
+}
+
+/** A cell's accessible name, with the reason when its state does not apply: the cell itself shows only a dash then. */
+export function playgroundLabel(variant: string, state: string | undefined, unfitReason: string | null): string {
+    const label = `Open ${variant}${state ? ` × ${state}` : ''} in the Playground`;
+
+    return unfitReason === null ? label : `${label} (not applicable: ${unfitReason})`;
+}

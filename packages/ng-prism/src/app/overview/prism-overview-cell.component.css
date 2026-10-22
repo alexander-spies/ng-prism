@@ -32,6 +32,22 @@
     border-radius: var(--radius-sm);
 }
 
+/* The matrix is denser than the sheet: a row of five states has to fit the
+   panel. The component keeps its own size; only the frame around it shrinks. */
+:host([data-matrix]) .cell__stage {
+    min-height: 72px;
+    padding: var(--sp-3);
+}
+
+/* What the click opens, and what the Playground shows right now. Longhands,
+   so a dashed n/a frame stays dashed. */
+:host(:hover) .cell__stage,
+:host([data-current]) .cell__stage {
+    outline-width: 1.5px;
+    outline-color: var(--prism-primary);
+    outline-offset: -1.5px;
+}
+
 .cell__mount {
     display: inline-block;
     max-width: 100%;
@@ -44,7 +60,7 @@
 }
 
 /* A state that does not fit shows no component and paints no ground: an
-   empty frame with the reason, so it cannot pass for a rendering. */
+   empty, dashed frame, so it cannot pass for a rendering. */
 .cell__stage[data-unfit] {
     outline-style: dashed;
     background: none;
@@ -54,21 +70,12 @@
     display: none;
 }
 
+/* Only the dash: the reason is the cell's tooltip and part of its label. */
 .cell__unfit {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-1);
-    align-items: center;
-    max-width: 100%;
     font-family: var(--prism-font-mono);
-    font-size: var(--fs-xs);
-    color: var(--prism-text-muted);
-    text-align: center;
-}
-
-.cell__unfit-mark {
     font-size: var(--fs-md);
     line-height: 1;
+    color: var(--prism-text-muted);
 }
 
 /* The caption sits below the frame, not on it. Inside, it would have to

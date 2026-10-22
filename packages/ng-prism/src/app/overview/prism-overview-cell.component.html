@@ -3,15 +3,12 @@
     [attr.data-bg]="unfitReason() === null ? bg() : null"
     [attr.data-unfit]="unfitReason() === null ? null : ''">
     <div class="cell__mount"><ng-container #outlet /></div>
-    @if (unfitReason(); as reason) {
-        <div class="cell__unfit">
-            <span
-                class="cell__unfit-mark"
-                aria-hidden="true"
-                >–</span
-            >
-            <span class="cell__unfit-reason">{{ reason }}</span>
-        </div>
+    @if (unfitReason() !== null) {
+        <span
+            class="cell__unfit"
+            aria-hidden="true"
+            >–</span
+        >
     }
 </div>
 @if (mode() === 'sheet') {

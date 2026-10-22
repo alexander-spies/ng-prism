@@ -24,7 +24,7 @@ import { parseContentToNodes } from '../renderer/projectable-content.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
 import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { computeVariantState, PrismRendererService } from '../services/prism-renderer.service.js';
-import { openInPlayground } from './open-in-playground.js';
+import { isPlaygroundCombination, openInPlayground, playgroundLabel } from './open-in-playground.js';
 
 /**
  * One frame of the contact sheet: a stage painting the variant's declared
@@ -45,8 +45,10 @@ import { openInPlayground } from './open-in-playground.js';
  * A cell can combine its variant with one of the component's `states` (the
  * matrix does). When the marker finds that the state does not fit the rendered
  * component, or the variant opted out with `states: false`, the cell shows the
- * reason in place of the component. Every cell, with or without a state, opens
- * its exact combination in the Playground on click, Enter or Space.
+ * a dash in place of the component, with the reason as its tooltip and in its
+ * label. Every cell, with or without a state, opens its exact combination in
+ * the Playground on click, Enter or Space, and the one the Playground shows is
+ * outlined.
  */
 @Component({
     selector: 'prism-overview-cell',
@@ -56,6 +58,9 @@ import { openInPlayground } from './open-in-playground.js';
         role: 'listitem',
         tabindex: '0',
         '[attr.aria-label]': 'label()',
+        '[attr.title]': 'unfitReason()',
+        '[attr.data-matrix]': "mode() === 'matrix' ? '' : null",
+        '[attr.data-current]': "current() ? '' : null",
         // In the matrix the grid spans are the matrix's own. A stretch variant still
         // fills its cell, so `canvasLayout` holds for the whole row.
         '[attr.data-wide]': "mode() === 'sheet' && stretches() ? '' : null",
@@ -110,7 +115,14 @@ export class PrismOverviewCellComponent {
         const stateIndex = this.state();
         const state = stateIndex === null ? undefined : config.states?.[stateIndex];
 
-        return `Open ${variant}${state ? ` × ${state.name}` : ''} in the Playground`;
+        return playgroundLabel(variant, state?.name, this.unfitReason());
+    });
+
+    /** The combination the Playground shows right now. */
+    protected readonly current = computed(() => {
+        const optedOut = this.component().meta.showcaseConfig.variants?.[this.index()]?.states === false;
+
+        return isPlaygroundCombination(this.renderer, this.index(), this.state(), optedOut);
     });
 
     protected readonly stretches = computed(() => {
