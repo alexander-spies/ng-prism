@@ -1,7 +1,7 @@
 :host {
     /* The DevTools convention for the four layers, as plugin-local colours:
        each holds 4.5:1 for its labels on its own tint. */
-    --prism-bm-margin: var(--prism-bm-margin);
+    --prism-bm-margin: #fb923c;
     --prism-bm-border: #fde047;
     --prism-bm-padding: #4ade80;
     --prism-bm-content: #60a5fa;
