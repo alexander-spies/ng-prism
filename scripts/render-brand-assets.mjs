@@ -3,7 +3,7 @@
  * Renders the raster brand assets from docs/assets/brand/cover.html:
  *
  * - docs/prism_cover.png: the README cover (2048 × 760).
- * - docs/prism_logo_docs.png: the lockup on a transparent ground.
+ * - docs/logo_withtext_small.png: the lockup on a transparent ground.
  *
  * Raster because an SVG in an <img> loads no web fonts, and the wordmark would
  * fall back to Arial. The PNGs keep their old names, so links from outside the
@@ -33,4 +33,4 @@ await page.locator('#cover').screenshot({ path: join(root, 'docs/prism_cover.png
 await page.locator('#lockup').screenshot({ path: join(root, 'docs/logo_withtext_small.png'), omitBackground: true });
 await browser.close();
 
-console.log('rendered docs/prism_cover.png and docs/prism_logo_docs.png');
+console.log('rendered docs/prism_cover.png and docs/logo_withtext_small.png');
