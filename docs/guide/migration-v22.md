@@ -380,11 +380,11 @@ A `@Pipe` declared in an NgModule (`standalone: false`) goes one step further. n
 
 **Deprecated since 22.7.0, removed in 23.0.0.** Core no longer reads these tokens:
 
-| Token                                                                     | Since 22.7.0                                                                                                     | Use instead                                         |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `--prism-mark-nominal`, `--prism-mark-attention`, `--prism-mark-critical` | Aliases of the status colours. An override is carried over to its successor, with a console warning once per key | `--prism-success`, `--prism-warn`, `--prism-danger` |
-| `--prism-spectrum`                                                        | An alias of `--prism-brand-gradient`                                                                             | `--prism-brand-gradient` for brand moments          |
-| `--prism-primary-from`, `--prism-primary-to`                              | Still set, but nothing paints from them                                                                          | `--prism-brand-gradient`, `--prism-primary-fill`    |
+| Token                                                                     | Since 22.7.0                                                                | Use instead                                         |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------- |
+| `--prism-mark-nominal`, `--prism-mark-attention`, `--prism-mark-critical` | Aliases of the status colours. An override is carried over to its successor | `--prism-success`, `--prism-warn`, `--prism-danger` |
+| `--prism-spectrum`                                                        | An alias of `--prism-brand-gradient`. Nothing reads an override             | `--prism-brand-gradient` for brand moments          |
+| `--prism-primary-from`, `--prism-primary-to`                              | Still set, but nothing paints from them                                     | `--prism-brand-gradient`, `--prism-primary-fill`    |
 
 ```typescript
 // before 22.7.0
@@ -394,9 +394,11 @@ theme: { '--prism-mark-critical': '#dc2626' }
 theme: { '--prism-danger': '#dc2626' }
 ```
 
+Every override of one of these tokens, in `theme`, `darkTheme` or `lightTheme`, is reported twice: the build prints `⚠ ng-prism: ng-prism.config.ts sets <token> in "<option>": <token> is deprecated since 22.7.0 and will be removed in 23.0.0. <effect>; override <successor> instead.`, and the styleguide warns once per token in the browser console with `[ng-prism] <token> is deprecated since 22.7.0 …`. The effect reads `Until then its value is carried over to <successor>` for a mark and `Nothing reads it any more` for the others.
+
 ### Deprecation: `PanelBadge.variant`
 
-**Deprecated since 22.7.0, removed in 23.0.0.** A panel's tab badge says what it counts with `kind` instead of a colour: `kind: 'issues'` is a number of open findings, a filled pill in `tone` (`danger` by default, `warn` or `primary`), and `kind: 'count'` is a plain muted figure. `label` names it for a screen reader. A badge that still sets `variant` keeps rendering: `warn` and `danger` become `issues` in that tone, `default` or no variant becomes `count`, and `ok` is not rendered, as before. See [`PanelBadge`](api/ng-prism-plugin.md#panelbadge).
+**Deprecated since 22.7.0, removed in 23.0.0.** A panel's tab badge says what it counts with `kind` instead of a colour: `kind: 'issues'` is a number of open findings, a filled pill in `tone` (`danger` by default, `warn` or `primary`), and `kind: 'count'` is a plain muted figure. `label` names it for a screen reader. A badge that still sets `variant` keeps rendering: `warn` and `danger` become `issues` in that tone, `default` or no variant becomes `count`, and `ok` is not rendered, as before. The styleguide warns once per panel in the browser console: `[ng-prism] The badge of panel "<id>" sets variant, which is deprecated since 22.7.0 and will be removed in 23.0.0. It is mapped to kind and tone until then; set those instead.` See [`PanelBadge`](api/ng-prism-plugin.md#panelbadge).
 
 ```typescript
 // before 22.7.0

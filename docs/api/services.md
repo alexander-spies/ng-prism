@@ -153,6 +153,21 @@ Manages sidebar, variant rail, and panel visibility. State is persisted to `loca
 
 ---
 
+## PrismThemeService
+
+The colour mode and the theme tokens. It keeps the mode in `localStorage` under the key `ng-prism-theme`, sets `data-theme` on `<html>`, writes the resolved tokens onto `document.documentElement` and sets the favicon.
+
+| Member                         | Type                                | Description                                                                                                                                                                                                                                                                    |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `theme`                        | `WritableSignal<'dark' \| 'light'>` | The active mode (default: `'dark'`)                                                                                                                                                                                                                                            |
+| `isDark`                       | `Signal<boolean>`                   | Whether the active mode is `'dark'`                                                                                                                                                                                                                                            |
+| `appTokens`                    | `Signal<Record<string, string>>`    | Since 22.7. Every token of the active mode, with the config's overrides. The header renders with the dark set, so a popover that opens from a header widget binds this as `[style]` to show the active theme again                                                             |
+| `headerTokens`                 | `Signal<Record<string, string>>`    | Since 22.7. The dark set with the `theme` and `darkTheme` overrides. The header binds it on its host: it is a navy band in both themes                                                                                                                                         |
+| `toggle()`                     | `void`                              | Switch between dark and light                                                                                                                                                                                                                                                  |
+| `applyConfigOverrides(config)` | `void`                              | Apply `theme`, `darkTheme` and `lightTheme` from the config. `PrismShellComponent` calls it at startup. Since 22.7 an override of a deprecated token is carried over to its successor where it has one, and the console warns once per token (see [Theming](guide/theming.md)) |
+
+---
+
 ## PrismPluginService
 
 Provides aggregated plugin contributions (panels and controls) derived from `NgPrismConfig.plugins`.

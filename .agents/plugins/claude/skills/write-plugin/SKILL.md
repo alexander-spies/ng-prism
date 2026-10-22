@@ -170,13 +170,15 @@ runtime contributions only:
             "default": "./dist/index.js"
         }
     },
-    "peerDependencies": { "@angular/core": ">=20.0.0", "@ng-prism/core": "^22.5.0-0" }
+    "peerDependencies": { "@angular/core": ">=20.0.0", "@ng-prism/core": "^22.7.0-0" }
 }
 ```
 
 - `index.ts` exports the factory with hooks and contributions; `index.browser.ts` exports a factory of the same name
   without the hooks. Both export the same names, since they share one `index.d.ts`.
-- Angular and `@ng-prism/core` are `peerDependencies`, never bundled.
+- Angular and `@ng-prism/core` are `peerDependencies`, never bundled. Start the `@ng-prism/core` range at the release
+  whose APIs the plugin uses: `statusFor`, the UI primitives and `PanelBadge.kind` exist from 22.7.0, so a plugin that
+  follows this skill needs `^22.7.0-0`.
 - Optional `ng add`: a schematic that calls `addPluginToConfig(tree, path, { importName, importFrom, call })` from
   `@ng-prism/core/schematics/utils`, with `path` pointing at `ng-prism.config.ts`.
 

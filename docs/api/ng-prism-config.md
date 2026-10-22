@@ -109,6 +109,8 @@ export default defineConfig({
 
 See [Theming](guide/theming.md) for the full list of available properties.
 
+An override of a token deprecated in 22.7.0 (`--prism-mark-nominal`, `--prism-mark-attention`, `--prism-mark-critical`, `--prism-spectrum`, `--prism-primary-from`, `--prism-primary-to`) in `theme`, `darkTheme` or `lightTheme` prints `⚠ ng-prism: ng-prism.config.ts sets <token> in "<option>": <token> is deprecated since 22.7.0 and will be removed in 23.0.0. <effect>; override <successor> instead.` at build time, and the styleguide warns once per token in the browser console. A mark's override still reaches its successor until 23.0.0; the others have no effect. See [Migration: mark, spectrum and primary gradient tokens](guide/migration-v22.md#deprecation-mark-spectrum-and-primary-gradient-tokens).
+
 ---
 
 ### Deprecated: `themeStylesheet`, `ui`, `headless`, `appComponent`

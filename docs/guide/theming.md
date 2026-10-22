@@ -79,7 +79,7 @@ export default defineConfig({
 
 Why two primaries: the brand blue `#2563eb` reaches only 3–3.9:1 as text on the dark surfaces, but 5.2:1 under white text as a fill in both themes. So fills keep the brand blue, and text and indicators take a shade that holds 4.5:1 on every surface, including the tints.
 
-> **Deprecated since 22.7.0, removed in 23.0.0:** `--prism-primary-from` and `--prism-primary-to` (core no longer paints gradients from them) and `--prism-spectrum` (now an alias of `--prism-brand-gradient`).
+> **Deprecated since 22.7.0, removed in 23.0.0:** `--prism-primary-from` and `--prism-primary-to` (core no longer paints gradients from them) and `--prism-spectrum` (now an alias of `--prism-brand-gradient`). An override of them has no effect any more; the build prints a notice for it, and the browser console warns once per token.
 
 ## Text Properties
 
@@ -101,7 +101,7 @@ Why two primaries: the brand blue `#2563eb` reaches only 3–3.9:1 as text on th
 
 Every status colour holds 4.5:1 on every surface and on its own `-bg` tint. Warning and danger stay at least ΔE 45 and ΔL\* 14 apart, so they remain tellable apart for a reader with deuteranopia.
 
-> **Deprecated since 22.7.0, removed in 23.0.0:** `--prism-mark-nominal`, `--prism-mark-attention` and `--prism-mark-critical`. They are aliases of `--prism-success`, `--prism-warn` and `--prism-danger`. An override of a mark is carried over to its successor (with a console warning), so an existing theme keeps working; move it to the new name.
+> **Deprecated since 22.7.0, removed in 23.0.0:** `--prism-mark-nominal`, `--prism-mark-attention` and `--prism-mark-critical`. They are aliases of `--prism-success`, `--prism-warn` and `--prism-danger`. An override of a mark is carried over to its successor, so an existing theme keeps working; the build prints a notice for it and the browser console warns once per token. Move it to the new name.
 
 ## Code Syntax Colors
 
