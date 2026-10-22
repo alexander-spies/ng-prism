@@ -32,25 +32,25 @@
    colouring it green would claim a clean result the tool never measured.
    That is the one distinction worth keeping grey. */
 .stat--ok .stat__dot {
-    background: var(--prism-mark-nominal);
+    background: var(--prism-success);
 }
 
 .stat--ok .stat__val {
-    color: var(--prism-mark-nominal);
+    color: var(--prism-success);
 }
 
 .stat--warn .stat__dot {
-    background: var(--prism-mark-attention);
+    background: var(--prism-warn);
 }
 
 .stat--warn .stat__val {
-    color: var(--prism-mark-attention);
+    color: var(--prism-warn);
 }
 
 .stat--danger .stat__dot {
-    background: var(--prism-mark-critical);
+    background: var(--prism-danger);
 }
 
 .stat--danger .stat__val {
-    color: var(--prism-mark-critical);
+    color: var(--prism-danger);
 }

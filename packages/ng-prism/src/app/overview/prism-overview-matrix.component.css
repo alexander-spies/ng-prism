@@ -87,11 +87,11 @@
 
 /* A state that fits no variant at all: most likely a selector with a typo. */
 .matrix__head[data-fits-nowhere] {
-    box-shadow: inset 0 -2px 0 var(--prism-mark-attention);
+    box-shadow: inset 0 -2px 0 var(--prism-warn);
 }
 
 .matrix__head[data-fits-nowhere] .matrix__fit {
-    color: var(--prism-mark-attention);
+    color: var(--prism-warn);
 }
 
 .matrix__slot {

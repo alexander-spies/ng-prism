@@ -12,7 +12,7 @@
     cursor: pointer;
     background: transparent;
     border: 1px solid var(--prism-border);
-    border-radius: var(--prism-radius-sm);
+    border-radius: var(--radius-sm);
     transition:
         border-color 0.15s,
         color 0.15s,
@@ -40,9 +40,9 @@
     min-width: 240px;
     padding: 4px;
     background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
-    border-radius: var(--prism-radius);
-    box-shadow: 0 8px 32px rgb(0 0 0 / 40%);
+    border: 1px solid var(--prism-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--prism-shadow-md);
 }
 
 .layout-menu__item {
@@ -58,7 +58,7 @@
     cursor: pointer;
     background: none;
     border: none;
-    border-radius: var(--prism-radius-sm);
+    border-radius: var(--radius-sm);
     transition: background 0.1s;
 }
 
@@ -79,9 +79,9 @@
 }
 
 .layout-menu__check--on {
-    color: white;
-    background: var(--prism-primary);
-    border-color: var(--prism-primary);
+    color: var(--prism-on-primary);
+    background: var(--prism-primary-fill);
+    border-color: var(--prism-primary-fill);
 }
 
 .layout-menu__icon {
@@ -110,7 +110,7 @@ kbd {
     font-size: 11px;
     color: var(--prism-text-muted);
     background: var(--prism-bg-surface);
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: 3px;
 }
 

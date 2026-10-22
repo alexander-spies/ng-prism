@@ -18,7 +18,7 @@
     font-variant-numeric: tabular-nums;
     color: var(--prism-measure);
     white-space: nowrap;
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: var(--radius-xs);
 }
 

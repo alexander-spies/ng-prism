@@ -83,8 +83,8 @@ export class PrismCanvasRulersComponent {
         ctx.scale(dpr, dpr);
 
         const cs = getComputedStyle(document.documentElement);
-        const bg = cs.getPropertyValue('--prism-bg').trim() || '#0d0b1c';
-        const fg = cs.getPropertyValue('--prism-text-ghost').trim() || '#6a5d87';
+        const bg = cs.getPropertyValue('--prism-bg').trim() || '#080d19';
+        const fg = cs.getPropertyValue('--prism-text-muted').trim() || '#94a3b8';
         const border = cs.getPropertyValue('--prism-border').trim() || 'rgba(255,255,255,0.08)';
 
         ctx.fillStyle = bg;
@@ -147,8 +147,8 @@ export class PrismCanvasRulersComponent {
         ctx.scale(dpr, dpr);
 
         const cs = getComputedStyle(document.documentElement);
-        const bg = cs.getPropertyValue('--prism-bg').trim() || '#0d0b1c';
-        const fg = cs.getPropertyValue('--prism-text-ghost').trim() || '#6a5d87';
+        const bg = cs.getPropertyValue('--prism-bg').trim() || '#080d19';
+        const fg = cs.getPropertyValue('--prism-text-muted').trim() || '#94a3b8';
         const border = cs.getPropertyValue('--prism-border').trim() || 'rgba(255,255,255,0.08)';
 
         ctx.fillStyle = bg;

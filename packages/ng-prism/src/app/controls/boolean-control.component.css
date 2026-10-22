@@ -26,11 +26,11 @@
 }
 
 .ctl-toggle.on {
-    background: var(--prism-primary);
-    border-color: var(--prism-primary);
+    background: var(--prism-primary-fill);
+    border-color: var(--prism-primary-fill);
 }
 
 .ctl-toggle.on::after {
-    background: white;
+    background: var(--prism-on-primary);
     transform: translateX(16px);
 }

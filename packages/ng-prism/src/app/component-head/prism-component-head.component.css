@@ -25,7 +25,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: var(--fs-xs);
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     white-space: nowrap;
@@ -98,14 +98,14 @@ prism-head-gauge,
 }
 
 .comp-status--stable {
-    color: var(--prism-mark-nominal);
-    background: color-mix(in srgb, var(--prism-mark-nominal) 10%, transparent);
+    color: var(--prism-success);
+    background: color-mix(in srgb, var(--prism-success) 10%, transparent);
 }
 
 .comp-status--beta,
 .comp-status--wip {
-    color: var(--prism-mark-attention);
-    background: color-mix(in srgb, var(--prism-mark-attention) 10%, transparent);
+    color: var(--prism-warn);
+    background: color-mix(in srgb, var(--prism-warn) 10%, transparent);
 }
 
 .comp-status--wip .comp-status-mark {
@@ -117,7 +117,7 @@ prism-head-gauge,
 }
 
 .comp-status--deprecated {
-    color: var(--prism-mark-critical);
-    background: color-mix(in srgb, var(--prism-mark-critical) 12%, transparent);
-    border-color: color-mix(in srgb, var(--prism-mark-critical) 55%, transparent);
+    color: var(--prism-danger);
+    background: color-mix(in srgb, var(--prism-danger) 12%, transparent);
+    border-color: color-mix(in srgb, var(--prism-danger) 55%, transparent);
 }

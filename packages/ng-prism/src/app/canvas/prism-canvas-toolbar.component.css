@@ -26,9 +26,9 @@
     padding: var(--sp-2);
     anchor-name: --prism-toolrail;
     background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 4px 16px -6px rgb(0 0 0 / 40%);
+    box-shadow: var(--prism-shadow-md);
 }
 
 .prism-toolrail.has-rulers {
@@ -41,7 +41,7 @@
     padding-bottom: var(--sp-1);
     font-family: var(--font-mono);
     font-size: 9px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-align: center;
     border-bottom: 1px solid var(--prism-border);
 }
@@ -98,9 +98,9 @@
     position-anchor: --prism-toolrail;
     position-try-fallbacks: flip-inline;
     background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 8px 28px -10px rgb(0 0 0 / 45%);
+    box-shadow: var(--prism-shadow-md);
 }
 
 /* display belongs on :popover-open and nowhere else (see the note in
@@ -114,7 +114,7 @@
 
 .prism-toolmenu__lbl {
     font-size: var(--fs-xs);
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -152,5 +152,5 @@
 }
 
 .prism-toolmenu__row button.is-na:not(.is-on) {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }

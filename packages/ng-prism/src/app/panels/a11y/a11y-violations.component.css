@@ -116,7 +116,7 @@
     padding: 2px 7px;
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     white-space: nowrap;
     background: var(--prism-input-bg);
     border-radius: var(--radius-xs);

@@ -25,31 +25,31 @@
 }
 
 .metric-badge--ok {
-    color: var(--prism-mark-nominal);
-    background: color-mix(in srgb, var(--prism-mark-nominal) 10%, transparent);
-    border-color: color-mix(in srgb, var(--prism-mark-nominal) 35%, transparent);
+    color: var(--prism-success);
+    background: color-mix(in srgb, var(--prism-success) 10%, transparent);
+    border-color: color-mix(in srgb, var(--prism-success) 35%, transparent);
 }
 
 .metric-badge--ok .metric-badge__value {
-    color: var(--prism-mark-nominal);
+    color: var(--prism-success);
 }
 
 .metric-badge--warn {
-    color: var(--prism-mark-attention);
-    background: color-mix(in srgb, var(--prism-mark-attention) 10%, transparent);
-    border-color: color-mix(in srgb, var(--prism-mark-attention) 35%, transparent);
+    color: var(--prism-warn);
+    background: color-mix(in srgb, var(--prism-warn) 10%, transparent);
+    border-color: color-mix(in srgb, var(--prism-warn) 35%, transparent);
 }
 
 .metric-badge--warn .metric-badge__value {
-    color: var(--prism-mark-attention);
+    color: var(--prism-warn);
 }
 
 .metric-badge--danger {
-    color: var(--prism-mark-critical);
-    background: color-mix(in srgb, var(--prism-mark-critical) 10%, transparent);
-    border-color: color-mix(in srgb, var(--prism-mark-critical) 40%, transparent);
+    color: var(--prism-danger);
+    background: color-mix(in srgb, var(--prism-danger) 10%, transparent);
+    border-color: color-mix(in srgb, var(--prism-danger) 40%, transparent);
 }
 
 .metric-badge--danger .metric-badge__value {
-    color: var(--prism-mark-critical);
+    color: var(--prism-danger);
 }

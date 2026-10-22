@@ -41,18 +41,18 @@
    were measured and all of them are fine", which is a result, not an
    absence. A metric with no data at all stays grey in the readout rows. */
 .gauge--ok {
-    color: var(--prism-mark-nominal);
-    border-color: color-mix(in srgb, var(--prism-mark-nominal) 40%, transparent);
+    color: var(--prism-success);
+    border-color: color-mix(in srgb, var(--prism-success) 40%, transparent);
 }
 
 .gauge--warn {
-    color: var(--prism-mark-attention);
-    border-color: color-mix(in srgb, var(--prism-mark-attention) 40%, transparent);
+    color: var(--prism-warn);
+    border-color: color-mix(in srgb, var(--prism-warn) 40%, transparent);
 }
 
 .gauge--danger {
-    color: var(--prism-mark-critical);
-    border-color: color-mix(in srgb, var(--prism-mark-critical) 45%, transparent);
+    color: var(--prism-danger);
+    border-color: color-mix(in srgb, var(--prism-danger) 45%, transparent);
 }
 
 .gauge--ok .gauge__dot,
@@ -71,9 +71,9 @@
     position-anchor: --prism-head-gauge;
     position-try-fallbacks: flip-block, flip-inline;
     background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 8px 28px -10px rgb(0 0 0 / 45%);
+    box-shadow: var(--prism-shadow-md);
 }
 
 /* display belongs on :popover-open and nowhere else (see the note in

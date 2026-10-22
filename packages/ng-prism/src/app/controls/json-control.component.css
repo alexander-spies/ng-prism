@@ -54,7 +54,7 @@
 }
 
 :host ::ng-deep .jh-null {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }
 
 .json-input {
@@ -76,7 +76,7 @@
 }
 
 .json-input::selection {
-    background: rgb(99 102 241 / 30%);
+    background: color-mix(in srgb, var(--prism-primary) 30%, transparent);
 }
 
 .json-error {

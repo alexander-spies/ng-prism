@@ -11,7 +11,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 20px;
-    background: var(--prism-bg-elevated);
+    background: var(--prism-bg-surface);
     border-bottom: 1px solid var(--prism-border);
 }
 
@@ -92,7 +92,7 @@
 .ctl-type {
     font-family: var(--font-mono);
     font-size: 10.5px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }
 
 .ctl-type b {
@@ -111,12 +111,12 @@
     font-family: var(--font-mono);
     font-size: 11.5px;
     font-style: italic;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }
 
 .ctl-empty {
     padding: 16px 20px;
     margin: 0;
     font-size: 13px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }
