@@ -52,23 +52,61 @@ interface ScannedComponent {
     };
     importPath?: string;
     baseClasses?: { className: string; filePath: string }[];
+    api?: ComponentApi;
     meta?: Record<string, unknown>;
 }
 ```
 
-| Field                       | Description                                                                                         |
-| --------------------------- | --------------------------------------------------------------------------------------------------- |
-| `className`                 | TypeScript class name                                                                               |
-| `filePath`                  | Absolute path to the source file                                                                    |
-| `showcaseConfig`            | The `ShowcaseConfig` passed to `@Showcase`                                                          |
-| `inputs`                    | Array of extracted `InputMeta` for each `input()` signal, base classes included                     |
-| `outputs`                   | Array of extracted `OutputMeta` for each `output()` signal, base classes included                   |
-| `componentMeta.selector`    | Angular element selector                                                                            |
-| `componentMeta.standalone`  | Whether the component is standalone                                                                 |
-| `componentMeta.isDirective` | `true` if decorated with `@Directive`, `false` for `@Component`                                     |
-| `importPath`                | Entry point import path (e.g. `'my-lib/atoms'` for secondary entry points)                          |
-| `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest |
-| `meta`                      | Plugin-injected metadata                                                                            |
+| Field                       | Description                                                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `className`                 | TypeScript class name                                                                                                                                                          |
+| `filePath`                  | Absolute path to the source file                                                                                                                                               |
+| `showcaseConfig`            | The `ShowcaseConfig` passed to `@Showcase`                                                                                                                                     |
+| `inputs`                    | Array of extracted `InputMeta` for each `input()` signal, base classes included                                                                                                |
+| `outputs`                   | Array of extracted `OutputMeta` for each `output()` signal, base classes included                                                                                              |
+| `componentMeta.selector`    | Angular element selector                                                                                                                                                       |
+| `componentMeta.standalone`  | Whether the component is standalone                                                                                                                                            |
+| `componentMeta.isDirective` | `true` if decorated with `@Directive`, `false` for `@Component`                                                                                                                |
+| `importPath`                | Import path of the entry point that exports the component (e.g. `'my-lib'` or `'my-lib/atoms'`). The scanner sets it for every entry point it scans, the primary one included  |
+| `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest                                                                            |
+| `api`                       | What the API page needs beyond `inputs` and `outputs`, see [`ComponentApi`](#componentapi) (since `22.7.0`). Missing when a plugin hook builds the component. **Experimental** |
+| `meta`                      | Plugin-injected metadata                                                                                                                                                       |
+
+The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them.
+
+`className`, `filePath`, `showcaseConfig`, `inputs`, `outputs`, `componentMeta`, `importPath` and `meta` follow semver as they are. The shape of `api` does not, see below.
+
+---
+
+## ComponentApi
+
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `ComponentApi`, which is `ScannedComponent.api`. The `Api*` types it uses are the ones of [`ServiceApi`](#serviceapi) and share its status.
+
+What the API page of a component or directive needs beyond `inputs` and `outputs`, as the scanner extracts it for every component and directive (since `22.7.0`). The JSDoc plugin draws the API tab from it, see [Components and Directives](plugins/jsdoc.md#components-and-directives). It shares `ApiDocTags`, `ApiTypeRef`, `ApiMethod` and `ApiTypeDoc` with `ServiceApi`, shown there.
+
+```typescript
+interface ComponentApi {
+    description?: string;
+    tags: ApiDocTags;
+    inputTypes: Record<string, ApiTypeRef>; // by member name
+    outputTypes: Record<string, ApiTypeRef>; // by member name
+    modelChanges: { input: string; event: string; type: ApiTypeRef }[];
+    methods: ApiMethod[];
+    types: ApiTypeDoc[];
+}
+```
+
+| Field          | Description                                                                                                                                                                                                                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `description`  | The class's own description as Markdown, with `{@link}` kept as written. Missing without one                                                                                                                                                                                                                           |
+| `tags`         | The tags of the class doc block: `deprecated`, `since`, `version`, `see` and `example`                                                                                                                                                                                                                                 |
+| `inputTypes`   | The type of each input by member name (`InputMeta.name`, not the alias), as written in `input<T>()`, `model<T>()` or the annotation, else as the compiler infers it, with `links` to the cards. An input a generic base class declares in terms of its type parameters has the type the component instantiates it with |
+| `outputTypes`  | The payload of each output by member name: the type argument of `output<T>()`, `EventEmitter<T>` or the annotation, `void` for an `output()` without one                                                                                                                                                               |
+| `modelChanges` | One entry per `model()` input: `input` is its member name, `event` the change output Angular adds for it (`${alias ?? name}Change`) and `type` the type of the model. `ScannedComponent.outputs` has no entry for it                                                                                                   |
+| `methods`      | The public methods that have a doc block of their own or an inherited one, with signatures from the code. The rules of what is left out are those of a service, see [Showcasing Services](guide/showcasing-services.md#members)                                                                                        |
+| `types`        | The documented types that the inputs, outputs and methods reach, recursively. A type is documented when any scanned entry point exports it and it is not `@internal`. An `id` is unique within this list                                                                                                               |
+
+The other `ScannedComponent` fields, `InputMeta`, `OutputMeta` and the plugin data `showcaseConfig.meta.jsdoc` stay as they were: `api` only adds. A component built by a plugin hook, or read from the manifest of an older core, has no `api`, and a reader falls back to `inputs` and `outputs`.
 
 ---
 
@@ -135,6 +173,7 @@ interface ServiceApi {
 interface ApiDocTags {
     deprecated?: string | true;
     since?: string;
+    version?: string; // from @version (since 22.7.0)
     see?: string[];
     example?: string[];
     default?: string; // from @default
@@ -142,7 +181,7 @@ interface ApiDocTags {
 
 interface ApiTypeRef {
     text: string; // as written, e.g. 'Signal<boolean>'
-    links?: string[]; // ids of the api.types entries (ServiceApi or PipeApi) named in the text
+    links?: string[]; // ids of the api.types entries (ServiceApi, PipeApi or ComponentApi) named in the text
 }
 
 interface ApiParam {
@@ -172,7 +211,7 @@ interface ApiProperty {
 }
 
 interface ApiTypeDoc {
-    id: string; // the name, or `${name}@${importPath}` when two reachable types share a name; unique within one service or pipe
+    id: string; // the name, or `${name}@${importPath}` when two reachable types share a name; unique within one service, pipe or component
     name: string;
     kind: 'interface' | 'class' | 'type' | 'enum';
     importPath: string;
@@ -199,7 +238,7 @@ interface ApiSetupEntry {
 }
 ```
 
-`ServiceProvision`, `PanelTarget`, `ServiceApi`, `ApiDocTags`, `ApiTypeRef`, `ApiParam`, `ApiMethod`, `ApiProperty`, `ApiTypeDoc` and `ApiSetupEntry` are exported from `@ng-prism/core/plugin` (and `@ng-prism/core`), with `ScannedService` and `RuntimeService`. What is listed and what is left out is described in [Showcasing Services](guide/showcasing-services.md#members).
+`ServiceProvision`, `PanelTarget`, `ServiceApi`, `ComponentApi`, `ApiDocTags`, `ApiTypeRef`, `ApiParam`, `ApiMethod`, `ApiProperty`, `ApiTypeDoc` and `ApiSetupEntry` are exported from `@ng-prism/core/plugin` (and `@ng-prism/core`), with `ScannedService` and `RuntimeService`. What is listed and what is left out is described in [Showcasing Services](guide/showcasing-services.md#members).
 
 ---
 
@@ -294,16 +333,18 @@ interface InputMeta {
 }
 ```
 
-| Field          | Description                                                              |
-| -------------- | ------------------------------------------------------------------------ |
-| `name`         | Property name; variants and controls use it                              |
-| `alias`        | Public name from `alias` (or `@Input('x')`), when it differs from `name` |
-| `type`         | Normalized type category used to select a control                        |
-| `rawType`      | Raw TypeScript type string (e.g. `'primary' \| 'danger'`)                |
-| `values`       | For union types: the individual member values                            |
-| `defaultValue` | Value from `input(defaultValue)`                                         |
-| `required`     | `true` if declared with `input.required<T>()`                            |
-| `doc`          | JSDoc comment from the property (populated by `@ng-prism/plugin-jsdoc`)  |
+| Field          | Description                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------- |
+| `name`         | Property name; variants and controls use it                                                                |
+| `alias`        | Public name from `alias` (or `@Input('x')`), when it differs from `name`                                   |
+| `type`         | Normalized type category used to select a control                                                          |
+| `rawType`      | Raw TypeScript type string (e.g. `'primary' \| 'danger'`)                                                  |
+| `values`       | For union types: the individual member values                                                              |
+| `defaultValue` | Value from `input(defaultValue)`                                                                           |
+| `required`     | `true` if declared with `input.required<T>()`                                                              |
+| `doc`          | JSDoc comment from the property, as written: `{@link X \| text}` keeps its bar (since `22.7.0`, see below) |
+
+`doc` of an input and of an output is the JSDoc comment of the property with its Markdown and `{@link}` tags as written. The bar of `{@link X | text}` stays since `22.7.0`, so a reader can tell the target from the text. Before, a link whose target TypeScript resolves to a symbol came out as `{@link Xtext}`.
 
 ---
 
@@ -319,7 +360,7 @@ interface OutputMeta {
 }
 ```
 
-`alias` is the public event name from `output({ alias })` or `@Output('x')`, when it differs from `name`.
+`alias` is the public event name from `output({ alias })` or `@Output('x')`, when it differs from `name`. `doc` is the JSDoc comment of the property, read like `InputMeta.doc`.
 
 ---
 

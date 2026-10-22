@@ -56,6 +56,8 @@ async onComponentScanned(component) {
 }
 ```
 
+`ScannedComponent.api` (since `22.7.0`) is the extracted API of the component or directive: the type of each input, the payload of each output, the change event of each `model()`, the documented methods and the types they reach. A hook reads it as it does the rest, for example `component.api?.types`. Its shape is experimental, see [`ComponentApi`](api/types.md#componentapi). The runtime manifest carries it, so a panel reads it at `activeComponent()?.meta.api`. A component that a hook builds from scratch has none, and the API page of the JSDoc plugin then shows its `inputs` and `outputs` without links.
+
 ---
 
 ### `onServiceScanned`

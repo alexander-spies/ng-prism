@@ -237,7 +237,8 @@ The type is the annotation as written, or what the compiler infers when there is
 | `@default`         | The **Default** column of an option or property table                                                                                                               |
 | `@param name text` | Under the parameter, in **Methods** and below a setup signature (`@param name - text` works as well); on a constructor, the description of its parameter properties |
 | `@example`         | A highlighted block, in **Examples** for the class and below the signature of a setup entry                                                                         |
-| `@see`             | A `See:` chip on the class and on a type card                                                                                                                       |
+| `@see`             | A `See:` chip on the class and on a type card. A name that has a card on the page is a button that jumps to it                                                      |
+| `{@link X}`        | In any description: a jump to the card of `X`, else `X` as inline code or the link text, see [Links to Types](plugins/jsdoc.md#links-to-types) (since `22.7.0`)     |
 | `@internal`        | Hides the member or the type altogether                                                                                                                             |
 
 A line comment between the doc block and the member (`// eslint-disable-next-line`) keeps the doc block attached. A block that floats a few lines above the member, such as a banner, and a doc block that is only a ruler (`/** ===== */`) do not describe it.

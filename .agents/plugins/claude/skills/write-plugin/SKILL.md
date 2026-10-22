@@ -45,6 +45,11 @@ export function notesPlugin(): NgPrismPlugin {
   object, a new one, or nothing to keep it as it is; `async` is fine.
 - What a user wrote in `@Showcase({ meta })` arrives as `component.showcaseConfig.meta`, a variant's as
   `component.showcaseConfig.variants[i].meta`.
+- **`component.api` (`ComponentApi`, since 22.7.0) is experimental until 23.0.0** and may change in a 22.x minor, so
+  read it knowing that and keep your own data in `showcaseConfig.meta`, as below. It holds the type of each
+  input and the payload of each output (`ApiTypeRef`: text and links to cards), the change event of each `model()`, the
+  documented methods and the types they reach. It is absent on a component a hook builds from scratch and in the
+  manifest of an older core, so check for it. `inputs`, `outputs` and the other fields of `ScannedComponent` are stable.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the
   whole library goes into `manifest.meta`, read in the browser with `inject(PRISM_MANIFEST).meta`.
 - The manifest that carries these results to the browser is generated source code: only JSON-like data survives. In
@@ -89,7 +94,8 @@ export function notesPlugin(): NgPrismPlugin {
   `loadComponent: () => import('./notes-panel.component').then((m) => m.NotesPanelComponent)`. An eager `component`
   pulls its imports into the file that also runs in Node. Controls only have `component`.
 - `RuntimeComponent.meta` is the whole scanned component, so the user's showcase meta is
-  `activeComponent()?.meta.showcaseConfig.meta`.
+  `activeComponent()?.meta.showcaseConfig.meta`, and a panel reads the API at `activeComponent()?.meta.api`
+  (experimental, and `undefined` for a component without one).
 - **Panels for services and pipes.** `appliesTo: ('component' | 'service' | 'pipe')[]` (since 22.7.0) says where a
   panel appears, default `['component']`. A service or pipe page has no canvas and offers only the panels that apply
   to it, as view tabs: such a panel needs `placement: 'view'`, since there is no addon area. An addon panel shows on
@@ -163,5 +169,5 @@ doesn't reload it.
 ## Guides
 
 - `plugins/writing-plugins.md`, `architecture/plugin-hooks.md`, `api/ng-prism-plugin.md`, `api/services.md`,
-  `api/types.md` (`ScannedService`, `ServiceApi`, `ScannedPipe`, `PipeApi`), `guide/showcasing-services.md`,
-  `guide/showcasing-pipes.md`
+  `api/types.md` (`ScannedComponent`, `ComponentApi`, `ScannedService`, `ServiceApi`, `ScannedPipe`, `PipeApi`),
+  `guide/showcasing-services.md`, `guide/showcasing-pipes.md`

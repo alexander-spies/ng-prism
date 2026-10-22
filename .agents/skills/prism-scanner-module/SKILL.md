@@ -16,37 +16,40 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
         ↓                      ↓
   resolves exports      uses input.extractor
   from the entry file   uses ast-utils
-  (builder option
-   `entryPoint`, e.g.
-   public-api.ts)      →  service.scanner, pipe.scanner
-                               ↓
-                        use api/ (decorators, setup,
-                        members, types, export index;
-                        pipe-api.extractor for transform)
+  (builder option       uses api/component-api.extractor
+   `entryPoint`, e.g.   (API of a component or directive)
+   public-api.ts)
+        ↓
+  service.scanner, pipe.scanner
+        ↓
+  use api/ (decorators, setup, members, types,
+  export index; the API extractors of services,
+  pipes and components/directives)
 ```
 
-**Orchestrator:** `scanner.ts` connects everything. It exports `createScanner(options: CreateScannerOptions): Scanner` — a factory that returns the scanner, not a bare `scan()` function. Per entry point it runs `scanComponents`, `scanServices` and `scanPipes` on the same exports; the last two need an export index built from every entry point first, since a setup function or a type is often exported by another entry point than the service or pipe. `scan()` returns `{ components, services, pipes, diagnostics }`. A class is a service or a pipe only when `classifyShowcaseClass` says so (`@Component`/`@Directive` first, then `@Pipe`, then `@Injectable`/`@Service`), so the three scanners never claim the same class.
+**Orchestrator:** `scanner.ts` connects everything. It exports `createScanner(options: CreateScannerOptions): Scanner` — a factory that returns the scanner, not a bare `scan()` function. Per entry point it runs `scanComponents`, `scanServices` and `scanPipes` on the same exports; all three take an export index built from every entry point first, since a setup function or a type is often exported by another entry point than the class that names it. `scan()` returns `{ components, services, pipes, diagnostics }`. A class is a service or a pipe only when `classifyShowcaseClass` says so (`@Component`/`@Directive` first, then `@Pipe`, then `@Injectable`/`@Service`), so the three scanners never claim the same class.
 
 ## Existing Modules
 
-| Module                      | Purpose                                                                                                                     |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `ast-utils.ts`              | Static AST evaluation utilities                                                                                             |
-| `class-hierarchy.ts`        | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)                                          |
-| `entry-point.scanner.ts`    | Resolve exports from entry point                                                                                            |
-| `component.scanner.ts`      | Find @Showcase components, extract config                                                                                   |
-| `input.extractor.ts`        | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`)                                         |
-| `manifest.generator.ts`     | Generate prism-manifest.ts source code                                                                                      |
-| `pseudo-states.ts`          | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                     |
-| `showcase-diagnostics.ts`   | Word the warnings for `@Showcase` values the scan had to drop                                                               |
-| `showcase-states.ts`        | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                              |
-| `entry-point-discovery.ts`  | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`) |
-| `service.scanner.ts`        | Find @Showcase services (`@Injectable`/`@Service` from `@angular/core`), read provision, `setup` and API (`scanServices`)   |
-| `api/`                      | The service modules: Angular decorators and provision, `setup` reader, export index, member, type and API extraction        |
-| `pipe.scanner.ts`           | Find @Showcase pipes (`@Pipe` from `@angular/core`), read name, purity and standalone, extract `transform` (`scanPipes`)    |
-| `api/pipe-api.extractor.ts` | `PipeApi` of one pipe: `transform` overloads with their doc fallbacks, also from a `.d.ts` base, setup and types            |
-| `scanner.ts`                | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components, services and pipes              |
-| `index.ts`                  | Public surface of the scanner (re-exports the functions and their types)                                                    |
+| Module                           | Purpose                                                                                                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ast-utils.ts`                   | Static AST evaluation utilities                                                                                                                                                  |
+| `class-hierarchy.ts`             | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)                                                                                               |
+| `entry-point.scanner.ts`         | Resolve exports from entry point                                                                                                                                                 |
+| `component.scanner.ts`           | Find @Showcase components, extract config                                                                                                                                        |
+| `input.extractor.ts`             | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`)                                                                                              |
+| `manifest.generator.ts`          | Generate prism-manifest.ts source code                                                                                                                                           |
+| `pseudo-states.ts`               | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                                                                          |
+| `showcase-diagnostics.ts`        | Word the warnings for `@Showcase` values the scan had to drop                                                                                                                    |
+| `showcase-states.ts`             | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                                                                                   |
+| `entry-point-discovery.ts`       | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`)                                                      |
+| `service.scanner.ts`             | Find @Showcase services (`@Injectable`/`@Service` from `@angular/core`), read provision, `setup` and API (`scanServices`)                                                        |
+| `api/`                           | API extraction for services, pipes, components and directives: decorators, `setup` reader, export index, doc tags, members, types                                                |
+| `pipe.scanner.ts`                | Find @Showcase pipes (`@Pipe` from `@angular/core`), read name, purity and standalone, extract `transform` (`scanPipes`)                                                         |
+| `api/pipe-api.extractor.ts`      | `PipeApi` of one pipe: `transform` overloads with their doc fallbacks, also from a `.d.ts` base, setup and types                                                                 |
+| `api/component-api.extractor.ts` | `ComponentApi` of a component or directive, run for each by `scanComponents`: input types, output payloads, `model()` changes, documented methods, types (`extractComponentApi`) |
+| `scanner.ts`                     | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components, services and pipes                                                                   |
+| `index.ts`                       | Public surface of the scanner (re-exports the functions and their types)                                                                                                         |
 
 ## Module Template
 

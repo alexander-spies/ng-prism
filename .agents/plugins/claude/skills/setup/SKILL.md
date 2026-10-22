@@ -95,14 +95,14 @@ and skips a plugin that is already there. In Nx: `npm i -D @ng-prism/plugin-<nam
 `npx nx g @ng-prism/plugin-<name>:ng-add`. Import from the package name; the Angular build picks the browser half
 itself. Keep the core and every plugin on the same version: plugins require `@ng-prism/core` `^<their version>-0`.
 
-| Package                              | Call                                                                  | Adds                                                                                          |
-| ------------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab built from the JSDoc of inputs and outputs, and the page of every service and pipe |
-| `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                                                       |
-| `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel                                    |
-| `@ng-prism/plugin-perf`              | `perfPlugin({ bundle?: { maxTreeDepth? } })`                          | a Performance panel                                                                           |
-| `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker                                                  |
-| `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker                                                |
+| Package                              | Call                                                                  | Adds                                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab for every component, directive, service and pipe, from the code and its JSDoc |
+| `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                                                  |
+| `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel                               |
+| `@ng-prism/plugin-perf`              | `perfPlugin({ bundle?: { maxTreeDepth? } })`                          | a Performance panel                                                                      |
+| `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker                                             |
+| `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker                                           |
 
 - **JSDoc, services and pipes:** a class with `@Showcase` and `@Injectable` or `@Service` is a service, one with
   `@Showcase` and `@Pipe` a pipe, and `jsDocPlugin()` draws the page of both (skill showcase, since 22.7.0).

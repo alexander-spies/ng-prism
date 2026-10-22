@@ -179,7 +179,7 @@ On a component, `scanComponents()` reports `describeSetupOnComponent` and ignore
 `extractServiceApi()` builds the `ServiceApi` of one service from three modules:
 
 - **`member.extractor.ts`** walks the class and its base classes, nearest first, and collects public instance properties, accessors and methods with their signatures. A member the subclass declares hides the inherited one, including an `@internal` override. Left out: `private`, `protected`, `#private`, `_`-prefixed names, lifecycle hooks, the constructor, statics and `@internal`. The constructor's parameter properties (`public`, `readonly` or `override`, neither `private` nor `protected`) are properties, taken where the constructor stands and described by its `@param`. Methods are listed with or without JSDoc, which differs from the component scan. A getter and its setter, or the overloads of a method, are one entry; the doc block sits on one of them, and the signature shown is the documented one's, else the first. A type is the annotation as written, else `checker.typeToString`.
-- **`doc-tags.ts`** reads description and tags. The doc block is the last one above the node and has to sit directly on it, line comments in between allowed; a floating banner and a ruler (`/** ===== */`) are not read. `@default`, `@since`, `@deprecated`, `@see`, `@example`, `@param` and `@internal` are understood. An override without a doc block of its own takes the doc block of the nearest base class member that has one.
+- **`doc-tags.ts`** reads description and tags. The doc block is the last one above the node and has to sit directly on it, line comments in between allowed; a floating banner and a ruler (`/** ===== */`) are not read. `@default`, `@since`, `@version`, `@deprecated`, `@see`, `@example`, `@param` and `@internal` are understood. An override without a doc block of its own takes the doc block of the nearest base class member that has one.
 - **`type-collector.ts`** documents the types the signatures reach. A reference is documented when it resolves to an interface, class, type alias or enum that the export index knows and that is not `@internal`; otherwise it stays text. Each type gets one entry, recursively through the types of its members and type arguments, and a type that refers to itself ends there. Its id is its name, or `name@importPath` when two reachable types share a name, and `reachedFrom` records where it was first met. A type imported under another name is documented under its declared name, and the local name in the text stays unlinked.
 
 `service-api.extractor.ts` adds the setup entries: the signature and docs of a function, the type of a token, and a config table made of the properties of the first parameter's object type, or of a token's type argument, looked at through `Partial`, `Required` and `Readonly`. A class, an array or a primitive gets no table.
@@ -260,6 +260,22 @@ An input or output declared with an alias keeps its member name as `name` and ge
 
 A class is considered a directive (`isDirective: true`) if it has `@Directive` but not `@Component`.
 
+## API of a Component or Directive
+
+`scanComponents()` runs `extractComponentApi()` (`api/component-api.extractor.ts`) for every component and directive once its inputs and outputs are read, and stores the result as `ScannedComponent.api` (since 22.7.0). `InputMeta` only has a normalized type category and a plain string, so this adds what the API page of the JSDoc plugin needs and `inputs` and `outputs` cannot hold. It takes the same export index as `scanServices()` and `scanPipes()`, and the same type collector and member walk. The pieces:
+
+- **Input types.** Each input is found through `findInputDeclaration()`: the member of that name in the nearest class that defines metadata and declares it an input, the one `extractInputs()` reads. Its type is what is written: the type argument of `input<T>()`, `input.required<T>()` or `model<T>()`, or the annotation of an `@Input()`. Without one, the type the checker infers for the value. The result is an `ApiTypeRef`, the text with `links` to the types it names. A type is reached as `type of <public name>`.
+- **Inherited inputs of a generic base.** An input whose declared type, or default, names a type parameter of its base class (`model<T>()` in `Field<T>`) has no useful annotation: `T` means nothing on the page of `NumberField extends Field<number>`. For these, and only these (`usesTypeParameters()` decides, as it does for `rawType` above), the type is taken from the property as the showcased class sees it and printed by the checker, so it has no links. Every other inherited input keeps its annotation and its links.
+- **Output payloads.** `findOutputDeclaration()` finds the member the same way. The payload is the type argument of `output<T>()` or `new EventEmitter<T>()`, else the one of the annotation (`OutputEmitterRef<T>`, `EventEmitter<T>`, `Observable<T>`), else the first type argument of the member's type, and `unknown` when it has none. An `output()` without a type argument is `void`. A payload is reached as `payload of <public name>`.
+- **`model()` change events.** Every `model()` and `model.required()` input adds `{ input, event, type }` to `modelChanges`, where `event` is `${alias ?? name}Change` and `type` the type of the model. `outputs` gets no entry for it: the Events panel and the directive wrapper work from `outputs`, and the change output Angular adds has no class member to read.
+- **Methods.** `extractDocumentedMethods()` in `member.extractor.ts` walks the members as `extractServiceApi()` does, hierarchy, exclusions and inherited docs included, and keeps only the methods with a doc block of their own or an inherited one. A component's public methods are often there for its own template only. Properties are not read: `inputs` and `outputs` cover what a template binds.
+- **Description and tags.** `readDescription()` and `readDocTags()` read the class's doc block. The description keeps its `{@link}` tags: the plugin's own extractor loses the target of a link, which is why the page takes the description from `api`.
+- **Types.** The collector documents what the input types, output payloads and signatures reach, with the rules of a service: exported by any scanned entry point, not `@internal`, ids by name or `name@importPath`, `reachedFrom` saying where a type was first met (`type of variant`, `payload of tabChanged`, `parameter of focus()`). The order of first reach is inputs, outputs, methods.
+
+`InputMeta.doc` and `OutputMeta.doc` are read by `getJsDocComment()` in `ast-utils.ts`, which joins the parts of the comment the way `ts.displayPartsToString` does except for one thing: a `{@link X | text}` keeps the bar between target and text. TypeScript drops it for a target it resolves to a symbol, which turned `{@link TabItem | the item}` into `{@link TabItemthe item}`, and the page could no longer tell where the target ends.
+
+Without an export index (`scanComponents()` called on its own) the API has the text of every type but no links and no `types`. The runtime manifest writes `api` with the other data, and now `importPath` as well, so the browser can name the entry point in a usage snippet; `baseClasses` stays out of it. The shape is experimental until 23.0.0, see [`ComponentApi`](api/types.md#componentapi).
+
 ## Output
 
 `scanComponents()` returns an array of `ScannedComponent` objects. Each includes:
@@ -268,7 +284,8 @@ A class is considered a directive (`isDirective: true`) if it has `@Directive` b
 - `showcaseConfig`: the evaluated `@Showcase` argument
 - `inputs`, `outputs`: extracted metadata arrays
 - `componentMeta`: `{ selector, standalone, isDirective }`
-- `importPath`: set by the pipeline for secondary entry points
+- `importPath`: the import path of the entry point that exports it, set by `createScanner()` for every entry point, the primary one included
+- `api`: the extracted `ComponentApi`, see [API of a Component or Directive](#api-of-a-component-or-directive)
 
 `scanServices()` returns an array of `ScannedService` objects, in `ScanResult.services`:
 

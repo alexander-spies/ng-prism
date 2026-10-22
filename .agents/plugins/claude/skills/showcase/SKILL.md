@@ -138,6 +138,32 @@ export class ButtonComponent {
 }
 ```
 
+## JSDoc on a component or directive
+
+With `jsDocPlugin()` (skill setup) the API tab of a component or directive is the same page as the one of a service
+(since 22.7.0): a generated usage snippet, then Inputs, Outputs, Methods and a card for each type they reach. It is read
+from the code and the JSDoc, so write JSDoc for what the types can't say:
+
+- **Describe every `input()`, `model()` and `output()`.** The description shows in its table row, `@deprecated` becomes
+  a badge and `@since` a note. The type comes from the code, as written (`input.required<TabItem[]>()`) or, without a type
+  argument, as the compiler infers it.
+- **A type is linked only when an entry point exports it.** It then gets a card, with its properties and its JSDoc, and
+  every mention of it in an input type, an output payload or a method signature links to it. A type the library keeps to
+  itself, an `@internal` one and one from another package (`Signal`, `Observable`) stays plain text. Export the
+  interface or union alias from a scanned entry point, a secondary one as well, if it should have a card.
+- **`@see X` and `{@link X}` link to the card of `X`, and only when `X` is on the page**, that is, when an input, an
+  output payload or a documented method reaches it. Otherwise `@see X` stays text and `{@link X}` shows as code (as
+  the link text for `{@link X | text}`). `{@link https://…}` is a normal link. A Markdown link such as `[X](#)` is left
+  as written and goes nowhere.
+- **An output's payload comes from `output<T>()`.** Write the type argument; an `output()` without one shows `void`.
+  The change event of a `model()` (`<name>Change`) is added by itself: don't document it twice.
+- **Only documented methods are listed.** A public method with a doc block, its own or inherited, is a row, with
+  `@param name text` under each parameter. One without is left out, as are `private` and `protected` members, `_x`
+  names, lifecycle hooks, statics and `@internal`. Document the methods a user is meant to call from outside.
+- **Nothing to write for Usage.** The snippet is generated from the selector, the required inputs and, for a directive,
+  the `host` of its `@Showcase`: another reason to declare one (rule 7). `@version` gives a Version chip next to
+  `@since`; `@example` (a fenced block) goes under Examples.
+
 ## Showcasing a service
 
 ````ts
@@ -216,7 +242,8 @@ export interface NotificationConfig {
   `private`, `protected`, `#x`, `_x`, lifecycle hooks, the constructor itself, statics and `@internal`. Write JSDoc
   for what the types can't say: the class description (Markdown), `@since`, `@deprecated`, `@example` (a fenced
   block), `@param name text` on methods and setup functions (shown under each parameter), `@see` (a chip on the class
-  and on type cards) and `@default` on each option of a config interface. A `@returns` text isn't shown: the return
+  and on type cards, a jump to the card of the type it names, as `{@link X}` is) and `@default` on each option of a
+  config interface. A `@returns` text isn't shown: the return
   type comes from the code. The default column is filled from `@default` only: prose such as "Defaults to
   `'bottom-right'`." is not read. An override without a doc block takes the one of its base class.
 - **Types get a card and a link** when a scanned entry point exports them and they aren't `@internal`. Export the
@@ -393,9 +420,10 @@ Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome D
 `&state=<stateIndex>`, wait for `<ClassName>:<index>:<stateIndex>` and skip the screenshot when `.demo-wrap` has a
 `data-prism-excluded` attribute (its value is the reason). For a service open
 `http://localhost:4400/?service=<ClassName>&view=jsdoc` and wait for `[data-prism-service-rendered="<ClassName>"]`; for
-a pipe open `?pipe=<ClassName>&view=jsdoc` and wait for `[data-prism-pipe-rendered="<ClassName>"]`.
-Otherwise give the user that URL. This is ng-prism's public External Tooling API; `window.__PRISM_MANIFEST__` lists
-every component, its variants and its states, but no services or pipes.
+a pipe open `?pipe=<ClassName>&view=jsdoc` and wait for `[data-prism-pipe-rendered="<ClassName>"]`; for the API tab of
+a component or directive open `?component=<ClassName>&view=jsdoc` and wait for
+`[data-prism-component-rendered="<ClassName>"]`. Otherwise give the user that URL. This is ng-prism's public External
+Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states, but no services or pipes.
 
 ## Guides
 
