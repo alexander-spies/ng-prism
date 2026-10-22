@@ -150,8 +150,14 @@ In Nx, a target with `"command": "npx ng-prism-strip dist/<path>"` and `"depends
 
 ## Upgrading
 
-- ng-prism's major version follows Angular's. A breaking change within one Angular major ships as a minor release, with
-  a deprecation first and the removal in the next major. 22.x supports Angular 20 to 22.
+- ng-prism's major version follows Angular's. A breaking change within one Angular major ships as a minor release,
+  with a deprecation first and the removal in the next major where it can be deprecated. One that cannot, such as a
+  union type that gains a member, ships in the minor release itself and is listed in `guide/migration-v22.md`. 22.x
+  supports Angular 20 to 22.
+- 22.7.0 is such a release. A class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe` but no component-only
+  field leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`; it is listed as a service or a pipe with
+  `jsDocPlugin()` 22.7.0 or newer. Code that narrows a `NavigationItem` by `kind` needs a `'service'` and a `'pipe'`
+  branch. See `guide/migration-v22.md#breaking-changes-and-deprecations-in-2270`.
 - Update the core and all plugins in one call: `ng update @ng-prism/core @ng-prism/plugin-jsdoc …`.
 - The migrations to v22 (manifest moved to `ng-prism-cache/`, `.ng-prism/` renamed) read `angular.json` only; in an Nx
   workspace apply them by hand following `guide/migration-v22.md`. They need Angular CLI 22 and a Node version it
