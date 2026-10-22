@@ -8,6 +8,7 @@ import type { CanvasBg } from '../../shared/canvas-bg.type.js';
  * the ground, not the theme: a dark rail on a light canvas under the dark theme
  * is the case this exists for. The values are the theme surfaces of the matching
  * theme, held to 4.5:1 for text and 3:1 for contours by the spec next to this.
+ * The measurement colours repeat the ground's from `CANVAS_BG_STYLES`.
  */
 const ON_LIGHT: Record<string, string> = {
     '--prism-canvas-overlay-bg': '#ffffff',
@@ -15,7 +16,11 @@ const ON_LIGHT: Record<string, string> = {
     '--prism-canvas-overlay-muted': '#334155',
     '--prism-canvas-overlay-border': '#7b8aa0',
     '--prism-canvas-overlay-primary': '#1d4ed8',
-    '--prism-canvas-overlay-active': 'color-mix(in srgb, #2563eb 10%, transparent)'
+    '--prism-canvas-overlay-active': 'color-mix(in srgb, #2563eb 10%, transparent)',
+    // The pin row sits on the plate outside the stage, so it needs the ground's
+    // measurement colour too. Same literals as CANVAS_BG_STYLES.
+    '--prism-measure': '#ca00c1',
+    '--prism-measure-plate': 'var(--prism-void-light, #f7f5fc)'
 };
 
 const ON_DARK: Record<string, string> = {
@@ -24,7 +29,9 @@ const ON_DARK: Record<string, string> = {
     '--prism-canvas-overlay-muted': '#cbd5e1',
     '--prism-canvas-overlay-border': '#64748b',
     '--prism-canvas-overlay-primary': '#60a5fa',
-    '--prism-canvas-overlay-active': 'color-mix(in srgb, #60a5fa 16%, transparent)'
+    '--prism-canvas-overlay-active': 'color-mix(in srgb, #60a5fa 16%, transparent)',
+    '--prism-measure': '#f632ff',
+    '--prism-measure-plate': 'var(--prism-void-dark, #07050f)'
 };
 
 /**

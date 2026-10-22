@@ -30,7 +30,9 @@ describe('canvasOverlayTokens', () => {
                 '--prism-canvas-overlay-border',
                 '--prism-canvas-overlay-fg',
                 '--prism-canvas-overlay-muted',
-                '--prism-canvas-overlay-primary'
+                '--prism-canvas-overlay-primary',
+                '--prism-measure',
+                '--prism-measure-plate'
             ].sort()
         );
     });
@@ -48,6 +50,15 @@ describe('canvasOverlayTokens', () => {
         expect(contrast(t['--prism-canvas-overlay-muted'], plate)).toBeGreaterThanOrEqual(4.5);
         expect(contrast(t['--prism-canvas-overlay-border'], plate)).toBeGreaterThanOrEqual(3);
         expect(contrast(t['--prism-canvas-overlay-primary'], plate)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    // Regression: the pin row sits on the overlay plate, outside the stage that
+    // re-points the measurement colour, so its chips kept the theme's measure:
+    // 3.1:1 on the light ground under the dark theme.
+    it.each(['light', 'dark'] as const)('keeps the measurement colour 4.5:1 on the %s overlay', (bg) => {
+        const t = canvasOverlayTokens(bg);
+
+        expect(contrast(t['--prism-measure'], t['--prism-canvas-overlay-bg'])).toBeGreaterThanOrEqual(4.5);
     });
 
     it.each(['dots', 'plain', 'checker', 'transparent'] satisfies CanvasBg[])('leaves the theme-following %s ground to the theme', (bg) => {
