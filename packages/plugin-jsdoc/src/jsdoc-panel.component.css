@@ -52,28 +52,32 @@
     color: var(--prism-primary);
 }
 
+/* Shaped like prism-badge: radius 4, sentence case, the tone on its tint. */
 .prism-jsdoc-panel__badge {
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 10px;
+    height: 20px;
+    padding: 0 7px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 4px;
 }
 
 .prism-jsdoc-panel__badge--deprecated {
     color: var(--prism-warn);
-    background: color-mix(in srgb, var(--prism-warn) 15%, transparent);
+    background: var(--prism-warn-bg);
 }
 
 .prism-jsdoc-panel__badge--required {
     margin-left: 4px;
-    font-weight: 700;
-    color: var(--prism-accent);
+    color: var(--prism-primary);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--prism-primary) 65%, transparent);
 }
 
 .prism-jsdoc-panel__badge--small {
-    padding: 1px 5px;
+    height: 16px;
+    padding: 0 5px;
     margin-left: 4px;
     font-size: 10px;
 }
@@ -86,7 +90,7 @@
     margin: 22px 0 10px;
     font-size: 11px;
     font-weight: 700;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -180,7 +184,7 @@
     padding: 8px 12px;
     font-size: 10.5px;
     font-weight: 700;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-align: left;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -264,7 +268,7 @@
 :host ::ng-deep .prism-jsdoc-panel__description h3 {
     font-size: 11px;
     font-weight: 700;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -338,4 +342,12 @@
     margin: 0 0 8px;
     color: var(--prism-text-2);
     border-left: 3px solid var(--prism-border);
+}
+
+/* Type and default read as mono text in text-2; only the name keeps its chip. */
+.prism-jsdoc-panel__cell--type code,
+.prism-jsdoc-panel__cell--default code {
+    padding: 0;
+    color: var(--prism-text-2);
+    background: none;
 }
