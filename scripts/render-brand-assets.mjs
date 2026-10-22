@@ -9,6 +9,11 @@
  * fall back to Arial. The PNGs keep their old names, so links from outside the
  * repo show the current brand too. Uses the root Playwright devDependency.
  *
+ * The cover's app picture is docs/assets/brand/cover-app.png, a 1440 × 900
+ * screenshot of the demo styleguide in the dark theme (Button, Elevated, A11y
+ * panel). It is a file rather than a live capture so this script runs without
+ * a dev server; retake it when the shell changes visibly.
+ *
  *   node scripts/render-brand-assets.mjs
  */
 import { chromium } from 'playwright';
