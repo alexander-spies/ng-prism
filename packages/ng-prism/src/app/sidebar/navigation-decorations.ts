@@ -136,3 +136,40 @@ export function rollupCategory(decorations: readonly (ItemDecorations | null)[])
 export function lifecycleIcon(status: ComponentStatus | undefined, idle = 'box'): string {
     return status === 'wip' ? 'circle-dashed' : idle;
 }
+
+/** What a category head shows on the right: its size and, if any, a problem chip. */
+export interface CategoryCount {
+    total: string;
+    chip: { text: string; tone: 'warn' | 'danger' } | null;
+    title: string | null;
+}
+
+/**
+ * The category head's count: the number of entries, plus a chip with the
+ * number that need review in the worst tone among them. Replaces "2/4", which
+ * read as a fraction of progress rather than as a count of problems.
+ */
+export function categoryCount(rollup: CategoryRollup, total: number): CategoryCount {
+    if (rollup.problems === 0 || rollup.variant === null) {
+        return { total: String(total), chip: null, title: null };
+    }
+    const verb = rollup.problems === 1 ? 'entry needs' : 'entries need';
+
+    return {
+        total: String(total),
+        chip: { text: String(rollup.problems), tone: rollup.variant },
+        title: `${rollup.problems} of ${total} ${verb} review`
+    };
+}
+
+const SECTION_FACETS: Record<string, 'cyan' | 'blue' | 'violet' | 'magenta'> = {
+    Components: 'cyan',
+    Directives: 'violet',
+    Services: 'magenta',
+    Pipes: 'blue'
+};
+
+/** The logo facet a section's icon is coloured in; `null` keeps the primary colour. */
+export function sectionFacet(name: string): 'cyan' | 'blue' | 'violet' | 'magenta' | null {
+    return SECTION_FACETS[name] ?? null;
+}

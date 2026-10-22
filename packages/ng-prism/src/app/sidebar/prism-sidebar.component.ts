@@ -7,7 +7,17 @@ import type { NavigationItem } from '../services/navigation-item.types.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
 import { PrismSearchService } from '../services/prism-search.service.js';
-import { type CategoryRollup, decorateItem, type ItemDecorations, lifecycleIcon, resolveNavigationDecorations, rollupCategory } from './navigation-decorations.js';
+import { PrismBadgeComponent } from '../shared/prism-badge.component.js';
+import {
+    categoryCount,
+    type CategoryRollup,
+    decorateItem,
+    type ItemDecorations,
+    lifecycleIcon,
+    resolveNavigationDecorations,
+    rollupCategory,
+    sectionFacet
+} from './navigation-decorations.js';
 
 const STORAGE_KEY = 'ng-prism-sidebar-collapsed';
 
@@ -58,7 +68,7 @@ interface ComponentCategory {
     selector: 'prism-sidebar',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismIconComponent],
+    imports: [PrismIconComponent, PrismBadgeComponent],
     templateUrl: './prism-sidebar.component.html',
     styleUrl: './prism-sidebar.component.css'
 })
@@ -151,23 +161,13 @@ export class PrismSidebarComponent {
         return itemShowcaseConfig(item)?.status;
     }
 
-    /**
-     * Accessible name for the roll-up pill, for the deviating case only. The
-     * pill otherwise renders a bare number distinguished only by colour. A
-     * screen reader would read the group head as "Feedback 3 12" with nothing
-     * naming what either number means, and a colour-blind reader can't tell
-     * them apart at all.
-     *
-     * There is no zero branch: a clean category renders its plain
-     * item count and the template leaves both attributes off, because
-     * `aria-label` on a descendant feeds the group button's name-from-content
-     * and "Buttons 0 components need review" is a claim about a group that has
-     * nothing to review.
-     */
-    protected rollupTooltip(rollup: CategoryRollup): string {
-        const noun = rollup.problems === 1 ? 'component needs' : 'components need';
+    /** The category head's count and problem chip. A clean category shows only its size. */
+    protected countOf(rollup: CategoryRollup, total: number) {
+        return categoryCount(rollup, total);
+    }
 
-        return `${rollup.problems} ${noun} review`;
+    protected facet(sectionName: string) {
+        return sectionFacet(sectionName);
     }
 
     protected itemTooltip(item: NavigationItem, decorations: ItemDecorations | null): string | null {
