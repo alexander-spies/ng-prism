@@ -22,6 +22,7 @@ const compilerOptions: ts.CompilerOptions = {
 describe('component API extractor', () => {
     let tabs: ComponentApi;
     let field: ComponentApi;
+    let legacy: ComponentApi;
 
     beforeAll(() => {
         const result = resolveEntryPointExports(
@@ -53,6 +54,7 @@ describe('component API extractor', () => {
 
         tabs = extract('FixtureTabsComponent');
         field = extract('FixtureNumberFieldDirective');
+        legacy = extract('FixtureLegacyListComponent');
     });
 
     function typeOf(api: ComponentApi, name: string): ApiTypeDoc {
@@ -68,6 +70,7 @@ describe('component API extractor', () => {
             items: { text: 'FixtureTab[]', links: ['FixtureTab'] },
             size: { text: 'FixtureSize', links: ['FixtureSize'] },
             active: { text: 'string' },
+            expanded: { text: 'boolean' },
             hidden: { text: 'FixtureInternal | null' }
         });
     });
@@ -76,8 +79,11 @@ describe('component API extractor', () => {
         expect(tabs.outputTypes).toEqual({ selected: { text: 'FixtureTab', links: ['FixtureTab'] }, closed: { text: 'void' } });
     });
 
-    it('adds the change output of a model', () => {
-        expect(tabs.modelChanges).toEqual([{ input: 'active', event: 'activeChange', type: { text: 'string' } }]);
+    it('adds the change output of a model, named by its alias when it has one', () => {
+        expect(tabs.modelChanges).toEqual([
+            { input: 'active', event: 'activeChange', type: { text: 'string' } },
+            { input: 'expanded', event: 'openChange', type: { text: 'boolean' } }
+        ]);
     });
 
     it('lists documented methods only', () => {
@@ -94,6 +100,28 @@ describe('component API extractor', () => {
     it('reads description and tags of the class, links kept', () => {
         expect(tabs.description).toBe('Tabs for the fixture, see {@link FixtureTab}.');
         expect(tabs.tags).toEqual({ since: '2.0.0', version: '2.1.0', see: ['FixtureTab'] });
+    });
+
+    describe('with decorators', () => {
+        it('types an @Input() by its annotation as written, with links', () => {
+            expect(legacy.inputTypes['items']).toEqual({ text: 'Array<FixtureTab>', links: ['FixtureTab'] });
+        });
+
+        it('instantiates an @Input() of a generic base class', () => {
+            expect(legacy.inputTypes['current']).toEqual({ text: 'FixtureTab | undefined', links: ['FixtureTab'] });
+        });
+
+        it('reads the payload of an @Output() from the type argument of new EventEmitter<T>()', () => {
+            expect(legacy.outputTypes['picked']).toEqual({ text: 'Array<FixtureTab>', links: ['FixtureTab'] });
+        });
+
+        it('reads the payload of an @Output() from its EventEmitter<T> annotation', () => {
+            expect(legacy.outputTypes['badgeChange']).toEqual({ text: 'Array<FixtureBadge>', links: ['FixtureBadge'] });
+        });
+
+        it('has no change output of its own: a decorator input is no model', () => {
+            expect(legacy.modelChanges).toEqual([]);
+        });
     });
 
     it('instantiates an input of a generic base class', () => {

@@ -17,6 +17,8 @@ export class FixtureTabsComponent implements OnInit {
     items = input.required<FixtureTab[]>({ alias: 'tabs' });
     size = input(FixtureSize.M);
     active = model<string>('');
+    // The change event of an aliased model is named by the alias, not the member.
+    expanded = model(false, { alias: 'open' });
     hidden = input<FixtureInternal | null>(null);
     selected = output<FixtureTab>();
     closed = output();
