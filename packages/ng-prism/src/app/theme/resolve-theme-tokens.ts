@@ -1,3 +1,4 @@
+import { DEPRECATED_THEME_TOKENS } from './deprecated-tokens.js';
 import { PRISM_BASE_TOKENS, PRISM_DARK_THEME, PRISM_LIGHT_THEME } from './prism-default-theme.js';
 
 /** The three theme options of `NgPrismConfig`, as the theme service receives them. */
@@ -13,17 +14,6 @@ export interface ResolvedTheme {
     /** Deprecated tokens the user overrode, so the caller can warn once about each. */
     deprecatedOverrides: string[];
 }
-
-/**
- * The deprecated mark roles and the status colours that replaced them in 22.7.
- * Core reads only the successors, so an override of a mark is carried over to
- * keep working until the marks are removed.
- */
-const MARK_SUCCESSORS: ReadonlyArray<readonly [string, string]> = [
-    ['--prism-mark-nominal', '--prism-success'],
-    ['--prism-mark-attention', '--prism-warn'],
-    ['--prism-mark-critical', '--prism-danger']
-];
 
 /**
  * All tokens for one mode: base tokens, the mode's theme, the user's
@@ -47,10 +37,12 @@ export function resolveThemeTokens(mode: 'dark' | 'light', overrides: ThemeOverr
     const tokens = { ...PRISM_BASE_TOKENS, ...modeTheme, ...user };
     const deprecatedOverrides: string[] = [];
 
-    for (const [mark, successor] of MARK_SUCCESSORS) {
-        if (!(mark in user)) continue;
-        deprecatedOverrides.push(mark);
-        if (!(successor in user)) tokens[successor] = user[mark];
+    // Core reads only the successors, so a carried token's override lands on its
+    // successor to keep working until the token is removed.
+    for (const [token, { successor, carried }] of Object.entries(DEPRECATED_THEME_TOKENS)) {
+        if (!(token in user)) continue;
+        deprecatedOverrides.push(token);
+        if (carried && !(successor in user)) tokens[successor] = user[token];
     }
 
     if ('--prism-primary' in user) {

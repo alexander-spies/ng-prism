@@ -1,14 +1,9 @@
 import { computed, effect, Injectable, signal } from '@angular/core';
+import { deprecatedTokenNotice } from '../theme/deprecated-tokens.js';
 import { FAVICON_SVG_DATA_URI } from '../theme/favicon.js';
 import { resolveThemeTokens, type ThemeOverrides } from '../theme/resolve-theme-tokens.js';
 
 const STORAGE_KEY = 'ng-prism-theme';
-
-const SUCCESSOR: Record<string, string> = {
-    '--prism-mark-nominal': '--prism-success',
-    '--prism-mark-attention': '--prism-warn',
-    '--prism-mark-critical': '--prism-danger'
-};
 
 @Injectable({ providedIn: 'root' })
 export class PrismThemeService {
@@ -60,7 +55,7 @@ export class PrismThemeService {
         for (const token of deprecatedOverrides) {
             if (this.warnedDeprecations.has(token)) continue;
             this.warnedDeprecations.add(token);
-            console.warn(`ng-prism: ${token} is deprecated since 22.7.0 and removed in 23.0.0. Override ${SUCCESSOR[token]} instead.`);
+            console.warn(`[ng-prism] ${deprecatedTokenNotice(token)}`);
         }
     }
 

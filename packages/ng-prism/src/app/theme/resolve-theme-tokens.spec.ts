@@ -22,6 +22,16 @@ describe('resolveThemeTokens', () => {
         expect(resolved.deprecatedOverrides).toEqual(['--prism-mark-attention']);
     });
 
+    // These three have no successor to carry to: nothing reads them since 22.7.
+    it('reports an override of a token nothing reads any more', () => {
+        const { deprecatedOverrides } = resolveThemeTokens('light', {
+            theme: { '--prism-primary-from': '#111111', '--prism-primary-to': '#222222' },
+            lightTheme: { '--prism-spectrum': 'linear-gradient(red, blue)' }
+        });
+
+        expect(deprecatedOverrides.sort()).toEqual(['--prism-primary-from', '--prism-primary-to', '--prism-spectrum']);
+    });
+
     it('lets an explicit successor win over the deprecated mark', () => {
         const { tokens } = resolveThemeTokens('dark', { darkTheme: { '--prism-mark-critical': '#ff0000', '--prism-danger': '#00ff00' } });
 

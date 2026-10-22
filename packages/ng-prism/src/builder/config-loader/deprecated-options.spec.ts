@@ -35,4 +35,16 @@ describe('describeDeprecatedOptions', () => {
             'plugin "legacy" sets position on panel "a", which is deprecated and will be removed in 23.0.0. It has never had an effect; remove it.'
         ]);
     });
+
+    it('names every deprecated theme token an override sets, with what replaces it', () => {
+        const config: NgPrismConfig = {
+            theme: { '--prism-mark-critical': '#dc2626', '--prism-primary': '#e11d48' },
+            darkTheme: { '--prism-spectrum': 'linear-gradient(red, blue)' }
+        };
+
+        expect(describeDeprecatedOptions(config, 'ng-prism.config.ts')).toEqual([
+            'ng-prism.config.ts sets --prism-mark-critical in "theme": --prism-mark-critical is deprecated since 22.7.0 and will be removed in 23.0.0. Until then its value is carried over to --prism-danger; override --prism-danger instead.',
+            'ng-prism.config.ts sets --prism-spectrum in "darkTheme": --prism-spectrum is deprecated since 22.7.0 and will be removed in 23.0.0. Nothing reads it any more; override --prism-brand-gradient instead.'
+        ]);
+    });
 });
