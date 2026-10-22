@@ -4,7 +4,7 @@
     height: 100%;
     font-family: var(--prism-font-sans);
     font-size: 13px;
-    color: var(--prism-text-1);
+    color: var(--prism-text);
     background: var(--prism-bg-elevated);
 }
 
@@ -22,7 +22,7 @@
 .diff-panel__empty-title {
     margin: 0;
     font-weight: 500;
-    color: var(--prism-text-1);
+    color: var(--prism-text);
 }
 
 .diff-panel__empty-hint {
@@ -31,7 +31,7 @@
 }
 
 .diff-panel__empty--error .diff-panel__empty-title {
-    color: #ef4444;
+    color: var(--prism-danger);
 }
 
 .diff-panel__idle {
@@ -65,67 +65,10 @@
     }
 }
 
-.diff-panel__run-btn {
-    padding: 8px 16px;
-    font-family: var(--prism-font-sans);
-    font-size: 13px;
-    color: #fff;
-    cursor: pointer;
-    background: var(--prism-primary);
-    border: none;
-    border-radius: 6px;
-}
-
-.diff-panel__run-btn:hover {
-    opacity: 0.9;
-}
-
-.diff-panel__run-btn--sm {
-    padding: 5px 10px;
-    font-size: 12px;
-}
-
 .diff-panel__result {
     display: flex;
     flex-direction: column;
     height: 100%;
-}
-
-.diff-panel__toolbar {
-    display: flex;
-    flex-shrink: 0;
-    gap: 12px;
-    align-items: center;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--prism-border);
-}
-
-.diff-panel__modes {
-    display: flex;
-    gap: 2px;
-}
-
-.diff-panel__mode-btn {
-    padding: 4px 10px;
-    font-family: var(--prism-font-sans);
-    font-size: 12px;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: 1px solid var(--prism-border);
-    border-radius: 4px;
-}
-
-.diff-panel__mode-btn--active {
-    color: #fff;
-    background: var(--prism-primary);
-    border-color: var(--prism-primary);
-}
-
-.diff-panel__stats {
-    margin-left: auto;
-    font-variant-numeric: tabular-nums;
-    color: var(--prism-text-muted);
 }
 
 .diff-panel__canvas-area {

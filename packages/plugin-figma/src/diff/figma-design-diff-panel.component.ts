@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import { PrismNavigationService, PrismRendererService } from '@ng-prism/core';
+import { PrismButtonComponent, PrismNavigationService, PrismPanelToolbarComponent, PrismRendererService, type PrismTabItem, PrismTabsComponent } from '@ng-prism/core';
 import { FIGMA_PLUGIN_CONFIG } from '../figma-config.token.js';
 import { type DiffMode, type DiffResult, type DiffState, extractFileKey, parseFigmaMeta } from './figma-diff.types.js';
 
 @Component({
     selector: 'prism-figma-design-diff-panel',
     standalone: true,
+    imports: [PrismPanelToolbarComponent, PrismTabsComponent, PrismButtonComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './figma-design-diff-panel.component.html',
     styleUrl: './figma-design-diff-panel.component.css'
@@ -22,10 +23,18 @@ export class FigmaDesignDiffPanelComponent {
     protected readonly overlayOpacity = signal(50);
 
     protected readonly modes: { value: DiffMode; label: string }[] = [
-        { value: 'side-by-side', label: 'Side-by-side' },
+        { value: 'side-by-side', label: 'Side by side' },
         { value: 'overlay', label: 'Overlay' },
         { value: 'diff-only', label: 'Diff' }
     ];
+
+    protected readonly modeItems: PrismTabItem[] = this.modes.map((m) => ({ id: m.value, label: m.label }));
+
+    protected selectMode(id: string | null): void {
+        const mode = this.modes.find((m) => m.value === id);
+
+        if (mode) this.activeMode.set(mode.value);
+    }
 
     protected readonly doneResult = computed<DiffResult | null>(() => {
         const s = this.state();

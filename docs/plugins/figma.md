@@ -3,7 +3,7 @@
 `@ng-prism/plugin-figma` brings your Figma designs into ng-prism with two complementary panels:
 
 - **Figma Embed:** live, interactive iframe of the design. Registered by default.
-- **Design Diff:** pixel-by-pixel comparison between your rendered component and the Figma node (side-by-side, overlay, diff-only). **Opt-in** via `figmaPlugin({ designDiff: true })`.
+- **Design Diff:** pixel-by-pixel comparison between your rendered component and the Figma node (side by side, overlay, diff), switched in the panel toolbar; **Re-run** compares again, and the match percentage and the number of differing pixels are in its tooltip. **Opt-in** via `figmaPlugin({ designDiff: true })`.
 
 ## Install
 

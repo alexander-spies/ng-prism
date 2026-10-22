@@ -2,57 +2,58 @@
     @switch (state().status) {
         @case ('error-no-token') {
             <div class="diff-panel__empty">
-                <p class="diff-panel__empty-title">Access Token fehlt</p>
-                <p class="diff-panel__empty-hint"> Konfiguriere <code>figmaPlugin(&#123; accessToken: '...' &#125;)</code> in deiner <code>ng-prism.config.ts</code>. </p>
+                <p class="diff-panel__empty-title">No access token</p>
+                <p class="diff-panel__empty-hint"> Set <code>figmaPlugin(&#123; accessToken: '...' &#125;)</code> in your <code>ng-prism.config.ts</code>. </p>
             </div>
         }
         @case ('error-no-node') {
             <div class="diff-panel__empty">
-                <p class="diff-panel__empty-title">Kein Figma-Node für diese Variante</p>
-                <p class="diff-panel__empty-hint"> Füge <code>meta: &#123; figma: '…?node-id=12-34' &#125;</code> zur aktiven Variante hinzu. </p>
+                <p class="diff-panel__empty-title">No Figma node for this variant</p>
+                <p class="diff-panel__empty-hint"> Add <code>meta: &#123; figma: '…?node-id=12-34' &#125;</code> to the active variant. </p>
             </div>
         }
         @case ('error-api') {
             <div class="diff-panel__empty diff-panel__empty--error">
-                <p class="diff-panel__empty-title">Figma API Fehler</p>
+                <p class="diff-panel__empty-title">Figma API error</p>
                 <p class="diff-panel__empty-hint">{{ errorMessage() }}</p>
             </div>
         }
         @case ('idle') {
             <div class="diff-panel__idle">
                 <button
-                    class="diff-panel__run-btn"
+                    prismButton
+                    variant="primary"
+                    size="md"
                     (click)="runDiff()">
-                    ▶ Design Diff ausführen
+                    Run design diff
                 </button>
             </div>
         }
         @case ('loading') {
             <div class="diff-panel__loading">
                 <span class="diff-panel__spinner"></span>
-                <span>Lade Screenshots…</span>
+                <span>Loading screenshots…</span>
             </div>
         }
         @case ('done') {
             <div class="diff-panel__result">
-                <div class="diff-panel__toolbar">
-                    <div class="diff-panel__modes">
-                        @for (m of modes; track m.value) {
-                            <button
-                                class="diff-panel__mode-btn"
-                                [class.diff-panel__mode-btn--active]="activeMode() === m.value"
-                                (click)="activeMode.set(m.value)"
-                                >{{ m.label }}</button
-                            >
-                        }
-                    </div>
-                    <span class="diff-panel__stats"> {{ similarity() }}% match &middot; {{ doneResult()!.diffPixels.toLocaleString() }} px diff </span>
+                <prism-panel-toolbar>
+                    <prism-tabs
+                        toolbarStart
+                        size="sm"
+                        ariaLabel="Comparison"
+                        [items]="modeItems"
+                        [active]="activeMode()"
+                        (activeChange)="selectMode($event)" />
                     <button
-                        class="diff-panel__run-btn diff-panel__run-btn--sm"
+                        toolbarEnd
+                        prismButton
+                        variant="secondary"
+                        [title]="similarity() + '% match · ' + doneResult()!.diffPixels.toLocaleString() + ' px differ'"
                         (click)="runDiff()">
-                        ↺ Erneut
+                        Re-run
                     </button>
-                </div>
+                </prism-panel-toolbar>
                 <div class="diff-panel__canvas-area">
                     @if (activeMode() === 'side-by-side') {
                         <div class="diff-panel__split">
