@@ -13,6 +13,7 @@
 - **Zero-config discovery**: TypeScript Compiler API scans your library at build time
 - **Signal-native**: works with `input()` / `output()` signals
 - **Directive support**: showcase directives with configurable host elements
+- **Services and pipes**: `@Showcase` on a service or pipe gives it an API page, no canvas needed
 - **Plugin architecture**: JSDoc, A11y, Figma, Performance, Box Model, Coverage
 - **Live Controls**: auto-generated input controls with type-aware editors
 - **Code Snippets**: live-updating Angular template snippets per variant
@@ -135,14 +136,14 @@ Link to a `@Showcase`-decorated component for combined API docs + custom renderi
 
 ## Official Plugins
 
-| Plugin    | Package                              | Description                                                   |
-| --------- | ------------------------------------ | ------------------------------------------------------------- |
-| JSDoc     | `@ng-prism/plugin-jsdoc`             | API documentation from JSDoc comments                         |
-| Figma     | `@ng-prism/plugin-figma`             | Figma design embed + visual diff                              |
-| Box Model | `@ng-prism/plugin-box-model`         | CSS box model inspector                                       |
-| Perf      | `@ng-prism/plugin-perf`              | Render performance profiling                                  |
-| Coverage  | `@ng-prism/plugin-coverage`          | Per-component test coverage from Istanbul/v8                  |
-| VRT       | `@ng-prism/plugin-visual-regression` | Per-variant visual regression report from a screenshot runner |
+| Plugin    | Package                              | Description                                                                 |
+| --------- | ------------------------------------ | --------------------------------------------------------------------------- |
+| JSDoc     | `@ng-prism/plugin-jsdoc`             | API pages for components, directives, services and pipes, with linked types |
+| Figma     | `@ng-prism/plugin-figma`             | Figma design embed + visual diff                                            |
+| Box Model | `@ng-prism/plugin-box-model`         | CSS box model inspector                                                     |
+| Perf      | `@ng-prism/plugin-perf`              | Render performance profiling                                                |
+| Coverage  | `@ng-prism/plugin-coverage`          | Per-component test coverage from Istanbul/v8                                |
+| VRT       | `@ng-prism/plugin-visual-regression` | Per-variant visual regression report from a screenshot runner               |
 
 > **Note:** Accessibility auditing (axe-core) is built into ng-prism core, so no plugin is needed.
 

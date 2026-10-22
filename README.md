@@ -218,14 +218,14 @@ If you link the page to a component with `@Showcase`, you get the API docs and y
 
 ## Official Plugins
 
-| Plugin            | Package                              | What it does                                                                                |
-| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Visual Regression | `@ng-prism/plugin-visual-regression` | Diff report per variant, next to the live component. Works with your own screenshot runner. |
-| JSDoc             | `@ng-prism/plugin-jsdoc`             | API tables generated from your JSDoc comments                                               |
-| Figma             | `@ng-prism/plugin-figma`             | Shows the Figma frame next to the component, with an opt-in pixel diff against the design   |
-| Coverage          | `@ng-prism/plugin-coverage`          | Test coverage per component from Istanbul/v8                                                |
-| Perf              | `@ng-prism/plugin-perf`              | Measures render time per variant                                                            |
-| Box Model         | `@ng-prism/plugin-box-model`         | Live CSS box model inspector                                                                |
+| Plugin            | Package                              | What it does                                                                                        |
+| ----------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Visual Regression | `@ng-prism/plugin-visual-regression` | Diff report per variant, next to the live component. Works with your own screenshot runner.         |
+| JSDoc             | `@ng-prism/plugin-jsdoc`             | API pages from your code and JSDoc, with usage snippet and linked types, for services and pipes too |
+| Figma             | `@ng-prism/plugin-figma`             | Shows the Figma frame next to the component, with an opt-in pixel diff against the design           |
+| Coverage          | `@ng-prism/plugin-coverage`          | Test coverage per component from Istanbul/v8                                                        |
+| Perf              | `@ng-prism/plugin-perf`              | Measures render time per variant                                                                    |
+| Box Model         | `@ng-prism/plugin-box-model`         | Live CSS box model inspector                                                                        |
 
 Accessibility audits with axe-core are part of the core, so you don't need a plugin for them.
 
