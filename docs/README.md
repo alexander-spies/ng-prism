@@ -8,7 +8,7 @@ A lightweight, Angular-native component showcase tool. Annotate your components 
 ## Project Status
 
 - **Status:** Stable and actively maintained. Published on npm since April 2026; the current release line is v22.x.
-- **Version:** [![npm version](https://img.shields.io/npm/v/@ng-prism/core?label=%40ng-prism%2Fcore&color=7c3aed)](https://www.npmjs.com/package/@ng-prism/core) · [Releases & changelog](https://github.com/ng-prism/ng-prism/releases)
+- **Version:** [![npm version](https://img.shields.io/npm/v/@ng-prism/core?label=%40ng-prism%2Fcore&color=2563eb)](https://www.npmjs.com/package/@ng-prism/core) · [Releases & changelog](https://github.com/ng-prism/ng-prism/releases)
 - **Requires:** Angular 20+ (tested against 20, 21 and 22) · Node.js 20+ · TypeScript 5.5+
 - **Versioning:** The major tracks the Angular major it targets: v22.x is the Angular 22 line. Breaking changes within the same Angular major ship as a minor release.
 - **License:** [MIT](https://github.com/ng-prism/ng-prism/blob/main/LICENSE), © 2026 Alexander Spies
