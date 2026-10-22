@@ -23,6 +23,15 @@
     color: var(--prism-text);
 }
 
+/* A rule between two sections, so the page reads as blocks: 24px above it
+   from the margin, 24px below it from this padding plus the heading's 22px
+   top margin, which the border keeps from collapsing. */
+.prism-jsdoc-panel__section + .prism-jsdoc-panel__section {
+    padding-top: 2px;
+    margin-top: 24px;
+    border-top: 1px solid var(--prism-border);
+}
+
 .prism-jsdoc-api-page__heading {
     display: flex;
     gap: 8px;
