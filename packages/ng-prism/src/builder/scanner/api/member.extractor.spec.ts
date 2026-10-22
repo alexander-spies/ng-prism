@@ -1,7 +1,7 @@
 import path from 'node:path';
 import ts from 'typescript';
 import { resolveEntryPointExports } from '../entry-point.scanner.js';
-import { extractDocumentedMethods, extractMembers, textOnlyResolver } from './member.extractor.js';
+import { extractDocumentedMethods, extractMembers, extractObjectTypeMembers, textOnlyResolver } from './member.extractor.js';
 
 const FIXTURES_DIR = path.join(__dirname, '..', '__fixtures__', 'services');
 
@@ -181,7 +181,7 @@ describe('member extractor', () => {
             expect(properties[0]).toMatchObject({ name: 'hint', optional: true, type: { text: 'string' } });
         });
 
-        it('reads an overloaded method once, from the documented signature', () => {
+        it('lists each overload signature of a method, not the implementation', () => {
             const { methods } = extract(
                 [
                     'class Subject {',
@@ -193,8 +193,82 @@ describe('member extractor', () => {
                 ].join('\n')
             );
 
-            expect(methods).toHaveLength(1);
-            expect(methods[0]).toMatchObject({ name: 'find', description: 'Finds one.', params: [{ name: 'id', type: { text: 'string' } }] });
+            expect(methods.map((m) => m.params.map((p) => p.type.text))).toEqual([['string'], ['number']]);
+            expect(methods.every((m) => m.name === 'find' && m.description === 'Finds one.')).toBe(true);
+        });
+
+        it('gives every overload the docs of a documented implementation', () => {
+            const { methods } = extract(
+                [
+                    'class Subject {',
+                    '  show(message: string): void;',
+                    '  show(config: { text: string }): void;',
+                    '  /**',
+                    '   * Shows a toast.',
+                    '   * @since 2.0',
+                    '   */',
+                    '  show(arg: string | { text: string }): void {}',
+                    '}'
+                ].join('\n')
+            );
+
+            expect(methods.map((m) => m.params[0].name)).toEqual(['message', 'config']);
+            expect(methods.map((m) => [m.description, m.tags.since])).toEqual([
+                ['Shows a toast.', '2.0'],
+                ['Shows a toast.', '2.0']
+            ]);
+        });
+
+        it("keeps an overload's tags to its own doc block", () => {
+            const { methods } = extract(
+                [
+                    'class Subject {',
+                    '  /**',
+                    '   * Finds by name.',
+                    '   * @deprecated Use the id.',
+                    '   */',
+                    '  find(name: string): string;',
+                    '  find(id: number): string;',
+                    '  find(arg: string | number): string { return String(arg); }',
+                    '}'
+                ].join('\n')
+            );
+
+            expect(methods.map((m) => [m.description, m.tags.deprecated])).toEqual([
+                ['Finds by name.', 'Use the id.'],
+                ['Finds by name.', undefined]
+            ]);
+        });
+
+        it('lists each overload of an interface method', () => {
+            const { decl, checker: inlineChecker } = compile(
+                ['interface Finder {', '  /** Finds one. */', '  find(id: string): string;', '  find(id: number): string;', '}', 'class Subject {}'].join('\n')
+            );
+            const finder = decl.getSourceFile().statements.find(ts.isInterfaceDeclaration)!;
+            const { methods } = extractObjectTypeMembers(inlineChecker.getTypeAtLocation(finder), inlineChecker, textOnlyResolver(inlineChecker));
+
+            expect(methods.map((m) => [m.params[0].type.text, m.description])).toEqual([
+                ['string', 'Finds one.'],
+                ['number', 'Finds one.']
+            ]);
+        });
+
+        it('lists every overload of a documented component method', () => {
+            const { decl, checker: inlineChecker } = compile(
+                [
+                    'class Subject {',
+                    '  /** Opens a panel. */',
+                    '  open(id: string): void;',
+                    '  open(index: number): void;',
+                    '  open(arg: string | number): void {}',
+                    '  close(): void {}',
+                    '}'
+                ].join('\n')
+            );
+
+            const methods = extractDocumentedMethods(decl, inlineChecker, textOnlyResolver(inlineChecker));
+
+            expect(methods.map((m) => `${m.name}(${m.params[0]?.name})`)).toEqual(['open(id)', 'open(index)']);
         });
 
         it('lets an excluded member of the class hide the base class member', () => {

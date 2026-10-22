@@ -4,7 +4,7 @@ import type { ApiMethod } from '../../../plugin/service.types.js';
 import { getClassChain } from '../class-hierarchy.js';
 import { isDocumented, readDescription, readDocTags } from './doc-tags.js';
 import type { ExportIndex } from './export-index.js';
-import { extractMethod, type TypeRefResolver } from './member.extractor.js';
+import { extractOverloads, type TypeRefResolver } from './member.extractor.js';
 import { describeSetupEntries } from './service-api.extractor.js';
 import type { SetupRef } from './setup.reader.js';
 import { createTypeCollector } from './type-collector.js';
@@ -31,17 +31,8 @@ export function extractPipeApi(classDecl: ts.ClassDeclaration, setupRefs: SetupR
 /**
  * The signatures of `transform()` in the nearest class that declares it,
  * which may be a base class that only exists as a declaration, such as
- * `DatePipe` in the .d.ts of `@angular/common`: its overload signatures, or
- * the one declaration when there are none. The implementation of overloads is
- * not one a template can call. In a .d.ts every declaration is a signature.
- *
- * A signature without a doc block of its own takes the one of the
- * implementation, then of the first documented signature of the same class,
- * then of the first documented `transform()` of the nearest base class that has one.
- * The implementation and a base class document the method as a whole, so all
- * of their block is taken. Another signature's block is about that signature:
- * its description and `@param` texts are taken, its tags are not, since an
- * overload marked `@deprecated` does not deprecate the one that replaces it.
+ * `DatePipe` in the .d.ts of `@angular/common`. See {@link extractOverloads}
+ * for which signatures are listed and where each takes its docs from.
  */
 function extractTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker, types: TypeRefResolver): ApiMethod[] {
     const levels = getClassChain(classDecl, checker).map(getTransformDeclarations);
@@ -49,20 +40,7 @@ function extractTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecke
 
     if (level < 0) return [];
 
-    const declarations = levels[level];
-    const signatures = declarations.filter((declaration) => !declaration.body);
-    const implementation = declarations.find((declaration) => declaration.body && isDocumented(declaration));
-    const sibling = signatures.find(isDocumented);
-    const fallback = implementation ?? sibling ?? findInheritedDocs(levels.slice(level + 1));
-
-    return (signatures.length > 0 ? signatures : declarations).map((signature) => {
-        const docs = isDocumented(signature) ? signature : (fallback ?? signature);
-        const method = extractMethod('transform', signature, docs, checker, types);
-
-        if (docs !== signature && docs === sibling) method.tags = {};
-
-        return method;
-    });
+    return extractOverloads('transform', levels[level], findInheritedDocs(levels.slice(level + 1)), checker, types);
 }
 
 /** The instance declarations of `transform()` in a class, in source order: the overload signatures and the implementation. */

@@ -31,6 +31,7 @@ const LIFECYCLE_HOOKS = new Set([
 type Accessor = ts.GetAccessorDeclaration | ts.SetAccessorDeclaration;
 type NamedMember = ts.PropertyDeclaration | ts.MethodDeclaration | Accessor | ts.ParameterPropertyDeclaration;
 type PropertyLike = ts.PropertyDeclaration | ts.PropertySignature | Accessor | ts.ParameterPropertyDeclaration;
+type MethodLike = ts.MethodDeclaration | ts.MethodSignature;
 
 /** A type as written, or as the checker prints it when there is nothing written. Whitespace is collapsed, so a multi-line literal type stays on one line. */
 export function readTypeText(checker: ts.TypeChecker, typeNode: ts.TypeNode | undefined, type: ts.Type): string {
@@ -63,8 +64,8 @@ export function extractMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeC
     const properties: ApiProperty[] = [];
     const methods: ApiMethod[] = [];
 
-    for (const { name, group, declaration, docs } of collectPublicMembers(classDecl, checker)) {
-        if (ts.isMethodDeclaration(declaration)) methods.push(extractMethod(name, declaration, docs, checker, types));
+    for (const { name, group, declaration, docs, inherited } of collectPublicMembers(classDecl, checker)) {
+        if (ts.isMethodDeclaration(declaration)) methods.push(...extractOverloads(name, group.filter(ts.isMethodDeclaration), inherited, checker, types));
         else properties.push(extractProperty(name, group as PropertyLike[], declaration, docs, checker, types));
     }
 
@@ -78,8 +79,8 @@ export function extractMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeC
  * those meant to be called from outside.
  */
 export function extractDocumentedMethods(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker, types: TypeRefResolver): ApiMethod[] {
-    return collectPublicMembers(classDecl, checker).flatMap(({ name, declaration, docs }) =>
-        ts.isMethodDeclaration(declaration) && isDocumented(docs) ? [extractMethod(name, declaration, docs, checker, types)] : []
+    return collectPublicMembers(classDecl, checker).flatMap(({ name, group, declaration, docs, inherited }) =>
+        ts.isMethodDeclaration(declaration) && isDocumented(docs) ? extractOverloads(name, group.filter(ts.isMethodDeclaration), inherited, checker, types) : []
     );
 }
 
@@ -92,6 +93,8 @@ interface PublicMember {
     declaration: NamedMember;
     /** The node its docs are read from: `declaration`, or the base class member it takes them from. */
     docs: NamedMember;
+    /** The base class member it takes its docs from, when none of `group` has docs of its own. */
+    inherited?: NamedMember;
 }
 
 /** The walk behind {@link extractMembers}: hierarchy, exclusions and inherited docs, properties and methods in one list. */
@@ -109,9 +112,9 @@ function collectPublicMembers(classDecl: ts.ClassDeclaration, checker: ts.TypeCh
 
             if (!isPublicApi(name, group, declaration)) continue;
 
-            const docs = hasOwnDocs(declaration) ? declaration : (findInheritedDocs(levels.slice(level + 1), name) ?? declaration);
+            const inherited = hasOwnDocs(declaration) ? undefined : findInheritedDocs(levels.slice(level + 1), name);
 
-            members.push({ name, group, declaration, docs });
+            members.push({ name, group, declaration, docs: inherited ?? declaration, ...(inherited && { inherited }) });
         }
 
         for (const name of groups.keys()) declared.add(name);
@@ -143,8 +146,11 @@ export function extractObjectTypeMembers(type: ts.Type, checker: ts.TypeChecker,
 
         if (!declaration || isInternal(declaration)) continue;
 
-        if (ts.isMethodSignature(declaration) || ts.isMethodDeclaration(declaration)) methods.push(extractMethod(symbol.name, declaration, declaration, checker, types));
-        else properties.push(extractProperty(symbol.name, group as PropertyLike[], declaration, declaration, checker, types));
+        if (ts.isMethodSignature(declaration) || ts.isMethodDeclaration(declaration)) {
+            methods.push(...extractOverloads(symbol.name, group.filter(isMethodLike), undefined, checker, types));
+        } else {
+            properties.push(extractProperty(symbol.name, group as PropertyLike[], declaration, declaration, checker, types));
+        }
     }
 
     return { properties, methods };
@@ -230,6 +236,37 @@ function extractProperty(name: string, group: PropertyLike[], declaration: Prope
 }
 
 /**
+ * The signatures a caller can use of a method that `declarations` declare in
+ * one class, in source order: its overload signatures, or the one declaration
+ * when there are none. The implementation of overloads is not one a caller
+ * can use. In a .d.ts every declaration is a signature.
+ *
+ * A signature without a doc block of its own takes the one of the
+ * implementation, then of the first documented signature, then `inherited`,
+ * the documented declaration of the method in the nearest base class that has
+ * one. The implementation and a base class document the method as a whole, so
+ * all of their block is taken. Another signature's block is about that
+ * signature: its description and `@param` texts are taken, its tags are not,
+ * since an overload marked `@deprecated` does not deprecate the one that
+ * replaces it.
+ */
+export function extractOverloads(name: string, declarations: MethodLike[], inherited: ts.Node | undefined, checker: ts.TypeChecker, types: TypeRefResolver): ApiMethod[] {
+    const signatures = declarations.filter((declaration) => !hasBody(declaration));
+    const implementation = declarations.find((declaration) => hasBody(declaration) && isDocumented(declaration));
+    const sibling = signatures.find(isDocumented);
+    const fallback = implementation ?? sibling ?? inherited;
+
+    return (signatures.length > 0 ? signatures : declarations).map((signature) => {
+        const docs = isDocumented(signature) ? signature : (fallback ?? signature);
+        const method = extractMethod(name, signature, docs, checker, types);
+
+        if (docs !== signature && docs === sibling) method.tags = {};
+
+        return method;
+    });
+}
+
+/**
  * The signature of a method, or of a function such as a setup function, with
  * the doc block read from `docs`: the declaration itself, the statement of a
  * `const` arrow function, or a declaration it inherits the docs of.
@@ -284,6 +321,15 @@ function getMemberName(member: ts.ClassElement): string | undefined {
     if (ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)) return member.name.text;
 
     return undefined;
+}
+
+function isMethodLike(node: ts.Node): node is MethodLike {
+    return ts.isMethodDeclaration(node) || ts.isMethodSignature(node);
+}
+
+/** An interface method has none, nor does an overload signature or a method in a .d.ts. */
+function hasBody(declaration: MethodLike): boolean {
+    return ts.isMethodDeclaration(declaration) && !!declaration.body;
 }
 
 function hasModifier(node: ts.Node, kind: ts.SyntaxKind): boolean {
