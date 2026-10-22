@@ -55,3 +55,7 @@ export { PrismIconComponent } from './icons/prism-icon.component.js';
 export { PrismBadgeComponent } from './shared/prism-badge.component.js';
 export { toneForStatus } from './shared/badge.types.js';
 export type { BadgeTone, StatusTone } from './shared/badge.types.js';
+export { PrismTabsComponent } from './shared/prism-tabs.component.js';
+export type { PrismTabBadge, PrismTabItem } from './shared/prism-tabs.component.js';
+export { PrismSegmentedComponent } from './shared/prism-segmented.component.js';
+export type { PrismSegmentOption } from './shared/prism-segmented.component.js';

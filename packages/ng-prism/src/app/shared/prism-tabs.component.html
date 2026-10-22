@@ -1,0 +1,44 @@
+<div
+    class="prism-tabs"
+    role="tablist"
+    [attr.aria-label]="ariaLabel()"
+    (keydown)="onKey($event)">
+    @for (item of items(); track item.id) {
+        <button
+            #tab
+            type="button"
+            role="tab"
+            class="prism-tab"
+            [class.prism-tab--active]="item.id === active()"
+            [attr.aria-selected]="item.id === active()"
+            [attr.tabindex]="item.id === active() ? 0 : -1"
+            [attr.aria-controls]="panelId(item)"
+            [attr.aria-label]="accessibleName(item)"
+            [attr.title]="item.title ?? null"
+            (click)="select(item)">
+            @if (item.icon) {
+                <prism-icon
+                    [name]="item.icon"
+                    [size]="13"
+                    aria-hidden="true" />
+            }
+            <span class="prism-tab__label">{{ item.label }}</span>
+            @if (item.badge; as badge) {
+                @if (badge.kind === 'count') {
+                    <span
+                        class="prism-tab__count"
+                        aria-hidden="true"
+                        >{{ badge.text }}</span
+                    >
+                } @else {
+                    <span
+                        class="prism-tab__issues"
+                        [attr.data-tone]="badge.tone ?? 'danger'"
+                        aria-hidden="true"
+                        >{{ badge.text }}</span
+                    >
+                }
+            }
+        </button>
+    }
+</div>
