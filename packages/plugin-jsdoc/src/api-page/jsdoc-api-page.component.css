@@ -23,19 +23,27 @@
     color: var(--prism-text);
 }
 
-/* A rule between two sections, so the page reads as blocks: 24px above it
-   from the margin, 24px below it from this padding plus the heading's 22px
-   top margin, which the border keeps from collapsing. */
+/* Sections are told apart by their headings, not by a rule of their own: a
+   full-width line would look like one more table or card border. The heading
+   is in the text colour and trails a line that fades out, so the line reads
+   as part of it. 36px between sections, collapsed with the heading's margin. */
 .prism-jsdoc-panel__section + .prism-jsdoc-panel__section {
-    padding-top: 2px;
-    margin-top: 24px;
-    border-top: 1px solid var(--prism-border);
+    margin-top: 36px;
 }
 
 .prism-jsdoc-api-page__heading {
     display: flex;
     gap: 8px;
     align-items: center;
+    color: var(--prism-text);
+}
+
+.prism-jsdoc-api-page__heading::after {
+    flex: 1;
+    height: 1px;
+    margin-left: 4px;
+    content: '';
+    background: linear-gradient(90deg, var(--prism-border-strong), transparent);
 }
 
 .prism-jsdoc-api-page__heading-note {
