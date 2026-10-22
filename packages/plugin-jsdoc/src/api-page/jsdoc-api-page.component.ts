@@ -29,11 +29,12 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
  * auto`), so every jump scrolls it, never the window or the shell around it.
  *
  * It also carries a render marker, the class name of what it shows:
+ * `data-prism-component-rendered` on a component or directive page,
  * `data-prism-service-rendered` on a service page, `data-prism-pipe-rendered`
- * on a pipe page, the other one absent. Host bindings update in the same pass
- * as the template, so the marker names a class only once its page is in the
- * DOM, which is what an outside tool such as the showcase skill's screenshot
- * script waits for.
+ * on a pipe page. Exactly one of the three is set, the others are absent. Host
+ * bindings update in the same pass as the template, so the marker names a
+ * class only once its page is in the DOM, which is what an outside tool such
+ * as the showcase skill's screenshot script waits for.
  */
 @Component({
     selector: 'prism-jsdoc-api-page',
