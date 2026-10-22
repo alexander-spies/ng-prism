@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>ng-prism cover</title>
+        <!-- Source of docs/prism_cover.png and docs/prism_logo_docs.png. Rendered by scripts/render-brand-assets.mjs. -->
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                margin: 0;
+                background: transparent;
+            }
+            body {
+                font-family: Inter, system-ui, sans-serif;
+            }
+            .cover {
+                position: relative;
+                display: flex;
+                gap: 44px;
+                align-items: center;
+                width: 1024px;
+                height: 380px;
+                padding: 0 64px;
+                overflow: hidden;
+                color: #f1f5f9;
+                background: #080d19;
+            }
+            .cover::before {
+                position: absolute;
+                inset: 0;
+                content: '';
+                background:
+                    radial-gradient(420px 260px at 18% 62%, rgba(0, 207, 234, 0.22), transparent 70%),
+                    radial-gradient(380px 240px at 36% 40%, rgba(36, 75, 255, 0.2), transparent 70%),
+                    radial-gradient(460px 280px at 70% 70%, rgba(162, 12, 240, 0.16), transparent 70%);
+            }
+            .cover::after {
+                position: absolute;
+                inset: auto 0 0;
+                height: 3px;
+                content: '';
+                background: linear-gradient(90deg, #00cfea 0%, #078bfa 38%, #244bff 68%, #a20cf0 100%);
+            }
+            .mark {
+                position: relative;
+                flex: none;
+                width: 210px;
+                height: 177px;
+                filter: drop-shadow(0 0 28px rgba(7, 139, 250, 0.45));
+            }
+            .text {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+            .wordmark {
+                padding-bottom: 0.14em;
+                margin-bottom: -0.14em;
+                font-size: 112px;
+                font-weight: 800;
+                line-height: 1.05;
+                letter-spacing: -0.045em;
+                color: transparent;
+                background: linear-gradient(90deg, #00cfea 0%, #078bfa 38%, #244bff 68%, #a20cf0 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+            }
+            .tagline {
+                font-size: 30px;
+                font-weight: 500;
+                letter-spacing: -0.01em;
+                color: #cbd5e1;
+            }
+            .pill {
+                align-self: flex-start;
+                margin-top: 6px;
+                padding: 8px 18px;
+                font-size: 17px;
+                font-weight: 500;
+                color: #f1f5f9;
+                border-radius: 999px;
+                background:
+                    linear-gradient(#0d1424, #0d1424) padding-box,
+                    linear-gradient(90deg, #00cfea, #244bff, #a20cf0) border-box;
+                border: 1.5px solid transparent;
+            }
+            .lockup {
+                display: inline-flex;
+                gap: 14px;
+                align-items: center;
+                padding: 10px 12px;
+                background: transparent;
+            }
+            .lockup svg {
+                width: 64px;
+                height: 54px;
+            }
+            .lockup span {
+                padding-bottom: 0.12em;
+                font-size: 52px;
+                font-weight: 700;
+                line-height: 1.1;
+                letter-spacing: -0.035em;
+                color: transparent;
+                background: linear-gradient(90deg, #00cfea 0%, #078bfa 38%, #244bff 68%, #a20cf0 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="cover" id="cover">
+            <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="80 38 352 296" aria-hidden="true">
+                <defs>
+                    <linearGradient id="leftMain" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#8EF8FF" />
+                        <stop offset=".42" stop-color="#00D8F7" />
+                        <stop offset="1" stop-color="#0877FF" />
+                    </linearGradient>
+                    <linearGradient id="leftShade" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#19DFFF" />
+                        <stop offset="1" stop-color="#0755E8" />
+                    </linearGradient>
+                    <linearGradient id="rightMain" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#174EFF" />
+                        <stop offset=".55" stop-color="#332BFF" />
+                        <stop offset="1" stop-color="#E20BEF" />
+                    </linearGradient>
+                    <linearGradient id="innerLeft" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#4CF4FF" />
+                        <stop offset="1" stop-color="#006BFF" />
+                    </linearGradient>
+                    <linearGradient id="innerRight" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#A7B8FF" />
+                        <stop offset="1" stop-color="#6637F5" />
+                    </linearGradient>
+                    <linearGradient id="innerBase" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#086AFF" />
+                        <stop offset="1" stop-color="#7B37FF" />
+                    </linearGradient>
+                </defs>
+                <polygon points="256,42 153,112 86,330 198,216" fill="url(#leftMain)" />
+                <polygon points="256,42 198,216 153,112" fill="#A0F8FF" opacity=".78" />
+                <polygon points="153,112 198,216 86,330" fill="url(#leftShade)" />
+                <polygon points="278,42 359,112 426,330 322,216" fill="url(#rightMain)" />
+                <polygon points="278,42 322,216 359,112" fill="#2C38FF" opacity=".8" />
+                <polygon points="359,112 322,216 426,330" fill="#D20BEF" opacity=".92" />
+                <polygon points="256,216 174,304 338,304" fill="url(#innerBase)" />
+                <polygon points="256,216 256,268 174,304" fill="url(#innerLeft)" />
+                <polygon points="256,216 338,304 256,268" fill="url(#innerRight)" />
+                <polygon points="174,304 256,268 338,304" fill="#143BFF" opacity=".55" />
+            </svg>
+            <div class="text">
+                <span class="wordmark">ng-prism</span>
+                <span class="tagline">Angular components, refracted.</span>
+                <span class="pill">Modern UI. Built for Angular.</span>
+            </div>
+        </div>
+        <div class="lockup" id="lockup">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="80 38 352 296" aria-hidden="true">
+                <defs>
+                    <linearGradient id="l-leftMain" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#8EF8FF" />
+                        <stop offset=".42" stop-color="#00D8F7" />
+                        <stop offset="1" stop-color="#0877FF" />
+                    </linearGradient>
+                    <linearGradient id="l-leftShade" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#19DFFF" />
+                        <stop offset="1" stop-color="#0755E8" />
+                    </linearGradient>
+                    <linearGradient id="l-rightMain" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#174EFF" />
+                        <stop offset=".55" stop-color="#332BFF" />
+                        <stop offset="1" stop-color="#E20BEF" />
+                    </linearGradient>
+                    <linearGradient id="l-innerLeft" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#4CF4FF" />
+                        <stop offset="1" stop-color="#006BFF" />
+                    </linearGradient>
+                    <linearGradient id="l-innerRight" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#A7B8FF" />
+                        <stop offset="1" stop-color="#6637F5" />
+                    </linearGradient>
+                    <linearGradient id="l-innerBase" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#086AFF" />
+                        <stop offset="1" stop-color="#7B37FF" />
+                    </linearGradient>
+                </defs>
+                <polygon points="256,42 153,112 86,330 198,216" fill="url(#l-leftMain)" />
+                <polygon points="256,42 198,216 153,112" fill="#A0F8FF" opacity=".78" />
+                <polygon points="153,112 198,216 86,330" fill="url(#l-leftShade)" />
+                <polygon points="278,42 359,112 426,330 322,216" fill="url(#l-rightMain)" />
+                <polygon points="278,42 322,216 359,112" fill="#2C38FF" opacity=".8" />
+                <polygon points="359,112 322,216 426,330" fill="#D20BEF" opacity=".92" />
+                <polygon points="256,216 174,304 338,304" fill="url(#l-innerBase)" />
+                <polygon points="256,216 256,268 174,304" fill="url(#l-innerLeft)" />
+                <polygon points="256,216 338,304 256,268" fill="url(#l-innerRight)" />
+                <polygon points="174,304 256,268 338,304" fill="#143BFF" opacity=".55" />
+            </svg>
+            <span>ng-prism</span>
+        </div>
+    </body>
+</html>

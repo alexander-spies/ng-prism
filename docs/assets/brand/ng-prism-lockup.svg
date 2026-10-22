@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="512" viewBox="0 0 1024 256" role="img" aria-labelledby="title desc">
+<title id="title">ng-prism logo</title>
+<desc id="desc">Faceted prism symbol and ng-prism wordmark with a unified cyan-to-blue-to-violet gradient.</desc>
+<defs>
+  <linearGradient id="wordmarkGradient" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#00CFEA"/>
+    <stop offset=".38" stop-color="#078BFA"/>
+    <stop offset=".68" stop-color="#244BFF"/>
+    <stop offset="1" stop-color="#A20CF0"/>
+  </linearGradient>
+</defs>
+<g transform="translate(18,18) scale(.43)">
+
+<defs>
+  <linearGradient id="leftMain" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8EF8FF"/>
+    <stop offset=".42" stop-color="#00D8F7"/>
+    <stop offset="1" stop-color="#0877FF"/>
+  </linearGradient>
+  <linearGradient id="leftShade" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#19DFFF"/>
+    <stop offset="1" stop-color="#0755E8"/>
+  </linearGradient>
+  <linearGradient id="rightMain" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#174EFF"/>
+    <stop offset=".55" stop-color="#332BFF"/>
+    <stop offset="1" stop-color="#E20BEF"/>
+  </linearGradient>
+  <linearGradient id="innerLeft" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#4CF4FF"/>
+    <stop offset="1" stop-color="#006BFF"/>
+  </linearGradient>
+  <linearGradient id="innerRight" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#A7B8FF"/>
+    <stop offset="1" stop-color="#6637F5"/>
+  </linearGradient>
+  <linearGradient id="innerBase" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#086AFF"/>
+    <stop offset="1" stop-color="#7B37FF"/>
+  </linearGradient>
+</defs>
+<polygon points="256,42 153,112 86,330 198,216" fill="url(#leftMain)"/>
+<polygon points="256,42 198,216 153,112" fill="#A0F8FF" opacity=".78"/>
+<polygon points="153,112 198,216 86,330" fill="url(#leftShade)"/>
+<polygon points="278,42 359,112 426,330 322,216" fill="url(#rightMain)"/>
+<polygon points="278,42 322,216 359,112" fill="#2C38FF" opacity=".8"/>
+<polygon points="359,112 322,216 426,330" fill="#D20BEF" opacity=".92"/>
+<polygon points="256,216 174,304 338,304" fill="url(#innerBase)"/>
+<polygon points="256,216 256,268 174,304" fill="url(#innerLeft)"/>
+<polygon points="256,216 338,304 256,268" fill="url(#innerRight)"/>
+<polygon points="174,304 256,268 338,304" fill="#143BFF" opacity=".55"/>
+
+</g>
+<text x="258" y="164" font-family="Inter, Geist, Arial, sans-serif" font-size="112" font-weight="700" letter-spacing="-5" fill="url(#wordmarkGradient)">ng-prism</text>
+</svg>

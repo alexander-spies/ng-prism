@@ -5,68 +5,69 @@
         <title>ng-prism Documentation</title>
         <meta name="description" content="Lightweight, Angular-native component showcase tool: documentation" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="assets/brand/ng-prism-symbol.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css" />
         <style>
             :root {
-                /* Prism dark palette (aligned with PRISM_DARK_THEME) */
-                --prism-void: #07050f;
-                --prism-deep: #0d0b1c;
-                --prism-surface: #131022;
-                --prism-elevated: #1a1535;
-                --prism-violet: #a78bfa;
-                --prism-violet-deep: #7c3aed;
-                --prism-blue: #3b82f6;
+                /* ng-prism dark palette (aligned with PRISM_DARK_THEME, 22.7 brand) */
+                --prism-void: #050911;
+                --prism-deep: #080d19;
+                --prism-surface: #111827;
+                --prism-elevated: #1a2335;
+                --prism-primary: #60a5fa;
+                --prism-primary-fill: #2563eb;
+                --prism-primary-soft: #93c5fd;
                 --prism-cyan: #22d3ee;
-                --prism-pink: #ec4899;
-                --prism-rose: #f472b6;
-                --prism-text-primary: #ede9f8;
-                --prism-text-secondary: #b0a6c8;
-                --prism-text-muted: #8476a2;
-                --prism-border: rgba(255, 255, 255, 0.08);
-                --prism-glow: rgba(139, 92, 246, 0.18);
-                --prism-glow-strong: rgba(139, 92, 246, 0.35);
+                --prism-magenta: #e879f9;
+                --prism-brand-gradient: linear-gradient(90deg, #00cfea 0%, #078bfa 38%, #244bff 68%, #a20cf0 100%);
+                --prism-text-primary: #f1f5f9;
+                --prism-text-secondary: #cbd5e1;
+                --prism-text-muted: #94a3b8;
+                --prism-border: #1f2b3e;
+                --prism-glow: rgba(37, 99, 235, 0.18);
+                --prism-glow-strong: rgba(37, 99, 235, 0.35);
 
                 /* Docsify theme overrides */
-                --theme-color: #a78bfa;
-                --base-background-color: #0d0b1c;
-                --base-color: #ede9f8;
+                --theme-color: #60a5fa;
+                --base-background-color: #080d19;
+                --base-color: #f1f5f9;
 
-                --sidebar-background: #07050f;
-                --sidebar-nav-link-color: #b0a6c8;
-                --sidebar-nav-link-color--active: #a78bfa;
-                --sidebar-nav-link-color--hover: #ede9f8;
-                --sidebar-nav-link-border-color--active: #7c3aed;
-                --sidebar-nav-strong-color: #8476a2;
-                --sidebar-name-color: #a78bfa;
+                --sidebar-background: #050911;
+                --sidebar-nav-link-color: #cbd5e1;
+                --sidebar-nav-link-color--active: #60a5fa;
+                --sidebar-nav-link-color--hover: #f1f5f9;
+                --sidebar-nav-link-border-color--active: #2563eb;
+                --sidebar-nav-strong-color: #94a3b8;
+                --sidebar-name-color: #60a5fa;
                 --sidebar-width: 280px;
-                --sidebar-border-color: rgba(255, 255, 255, 0.08);
+                --sidebar-border-color: #1f2b3e;
 
-                --link-color: #a78bfa;
-                --link-color--hover: #c4b5fd;
+                --link-color: #60a5fa;
+                --link-color--hover: #93c5fd;
 
-                --heading-color: #ede9f8;
-                --heading-h2-border-color: rgba(255, 255, 255, 0.08);
+                --heading-color: #f1f5f9;
+                --heading-h2-border-color: #1f2b3e;
 
-                --code-theme-background: #131022;
-                --code-inline-background: rgba(167, 139, 250, 0.12);
-                --code-inline-color: #c4b5fd;
+                --code-theme-background: #111827;
+                --code-inline-background: rgba(96, 165, 250, 0.12);
+                --code-inline-color: #93c5fd;
 
-                --blockquote-border-color: #7c3aed;
+                --blockquote-border-color: #2563eb;
 
-                --table-head-background: rgba(167, 139, 250, 0.06);
+                --table-head-background: rgba(96, 165, 250, 0.06);
                 --table-row-even-background: transparent;
                 --table-row-odd-background: transparent;
 
-                --search-background: #1a1535;
-                --search-result-heading-color: #a78bfa;
+                --search-background: #1a2335;
+                --search-result-heading-color: #60a5fa;
 
-                --cover-background-color: #0d0b1c;
+                --cover-background-color: #080d19;
 
-                --notice-tip-border-color: #a78bfa;
-                --notice-important-border-color: #3b82f6;
+                --notice-tip-border-color: #60a5fa;
+                --notice-important-border-color: #078bfa;
 
                 --base-font-family: 'Inter', system-ui, -apple-system, sans-serif;
                 --base-font-size: 15px;
@@ -105,7 +106,7 @@
                 display: block;
                 height: 2px;
                 margin: 0 20px 16px;
-                background: linear-gradient(90deg, #7c3aed, #3b82f6, #7dd4fe, #ec4899, #fac3f2);
+                background: var(--prism-brand-gradient);
                 border-radius: 1px;
                 opacity: 0.5;
             }
@@ -160,8 +161,8 @@
             }
             .sidebar ul li.active > a {
                 font-weight: 500;
-                color: var(--prism-violet);
-                border-right: 2px solid var(--prism-violet-deep);
+                color: var(--prism-primary);
+                border-right: 2px solid var(--prism-primary-fill);
             }
 
             /* Sidebar toggle (mobile) */
@@ -200,7 +201,7 @@
                 height: 2px;
                 width: 64px;
                 margin-top: 12px;
-                background: linear-gradient(90deg, var(--prism-violet-deep), var(--prism-blue));
+                background: var(--prism-brand-gradient);
                 border-radius: 1px;
             }
 
@@ -211,7 +212,7 @@
                 color: var(--prism-text-primary);
                 margin: 2em 0 0.6em;
                 padding-bottom: 0.4em;
-                border-bottom: 1px solid rgba(167, 139, 250, 0.12);
+                border-bottom: 1px solid rgba(96, 165, 250, 0.12);
             }
 
             .markdown-section h3 {
@@ -234,14 +235,14 @@
 
             .markdown-section a {
                 text-decoration: none;
-                border-bottom: 1px solid rgba(167, 139, 250, 0.3);
+                border-bottom: 1px solid rgba(96, 165, 250, 0.3);
                 transition:
                     color 0.15s,
                     border-color 0.15s;
             }
             .markdown-section a:hover {
-                color: #c4b5fd;
-                border-bottom-color: #c4b5fd;
+                color: #93c5fd;
+                border-bottom-color: #93c5fd;
             }
 
             .markdown-section hr {
@@ -275,8 +276,8 @@
             .markdown-section p code,
             .markdown-section li code,
             .markdown-section td code {
-                background: rgba(167, 139, 250, 0.1);
-                color: #c4b5fd;
+                background: rgba(96, 165, 250, 0.1);
+                color: #93c5fd;
                 padding: 2px 6px;
                 border-radius: 4px;
                 font-size: 0.85em;
@@ -289,11 +290,11 @@
             .token.prolog,
             .token.doctype,
             .token.cdata {
-                color: #6a5d87;
+                color: #7c8ba1;
             }
 
             .token.punctuation {
-                color: #8476a2;
+                color: #94a3b8;
             }
 
             .token.property,
@@ -302,7 +303,7 @@
             .token.number,
             .token.constant,
             .token.symbol {
-                color: #f472b6;
+                color: #e879f9;
             }
 
             .token.selector,
@@ -316,13 +317,13 @@
             .token.operator,
             .token.entity,
             .token.url {
-                color: #b0a6c8;
+                color: #cbd5e1;
             }
 
             .token.atrule,
             .token.attr-value,
             .token.keyword {
-                color: #c4b5fd;
+                color: #93c5fd;
             }
 
             .token.function,
@@ -344,7 +345,7 @@
                 width: 100%;
             }
             .markdown-section table thead {
-                background: rgba(167, 139, 250, 0.06);
+                background: rgba(96, 165, 250, 0.06);
             }
             .markdown-section table th {
                 font-size: 12px;
@@ -354,7 +355,7 @@
                 color: var(--prism-text-muted);
                 text-align: left;
                 padding: 10px 14px;
-                border-bottom: 1px solid rgba(167, 139, 250, 0.15);
+                border-bottom: 1px solid rgba(96, 165, 250, 0.15);
             }
             .markdown-section table td {
                 padding: 10px 14px;
@@ -367,15 +368,15 @@
                 background: transparent;
             }
             .markdown-section table tr:hover td {
-                background: rgba(167, 139, 250, 0.06);
+                background: rgba(96, 165, 250, 0.06);
             }
 
             /* --------------------------------------
        Blockquotes with violet left border
     -------------------------------------- */
             .markdown-section blockquote {
-                border-left: 3px solid var(--prism-violet-deep);
-                background: rgba(167, 139, 250, 0.06);
+                border-left: 3px solid var(--prism-primary-fill);
+                background: rgba(96, 165, 250, 0.06);
                 padding: 12px 20px;
                 border-radius: 0 6px 6px 0;
                 margin: 1.2em 0;
@@ -414,7 +415,7 @@
                     box-shadow 0.15s;
             }
             .search input:focus {
-                border-color: rgba(139, 92, 246, 0.4) !important;
+                border-color: rgba(37, 99, 235, 0.4) !important;
                 box-shadow: 0 0 0 3px var(--prism-glow) !important;
             }
             .search input::placeholder {
@@ -438,7 +439,7 @@
                 border-bottom: 1px solid var(--prism-border) !important;
             }
             .matching-post h2 {
-                color: var(--prism-violet) !important;
+                color: var(--prism-primary) !important;
             }
 
             /* --------------------------------------
@@ -454,18 +455,18 @@
             }
             .docsify-copy-code-button:hover {
                 color: var(--prism-text-primary) !important;
-                border-color: rgba(167, 139, 250, 0.3) !important;
+                border-color: rgba(96, 165, 250, 0.3) !important;
             }
 
             /* --------------------------------------
        GitHub corner
     -------------------------------------- */
             .github-corner svg {
-                fill: #131022;
-                color: #b0a6c8;
+                fill: #111827;
+                color: #cbd5e1;
             }
             .github-corner:hover svg {
-                color: #ede9f8;
+                color: #f1f5f9;
             }
 
             /* --------------------------------------
@@ -479,11 +480,11 @@
                 background: transparent;
             }
             ::-webkit-scrollbar-thumb {
-                background: rgba(139, 92, 246, 0.15);
+                background: rgba(37, 99, 235, 0.15);
                 border-radius: 3px;
             }
             ::-webkit-scrollbar-thumb:hover {
-                background: rgba(139, 92, 246, 0.3);
+                background: rgba(37, 99, 235, 0.3);
             }
 
             /* --------------------------------------
@@ -498,8 +499,8 @@
                 font-size: 11px;
                 font-weight: 600;
                 font-family: var(--code-font-family);
-                color: #ede9f8 !important;
-                background: #7c3aed;
+                color: #f1f5f9 !important;
+                background: #2563eb;
                 border-radius: 8px;
                 text-decoration: none !important;
                 letter-spacing: 0.02em;
@@ -511,7 +512,7 @@
                 line-height: 1.4;
             }
             .prism-version-badge:hover {
-                background: #a78bfa;
+                background: #60a5fa;
             }
 
             /* --------------------------------------
@@ -525,13 +526,37 @@
                     font-size: 1.15rem;
                 }
             }
+
+            /* 22.7 brand lockup in the sidebar: the mark plus the wordmark in the brand gradient */
+            .ngp-brand {
+                display: inline-flex;
+                gap: 10px;
+                align-items: center;
+                padding: 0 14px;
+            }
+
+            .ngp-brand img {
+                width: 34px;
+                height: 34px;
+                object-fit: contain;
+            }
+
+            .ngp-wordmark {
+                font-size: 1.6rem;
+                font-weight: 700;
+                letter-spacing: -0.035em;
+                color: transparent;
+                background: var(--prism-brand-gradient);
+                -webkit-background-clip: text;
+                background-clip: text;
+            }
         </style>
     </head>
     <body>
         <div id="app"></div>
         <script>
             window.$docsify = {
-                name: '<img style="width: 100%; padding: 0 14px;" src="prism_logo_docs.png" width="270" alt="ng-prism logo">',
+                name: '<span class="ngp-brand"><img src="assets/brand/ng-prism-symbol.svg" alt="" width="34" height="34"><span class="ngp-wordmark">ng-prism</span></span>',
                 repo: 'https://github.com/ng-prism/ng-prism',
                 loadSidebar: true,
                 basePath: location.hostname === 'localhost' ? '/' : '/ng-prism/',
