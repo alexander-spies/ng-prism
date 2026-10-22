@@ -97,7 +97,7 @@ describe('component API extractor', () => {
     });
 
     it('instantiates an input of a generic base class', () => {
-        expect(field.inputTypes).toEqual({ value: { text: 'number | undefined' } });
+        expect(field.inputTypes).toEqual({ value: { text: 'number | undefined' }, variant: { text: 'FixtureVariant', links: ['FixtureVariant'] } });
         expect(field.modelChanges).toEqual([{ input: 'value', event: 'valueChange', type: { text: 'number | undefined' } }]);
         expect(field.methods.map((m) => m.name)).toEqual(['clear']);
     });

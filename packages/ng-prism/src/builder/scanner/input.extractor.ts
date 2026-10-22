@@ -214,7 +214,7 @@ export function extractOutputs(classDecl: ts.ClassDeclaration, checker: ts.TypeC
  * mentions a type parameter of the class that declares it. Only then does the
  * subclass change the type; otherwise the source text stays, alias names included.
  */
-function usesTypeParameters(node: ts.Node | undefined, owner: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+export function usesTypeParameters(node: ts.Node | undefined, owner: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
     const parameters = owner.typeParameters;
 
     if (!node || !parameters?.length) return false;

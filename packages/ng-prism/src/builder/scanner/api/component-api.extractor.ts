@@ -3,7 +3,7 @@ import type { ComponentApi, InputMeta, OutputMeta } from '../../../plugin/plugin
 import type { ApiTypeRef } from '../../../plugin/service.types.js';
 import { findDecorator } from '../ast-utils.js';
 import type { ClassHierarchy } from '../class-hierarchy.js';
-import { findInputDeclaration, findOutputDeclaration, getInstantiatedType, isModelInput } from '../input.extractor.js';
+import { findInputDeclaration, findOutputDeclaration, getInstantiatedType, isModelInput, usesTypeParameters } from '../input.extractor.js';
 import { readDescription, readDocTags } from './doc-tags.js';
 import type { ExportIndex } from './export-index.js';
 import { extractDocumentedMethods } from './member.extractor.js';
@@ -83,16 +83,21 @@ export function extractComponentApi(
  */
 function readInputType(declaration: Declaration, name: string, classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): TypeSource {
     const { member } = declaration;
-    const generic = isGenericBase(declaration, classDecl);
-    const propertyType = readPropertyType(declaration, name, classDecl, checker);
 
-    if (findDecorator(member, 'Input')) return { node: generic ? undefined : member.type, type: propertyType };
+    if (findDecorator(member, 'Input')) {
+        const instantiated = readInstantiatedType(declaration, member.type ?? member.initializer, name, classDecl, checker);
+
+        return instantiated ? { node: undefined, type: instantiated } : { node: member.type, type: checker.getTypeAtLocation(member) };
+    }
 
     // Without the decorator, an input is a member initialized by a call to `input()` or `model()`.
     const call = member.initializer as ts.CallExpression;
+    const node = call.typeArguments?.[0];
+    const instantiated = readInstantiatedType(declaration, node ?? call.arguments[0], name, classDecl, checker);
+    const signal = instantiated ?? checker.getTypeAtLocation(member);
 
     // A signal is a getter function, so its call signature returns the value type.
-    return { node: generic ? undefined : call.typeArguments?.[0], type: propertyType.getCallSignatures()[0]?.getReturnType() ?? propertyType };
+    return { node: instantiated ? undefined : node, type: signal.getCallSignatures()[0]?.getReturnType() ?? signal };
 }
 
 /**
@@ -102,14 +107,14 @@ function readInputType(declaration: Declaration, name: string, classDecl: ts.Cla
  */
 function readOutputPayload(declaration: Declaration, name: string, classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): TypeSource {
     const { member } = declaration;
-    const propertyType = readPropertyType(declaration, name, classDecl, checker);
-    const isReference = propertyType.flags & ts.TypeFlags.Object && (propertyType as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference;
+    const node = readCreatedPayload(member.initializer) ?? readAnnotatedPayload(member.type);
+    const instantiated = readInstantiatedType(declaration, node, name, classDecl, checker);
+    const emitter = instantiated ?? checker.getTypeAtLocation(member);
+    const isReference = emitter.flags & ts.TypeFlags.Object && (emitter as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference;
     // A type without type arguments says nothing about what it emits.
-    const type = (isReference ? checker.getTypeArguments(propertyType as ts.TypeReference)[0] : undefined) ?? checker.getUnknownType();
+    const type = (isReference ? checker.getTypeArguments(emitter as ts.TypeReference)[0] : undefined) ?? checker.getUnknownType();
 
-    if (isGenericBase(declaration, classDecl)) return { node: undefined, type };
-
-    return { node: readCreatedPayload(member.initializer) ?? readAnnotatedPayload(member.type), type };
+    return { node: instantiated ? undefined : node, type };
 }
 
 /** `output<T>()` and `new EventEmitter<T>()`. */
@@ -130,17 +135,19 @@ function readAnnotatedPayload(typeNode: ts.TypeNode | undefined): ts.TypeNode | 
 }
 
 /**
- * Written in a generic base class, an annotation names the base's type
- * parameters: `model<T>()` in `Field<T>` is a `number` on a class that
- * extends `Field<number>`. There the type is read as the class instantiates
- * it, and there is no annotation to show.
+ * The type of a member of a generic base class as the showcased class
+ * instantiates it, when what the member is declared with names the base's
+ * type parameters: `model<T>()` in `Field<T>` is a `number` on a class that
+ * extends `Field<number>`, and its annotation, which says `T`, is not shown.
+ * `undefined` for a member that does not use them, as `extractInputs`
+ * decides it: that one keeps its annotation, with the links in it.
  */
-function isGenericBase({ owner }: Declaration, classDecl: ts.ClassDeclaration): boolean {
-    return owner !== classDecl && !!owner.typeParameters?.length;
-}
-
-function readPropertyType(declaration: Declaration, name: string, classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): ts.Type {
-    const instantiated = isGenericBase(declaration, classDecl) ? getInstantiatedType(name, classDecl, checker) : undefined;
-
-    return instantiated ?? checker.getTypeAtLocation(declaration.member);
+function readInstantiatedType(
+    { owner }: Declaration,
+    declared: ts.Node | undefined,
+    name: string,
+    classDecl: ts.ClassDeclaration,
+    checker: ts.TypeChecker
+): ts.Type | undefined {
+    return owner !== classDecl && usesTypeParameters(declared, owner, checker) ? getInstantiatedType(name, classDecl, checker) : undefined;
 }
