@@ -422,15 +422,16 @@ Exported from the main `@ng-prism/core` entry (not `@ng-prism/core/plugin`, sinc
 import { PrismMetricBadgeComponent } from '@ng-prism/core';
 ```
 
-| Input     | Type                         | Required | Description                                                                                                                                                                                                                                 |
-| --------- | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icon`    | `string`                     | yes      | Name from the built-in icon registry (`ICON_NAMES`). Convention: reuse the same icon the source contributes to `navigationDecorations` and its panel tab, so one glyph means one source everywhere it appears.                              |
-| `value`   | `string`                     | yes      | The already-formatted figure, e.g. `'87%'`. The component does no formatting or unit conversion of its own.                                                                                                                                 |
-| `label`   | `string`                     | yes      | Human-readable name for the metric, e.g. `'Library coverage'`. Composed with `value` into the accessible name (`"label: value"`), so the figure cannot be dropped by a caller that only sets `label`.                                       |
-| `title`   | `string`                     | no       | Full text for the hover tooltip. Defaults to `label` when omitted.                                                                                                                                                                          |
-| `variant` | `'ok' \| 'warn' \| 'danger'` | no       | Colour role, drawn from `--prism-mark-attention` / `--prism-mark-critical`. Default `'ok'`, which renders with no accent colour at all (see [Marks, Measurement and Stage Tokens](../guide/theming.md#marks-measurement-and-stage-tokens)). |
+| Input        | Type                         | Required | Description                                                                                                                                                                                                         |
+| ------------ | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon`       | `string`                     | yes      | Name from the built-in icon registry (`ICON_NAMES`). Convention: reuse the same icon the source contributes to `navigationDecorations` and its panel tab, so one glyph means one source everywhere it appears.      |
+| `value`      | `string`                     | yes      | The already-formatted figure, e.g. `'87%'`. The component does no formatting or unit conversion of its own.                                                                                                         |
+| `label`      | `string`                     | yes      | Human-readable name for the metric, e.g. `'Library coverage'`. Composed with `value` into the accessible name (`"label: value"`), so the figure cannot be dropped by a caller that only sets `label`.               |
+| `title`      | `string`                     | no       | Full text for the hover tooltip. Defaults to `label` when omitted.                                                                                                                                                  |
+| `variant`    | `'ok' \| 'warn' \| 'danger'` | no       | Colour role: `--prism-success`, `--prism-warn` or `--prism-danger` on its `-bg` tint. Default `'ok'`. Grade the figure with `statusFor` from `@ng-prism/core/plugin` so the header agrees with every other surface. |
+| `shortLabel` | `string`                     | no       | A short visible label such as `'Coverage'` or `'VRT'`. When set it replaces the icon, and the badge reads "Coverage 53%". The built-in widgets all set one.                                                         |
 
-The icon is `aria-hidden`; the badge's own `role="img"` and computed `aria-label` carry the accessible name instead.
+The icon and the short label are `aria-hidden`; the badge's own `role="img"` and computed `aria-label` carry the accessible name instead. The header renders with the dark token set in both themes (it is a navy band since 22.7), so a widget reads colours that fit it without code of its own.
 
 ---
 

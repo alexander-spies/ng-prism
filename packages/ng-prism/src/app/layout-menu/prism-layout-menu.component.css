@@ -2,30 +2,6 @@
     position: relative;
 }
 
-.layout-menu__trigger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: transparent;
-    border: 1px solid var(--prism-border);
-    border-radius: var(--radius-sm);
-    transition:
-        border-color 0.15s,
-        color 0.15s,
-        background 0.15s;
-}
-
-.layout-menu__trigger:hover,
-.layout-menu__trigger--active {
-    color: var(--prism-text);
-    background: var(--prism-bg-surface);
-    border-color: var(--prism-border-strong);
-}
-
 .layout-menu__backdrop {
     position: fixed;
     inset: 0;

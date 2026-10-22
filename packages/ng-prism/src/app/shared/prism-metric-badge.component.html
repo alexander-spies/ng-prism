@@ -6,9 +6,17 @@
     [class.metric-badge--danger]="variant() === 'danger'"
     [attr.title]="title() || label()"
     [attr.aria-label]="accessibleName()">
-    <prism-icon
-        [name]="icon()"
-        [size]="12"
-        aria-hidden="true" />
+    @if (shortLabel()) {
+        <span
+            class="metric-badge__label"
+            aria-hidden="true"
+            >{{ shortLabel() }}</span
+        >
+    } @else {
+        <prism-icon
+            [name]="icon()"
+            [size]="12"
+            aria-hidden="true" />
+    }
     <span class="metric-badge__value">{{ value() }}</span>
 </span>

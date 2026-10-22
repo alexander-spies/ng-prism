@@ -18,5 +18,5 @@ export function deriveCoverageSummary(score: number, thresholds: CoverageThresho
     const avg = avgThreshold(thresholds);
     const variant: CoverageSummary['variant'] = statusFor(score, thresholdFromTarget(avg));
 
-    return { variant, label: `Coverage: ${score}% (target ${avg}%)` };
+    return { variant, label: `Coverage ${score}% · target ${avg}%` };
 }

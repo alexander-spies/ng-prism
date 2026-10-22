@@ -6,6 +6,7 @@ import { BUILTIN_HEADER_WIDGETS } from '../panels/builtin-header-widgets.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
 import { PrismSearchService } from '../services/prism-search.service.js';
 import { PrismThemeService } from '../services/prism-theme.service.js';
+import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
 import { PrismLogoComponent } from '../shared/prism-logo.component.js';
 import { PRISM_CONFIG } from '../tokens/prism-tokens.js';
 import { headerBrand } from './header-brand.js';
@@ -15,7 +16,7 @@ import { PrismHeaderWidgetHostComponent } from './prism-header-widget-host.compo
     selector: 'prism-header',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismIconComponent, PrismLayoutMenuComponent, PrismHeaderWidgetHostComponent, PrismLogoComponent],
+    imports: [PrismIconComponent, PrismLayoutMenuComponent, PrismHeaderWidgetHostComponent, PrismLogoComponent, PrismIconButtonComponent],
     // The header is a navy brand band in both themes: it renders with the dark
     // token set, which plugin widgets inside it inherit without code of their own.
     host: { '[style]': 'themeService.headerTokens()' },

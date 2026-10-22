@@ -122,25 +122,6 @@
     padding-left: 4px;
 }
 
-.prism-header__icon-btn {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: none;
-    border-radius: 8px;
-    transition: all var(--dur-fast);
-}
-
-.prism-header__icon-btn:hover {
-    color: var(--prism-text);
-    background: var(--prism-input-bg);
-}
-
 :focus-visible {
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;

@@ -34,7 +34,7 @@ export class A11yHeaderBadgeComponent {
             score,
             variant,
             title:
-                `Library A11y: ${score}% (target ${thresholds.score}%)\n` +
+                `Library accessibility score ${score} · target ${thresholds.score}\n` +
                 `${meta.total.auditedComponents} components · ${meta.total.auditedVariants} variants\n` +
                 `Violations: ${meta.total.critical} critical · ${meta.total.serious} serious · ` +
                 `${meta.total.moderate} moderate · ${meta.total.minor} minor`
