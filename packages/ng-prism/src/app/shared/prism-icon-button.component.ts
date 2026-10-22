@@ -12,7 +12,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     selector: 'button[prismIconButton]',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    template: '<ng-content />',
+    templateUrl: './prism-icon-button.component.html',
     styleUrl: './prism-icon-button.component.css',
     host: {
         type: 'button',

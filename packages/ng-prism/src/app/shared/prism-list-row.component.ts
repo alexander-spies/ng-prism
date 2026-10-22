@@ -11,14 +11,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, ElementRef, injec
     selector: 'prism-list-row',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    template: `
-        <span class="prism-list-row__badge"><ng-content select="[rowBadge]" /></span>
-        <span class="prism-list-row__text">
-            <span class="prism-list-row__title"><ng-content select="[rowTitle]" /></span>
-            <span class="prism-list-row__description"><ng-content select="[rowDescription]" /></span>
-        </span>
-        <span class="prism-list-row__meta"><ng-content select="[rowMeta]" /></span>
-    `,
+    templateUrl: './prism-list-row.component.html',
     styleUrl: './prism-list-row.component.css',
     host: {
         '[class.prism-list-row--selected]': 'selected()',

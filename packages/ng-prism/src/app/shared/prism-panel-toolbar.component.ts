@@ -11,10 +11,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     selector: 'prism-panel-toolbar',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    template: `
-        <div class="prism-panel-toolbar__start"><ng-content select="[toolbarStart]" /></div>
-        <div class="prism-panel-toolbar__end"><ng-content select="[toolbarEnd]" /></div>
-    `,
+    templateUrl: './prism-panel-toolbar.component.html',
     styleUrl: './prism-panel-toolbar.component.css'
 })
 export class PrismPanelToolbarComponent {}

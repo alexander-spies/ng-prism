@@ -1,6 +1,8 @@
+/* Flex rather than a grid: every slot is optional and an empty one is
+   hidden, so a row without a badge or meta closes up instead of shifting
+   its title into the badge's column. */
 :host {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    display: flex;
     gap: 10px;
     align-items: center;
     min-height: 34px;
@@ -27,6 +29,11 @@
     outline-offset: 1px;
 }
 
+.prism-list-row__badge,
+.prism-list-row__meta {
+    flex: none;
+}
+
 .prism-list-row__badge:empty,
 .prism-list-row__meta:empty,
 .prism-list-row__description:empty {
@@ -35,6 +42,7 @@
 
 .prism-list-row__text {
     display: flex;
+    flex: 1 1 0;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
