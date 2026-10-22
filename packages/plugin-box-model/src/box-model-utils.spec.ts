@@ -1,4 +1,4 @@
-import { getBoxModel } from './box-model-utils.js';
+import { formatSide, getBoxModel } from './box-model-utils.js';
 
 function makeElement(rectOverrides: Partial<DOMRect> = {}, styleOverrides: Record<string, string> = {}): Element {
     const el = {
@@ -125,5 +125,20 @@ describe('getBoxModel', () => {
         const result = getBoxModel(el);
 
         expect(result.element).toBe(el);
+    });
+});
+
+/**
+ * A side that is zero reads "0": a dash looked like "unknown" next to sides
+ * that carry a number.
+ */
+describe('formatSide', () => {
+    it.each([
+        [0, '0'],
+        [12.5, '12.5'],
+        [4, '4'],
+        [0.333, '0.33']
+    ])('formats %s as %s', (value, text) => {
+        expect(formatSide(value)).toBe(text);
     });
 });

@@ -20,3 +20,8 @@ export function getBoxModel(element: Element): BoxModelData {
         margin: parseSides(style, ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'])
     };
 }
+
+/** One side of the box model as the panel prints it: the figure, "0" included, to two decimals at most. */
+export function formatSide(value: number): string {
+    return String(Math.round(value * 100) / 100);
+}
