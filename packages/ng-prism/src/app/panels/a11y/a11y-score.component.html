@@ -1,38 +1,14 @@
-<div class="score-ring">
-    <svg viewBox="0 0 128 128">
-        <defs>
-            <linearGradient
-                [id]="gradientId"
-                x1="0"
-                y1="0"
-                x2="1"
-                y2="1">
-                <stop
-                    offset="0%"
-                    class="gradient-start" />
-                <stop
-                    offset="100%"
-                    class="gradient-end" />
-            </linearGradient>
-        </defs>
-        <circle
-            class="track"
-            cx="64"
-            cy="64"
-            [attr.r]="R" />
-        <circle
-            class="fill"
-            cx="64"
-            cy="64"
-            [attr.r]="R"
-            [attr.stroke-dasharray]="CIRC"
-            [attr.stroke-dashoffset]="dashOffset()"
-            [attr.stroke]="'url(#' + gradientId + ')'" />
-    </svg>
-    @if (!compact()) {
-        <div class="score-val">
-            <div class="score-num">{{ score() }}</div>
-            <div class="score-max">/ 100</div>
-        </div>
-    }
-</div>
+<svg viewBox="0 0 128 128">
+    <circle
+        class="track"
+        cx="64"
+        cy="64"
+        [attr.r]="R" />
+    <circle
+        class="fill"
+        cx="64"
+        cy="64"
+        [attr.r]="R"
+        [attr.stroke-dasharray]="CIRC"
+        [attr.stroke-dashoffset]="dashOffset()" />
+</svg>

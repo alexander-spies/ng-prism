@@ -51,21 +51,7 @@ export function resolvePanelBadge(panel: PanelDefinition, component: RuntimeComp
     }
 
     if (panel.id === 'a11y') {
-        // A number of open findings, not the score: the score is graded in the
-        // gauge, the sidebar and the panel. The tone follows the most severe
-        // violation, the same split the build gate draws.
-        const result = context.a11yResult;
-
-        if (result === null) return null;
-        const violations = result.critical + result.serious + result.moderate + result.minor;
-
-        if (violations === 0) return null;
-        return {
-            kind: 'issues',
-            text: String(violations),
-            tone: result.critical + result.serious > 0 ? 'danger' : 'warn',
-            label: plural(violations, 'violation')
-        };
+        return a11yViolationBadge(context.a11yResult);
     }
 
     return null;
@@ -97,4 +83,23 @@ export function normalizePanelBadge(badge: PanelBadge | null): NormalizedPanelBa
     const legacyTone = badge.variant === 'warn' || badge.variant === 'danger' ? badge.variant : undefined;
 
     return { kind, text: badge.text, tone: badge.tone ?? legacyTone ?? 'danger', ariaLabel };
+}
+
+/**
+ * The a11y tab's badge, also shown on the Violations sub-tab: a number of open
+ * findings, not the score. The score is graded in the gauge, the sidebar and
+ * the panel. The tone follows the most severe violation, the same split the
+ * build gate draws.
+ */
+export function a11yViolationBadge(result: A11yScoreResult | null): PanelBadge | null {
+    if (result === null) return null;
+    const violations = result.critical + result.serious + result.moderate + result.minor;
+
+    if (violations === 0) return null;
+    return {
+        kind: 'issues',
+        text: String(violations),
+        tone: result.critical + result.serious > 0 ? 'danger' : 'warn',
+        label: plural(violations, 'violation')
+    };
 }

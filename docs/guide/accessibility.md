@@ -17,7 +17,7 @@ Runs an axe-core audit against the currently rendered component variant. Results
 | Moderate | Yellow | Consider fixing: some users affected |
 | Minor    | Blue   | Nice to fix: minor inconvenience     |
 
-The audit re-runs automatically when you switch variants or change input values in the Controls panel. A score ring visualizes the pass rate.
+The audit re-runs automatically when you switch variants or change input values in the Controls panel. The Violations view shows the score in a small card whose ring takes the colour of its grade (see below), the violations most severe first, and the passed checks folded into one line you can open. The panel's tab, and the Violations sub-tab, carry the number of open violations, red when one of them is critical or serious and amber otherwise; a clean component's tab carries no badge.
 
 ### Keyboard Navigation
 
@@ -88,7 +88,7 @@ When disabled, the A11y panel shows a message instead of running the audit.
 
 ## Library-Wide A11y Score & Header Badge
 
-Beyond the live runtime audit, ng-prism can surface a library-wide A11y score as a color-coded pill in the header. It turns green, orange or red depending on whether the library meets your thresholds.
+Beyond the live runtime audit, ng-prism can surface a library-wide A11y score as a pill in the header ("A11y 92"). Every a11y figure in the styleguide is graded by one rule against your thresholds: any critical or serious violation above its limit is danger; a score below 75% of the score threshold is danger, below the threshold or with too many moderate violations it is warn; otherwise ok. The header pill, the sidebar marker, the gauge in the component head and the score card all use it.
 
 ng-prism does not generate the score itself. Producing an aggregate audit is the consumer's responsibility (same pattern as `coverage-summary.json` for the coverage plugin). ng-prism only reads an `a11y-report.json` you place in your workspace.
 
