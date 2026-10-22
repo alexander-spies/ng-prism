@@ -251,6 +251,8 @@ function formatMeta(comp: ScannedComponent, baseIndent: number): string {
     const lines = [
         `${indent(inner)}className: ${json(comp.className)},`,
         `${indent(inner)}filePath: ${json(comp.filePath)},`,
+        // The entry point the class is imported from; a plugin's API page names it, e.g. in a usage snippet.
+        ...(comp.importPath ? [`${indent(inner)}importPath: ${json(comp.importPath)},`] : []),
         `${indent(inner)}showcaseConfig: ${formatObject(comp.showcaseConfig as unknown as Record<string, unknown>, inner)},`,
         `${indent(inner)}inputs: ${formatArray(comp.inputs, inner)},`,
         `${indent(inner)}outputs: ${formatArray(comp.outputs, inner)},`,

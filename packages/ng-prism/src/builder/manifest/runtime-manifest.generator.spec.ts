@@ -315,6 +315,20 @@ describe('generateRuntimeManifest', () => {
     });
 });
 
+describe('generateRuntimeManifest component import path', () => {
+    it("carries a component's importPath into its meta", () => {
+        const source = generateRuntimeManifest({ components: [{ ...BUTTON, importPath: 'my-lib/atoms' }], libraryImportPath: 'my-lib' });
+
+        expect(source).toMatch(/meta: \{\n {8}className: "ButtonComponent",\n {8}filePath: "[^"]*",\n {8}importPath: "my-lib\/atoms",/);
+    });
+
+    it('writes no importPath for a component the scanner could not place', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], libraryImportPath: 'my-lib' });
+
+        expect(source).not.toContain('importPath:');
+    });
+});
+
 describe('generateRuntimeManifest component API', () => {
     it('writes the API of a component', () => {
         const withApi: ScannedComponent = {
