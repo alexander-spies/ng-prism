@@ -1,8 +1,9 @@
+import type { StatusTone } from '../../plugin/status.js';
+
 /** Colour roles of `prism-badge`. */
 export type BadgeTone = 'neutral' | 'primary' | 'success' | 'warn' | 'danger';
 
-/** A status verdict. Moves to `plugin/status.ts` with `statusFor`. */
-export type StatusTone = 'ok' | 'warn' | 'danger';
+export type { StatusTone };
 
 const STATUS_BADGE_TONE: Record<StatusTone, BadgeTone> = {
     ok: 'success',

@@ -54,6 +54,8 @@ export { PSEUDO_STATES } from '../shared/pseudo-state.type.js';
 export { componentPage, customPage } from './page-helpers.js';
 export type { ComponentPageOptions } from './page-helpers.js';
 export { defineConfig } from './define-config.js';
+export { STATUS_DANGER_RATIO, statusFor, thresholdFromTarget, worstTone } from './status.js';
+export type { StatusThreshold, StatusTone } from './status.js';
 // Imported from the dependency-free registry module, not from
 // `prism-icon.component.js`. The builder evaluates plugin config in Node.js,
 // and importing the component module would run its `@Component` decorator
