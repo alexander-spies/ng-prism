@@ -1,4 +1,4 @@
-import type { ApiSetupEntry, ApiTypeDoc, PipeApi, ScannedPipe, ScannedService, ServiceApi } from '@ng-prism/core/plugin';
+import type { ApiSetupEntry, ApiTypeDoc, ComponentApi, PipeApi, ScannedComponent, ScannedPipe, ScannedService, ServiceApi } from '@ng-prism/core/plugin';
 import {
     activeTocId,
     buildApiPageToc,
@@ -9,7 +9,7 @@ import {
     splitReachedFrom,
     typeSegments
 } from './api-page.helpers.js';
-import { pipePage, servicePage } from './api-page.model.js';
+import { componentApiPage, pipePage, servicePage } from './api-page.model.js';
 
 function typeDoc(name: string, id = name): ApiTypeDoc {
     return { id, name, kind: 'interface', importPath: 'fixture/toast', tags: {}, properties: [] };
@@ -35,6 +35,20 @@ function makePipe(overrides: Partial<PipeApi> = {}): ScannedPipe {
         pipeName: 'timeAgo',
         pure: true,
         api: { tags: {}, transform: [], setup: [], types: [], ...overrides }
+    };
+}
+
+function makeComponent(api: Partial<ComponentApi> = {}, overrides: Partial<ScannedComponent> = {}): ScannedComponent {
+    return {
+        className: 'TabsComponent',
+        filePath: '/lib/tabs.component.ts',
+        importPath: 'test-lib',
+        showcaseConfig: { title: 'Tabs' },
+        inputs: [],
+        outputs: [],
+        componentMeta: { selector: 'sg-tabs', standalone: true, isDirective: false },
+        api: { tags: {}, inputTypes: {}, outputTypes: {}, modelChanges: [], methods: [], types: [], ...api },
+        ...overrides
     };
 }
 
@@ -85,6 +99,33 @@ describe('buildApiPageToc', () => {
 
         expect(toc.map((entry) => entry.id)).toEqual(['usage', 'setup', 'examples', 'transform', 'types', 'type-TimeAgoOptions']);
         expect(toc.find((entry) => entry.id === 'transform')).toEqual({ id: 'transform', label: 'Transform', level: 1 });
+    });
+
+    it('lists the inputs and outputs of a component between examples and methods', () => {
+        const component = makeComponent(
+            { methods: [{ name: 'select', params: [], returnType: { text: 'void' }, tags: {} }], types: [typeDoc('X')] },
+            { inputs: [{ name: 'tabs', type: 'array', required: true }], outputs: [{ name: 'tabSelected' }] }
+        );
+        const toc = buildApiPageToc(componentApiPage(component));
+
+        expect(toc.map((entry) => entry.id)).toEqual(['usage', 'inputs', 'outputs', 'methods', 'types', 'type-X']);
+        expect(toc.slice(1, 3)).toEqual([
+            { id: 'inputs', label: 'Inputs', level: 1 },
+            { id: 'outputs', label: 'Outputs', level: 1 }
+        ]);
+    });
+
+    it('lists the outputs of a component that only has a model', () => {
+        const component = makeComponent(
+            { modelChanges: [{ input: 'value', event: 'valueChange', type: { text: 'string' } }] },
+            { inputs: [{ name: 'value', type: 'string', required: false }] }
+        );
+
+        expect(buildApiPageToc(componentApiPage(component)).map((entry) => entry.id)).toEqual(['usage', 'inputs', 'outputs']);
+    });
+
+    it('skips the inputs and outputs of a component that has none', () => {
+        expect(buildApiPageToc(componentApiPage(makeComponent())).map((entry) => entry.id)).toEqual(['usage']);
     });
 });
 

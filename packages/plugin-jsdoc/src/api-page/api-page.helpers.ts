@@ -22,13 +22,16 @@ export function typeAnchor(typeId: string): string {
 /**
  * The sections of an API page in the order the page shows them. Usage is
  * always there, being generated; any other section only when it has content.
- * A service has properties and methods, a pipe its transform signatures.
+ * A component or directive has inputs, outputs and methods, a service
+ * properties and methods, a pipe its transform signatures.
  */
 export function buildApiPageToc(page: ApiPageModel): TocEntry[] {
     const sections: [id: string, label: string, present: boolean][] = [
         ['usage', 'Usage', true],
         ['setup', 'Setup', page.setup.length > 0],
         ['examples', 'Examples', page.examples.length > 0],
+        ['inputs', 'Inputs', !!page.inputs?.length],
+        ['outputs', 'Outputs', !!page.outputs?.length],
         ['properties', 'Properties', !!page.properties?.length],
         ['methods', 'Methods', !!page.methods?.length],
         ['transform', 'Transform', !!page.transform?.length],

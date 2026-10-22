@@ -1,5 +1,7 @@
-import type { ApiMethod, ApiSetupEntry, ApiTypeDoc, ScannedPipe, ScannedService } from '@ng-prism/core/plugin';
-import { pipePage, servicePage } from './api-page.model.js';
+import type { ApiMethod, ApiSetupEntry, ApiTypeDoc, ComponentApi, InputMeta, ScannedComponent, ScannedPipe, ScannedService } from '@ng-prism/core/plugin';
+import type { JsDocData } from '../jsdoc.types.js';
+import { componentApiPage, pipePage, servicePage } from './api-page.model.js';
+import { generateComponentUsage } from './component-usage.js';
 import { generatePipeUsage } from './pipe-usage.js';
 import { generateServiceUsage } from './service-usage.js';
 
@@ -30,6 +32,24 @@ function makePipe(overrides: Partial<ScannedPipe> = {}, api: Partial<ScannedPipe
         api: { tags: {}, transform: [], setup: [], types: [], ...api },
         ...overrides
     };
+}
+
+function makeComponent(overrides: Partial<ScannedComponent> = {}, api?: Partial<ComponentApi>): ScannedComponent {
+    return {
+        className: 'TabsComponent',
+        filePath: '/lib/tabs.component.ts',
+        importPath: 'test-lib',
+        showcaseConfig: { title: 'Tabs' },
+        inputs: [],
+        outputs: [],
+        componentMeta: { selector: 'sg-tabs', standalone: true, isDirective: false },
+        ...(api && { api: { tags: {}, inputTypes: {}, outputTypes: {}, modelChanges: [], methods: [], types: [], ...api } }),
+        ...overrides
+    };
+}
+
+function withJsDoc(jsdoc: JsDocData, overrides: Partial<ScannedComponent> = {}): ScannedComponent {
+    return makeComponent({ showcaseConfig: { title: 'Tabs', meta: { jsdoc } }, ...overrides });
 }
 
 describe('servicePage', () => {
@@ -120,6 +140,189 @@ describe('pipePage', () => {
             examples: ['{{ date | timeAgo }}'],
             transform: [METHOD],
             types: [TYPE]
+        });
+    });
+});
+
+describe('componentApiPage', () => {
+    const TABS_INPUT: InputMeta = { name: 'items', alias: 'tabs', type: 'array', rawType: 'TabItem[]', required: true, doc: 'The tabs.' };
+
+    it('shows the chips of the component page', () => {
+        const component = makeComponent({}, { tags: { deprecated: 'Use X.', version: '2.1.0', since: '1.0.0' } });
+
+        expect(componentApiPage(component).chips).toEqual([
+            { label: 'Deprecated', value: 'Use X.', deprecated: true },
+            { label: 'Version', value: '2.1.0' },
+            { label: 'Since', value: '1.0.0' },
+            { label: 'Entry point', value: 'test-lib' }
+        ]);
+    });
+
+    it('leaves out the chips it has no value for', () => {
+        expect(componentApiPage(makeComponent({ importPath: undefined }, { tags: { deprecated: true } })).chips).toEqual([{ label: 'Deprecated', deprecated: true }]);
+        expect(componentApiPage(makeComponent({ importPath: undefined }, {})).chips).toEqual([]);
+    });
+
+    it('is a component page, or a directive page for a directive', () => {
+        const directive = makeComponent({ componentMeta: { selector: '[fxHint]', standalone: true, isDirective: true } }, {});
+
+        expect(componentApiPage(makeComponent({}, {})).kind).toBe('component');
+        expect(componentApiPage(directive).kind).toBe('directive');
+    });
+
+    it('takes description, tags and examples from the api', () => {
+        const page = componentApiPage(makeComponent({}, { description: 'Tabs.', tags: { see: ['AccordionComponent'], example: ['<sg-tabs />'] } }));
+
+        expect(page).toMatchObject({ className: 'TabsComponent', description: 'Tabs.', see: ['AccordionComponent'], examples: ['<sg-tabs />'], setup: [] });
+    });
+
+    it('describes the component by its generated usage', () => {
+        const component = makeComponent({ inputs: [TABS_INPUT] }, {});
+
+        expect(componentApiPage(component).usage).toBe(generateComponentUsage(component));
+    });
+
+    it('shows an input by its public name, with the type of the api and what the code says of it', () => {
+        const component = makeComponent(
+            { inputs: [TABS_INPUT], showcaseConfig: { title: 'Tabs', meta: { jsdoc: { classTags: {}, memberTags: { items: { since: '1.1.0' } } } } } },
+            { inputTypes: { items: { text: 'TabItem[]', links: ['TabItem'] } } }
+        );
+
+        expect(componentApiPage(component).inputs).toEqual([
+            { name: 'tabs', type: { text: 'TabItem[]', links: ['TabItem'] }, required: true, description: 'The tabs.', tags: { since: '1.1.0' } }
+        ]);
+    });
+
+    it('writes defaults as the code does: strings quoted, the rest as is', () => {
+        const component = makeComponent(
+            {
+                inputs: [
+                    { name: 'variant', type: 'string', required: false, defaultValue: 'filled' },
+                    { name: 'disabled', type: 'boolean', required: false, defaultValue: false },
+                    { name: 'count', type: 'number', required: false, defaultValue: 0 },
+                    { name: 'label', type: 'string', required: false }
+                ]
+            },
+            {}
+        );
+
+        expect(componentApiPage(component).inputs?.map((row) => row.defaultValue)).toEqual(["'filled'", 'false', '0', undefined]);
+    });
+
+    it('shows an output by its public name with its payload, then one for each model', () => {
+        const component = makeComponent(
+            {
+                outputs: [{ name: 'tabSelected', alias: 'selected', doc: 'A tab was picked.' }],
+                inputs: [{ name: 'activeTabId', type: 'string', required: false }],
+                showcaseConfig: { title: 'Tabs', meta: { jsdoc: { classTags: {}, memberTags: { tabSelected: { since: '1.2.0' } } } } }
+            },
+            {
+                outputTypes: { tabSelected: { text: 'TabItem', links: ['TabItem'] } },
+                modelChanges: [{ input: 'activeTabId', event: 'activeTabIdChange', type: { text: 'string' } }]
+            }
+        );
+
+        expect(componentApiPage(component).outputs).toEqual([
+            { name: 'selected', payload: { text: 'TabItem', links: ['TabItem'] }, description: 'A tab was picked.', tags: { since: '1.2.0' } },
+            {
+                name: 'activeTabIdChange',
+                payload: { text: 'string' },
+                description: 'Emits when `activeTabId` changes; bind both ways with `[(activeTabId)]`.',
+                tags: {}
+            }
+        ]);
+    });
+
+    it('names the aliased input of a model in its change output', () => {
+        const component = makeComponent(
+            { inputs: [{ name: 'active', alias: 'activeTab', type: 'string', required: false }] },
+            { modelChanges: [{ input: 'active', event: 'activeTabChange', type: { text: 'string' } }] }
+        );
+
+        expect(componentApiPage(component).outputs).toEqual([
+            { name: 'activeTabChange', payload: { text: 'string' }, description: 'Emits when `activeTab` changes; bind both ways with `[(activeTab)]`.', tags: {} }
+        ]);
+    });
+
+    it('hands over the methods and types of the api', () => {
+        const page = componentApiPage(makeComponent({}, { methods: [METHOD], types: [TYPE] }));
+
+        expect(page.methods).toEqual([METHOD]);
+        expect(page.types).toEqual([TYPE]);
+    });
+
+    it('has no properties and no transform: those are for services and pipes', () => {
+        expect(Object.keys(componentApiPage(makeComponent({}, {})))).not.toEqual(expect.arrayContaining(['properties', 'transform']));
+    });
+
+    describe('without the api of the scanner', () => {
+        const JSDOC: JsDocData = {
+            classDescription: 'Tabs from the comment.',
+            classTags: { deprecated: true, since: '1.0.0', see: ['Accordion'], example: ['<sg-tabs />'] },
+            memberTags: { items: { since: '1.1.0' } },
+            methods: [
+                {
+                    name: 'select',
+                    description: 'Selects a tab.',
+                    tags: { since: '1.3.0' },
+                    params: [{ name: 'id', type: 'string', description: 'The tab id.' }, { name: 'options' }],
+                    returnType: 'boolean'
+                },
+                { name: 'reset', tags: {}, params: [] }
+            ]
+        };
+
+        it('reads description and tags from the jsdoc data', () => {
+            const page = componentApiPage(withJsDoc(JSDOC));
+
+            expect(page.description).toBe('Tabs from the comment.');
+            expect(page.chips).toEqual([
+                { label: 'Deprecated', deprecated: true },
+                { label: 'Since', value: '1.0.0' },
+                { label: 'Entry point', value: 'test-lib' }
+            ]);
+            expect(page.see).toEqual(['Accordion']);
+            expect(page.examples).toEqual(['<sg-tabs />']);
+        });
+
+        it('types the inputs by what they were scanned as and leaves the outputs without a payload', () => {
+            const component = withJsDoc(JSDOC, {
+                inputs: [TABS_INPUT, { name: 'size', type: 'union', required: false }],
+                outputs: [{ name: 'closed' }]
+            });
+            const page = componentApiPage(component);
+
+            expect(page.inputs).toEqual([
+                { name: 'tabs', type: { text: 'TabItem[]' }, required: true, description: 'The tabs.', tags: { since: '1.1.0' } },
+                { name: 'size', type: { text: 'union' }, required: false, tags: {} }
+            ]);
+            expect(page.outputs).toEqual([{ name: 'closed', tags: {} }]);
+        });
+
+        it('turns the documented methods into signatures and has no types', () => {
+            const page = componentApiPage(withJsDoc(JSDOC));
+
+            expect(page.methods).toEqual([
+                {
+                    name: 'select',
+                    description: 'Selects a tab.',
+                    tags: { since: '1.3.0' },
+                    params: [
+                        { name: 'id', type: { text: 'string' }, optional: false, description: 'The tab id.' },
+                        { name: 'options', type: { text: 'unknown' }, optional: false }
+                    ],
+                    returnType: { text: 'boolean' }
+                },
+                { name: 'reset', tags: {}, params: [], returnType: { text: 'void' } }
+            ]);
+            expect(page.types).toEqual([]);
+        });
+
+        it('shows what it has of a component without any jsdoc data', () => {
+            const page = componentApiPage(makeComponent({ inputs: [TABS_INPUT] }));
+
+            expect(page).toMatchObject({ description: undefined, chips: [{ label: 'Entry point', value: 'test-lib' }], see: [], examples: [], methods: [], types: [] });
+            expect(page.inputs).toEqual([{ name: 'tabs', type: { text: 'TabItem[]' }, required: true, description: 'The tabs.', tags: {} }]);
         });
     });
 });
