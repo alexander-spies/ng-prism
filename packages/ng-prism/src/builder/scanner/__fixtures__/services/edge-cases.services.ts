@@ -53,3 +53,4 @@ export class BareShowcaseService {}
 export class DirectiveService {}
 
 export { AliasedInjectableService } from './aliased-injectable.service.js';
+export { NamespaceInjectableService, NamespaceServiceService } from './namespace-import.service.js';

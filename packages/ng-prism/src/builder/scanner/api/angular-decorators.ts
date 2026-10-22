@@ -36,22 +36,20 @@ export interface PipeOptions {
     standalone: boolean;
 }
 
+type AngularCoreDecoratorName = 'Injectable' | 'Service' | 'Component' | 'Directive' | 'Pipe';
+
 /**
- * {@link findDecorator} for an Angular decorator: it only counts if the
- * identifier is imported from `@angular/core`. A `@Service` from a
- * dependency-injection package of another name has nothing to do with Angular's.
+ * {@link findDecorator} for an Angular decorator, found by the name it has in
+ * `@angular/core` rather than in the file: `import { Injectable as Service }`
+ * makes `@Service` Angular's `Injectable`, and `import * as ng` makes
+ * `@ng.Pipe` its `Pipe`. A `@Service` from a dependency-injection package of
+ * another name has nothing to do with Angular's.
  *
  * The scanner never imports `Service` itself, since Angular 20 has none: the
  * decorator is recognised in the source alone.
  */
-export function findAngularCoreDecorator(
-    classDecl: ts.ClassDeclaration,
-    name: 'Injectable' | 'Service' | 'Component' | 'Directive' | 'Pipe',
-    checker: ts.TypeChecker
-): ts.Decorator | undefined {
-    const decorator = findDecorator(classDecl, name);
-
-    return decorator && isImportedFromAngularCore(decorator, name, checker) ? decorator : undefined;
+export function findAngularCoreDecorator(classDecl: ts.ClassDeclaration, name: AngularCoreDecoratorName, checker: ts.TypeChecker): ts.Decorator | undefined {
+    return ts.getDecorators(classDecl)?.find((decorator) => angularCoreName(decorator, checker) === name);
 }
 
 /**
@@ -106,7 +104,7 @@ export function classifyShowcaseClass(classDecl: ts.ClassDeclaration, showcaseAr
  * provides is a normal thing to document.
  */
 export function readProvision(decorator: ts.Decorator, checker: ts.TypeChecker): ServiceProvision {
-    const isService = decoratorName(decorator) === 'Service';
+    const isService = angularCoreName(decorator, checker) === 'Service';
     const arg = getDecoratorArgument(decorator);
 
     if (!arg) return isService ? 'auto' : 'manual';
@@ -159,31 +157,31 @@ export function readPipeOptions(decorator: ts.Decorator, checker: ts.TypeChecker
     return result;
 }
 
-function isImportedFromAngularCore(decorator: ts.Decorator, name: string, checker: ts.TypeChecker): boolean {
+/**
+ * The name a decorator has in `@angular/core`, or `undefined` when it does not
+ * come from there: the imported name of an identifier, whatever it is called
+ * in the file, or the member of a namespace import.
+ */
+function angularCoreName(decorator: ts.Decorator, checker: ts.TypeChecker): string | undefined {
     const expr = ts.isCallExpression(decorator.expression) ? decorator.expression.expression : decorator.expression;
 
-    if (!ts.isIdentifier(expr)) return false;
+    if (ts.isIdentifier(expr)) {
+        const specifier = checker.getSymbolAtLocation(expr)?.declarations?.find(ts.isImportSpecifier);
 
-    return (
-        checker.getSymbolAtLocation(expr)?.declarations?.some((decl) => {
-            if (!ts.isImportSpecifier(decl)) return false;
+        return specifier && importsAngularCore(specifier.parent.parent.parent) ? (specifier.propertyName ?? specifier.name).text : undefined;
+    }
 
-            const importDeclaration = decl.parent.parent.parent;
+    if (ts.isPropertyAccessExpression(expr) && ts.isIdentifier(expr.expression)) {
+        const namespace = checker.getSymbolAtLocation(expr.expression)?.declarations?.find(ts.isNamespaceImport);
 
-            // `import { Injectable as Service }` is Angular's Injectable, not its Service.
-            return (
-                ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
-                importDeclaration.moduleSpecifier.text === ANGULAR_CORE &&
-                (decl.propertyName ?? decl.name).text === name
-            );
-        }) ?? false
-    );
+        return namespace && importsAngularCore(namespace.parent.parent) ? expr.name.text : undefined;
+    }
+
+    return undefined;
 }
 
-function decoratorName(decorator: ts.Decorator): string | undefined {
-    const expr = ts.isCallExpression(decorator.expression) ? decorator.expression.expression : decorator.expression;
-
-    return ts.isIdentifier(expr) ? expr.text : undefined;
+function importsAngularCore(importDeclaration: { moduleSpecifier: ts.Expression }): boolean {
+    return ts.isStringLiteral(importDeclaration.moduleSpecifier) && importDeclaration.moduleSpecifier.text === ANGULAR_CORE;
 }
 
 function readComponentOnlyFields(showcaseArg: ts.Expression | undefined, checker: ts.TypeChecker): string[] {

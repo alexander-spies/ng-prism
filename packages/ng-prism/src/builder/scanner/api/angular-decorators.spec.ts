@@ -147,6 +147,20 @@ describe('angular-decorators edge cases', () => {
         expect(findAngularCoreDecorator(classOf('AliasedInjectableService'), 'Service', checker)).toBeUndefined();
     });
 
+    it('finds Injectable by its imported name, whatever the file calls it', () => {
+        expect(findAngularCoreDecorator(classOf('AliasedInjectableService'), 'Injectable', checker)).toBeDefined();
+        expect(classify('AliasedInjectableService')).toMatchObject({ kind: 'service' });
+        // Read as Injectable's providedIn, not as Service's autoProvided.
+        expect(provision('AliasedInjectableService')).toBe('auto');
+    });
+
+    it('finds Angular decorators through a namespace import', () => {
+        expect(classify('NamespaceInjectableService')).toMatchObject({ kind: 'service' });
+        expect(provision('NamespaceInjectableService')).toBe('auto');
+        expect(classify('NamespaceServiceService')).toMatchObject({ kind: 'service' });
+        expect(provision('NamespaceServiceService')).toBe('auto');
+    });
+
     it('reads a provision from constants, and treats what it cannot read as manual', () => {
         expect(provision('ConstantProvidedService')).toBe('auto');
         expect(provision('ModuleProvidedService')).toBe('manual');
