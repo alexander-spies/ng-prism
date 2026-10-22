@@ -32,8 +32,9 @@ const MARK_SUCCESSORS: ReadonlyArray<readonly [string, string]> = [
  * Two overrides are carried further than the key they name. A `--prism-mark-*`
  * override lands on its successor unless that one is overridden too. And an
  * override of `--prism-primary` alone pulls `--prism-primary-fill` and its hover
- * along: since 22.7 fills read their own token, and a user who recolours the
- * primary would otherwise get blue buttons next to links in their colour.
+ * along, and so does the active toggle track: since 22.7 fills read their own
+ * tokens, and a user who recolours the primary would otherwise get blue buttons
+ * next to links in their colour.
  *
  * Pure, so the header can ask for the dark set while the app runs light.
  */
@@ -53,6 +54,7 @@ export function resolveThemeTokens(mode: 'dark' | 'light', overrides: ThemeOverr
     if ('--prism-primary' in user) {
         if (!('--prism-primary-fill' in user)) tokens['--prism-primary-fill'] = user['--prism-primary'];
         if (!('--prism-primary-fill-hover' in user)) tokens['--prism-primary-fill-hover'] = user['--prism-primary'];
+        if (!('--prism-toggle-on' in user)) tokens['--prism-toggle-on'] = user['--prism-primary'];
     }
 
     return { tokens, deprecatedOverrides };

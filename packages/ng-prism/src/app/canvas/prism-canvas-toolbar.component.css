@@ -132,18 +132,24 @@
     white-space: nowrap;
     cursor: pointer;
     background: transparent;
-    border: 1px solid var(--prism-border);
+    border: 1px solid var(--prism-border-strong);
     border-radius: var(--radius-xs);
 }
 
-.prism-toolmenu__row button.is-on {
+.prism-toolmenu__row button:hover {
     color: var(--prism-text);
-    background: color-mix(in srgb, var(--prism-primary) 16%, transparent);
-    border-color: color-mix(in srgb, var(--prism-primary) 38%, transparent);
+    background: var(--prism-input-bg);
 }
 
+.prism-toolmenu__row button.is-on {
+    color: var(--prism-primary);
+    background: var(--prism-primary-bg);
+    border-color: color-mix(in srgb, var(--prism-primary) 55%, transparent);
+}
+
+/* The variant's own recommendation: a primary contour, so it reads without the tooltip. */
 .prism-toolmenu__row button.is-rec {
-    border-color: color-mix(in srgb, var(--prism-primary) 30%, transparent);
+    border-color: var(--prism-primary);
 }
 
 /* A state that does not fit the shown variant: still selectable, but nothing shows. The tooltip names why. */

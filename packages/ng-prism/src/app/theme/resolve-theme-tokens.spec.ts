@@ -35,6 +35,12 @@ describe('resolveThemeTokens', () => {
         expect(tokens['--prism-primary-fill-hover']).toBe('#e11d48');
     });
 
+    it('flattens the toggle track to an overridden primary', () => {
+        const { tokens } = resolveThemeTokens('dark', { theme: { '--prism-primary': '#e11d48' } });
+
+        expect(tokens['--prism-toggle-on']).toBe('#e11d48');
+    });
+
     it('keeps an explicitly overridden fill', () => {
         const { tokens } = resolveThemeTokens('light', { theme: { '--prism-primary': '#e11d48', '--prism-primary-fill': '#9f1239' } });
 

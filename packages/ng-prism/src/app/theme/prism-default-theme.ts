@@ -43,6 +43,8 @@ export const PRISM_DARK_THEME: Record<string, string> = {
     '--prism-primary-fill': '#2563eb',
     '--prism-primary-fill-hover': '#1d4ed8',
     '--prism-on-primary': '#ffffff',
+    /* The active switch track: the blue half of the brand light, ending on the fill blue so it holds 3:1 on these surfaces. */
+    '--prism-toggle-on': 'linear-gradient(90deg, #078bfa, #2563eb)',
     '--prism-link': 'var(--prism-primary)',
     '--prism-accent': '#a78bfa',
 
@@ -103,6 +105,8 @@ export const PRISM_LIGHT_THEME: Record<string, string> = {
     '--prism-primary-fill': '#2563eb',
     '--prism-primary-fill-hover': '#1d4ed8',
     '--prism-on-primary': '#ffffff',
+    /* The active switch track: the blue half of the brand light. */
+    '--prism-toggle-on': 'linear-gradient(90deg, #078bfa, #244bff)',
     '--prism-link': 'var(--prism-primary)',
     '--prism-accent': '#7c3aed',
 

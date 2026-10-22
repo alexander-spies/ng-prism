@@ -18,9 +18,13 @@
             (click)="open.set(false)"></div>
         <div
             class="layout-menu__dropdown"
+            role="menu"
+            aria-label="Layout"
             [style]="theme.appTokens()">
             <button
                 class="layout-menu__item"
+                role="menuitemcheckbox"
+                [attr.aria-checked]="layout.sidebarVisible()"
                 (click)="toggle('sidebar')">
                 <span
                     class="layout-menu__check"
@@ -43,6 +47,8 @@
             </button>
             <button
                 class="layout-menu__item"
+                role="menuitemcheckbox"
+                [attr.aria-checked]="layout.toolbarVisible()"
                 (click)="toggle('toolbar')">
                 <span
                     class="layout-menu__check"
@@ -65,6 +71,8 @@
             </button>
             <button
                 class="layout-menu__item"
+                role="menuitemcheckbox"
+                [attr.aria-checked]="layout.addonsVisible()"
                 (click)="toggle('addons')">
                 <span
                     class="layout-menu__check"

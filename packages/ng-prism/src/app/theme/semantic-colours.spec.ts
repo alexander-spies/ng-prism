@@ -492,6 +492,19 @@ describe('role contrast', () => {
         expect(failing).toEqual([]);
     });
 
+    it.each(THEMES)('%s theme: every stop of the active toggle track holds 3:1 against the knob and the surfaces', (_n, theme) => {
+        // An active switch is identified by its track (WCAG 1.4.11): the knob
+        // has to stand out on it, and the track on the surface it sits on.
+        const knob = token(theme, '--prism-on-primary', '#000000');
+        const failing = stops(theme, '--prism-toggle-on').flatMap((stop) =>
+            [knob, ground(theme, '--prism-bg-surface'), ground(theme, '--prism-bg-elevated')]
+                .filter((against) => contrast(stop, against) < 3)
+                .map((against) => `${stop} vs ${against}`)
+        );
+
+        expect(failing).toEqual([]);
+    });
+
     it('paints the brand gradient identically in both themes', () => {
         expect(PRISM_DARK_THEME['--prism-brand-gradient']).toBe('linear-gradient(90deg, #00CFEA 0%, #078BFA 38%, #244BFF 68%, #A20CF0 100%)');
         expect(PRISM_LIGHT_THEME['--prism-brand-gradient']).toBe(PRISM_DARK_THEME['--prism-brand-gradient']);
