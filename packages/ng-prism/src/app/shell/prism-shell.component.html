@@ -24,8 +24,12 @@
                 class="prism-resizer-col"
                 prismResizer
                 axis="x"
-                [min]="200"
-                [max]="360"
+                [min]="sidebarBounds.min"
+                [max]="sidebarBounds.max"
+                aria-label="Sidebar width"
+                [attr.aria-valuemin]="sidebarBounds.min"
+                [attr.aria-valuemax]="sidebarBounds.max"
+                [attr.aria-valuenow]="layout.sidebarWidth()"
                 [value]="layout.sidebarWidth()"
                 (valueChange)="layout.setSidebarWidth($event)"></div>
         }
@@ -62,8 +66,12 @@
                         class="prism-resizer-row"
                         prismResizer
                         axis="y"
-                        [min]="200"
-                        [max]="560"
+                        [min]="panelBounds.min"
+                        [max]="panelBounds.max"
+                        aria-label="Panel height"
+                        [attr.aria-valuemin]="panelBounds.min"
+                        [attr.aria-valuemax]="panelBounds.max"
+                        [attr.aria-valuenow]="layout.panelHeight()"
                         [value]="layout.panelHeight()"
                         (valueChange)="layout.setPanelHeight($event)"></div>
                     <div class="prism-main__panel">

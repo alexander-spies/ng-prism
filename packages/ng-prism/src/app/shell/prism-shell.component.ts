@@ -10,7 +10,7 @@ import { PrismHeaderComponent } from '../header/prism-header.component.js';
 import { PrismPageRendererComponent } from '../page-renderer/prism-page-renderer.component.js';
 import { PrismPanelHostComponent } from '../panels/panel-host/prism-panel-host.component.js';
 import { PrismRendererComponent } from '../renderer/prism-renderer.component.js';
-import { PrismLayoutService } from '../services/prism-layout.service.js';
+import { PANEL_HEIGHT, PrismLayoutService, SIDEBAR_WIDTH } from '../services/prism-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
 import { PrismPersistenceService } from '../services/prism-persistence.service.js';
@@ -54,6 +54,8 @@ export class PrismShellComponent {
     protected readonly navigationService = inject(PrismNavigationService);
     private readonly themeService = inject(PrismThemeService);
     protected readonly layout = inject(PrismLayoutService);
+    protected readonly sidebarBounds = SIDEBAR_WIDTH;
+    protected readonly panelBounds = PANEL_HEIGHT;
     protected readonly panelService = inject(PrismPanelService);
     private readonly urlStateService = inject(PrismUrlStateService);
     private readonly persistenceService = inject(PrismPersistenceService);

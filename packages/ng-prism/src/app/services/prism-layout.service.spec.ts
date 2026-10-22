@@ -1,4 +1,4 @@
-import { PrismLayoutService } from './prism-layout.service.js';
+import { PANEL_HEIGHT, PrismLayoutService, SIDEBAR_WIDTH } from './prism-layout.service.js';
 
 const localStorageMock = (() => {
     let store: Record<string, string> = {};
@@ -75,24 +75,51 @@ describe('PrismLayoutService', () => {
         expect(s.addonsOrientation()).toBe('bottom');
     });
 
-    it('should clamp sidebar width to [160, 600]', () => {
+    /**
+     * One set of bounds for drag, keyboard and restore. The resizer directive
+     * and the service used to clamp to different ranges, so a width restored
+     * from storage could sit where no drag could have put it.
+     */
+    it('declares one set of bounds and defaults for the two resizable regions', () => {
+        expect(SIDEBAR_WIDTH).toEqual({ min: 200, max: 360, default: 280 });
+        expect(PANEL_HEIGHT).toEqual({ min: 200, max: 560, default: 300 });
+    });
+
+    it('should clamp sidebar width to its bounds', () => {
         const s = createService();
 
+        expect(s.sidebarWidth()).toBe(280);
         s.setSidebarWidth(50);
-        expect(s.sidebarWidth()).toBe(160);
+        expect(s.sidebarWidth()).toBe(200);
         s.setSidebarWidth(9999);
-        expect(s.sidebarWidth()).toBe(600);
+        expect(s.sidebarWidth()).toBe(360);
         s.setSidebarWidth(320);
         expect(s.sidebarWidth()).toBe(320);
     });
 
-    it('should clamp panel height to [100, 600]', () => {
+    it('should clamp panel height to its bounds', () => {
         const s = createService();
 
+        expect(s.panelHeight()).toBe(300);
         s.setPanelHeight(20);
-        expect(s.panelHeight()).toBe(100);
+        expect(s.panelHeight()).toBe(200);
         s.setPanelHeight(9999);
-        expect(s.panelHeight()).toBe(600);
+        expect(s.panelHeight()).toBe(560);
+    });
+
+    it('should keep working when storage refuses to write', () => {
+        const s = createService();
+        const setItem = localStorage.setItem;
+
+        localStorage.setItem = () => {
+            throw new Error('QuotaExceededError');
+        };
+        try {
+            expect(() => s.setSidebarWidth(300)).not.toThrow();
+            expect(s.sidebarWidth()).toBe(300);
+        } finally {
+            localStorage.setItem = setItem;
+        }
     });
 
     it('should clamp panel width to [200, 600]', () => {
