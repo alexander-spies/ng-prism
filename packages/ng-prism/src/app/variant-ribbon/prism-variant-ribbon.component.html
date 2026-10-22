@@ -1,26 +1,21 @@
 @if (variants().length > 0) {
-    <nav class="variant-ribbon">
-        <div
+    <nav
+        class="variant-ribbon"
+        aria-label="Variants">
+        <prism-tabs
             class="variant-ribbon-tabs"
-            #tabsContainer>
-            @for (v of variants(); track v.name; let i = $index) {
-                <button
-                    #tabButton
-                    class="v-tab"
-                    [class.v-tab--active]="rendererService.activeVariantIndex() === i"
-                    [style.--i]="slot(i).i"
-                    [style.--n]="slot(i).n"
-                    (click)="rendererService.selectVariant(i)">
-                    {{ v.name }}
-                </button>
-            }
-        </div>
+            ariaLabel="Variants"
+            [items]="tabItems()"
+            [active]="'' + rendererService.activeVariantIndex()"
+            (activeChange)="select($event)" />
         <div class="variant-ribbon-right">
             <button
-                class="tool-btn"
+                prismIconButton
+                size="xs"
                 title="Previous variant"
                 aria-label="Previous variant"
                 [disabled]="rendererService.activeVariantIndex() === 0"
+                [attr.aria-disabled]="rendererService.activeVariantIndex() === 0"
                 (click)="prev()">
                 <prism-icon
                     name="chevron-right"
@@ -28,10 +23,12 @@
                     style="transform: rotate(180deg)" />
             </button>
             <button
-                class="tool-btn"
+                prismIconButton
+                size="xs"
                 title="Next variant"
                 aria-label="Next variant"
                 [disabled]="rendererService.activeVariantIndex() >= variants().length - 1"
+                [attr.aria-disabled]="rendererService.activeVariantIndex() >= variants().length - 1"
                 (click)="next()">
                 <prism-icon
                     name="chevron-right"
