@@ -10,7 +10,8 @@
     "scripts": {
         "test": "node --test \"scripts/**/*.test.ts\" \"src/**/*.test.ts\" \"record/**/*.test.ts\"",
         "check": "tsc --noEmit && npm test",
-        "prereqs": "node scripts/prereqs.ts"
+        "prereqs": "node scripts/prereqs.ts",
+        "record": "node record/record.ts"
     },
     "dependencies": {
         "@fontsource/inter": "^5.3.0",
