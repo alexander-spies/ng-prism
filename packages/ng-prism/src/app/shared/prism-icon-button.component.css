@@ -1,0 +1,49 @@
+:host {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: var(--prism-icon-button-fg, var(--prism-text-muted));
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    transition:
+        color var(--dur-fast) var(--ease-default),
+        background var(--dur-fast) var(--ease-default);
+}
+
+:host(.prism-icon-button--sm) {
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+}
+
+:host(.prism-icon-button--xs) {
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+}
+
+:host(:hover:not(:disabled)) {
+    color: var(--prism-icon-button-fg-hover, var(--prism-text));
+    background: var(--prism-icon-button-bg-hover, var(--prism-input-bg));
+}
+
+:host(.prism-icon-button--pressed) {
+    color: var(--prism-icon-button-active-fg, var(--prism-primary));
+    background: var(--prism-icon-button-active-bg, var(--prism-primary-bg));
+}
+
+/* Disabled stays legible as a contour colour rather than fading text out. */
+:host(:disabled) {
+    color: var(--prism-border-strong);
+    cursor: default;
+}
+
+:host(:focus-visible) {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: 1px;
+}

@@ -1,0 +1,63 @@
+:host {
+    display: inline-flex;
+    flex: none;
+    gap: 6px;
+    align-items: center;
+    height: 26px;
+    padding: 0 11px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--prism-text-2);
+    white-space: nowrap;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--prism-border-strong);
+    border-radius: 5px;
+    transition:
+        color var(--dur-fast) var(--ease-default),
+        background var(--dur-fast) var(--ease-default);
+}
+
+:host(.prism-button--md) {
+    height: 30px;
+    padding: 0 14px;
+    font-size: 12.5px;
+}
+
+:host(.prism-button--secondary:hover:not(:disabled)) {
+    color: var(--prism-text);
+    background: var(--prism-input-bg);
+}
+
+:host(.prism-button--primary) {
+    color: var(--prism-on-primary);
+    background: var(--prism-primary-fill);
+    border-color: var(--prism-primary-fill);
+}
+
+:host(.prism-button--primary:hover:not(:disabled)) {
+    background: var(--prism-primary-fill-hover);
+    border-color: var(--prism-primary-fill-hover);
+}
+
+:host(.prism-button--ghost) {
+    border-color: transparent;
+}
+
+:host(.prism-button--ghost:hover:not(:disabled)) {
+    color: var(--prism-text);
+    background: var(--prism-input-bg);
+}
+
+:host(:disabled) {
+    color: var(--prism-text-muted);
+    cursor: default;
+    background: transparent;
+    border-color: var(--prism-border);
+}
+
+:host(:focus-visible) {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: 2px;
+}
