@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "ES2023",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "lib": ["ES2023", "DOM"],
+        "types": ["node"],
+        "strict": true,
+        "noEmit": true,
+        "allowImportingTsExtensions": true,
+        "erasableSyntaxOnly": true,
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true,
+        "jsx": "preserve",
+        "jsxImportSource": "@revideo/2d/lib"
+    },
+    "include": ["scripts", "record", "src"]
+}

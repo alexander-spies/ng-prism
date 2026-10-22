@@ -193,6 +193,7 @@ ng-prism/
 │   ├── plugin-perf/           # @ng-prism/plugin-perf
 │   └── plugin-visual-regression/  # @ng-prism/plugin-visual-regression
 ├── test-workspace/            # Integration test workspace
+├── video/                     # Product videos (Revideo scenes, Playwright recordings)
 ├── docs/                      # Documentation (docsify)
 └── scripts/                   # Build & publish scripts
 ```
