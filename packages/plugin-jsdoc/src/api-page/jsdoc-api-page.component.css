@@ -105,7 +105,7 @@
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
     color: var(--prism-text);
-    background: var(--prism-bg-surface);
+    background: var(--prism-input-bg);
     border: 1px solid var(--prism-border);
     border-left: 2px solid var(--prism-primary);
     border-radius: 8px;
