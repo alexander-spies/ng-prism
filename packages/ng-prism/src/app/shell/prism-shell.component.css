@@ -58,23 +58,18 @@
     align-items: center;
     padding: 10px 14px;
     font-size: 11px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     border-top: 1px solid var(--prism-border);
 }
 
-.prism-sidebar-foot__logo {
-    flex-shrink: 0;
-    width: 16px;
-}
-
 .prism-sidebar-foot__link {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-decoration: none;
     transition: color var(--dur-fast);
 }
 
 .prism-sidebar-foot__link:hover {
-    color: var(--prism-text-2);
+    color: var(--prism-text);
 }
 
 .prism-resizer-col {
@@ -147,22 +142,38 @@
     justify-content: center;
 }
 
-.prism-shell__empty-icon {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 8px;
-    color: var(--prism-text-ghost);
+/* The mark in its own refracted light: the one large brand moment in the app. */
+.prism-shell__empty-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    margin-bottom: 12px;
+    isolation: isolate;
+}
+
+.prism-shell__empty-mark::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: -1;
+    width: 340px;
+    height: 200px;
+    pointer-events: none;
+    content: '';
+    background: var(--prism-brand-glow);
+    filter: blur(18px);
+    transform: translate(-50%, -50%);
 }
 
 .prism-shell__empty-text {
     margin: 0;
     font-size: var(--fs-xl);
     font-weight: 500;
-    color: var(--prism-text-muted);
+    color: var(--prism-text);
 }
 
 .prism-shell__empty-hint {
     margin: 0;
     font-size: var(--fs-lg);
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }

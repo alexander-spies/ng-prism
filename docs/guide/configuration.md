@@ -27,7 +27,7 @@ The most commonly used fields:
 
 | Field             | Type                     | Description                                                           |
 | ----------------- | ------------------------ | --------------------------------------------------------------------- |
-| `title`           | `string`                 | Header title text (default: `'ng-prism'`)                             |
+| `title`           | `string`                 | Header title text (default: the ng-prism wordmark)                    |
 | `subtitle`        | `string`                 | Secondary text below the title (monospace, muted)                     |
 | `plugins`         | `NgPrismPlugin[]`        | List of plugins to activate                                           |
 | `pages`           | `StyleguidePage[]`       | Config-declared custom pages                                          |
@@ -80,20 +80,20 @@ export default defineConfig({
     title: 'My Component Library',
     subtitle: 'acme/design-system',
     logo: {
-        light: 'assets/logo-dark.svg',
-        dark: 'assets/logo-light.svg'
+        light: 'assets/logo-on-light.svg',
+        dark: 'assets/logo-on-dark.svg'
     }
 });
 ```
 
-| Field        | Type     | Description                                                |
-| ------------ | -------- | ---------------------------------------------------------- |
-| `title`      | `string` | Header title (gradient text). Default: `'ng-prism'`        |
-| `subtitle`   | `string` | Smaller text below the title (monospace, muted). Optional. |
-| `logo.light` | `string` | Logo image URL for light theme                             |
-| `logo.dark`  | `string` | Logo image URL for dark theme                              |
+| Field        | Type     | Description                                                                       |
+| ------------ | -------- | --------------------------------------------------------------------------------- |
+| `title`      | `string` | Header title, in plain text. Default: the ng-prism wordmark in the brand gradient |
+| `subtitle`   | `string` | Smaller text below the title (monospace, muted). Optional.                        |
+| `logo.light` | `string` | Logo image URL for light backgrounds                                              |
+| `logo.dark`  | `string` | Logo image URL for dark backgrounds                                               |
 
-If only one logo variant is provided, it is used for both themes. If no logo is configured, a default prism icon is shown.
+Since 22.7 the header is a navy band in both themes, so `logo.dark` is shown whenever it is set, and `logo.light` only when it is the one you provided. Without a logo the ng-prism symbol is shown. The brand gradient belongs to the ng-prism wordmark: a `title` of your own is set in the regular text colour, and ng-prism stays credited as "Powered by ng-prism" in the sidebar footer.
 
 ### Build Info
 

@@ -30,7 +30,9 @@
         <div
             class="layout-menu__backdrop"
             (click)="open.set(false)"></div>
-        <div class="layout-menu__dropdown">
+        <div
+            class="layout-menu__dropdown"
+            [style]="theme.appTokens()">
             <button
                 class="layout-menu__item"
                 (click)="toggle('sidebar')">

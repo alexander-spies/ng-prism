@@ -15,6 +15,7 @@ import { PrismPanelService } from '../services/prism-panel.service.js';
 import { PrismPersistenceService } from '../services/prism-persistence.service.js';
 import { PrismThemeService } from '../services/prism-theme.service.js';
 import { PrismUrlStateService } from '../services/prism-url-state.service.js';
+import { PrismLogoComponent } from '../shared/prism-logo.component.js';
 import { PrismSidebarComponent } from '../sidebar/prism-sidebar.component.js';
 import { PRISM_CONFIG } from '../tokens/prism-tokens.js';
 import { PrismVariantRibbonComponent } from '../variant-ribbon/prism-variant-ribbon.component.js';
@@ -40,7 +41,8 @@ import { shouldSelectFirst } from './should-select-first.js';
         PrismResizerDirective,
         PrismCanvasToolbarComponent,
         PrismTemplatePopoverComponent,
-        PrismCanvasPinRowComponent
+        PrismCanvasPinRowComponent,
+        PrismLogoComponent
     ],
     templateUrl: './prism-shell.component.html',
     styleUrl: './prism-shell.component.css'
