@@ -2,10 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import type { NgPrismConfig, RuntimeManifest } from '../../../plugin/plugin.types.js';
 import { PrismMetricBadgeComponent } from '../../shared/prism-metric-badge.component.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../../tokens/prism-tokens.js';
+import { deriveA11ySummary } from './a11y-summary.js';
 import { resolveA11yThresholds } from './a11y-thresholds.js';
-import type { A11yManifestMeta, A11yThresholds } from './a11y.types.js';
-
-type Variant = 'ok' | 'warn' | 'danger';
+import type { A11yManifestMeta } from './a11y.types.js';
 
 @Component({
     selector: 'prism-a11y-header-badge',
@@ -28,7 +27,8 @@ export class A11yHeaderBadgeComponent {
             ...meta.thresholds,
             ...this.config.a11y?.thresholds
         });
-        const variant = this.computeVariant(score, meta.total, thresholds);
+        // The same rule the tab, the sidebar and the gauge grade with.
+        const variant = deriveA11ySummary(meta.total, thresholds).variant;
 
         return {
             score,
@@ -40,13 +40,4 @@ export class A11yHeaderBadgeComponent {
                 `${meta.total.moderate} moderate · ${meta.total.minor} minor`
         };
     });
-
-    private computeVariant(score: number, total: A11yManifestMeta['total'], thresholds: A11yThresholds): Variant {
-        if (total.critical > thresholds.critical) return 'danger';
-        if (total.serious > thresholds.serious) return 'danger';
-        if (score < thresholds.score * 0.75) return 'danger';
-        if (score < thresholds.score) return 'warn';
-        if (total.moderate > thresholds.moderate) return 'warn';
-        return 'ok';
-    }
 }

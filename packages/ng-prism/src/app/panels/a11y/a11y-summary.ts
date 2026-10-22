@@ -1,3 +1,4 @@
+import { statusFor, thresholdFromTarget } from '../../../plugin/status.js';
 import type { A11yComponentMeta, A11yScoreResult, A11yThresholds } from './a11y.types.js';
 
 /**
@@ -25,7 +26,15 @@ export function deriveA11ySummary(score: A11yScoreResult, thresholds: A11yThresh
         return { variant: 'danger', label };
     }
 
-    if (score.moderate > thresholds.moderate || score.score < thresholds.score) {
+    // The score is graded like every other key figure: ok from the target,
+    // warn down to 0.75 of it, critical below that.
+    const scoreTone = statusFor(score.score, thresholdFromTarget(thresholds.score));
+
+    if (scoreTone === 'danger') {
+        return { variant: 'danger', label: `A11y score ${score.score}` };
+    }
+
+    if (score.moderate > thresholds.moderate || scoreTone === 'warn') {
         return { variant: 'warn', label: `A11y score ${score.score}` };
     }
 
