@@ -53,9 +53,19 @@
     #seeChips
     let-refs>
     @for (ref of refs; track $index) {
+        @let anchor = seeTarget(ref);
         <span class="prism-jsdoc-panel__meta-item">
             <span class="prism-jsdoc-panel__meta-label">See:</span>
-            {{ ref }}
+            @if (anchor) {
+                <button
+                    type="button"
+                    class="prism-jsdoc-api-page__ref"
+                    (click)="goTo(anchor)">
+                    {{ ref }}
+                </button>
+            } @else {
+                {{ ref }}
+            }
         </span>
     }
 </ng-template>

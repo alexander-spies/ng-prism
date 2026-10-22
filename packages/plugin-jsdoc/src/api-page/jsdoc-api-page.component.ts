@@ -6,6 +6,7 @@ import { Highlight } from 'ngx-highlightjs';
 import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from '../markdown.js';
 import { activeTocId, buildApiPageToc, declaredParamSegments, documentsParams, setupSignature, splitReachedFrom, typeAnchor, typeSegments } from './api-page.helpers.js';
 import type { ApiOutputRow, ApiPageModel } from './api-page.model.js';
+import { resolveDocLinks, TYPE_LINK_ATTRIBUTE, typeLinkTarget } from './doc-links.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
 const SCROLL_OFFSET = 12;
@@ -46,7 +47,8 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
     host: {
         '[attr.data-prism-service-rendered]': "kind() === 'service' ? className() : null",
         '[attr.data-prism-pipe-rendered]': "kind() === 'pipe' ? className() : null",
-        '[attr.data-prism-component-rendered]': "kind() === 'component' || kind() === 'directive' ? className() : null"
+        '[attr.data-prism-component-rendered]': "kind() === 'component' || kind() === 'directive' ? className() : null",
+        '(click)': 'onHostClick($event)'
     }
 })
 export class JsDocApiPageComponent {
@@ -80,8 +82,17 @@ export class JsDocApiPageComponent {
     protected readonly splitReachedFrom = splitReachedFrom;
     protected readonly typeAnchor = typeAnchor;
 
-    private readonly blockHtml = new Map<string, SafeHtml>();
-    private readonly inlineHtml = new Map<string, SafeHtml>();
+    /**
+     * The rendered descriptions of the page being shown. A link resolves against
+     * that page's types, so the caches go with the page: this instance outlives
+     * a switch to another component, service or pipe, and the HTML of its
+     * texts must not outlive the page they were rendered for.
+     */
+    private readonly rendered = computed(() => ({
+        page: this.page(),
+        block: new Map<string, SafeHtml>(),
+        inline: new Map<string, SafeHtml>()
+    }));
 
     /**
      * The entry the reader jumped to, until the jump is over: the smooth scroll
@@ -169,13 +180,23 @@ export class JsDocApiPageComponent {
     // not user input, so bypassing sanitization is safe here.
     protected renderBlock(text: string | undefined): SafeHtml | null {
         if (!text) return null;
-        if (!this.blockHtml.has(text)) this.blockHtml.set(text, this.sanitizer.bypassSecurityTrustHtml(renderBlockMarkdown(text) ?? ''));
-        return this.blockHtml.get(text)!;
+
+        const { page, block } = this.rendered();
+
+        if (!block.has(text)) block.set(text, this.sanitizer.bypassSecurityTrustHtml(renderBlockMarkdown(this.withLinks(page, text)) ?? ''));
+        return block.get(text)!;
     }
 
     protected renderInline(text: string): SafeHtml {
-        if (!this.inlineHtml.has(text)) this.inlineHtml.set(text, this.sanitizer.bypassSecurityTrustHtml(renderInlineMarkdown(text)));
-        return this.inlineHtml.get(text)!;
+        const { page, inline } = this.rendered();
+
+        if (!inline.has(text)) inline.set(text, this.sanitizer.bypassSecurityTrustHtml(renderInlineMarkdown(this.withLinks(page, text))));
+        return inline.get(text)!;
+    }
+
+    /** The TOC anchor of the type card a `@see` reference names, if it is on the page. */
+    protected seeTarget(reference: string): string | undefined {
+        return typeLinkTarget(this.page().types, reference);
     }
 
     protected parseExample(raw: string): ParsedExample {
@@ -202,6 +223,21 @@ export class JsDocApiPageComponent {
 
     protected hasValues(type: ApiTypeDoc): boolean {
         return !!type.members?.some((member) => member.value !== undefined);
+    }
+
+    /** The links inside rendered descriptions are plain HTML, so one listener on the host catches them all. */
+    protected onHostClick(event: MouseEvent): void {
+        const link = event.target instanceof Element ? event.target.closest(`[${TYPE_LINK_ATTRIBUTE}]`) : null;
+        const anchor = link?.getAttribute(TYPE_LINK_ATTRIBUTE);
+
+        if (!anchor) return;
+
+        event.preventDefault();
+        this.goTo(anchor);
+    }
+
+    private withLinks(page: ApiPageModel, text: string): string {
+        return resolveDocLinks(text, (target) => typeLinkTarget(page.types, target));
     }
 
     private onScroll(): void {

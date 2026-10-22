@@ -171,7 +171,9 @@
 
 /* ──── Type links ──── */
 
-.prism-jsdoc-api-page__ref {
+/* The second selector reaches the links inside rendered descriptions, which `[innerHTML]` brings in without this component's attribute. */
+.prism-jsdoc-api-page__ref,
+:host ::ng-deep .prism-jsdoc-api-page__ref {
     padding: 0;
     font: inherit;
     color: inherit;
@@ -182,7 +184,8 @@
     border: 0;
 }
 
-.prism-jsdoc-api-page__ref:hover {
+.prism-jsdoc-api-page__ref:hover,
+:host ::ng-deep .prism-jsdoc-api-page__ref:hover {
     text-decoration-style: solid;
 }
 
