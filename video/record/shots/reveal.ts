@@ -7,15 +7,16 @@ export const reveal: Shot = {
     ready: '.demo-wrap[data-prism-rendered="ButtonComponent:0"]',
     async run({ page, mark, pause, move }) {
         const sidebarButton = page.locator('button.sb-item.sb-item--active');
-        const variantTabs = page.locator('[role=tablist][aria-label=Variants]');
+        // The tabs themselves: the tablist spans the whole width, its centre is empty header.
+        const variantTabs = page.locator('[role=tablist][aria-label=Variants] [role=tab]');
         await mark('sidebar-button', sidebarButton);
         await mark('variant-tabs', variantTabs);
         await pause(1500);
         const item = await sidebarButton.boundingBox();
         if (item) await move(item.x + item.width * 0.7, item.y + item.height / 2, 1600);
         await pause(1100);
-        const tabs = await variantTabs.boundingBox();
-        if (tabs) await move(tabs.x + 120, tabs.y + tabs.height / 2, 1400);
+        const tab = await variantTabs.first().boundingBox();
+        if (tab) await move(tab.x + tab.width / 2, tab.y + tab.height + 14, 1400);
         await pause(1400);
     }
 };

@@ -4,32 +4,9 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { RecordingsManifest } from './recording-info.ts';
 
-/** A rectangle of an element at a moment of a recording, in CSS px of the 1920×1080 viewport; `at` in seconds from the start. */
-export interface FocusMark {
-    name: string;
-    at: number;
-    rect: { x: number; y: number; width: number; height: number };
-}
-
-export interface RecordingInfo {
-    id: string;
-    /** File name inside out/recordings/. */
-    file: string;
-    durationSec: number;
-    width: number;
-    height: number;
-    fps: number;
-    focus: FocusMark[];
-    /** Seconds from the start at which the shot clicked. */
-    clicks: number[];
-}
-
-export interface RecordingsManifest {
-    sourceHash: string;
-    recordedAt: string;
-    shots: RecordingInfo[];
-}
+export { RECORDING_SCALE, type FocusMark, type RecordingInfo, type RecordingsManifest } from './recording-info.ts';
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 

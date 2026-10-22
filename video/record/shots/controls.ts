@@ -18,7 +18,9 @@ export const controls: Shot = {
         await pause(800);
         await click(page.locator('ui-button button'), 700);
         await page.waitForFunction(() =>
-            [...document.querySelectorAll('[role=tablist][aria-label=Panels] [role=tab]')].some((tab) => /^Events.*\d/.test(tab.textContent?.replace(/\s+/g, ' ').trim() ?? ''))
+            [...document.querySelectorAll('[role=tablist][aria-label=Panels] [role=tab]')].some((tab) =>
+                /^Events.*\d/.test(tab.textContent?.replace(/\s+/g, ' ').trim() ?? '')
+            )
         );
         await mark('events-tab', panelTab(page, 'Events'));
         await pause(1100);

@@ -5,14 +5,14 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Locator } from 'playwright';
-import type { FocusMark, RecordingInfo } from '../src/lib/recordings.ts';
+import { RECORDING_SCALE, type FocusMark, type RecordingInfo } from '../src/lib/recordings.ts';
 import { CURSOR_SCRIPT } from './cursor.ts';
 import type { Shot, ShotContext } from './shots/shot.ts';
 
 export const RECORDING_FPS = 60;
 export const SLOW = 10;
 const VIEWPORT = { width: 1920, height: 1080 };
-const SCALE = 2;
+const SCALE = RECORDING_SCALE;
 
 function ffprobeDuration(file: string): number {
     return Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' }).trim());
@@ -112,7 +112,28 @@ export async function recordShot(shot: Shot, baseUrl: string, outDir: string): P
         list += `file '${frames.at(-1)!.name}'\n`;
         writeFileSync(join(framesDir, 'list.txt'), list);
         const file = `${shot.id}.mp4`;
-        execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', join(framesDir, 'list.txt'), '-vf', `fps=${RECORDING_FPS}`, '-c:v', 'libx264', '-crf', '12', '-preset', 'medium', '-pix_fmt', 'yuv420p', join(outDir, file)]);
+        execFileSync('ffmpeg', [
+            '-y',
+            '-loglevel',
+            'error',
+            '-f',
+            'concat',
+            '-safe',
+            '0',
+            '-i',
+            join(framesDir, 'list.txt'),
+            '-vf',
+            `fps=${RECORDING_FPS}`,
+            '-c:v',
+            'libx264',
+            '-crf',
+            '12',
+            '-preset',
+            'medium',
+            '-pix_fmt',
+            'yuv420p',
+            join(outDir, file)
+        ]);
         rmSync(framesDir, { recursive: true, force: true });
         return {
             id: shot.id,

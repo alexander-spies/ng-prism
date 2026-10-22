@@ -25,7 +25,8 @@ test('stripShowcase ignores brackets inside strings, template literals and comme
 });
 
 test('stripShowcase drops an import that only brought Showcase', () => {
-    const src = "import { Component } from '@angular/core';\nimport { Showcase } from '@ng-prism/core';\n\n@Showcase({ title: 'X' })\n@Component({ selector: 'x' })\nexport class X {}\n";
+    const src =
+        "import { Component } from '@angular/core';\nimport { Showcase } from '@ng-prism/core';\n\n@Showcase({ title: 'X' })\n@Component({ selector: 'x' })\nexport class X {}\n";
     assert.equal(stripShowcase(src), "import { Component } from '@angular/core';\n\n@Component({ selector: 'x' })\nexport class X {}\n");
 });
 
