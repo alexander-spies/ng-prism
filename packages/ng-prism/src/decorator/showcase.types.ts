@@ -75,7 +75,7 @@ export interface ShowcaseConfig<T = unknown> {
      * Defaults: 'Components' 0, 'Directives' 10, 'Services' 20, 'Pipes' 30, all others 100.
      */
     sectionOrder?: number;
-    /** Predefined variants shown as tabs. Not for services or pipes: until 23.0.0 it keeps an `@Injectable`, `@Service` or `@Pipe` class a component. */
+    /** Predefined variants shown as tabs. Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0. */
     variants?: Variant<T>[];
     /**
      * Named pseudo-state combinations, e.g. `{ name: 'Hover', pseudo: { hover: '.btn' } }`.
@@ -83,7 +83,7 @@ export interface ShowcaseConfig<T = unknown> {
      * a column per state and a variant can be viewed in any of them. A variant opts out with
      * `states: false`.
      * Not combinable with `renderPage`: a component page has no Overview.
-     * Not for services or pipes: until 23.0.0 it keeps an `@Injectable`, `@Service` or `@Pipe` class a component.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      *
      * The position in the list identifies a state, so keep the order stable.
      */
@@ -114,7 +114,7 @@ export interface ShowcaseConfig<T = unknown> {
      * opens the component, unless a variant defines its own `bg`. The user
      * can override via the canvas toolbar; the override is transient and
      * resets when switching variants or components.
-     * Not for services or pipes: until 23.0.0 it keeps an `@Injectable`, `@Service` or `@Pipe` class a component.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
     bg?: CanvasBg;
     /**
@@ -124,17 +124,17 @@ export interface ShowcaseConfig<T = unknown> {
      *   components without intrinsic width (e.g. horizontal dividers) and components that
      *   opt into `width: 100%` (e.g. full-width buttons) render correctly.
      * A `Variant.canvasLayout` overrides this.
-     * Not for services or pipes: until 23.0.0 it keeps an `@Injectable`, `@Service` or `@Pipe` class a component.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
     canvasLayout?: CanvasLayout;
     /**
      * Host element for directive showcases. String = HTML element (e.g. '<button class="btn">'), object = Angular component.
-     * Not for services or pipes: until 23.0.0 it keeps an `@Injectable`, `@Service` or `@Pipe` class a component.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
     host?: string | DirectiveHost;
     /**
      * Title of a registered ComponentPage to render instead of the component itself. Use for complex components that need template projections or mock data. The page component can inject PrismRendererService to react to control panel changes.
-     * Not for services or pipes: until 23.0.0 it keeps an `@Injectable`, `@Service` or `@Pipe` class a component.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
     renderPage?: string;
     /**
