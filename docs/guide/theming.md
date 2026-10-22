@@ -19,7 +19,7 @@ export default defineConfig({
 
 Values in `theme` are merged on top of the built-in defaults. You only need to specify the properties you want to change.
 
-Overriding `--prism-primary` alone also recolours fills (primary buttons, active toggles, checkboxes): `--prism-primary-fill`, `--prism-primary-fill-hover` and `--prism-toggle-on` follow it unless you set them yourself. Text on those fills stays `--prism-on-primary` (white); with a light primary of your own, set `--prism-on-primary` too so the label keeps 4.5:1.
+Overriding `--prism-primary` alone also recolours everything that reads the primary: fills (primary buttons, checkboxes) through `--prism-primary-fill` and `--prism-primary-fill-hover`, the active toggle track (`--prism-toggle-on`, which follows the fill), the selection tints and the tab and sidebar indicators (`--prism-brand-ink` becomes your primary). Any of them you set yourself wins. Two things stay ng-prism's: the wordmark keeps the brand gradient, and the tool rail on the absolute `light` and `dark` canvas grounds keeps its own blue, picked for contrast on those grounds. Text on those fills stays `--prism-on-primary` (white); with a light primary of your own, set `--prism-on-primary` too so the label keeps 4.5:1.
 
 ## Theme-Specific Overrides
 
@@ -61,21 +61,21 @@ export default defineConfig({
 
 ## Color Properties
 
-| Property                                 | Default (dark)                                              | Default (light)                                | Description                                                                |
-| ---------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------- |
-| `--prism-primary`                        | `#60a5fa`                                                   | `#1d4ed8`                                      | Text and indicator role: links, active tabs, active icons, selection tints |
-| `--prism-primary-fill`                   | `#2563eb`                                                   | `#2563eb`                                      | Fill role: primary buttons, active toggles, checked checkboxes             |
-| `--prism-primary-fill-hover`             | `#1d4ed8`                                                   | `#1d4ed8`                                      | Hover state of the fill                                                    |
-| `--prism-on-primary`                     | `#ffffff`                                                   | `#ffffff`                                      | Text and knobs on the fill (5.2:1)                                         |
-| `--prism-toggle-on`                      | `linear-gradient(90deg, #078bfa, #2563eb)`                  | `linear-gradient(90deg, #078bfa, #244bff)`     | Track of a switched-on toggle; follows an overridden `--prism-primary`     |
-| `--prism-link`                           | `var(--prism-primary)`                                      | same                                           | Links in the chrome                                                        |
-| `--prism-primary-bg`                     | `color-mix(in srgb, var(--prism-primary) 16%, transparent)` | `color-mix(in srgb, #2563eb 10%, transparent)` | Selection and active-state tint                                            |
-| `--prism-accent`                         | `#a78bfa`                                                   | `#7c3aed`                                      | Secondary accent                                                           |
-| `--prism-bg`                             | `#080d19`                                                   | `#f1f5f9`                                      | Chrome: header, sidebar, component head, variant ribbon, panel tab bar     |
-| `--prism-bg-surface`                     | `#111827`                                                   | `#ffffff`                                      | Content: addon panel, cards, canvas surround                               |
-| `--prism-bg-elevated`                    | `#1a2335`                                                   | `#ffffff`                                      | Popovers, the tool rail (with `--prism-shadow-md`)                         |
-| `--prism-void`                           | `#050911`                                                   | `#eef2f7`                                      | Deepest background behind everything                                       |
-| `--prism-shadow-sm`, `--prism-shadow-md` | dark, strong                                                | slate-tinted, soft                             | Elevation of segments and popovers                                         |
+| Property                                 | Default (dark)                                              | Default (light)                                                  | Description                                                                |
+| ---------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--prism-primary`                        | `#60a5fa`                                                   | `#1d4ed8`                                                        | Text and indicator role: links, active tabs, active icons, selection tints |
+| `--prism-primary-fill`                   | `#2563eb`                                                   | `#2563eb`                                                        | Fill role: primary buttons, active toggles, checked checkboxes             |
+| `--prism-primary-fill-hover`             | `#1d4ed8`                                                   | `#1d4ed8`                                                        | Hover state of the fill                                                    |
+| `--prism-on-primary`                     | `#ffffff`                                                   | `#ffffff`                                                        | Text and knobs on the fill (5.2:1)                                         |
+| `--prism-toggle-on`                      | `linear-gradient(90deg, #078bfa, #2563eb)`                  | `linear-gradient(90deg, #078bfa, #244bff)`                       | Track of a switched-on toggle; follows an overridden primary or fill       |
+| `--prism-link`                           | `var(--prism-primary)`                                      | same                                                             | Links in the chrome                                                        |
+| `--prism-primary-bg`                     | `color-mix(in srgb, var(--prism-primary) 16%, transparent)` | `color-mix(in srgb, var(--prism-primary-fill) 10%, transparent)` | Selection and active-state tint                                            |
+| `--prism-accent`                         | `#a78bfa`                                                   | `#7c3aed`                                                        | Secondary accent                                                           |
+| `--prism-bg`                             | `#080d19`                                                   | `#f1f5f9`                                                        | Chrome: header, sidebar, component head, variant ribbon, panel tab bar     |
+| `--prism-bg-surface`                     | `#111827`                                                   | `#ffffff`                                                        | Content: addon panel, cards, canvas surround                               |
+| `--prism-bg-elevated`                    | `#1a2335`                                                   | `#ffffff`                                                        | Popovers, the tool rail (with `--prism-shadow-md`)                         |
+| `--prism-void`                           | `#050911`                                                   | `#eef2f7`                                                        | Deepest background behind everything                                       |
+| `--prism-shadow-sm`, `--prism-shadow-md` | dark, strong                                                | slate-tinted, soft                                               | Elevation of segments and popovers                                         |
 
 Why two primaries: the brand blue `#2563eb` reaches only 3–3.9:1 as text on the dark surfaces, but 5.2:1 under white text as a fill in both themes. So fills keep the brand blue, and text and indicators take a shade that holds 4.5:1 on every surface, including the tints.
 

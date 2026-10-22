@@ -29,12 +29,14 @@ const MARK_SUCCESSORS: ReadonlyArray<readonly [string, string]> = [
  * All tokens for one mode: base tokens, the mode's theme, the user's
  * mode-specific overrides, then the user's `theme` overrides, which win.
  *
- * Two overrides are carried further than the key they name. A `--prism-mark-*`
- * override lands on its successor unless that one is overridden too. And an
- * override of `--prism-primary` alone pulls `--prism-primary-fill` and its hover
- * along, and so does the active toggle track: since 22.7 fills read their own
- * tokens, and a user who recolours the primary would otherwise get blue buttons
- * next to links in their colour.
+ * Some overrides are carried further than the key they name. A `--prism-mark-*`
+ * override lands on its successor unless that one is overridden too. An
+ * override of `--prism-primary` pulls `--prism-primary-fill`, its hover and the
+ * indicator ink (`--prism-brand-ink`, the tab and sidebar strokes) along: since
+ * 22.7 those read their own tokens, and a user who recolours the primary would
+ * otherwise get blue buttons and gradient tabs next to links in their colour.
+ * The active toggle track follows the fill, whether the fill was overridden
+ * itself or came along with the primary. Whatever the user sets explicitly wins.
  *
  * Pure, so the header can ask for the dark set while the app runs light.
  */
@@ -52,9 +54,12 @@ export function resolveThemeTokens(mode: 'dark' | 'light', overrides: ThemeOverr
     }
 
     if ('--prism-primary' in user) {
-        if (!('--prism-primary-fill' in user)) tokens['--prism-primary-fill'] = user['--prism-primary'];
-        if (!('--prism-primary-fill-hover' in user)) tokens['--prism-primary-fill-hover'] = user['--prism-primary'];
-        if (!('--prism-toggle-on' in user)) tokens['--prism-toggle-on'] = user['--prism-primary'];
+        for (const role of ['--prism-primary-fill', '--prism-primary-fill-hover', '--prism-brand-ink']) {
+            if (!(role in user)) tokens[role] = user['--prism-primary'];
+        }
+    }
+    if (('--prism-primary' in user || '--prism-primary-fill' in user) && !('--prism-toggle-on' in user)) {
+        tokens['--prism-toggle-on'] = tokens['--prism-primary-fill'];
     }
 
     return { tokens, deprecatedOverrides };

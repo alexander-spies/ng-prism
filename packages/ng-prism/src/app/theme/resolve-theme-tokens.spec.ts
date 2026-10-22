@@ -41,6 +41,33 @@ describe('resolveThemeTokens', () => {
         expect(tokens['--prism-toggle-on']).toBe('#e11d48');
     });
 
+    /**
+     * Review focus: a user who recolours only the primary sees their colour on
+     * links, tabs, buttons, toggles and selection tints, and nothing left blue.
+     */
+    it.each(['dark', 'light'] as const)('lets every primary role follow an overridden primary in %s', (mode) => {
+        const { tokens } = resolveThemeTokens(mode, { theme: { '--prism-primary': '#e11d48' } });
+
+        for (const role of ['--prism-primary-fill', '--prism-primary-fill-hover', '--prism-toggle-on', '--prism-brand-ink']) {
+            expect([role, tokens[role]]).toEqual([role, '#e11d48']);
+        }
+        // The selection tint is a mix of the primary or its fill, never of a literal blue.
+        expect(tokens['--prism-primary-bg']).toMatch(/var\(--prism-primary(-fill)?\)/);
+        expect(tokens['--prism-link']).toBe('var(--prism-primary)');
+    });
+
+    it('lets the toggle track follow an overridden fill', () => {
+        const { tokens } = resolveThemeTokens('dark', { theme: { '--prism-primary-fill': '#9f1239' } });
+
+        expect(tokens['--prism-toggle-on']).toBe('#9f1239');
+    });
+
+    it('keeps the brand ink without a primary override', () => {
+        const { tokens } = resolveThemeTokens('light', { theme: { '--prism-primary-fill': '#9f1239' } });
+
+        expect(tokens['--prism-brand-ink']).toBe(PRISM_LIGHT_THEME['--prism-brand-ink']);
+    });
+
     it('keeps an explicitly overridden fill', () => {
         const { tokens } = resolveThemeTokens('light', { theme: { '--prism-primary': '#e11d48', '--prism-primary-fill': '#9f1239' } });
 

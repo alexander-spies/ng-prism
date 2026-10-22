@@ -129,7 +129,7 @@ export const PRISM_LIGHT_THEME: Record<string, string> = {
     '--prism-success-bg': 'color-mix(in srgb, #0edbc5 14%, transparent)',
     '--prism-warn-bg': 'color-mix(in srgb, #ffa65f 14%, transparent)',
     '--prism-danger-bg': 'color-mix(in srgb, #ff7cad 14%, transparent)',
-    '--prism-primary-bg': 'color-mix(in srgb, #2563eb 10%, transparent)',
+    '--prism-primary-bg': 'color-mix(in srgb, var(--prism-primary-fill) 10%, transparent)',
 
     '--prism-brand-gradient': BRAND_GRADIENT,
     /* The same sequence in deeper steps: #00cfea is 1.8:1 on this chrome, an indicator needs 3:1. */
