@@ -494,6 +494,27 @@ headerWidgets: [
 
 ---
 
+## UI primitives
+
+Since 22.7 the chrome is built from a small set of shared components, and plugins get the same ones from `@ng-prism/core` (the main entry, like `PrismMetricBadgeComponent`). Using them keeps a plugin panel indistinguishable from a built-in one in both themes, and keeps its contrast where the defaults are tested.
+
+```typescript
+import { PrismBadgeComponent, PrismMetricCardComponent, PrismPanelToolbarComponent, PrismTabsComponent } from '@ng-prism/core';
+```
+
+| Component                    | Selector                  | Inputs                                                                                                                                                         | Use it for                                                                                     |
+| ---------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `PrismBadgeComponent`        | `prism-badge`             | `tone`: `neutral` \| `primary` \| `success` \| `warn` \| `danger`; `variant`: `soft` \| `outline`; `size`: `sm` \| `md`; `dot`; `label` (sans); `value` (mono) | Statuses, severities, counts inside content. Words in sentence case, never capitals.           |
+| `PrismTabsComponent`         | `prism-tabs`              | `items: PrismTabItem[]` (`id`, `label`, `icon?`, `badge?`, `title?`); `[(active)]`; `size`: `md` \| `sm`; `ariaLabel`; `panelIdPrefix`                         | Sub-tabs in a panel toolbar (`sm`). Full tab semantics and arrow-key navigation built in.      |
+| `PrismSegmentedComponent`    | `prism-segmented`         | `options: PrismSegmentOption[]` (`value`, `label`, `title?`); `[(value)]`; `ariaLabel`; `size`                                                                 | Choosing one of a few values: zoom, fit, mode.                                                 |
+| `PrismPanelToolbarComponent` | `prism-panel-toolbar`     | slots `[toolbarStart]`, `[toolbarEnd]`                                                                                                                         | The 36 px toolbar of a panel. Only when the panel has sub-tabs or actions; no meta text in it. |
+| `PrismListRowComponent`      | `prism-list-row`          | `selected`, `interactive`; slots `[rowBadge]`, `[rowTitle]`, `[rowDescription]`, `[rowMeta]`                                                                   | Findings and results in a list. Selection is a tint, never a coloured edge.                    |
+| `PrismMetricCardComponent`   | `prism-metric-card`       | `label`, `value`, `unit`, `tone`, `statusLabel`, `fraction` (0–1), `threshold` (0–1), `title`; slot `[metricVisual]`                                           | A measured value with an optional bar and threshold tick. No subtitle: details go in `title`.  |
+| `PrismIconButtonComponent`   | `button[prismIconButton]` | `size`: `md` (32 px) \| `sm` (28 px) \| `xs` (26 px); `pressed`                                                                                                | Icon-only actions and toggles. Give it an `aria-label`.                                        |
+| `PrismButtonComponent`       | `button[prismButton]`     | `variant`: `secondary` \| `primary` \| `ghost`; `size`: `sm` (26 px) \| `md`                                                                                   | Text actions in a toolbar, secondary before primary.                                           |
+
+`toneForStatus(status)` maps a status verdict (`'ok' | 'warn' | 'danger'`, see `statusFor` in `@ng-prism/core/plugin`) to the badge tone.
+
 ## NavigationDecorationDefinition
 
 ```typescript

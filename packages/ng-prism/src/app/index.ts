@@ -63,3 +63,4 @@ export { PrismPanelToolbarComponent } from './shared/prism-panel-toolbar.compone
 export { PrismListRowComponent } from './shared/prism-list-row.component.js';
 export { PrismIconButtonComponent } from './shared/prism-icon-button.component.js';
 export { PrismButtonComponent } from './shared/prism-button.component.js';
+export { PrismMetricCardComponent } from './shared/prism-metric-card.component.js';
