@@ -15,9 +15,15 @@ interface NgPrismPlugin {
 
     // Build-time hooks (run in Node.js during scanning)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
-    onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
-
+    // Services (@Showcase + @Injectable/@Service) never reach onComponentScanned; they get this hook (since 22.7.0)
+    onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
+    // Pipes (@Showcase + @Pipe) have their own hook and list as well, apart from components and services (since 22.7.0)
+    onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
+    onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
+    // The scan reads ScannedComponent.api, and the manifest carries it, only when a plugin sets this (since 22.7.0,
+    // experimental). Set it in the Node entry when a hook or panel reads `api`; jsDocPlugin() does.
+    componentApi?: boolean;
 
     // Runtime contributions (embedded in the Prism app)
     panels?: PanelDefinition[];
@@ -110,8 +116,12 @@ interface PanelDefinition {
     icon?: string;
     position?: 'bottom' | 'right'; // deprecated since 22.6.0, never had an effect
     placement?: 'addon' | 'view';
+    // Default ['component']. 'service' and 'pipe' only count on a view panel: they give the inputs activeService and
+    // activePipe, and the build reads services (pipes) and keeps them in the manifest only when such a panel exists
+    // for them, decided apart (read from the Node entry); otherwise it only counts them. Since 22.7.0.
+    appliesTo?: readonly ('component' | 'service' | 'pipe')[];
     providers?: Provider[];
-    isVisible?: (component: RuntimeComponent) => boolean;
+    isVisible?: (component: RuntimeComponent) => boolean; // components only
     badge?: (component: RuntimeComponent) => PanelBadge | null;
     keepAlive?: boolean;
 }
@@ -176,6 +186,7 @@ Prism app ships.
 - [ ] Plugin factory function with options parameter
 - [ ] Unique `name` property
 - [ ] Build-time hooks return modified object or void
+- [ ] `componentApi: true` in the Node entry if a hook or panel reads `ScannedComponent.api`
 - [ ] Runtime components are standalone Angular components
 - [ ] Exported from package index
 - [ ] Tests for hook behavior

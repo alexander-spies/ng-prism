@@ -146,6 +146,44 @@ describe('stripShowcaseDecorators', () => {
         });
     });
 
+    describe('service class with a lazy setup', () => {
+        it('strips @Showcase with a lazy setup from a service class', () => {
+            const input = [
+                "import { Showcase } from '@ng-prism/core';",
+                "import { Injectable } from '@angular/core';",
+                "import { provideToast } from './provide-toast.js';",
+                "@Showcase({ title: 'Toast Service', setup: () => [provideToast] })",
+                "@Injectable({ providedIn: 'root' })",
+                'class ToastService {}'
+            ].join('\n');
+
+            const result = stripShowcaseDecorators(input, 'toast.service.ts');
+
+            expect(result).not.toContain('Showcase');
+            expect(result).not.toContain('@ng-prism/core');
+            expect(result).toContain("@Injectable({ providedIn: 'root' })");
+            expect(result).toContain('class ToastService');
+            // The setup function goes with the decorator; its import stays, as every other import does.
+            expect(result).not.toContain('setup');
+            expect(result).toContain("import { provideToast } from './provide-toast.js';");
+        });
+
+        it('strips the lowered form of the same service', () => {
+            const input = [
+                "import { Showcase } from '@ng-prism/core';",
+                "import { provideToast } from './provide-toast.js';",
+                'class ToastService {}',
+                "ToastService = __decorate([Showcase({ title: 'Toast Service', setup: () => [provideToast] }), Injectable({ providedIn: 'root' })], ToastService);"
+            ].join('\n');
+
+            const result = stripShowcaseDecorators(input, 'toast.service.js');
+
+            expect(result).not.toContain('Showcase');
+            expect(result).not.toContain('setup');
+            expect(result).toContain('Injectable({ providedIn:');
+        });
+    });
+
     describe('audit: fail-loud on dangling references', () => {
         it('throws when a bare reference to Showcase remains after stripping', () => {
             const input = ["import { Showcase } from '@ng-prism/core';", 'class MyComponent {}', 'const meta = Showcase;'].join('\n');

@@ -15,7 +15,7 @@ export type ButtonVariantType = 'filled' | 'outlined' | 'elevated' | 'text' | 'i
  * - `icon-only`: compact actions, label replaced by an icon
  *
  * Supports `label` text, `icon-only` mode, and the `disabled`/`readonly` states.
- * See **[ButtonVariantType](#)** for the full type union.
+ * See {@link ButtonVariantType} for the full type union.
  *
  * @since 1.0.0
  * @see ButtonVariantType

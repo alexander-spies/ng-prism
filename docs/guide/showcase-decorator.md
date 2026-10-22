@@ -17,6 +17,8 @@ The decorator is evaluated at build time by the TypeScript Compiler API scanner,
 
 > **Note:** `@Showcase` must always appear _above_ `@Component` or `@Directive`, as decorator application order in Angular matters.
 
+`@Showcase` also goes on a class with `@Injectable` or `@Service`, and on one with `@Pipe`. That makes it a service or a pipe, which has no canvas: it gets a page with its API instead. See [Showcasing Services](guide/showcasing-services.md) and [Showcasing Pipes](guide/showcasing-pipes.md) for what applies to one, including the [`setup`](#setup) field that only they take.
+
 ## Type-safe variants (optional)
 
 `@Showcase` is generic: `@Showcase<T>({...})` where `T` is the component class. Supplying it types each variant's `inputs` as `Partial<InputsOf<T>>`, giving you autocomplete on input names and value type-checking against the component's signal inputs.
@@ -71,7 +73,7 @@ Anything else would need the code to run, so the scanner drops it:
 | Function and method calls        | `megabytes(5)`, `items.map(toOption)`       |
 | Functions, classes and instances | `(value) => value.length > 0`, `new Date()` |
 
-Functions, classes and instances are a limit of the approach, not of the scanner: they only exist once code runs, so the static manifest has no way to hold them.
+Functions, classes and instances are a limit of the approach, not of the scanner: they only exist once code runs, so the static manifest has no way to hold them. The one function that works is [`setup: () => [...]`](guide/showcasing-services.md#setup) on a service or a pipe: the scanner reads the array literal it returns from the source and never evaluates or calls it.
 
 ### What happens to a value it cannot read
 
@@ -157,16 +159,16 @@ Controls the order of _this component_ within its category. Same sorting rules a
 
 ### `section`
 
-Top-level sidebar grouping. ng-prism auto-detects this from the decorator type: `@Directive` classes go to **Directives**, `@Component` classes go to **Components**. Set `section` to a different string to create your own top-level group:
+Top-level sidebar grouping. ng-prism auto-detects this from the decorator type: `@Directive` classes go to **Directives**, `@Component` classes go to **Components**, services go to **Services**, pipes go to **Pipes**. Set `section` to a different string to create your own top-level group:
 
 ```typescript
 @Showcase({ title: 'AutofocusDirective', section: 'Behavior' })
 @Directive({ selector: '[appAutofocus]', standalone: true })
 export class AutofocusDirective {}
 
-@Showcase({ title: 'CurrencyPipe', section: 'Pipes' })
-@Pipe({ name: 'libCurrency', standalone: true })
-export class CurrencyPipe {
+@Showcase({ title: 'Date Field', section: 'Forms' })
+@Component({ selector: 'lib-date-field', standalone: true, template: '…' })
+export class DateFieldComponent {
     /* ... */
 }
 ```
@@ -175,7 +177,7 @@ Inside each section, the existing `category` field still groups items into sub-c
 
 ### `sectionOrder`
 
-Controls the order of this _section_ in the sidebar. Lower numbers appear first. Default order: `Components` (0), then `Directives` (10), then everything else (100, alphabetically). The section's effective order is the minimum `sectionOrder` of any item it contains, so a single `@Showcase({ section: 'Behavior', sectionOrder: 5 })` pulls the whole "Behavior" section above "Components".
+Controls the order of this _section_ in the sidebar. Lower numbers appear first. Default order: `Components` (0), then `Directives` (10), then `Services` (20), then `Pipes` (30), then everything else (100, alphabetically). The section's effective order is the minimum `sectionOrder` of any item it contains, so a single `@Showcase({ section: 'Behavior', sectionOrder: 5 })` pulls the whole "Behavior" section above "Components".
 
 ```typescript
 @Showcase({ title: 'AutofocusDirective', section: 'Behavior', sectionOrder: 5 })
@@ -239,6 +241,23 @@ Array of strings used for search and filtering in the sidebar. Tags are matched 
 > **Deprecated since 22.4.0, removed in 23.0.0.** `providers` never reached the styleguide: a provider is a class, a factory or an instance, which the [scanner cannot read](#what-the-scanner-can-read). The build drops the field with one warning per component, and the component renders without it.
 
 Components that inject something the Prism app does not provide (a `Router` for `routerLink`, `HttpClient`, a translation service, a library config token) get it from `defineConfig({ appProviders })`, which feeds the app's root injector. In the rare case that one component needs a provider the others must not see, render it through a [component page](guide/component-pages.md) via [`renderPage`](#renderpage) and declare the provider on the page component.
+
+### `setup`
+
+Services and pipes only: the functions and `InjectionToken` constants that configure the service or pipe, as an arrow function that returns them. The styleguide documents each one next to the service or pipe, and the generated usage snippet calls them.
+
+```typescript
+@Showcase({
+    title: 'Notification Service',
+    setup: () => [provideNotifications]
+})
+@Injectable({ providedIn: 'root' })
+export class NotificationService {
+    /* ... */
+}
+```
+
+It is an arrow function so that a reference to a function from a file that imports the service or pipe back is not read while the class is still being defined. The builder reads the array literal from the source and never runs the function. See [`ShowcaseConfig.setup`](api/showcase-config.md#setup) for what it accepts and [Showcasing Services](guide/showcasing-services.md#setup) for the warnings; on a pipe it works the same way, see [Showcasing Pipes](guide/showcasing-pipes.md).
 
 ### `meta`
 

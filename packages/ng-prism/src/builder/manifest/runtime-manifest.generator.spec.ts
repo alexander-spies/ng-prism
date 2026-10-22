@@ -1,5 +1,7 @@
 import ts from 'typescript';
+import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
+import type { ScannedService } from '../../plugin/service.types.js';
 import { generateRuntimeManifest } from './runtime-manifest.generator.js';
 
 const BUTTON: ScannedComponent = {
@@ -310,6 +312,177 @@ describe('generateRuntimeManifest', () => {
 
         expect(source).toContain("import { PillComponent } from 'sgui-lib/atoms/pill';");
         expect(source).toContain("import { CardComponent } from 'sgui-lib';");
+    });
+});
+
+describe('generateRuntimeManifest component import path', () => {
+    it("carries a component's importPath into its meta", () => {
+        const source = generateRuntimeManifest({ components: [{ ...BUTTON, importPath: 'my-lib/atoms' }], libraryImportPath: 'my-lib' });
+
+        expect(source).toMatch(/meta: \{\n {8}className: "ButtonComponent",\n {8}filePath: "[^"]*",\n {8}importPath: "my-lib\/atoms",/);
+    });
+
+    it('writes no importPath for a component the scanner could not place', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], libraryImportPath: 'my-lib' });
+
+        expect(source).not.toContain('importPath:');
+    });
+});
+
+describe('generateRuntimeManifest component API', () => {
+    it('writes the API of a component', () => {
+        const withApi: ScannedComponent = {
+            ...BUTTON,
+            api: {
+                tags: {},
+                inputTypes: { variant: { text: 'Variant', links: ['Variant'] } },
+                outputTypes: {},
+                modelChanges: [],
+                methods: [],
+                types: []
+            }
+        };
+        const source = generateRuntimeManifest({ components: [withApi], libraryImportPath: 'my-lib' });
+
+        expect(source).toContain('api: {');
+        expect(source).toContain('links: [');
+        expect(source).toContain('"Variant"');
+    });
+
+    it('leaves out a missing API', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], libraryImportPath: 'my-lib' });
+
+        expect(source).not.toContain('api:');
+    });
+});
+
+const TOAST: ScannedService = {
+    className: 'ToastService',
+    filePath: 'src/lib/toast/toast.service.ts',
+    importPath: 'my-lib/toast',
+    showcaseConfig: { title: 'Toast Service', category: 'Feedback', tags: ['overlay'] },
+    provision: 'auto',
+    api: {
+        description: 'Shows short messages.',
+        tags: { since: '1.2.0' },
+        properties: [{ name: 'count', type: { text: 'Signal<number>' }, readonly: true, tags: {} }],
+        methods: [
+            {
+                name: 'show',
+                params: [{ name: 'options', type: { text: 'ToastOptions', links: ['ToastOptions'] }, optional: false }],
+                returnType: { text: 'void' },
+                tags: {}
+            }
+        ],
+        setup: [{ name: 'provideToast', kind: 'function', importPath: 'my-lib/toast', tags: {} }],
+        types: [{ id: 'ToastOptions', name: 'ToastOptions', kind: 'interface', importPath: 'my-lib/toast', tags: {} }]
+    }
+};
+
+describe('generateRuntimeManifest services', () => {
+    it('writes services as data without importing the class', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], services: [TOAST], libraryImportPath: 'my-lib' });
+
+        expect(source).toContain('services: [');
+        expect(source).toContain('className: "ToastService"');
+        expect(source).toContain('importPath: "my-lib/toast"');
+        expect(source).toContain('provision: "auto"');
+        expect(source).not.toMatch(/import \{[^}]*ToastService/);
+        expect(source).not.toContain("from 'my-lib/toast'");
+    });
+
+    it('writes the whole service as the meta of its entry, next to the components', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], services: [TOAST], libraryImportPath: 'my-lib' });
+
+        expect(source.indexOf('components: [')).toBeLessThan(source.indexOf('services: ['));
+        expect(source).toMatch(/services: \[\n {4}\{\n {6}meta: \{\n {8}className: "ToastService",/);
+        expect(source).toContain('title: "Toast Service"');
+        expect(source).toContain('since: "1.2.0"');
+        expect(source).toContain('name: "provideToast"');
+        expect(source).toContain('links: [\n');
+    });
+
+    it('is a module that parses', () => {
+        const source = generateRuntimeManifest({ components: [], services: [TOAST], libraryImportPath: 'my-lib' });
+        const { diagnostics } = ts.transpileModule(source, { reportDiagnostics: true, compilerOptions: { module: ts.ModuleKind.ES2022 } });
+
+        expect(diagnostics!.map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'))).toEqual([]);
+    });
+
+    it('writes no services line when there are none', () => {
+        expect(generateRuntimeManifest({ components: [BUTTON], services: [], libraryImportPath: 'my-lib' })).not.toContain('services:');
+        expect(generateRuntimeManifest({ components: [BUTTON], libraryImportPath: 'my-lib' })).not.toContain('services:');
+    });
+
+    it('imports nothing for a library that has services only', () => {
+        const source = generateRuntimeManifest({ components: [], services: [TOAST], libraryImportPath: 'my-lib' });
+
+        expect(source.split('\n').filter((line) => line.startsWith('import '))).toEqual(["import type { RuntimeManifest } from '@ng-prism/core/plugin';"]);
+    });
+});
+
+const TIME_AGO: ScannedPipe = {
+    className: 'TimeAgoPipe',
+    filePath: 'src/lib/time-ago/time-ago.pipe.ts',
+    importPath: 'my-lib/time-ago',
+    showcaseConfig: { title: 'Time ago', category: 'Formatting' },
+    pipeName: 'timeAgo',
+    pure: true,
+    api: {
+        description: 'Says how long ago a moment was.',
+        tags: { since: '2.0.0' },
+        transform: [
+            {
+                name: 'transform',
+                params: [{ name: 'value', type: { text: 'Date | number' }, optional: false }],
+                returnType: { text: 'string' },
+                tags: {}
+            }
+        ],
+        setup: [{ name: 'provideTimeAgo', kind: 'function', importPath: 'my-lib/time-ago', tags: {} }],
+        types: []
+    }
+};
+
+describe('generateRuntimeManifest pipes', () => {
+    it('writes pipes as data without importing the class', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], pipes: [TIME_AGO], libraryImportPath: 'my-lib' });
+
+        expect(source).toContain('pipes: [');
+        expect(source).toContain('className: "TimeAgoPipe"');
+        expect(source).toContain('pipeName: "timeAgo"');
+        expect(source).toContain('pure: true');
+        expect(source).toContain('importPath: "my-lib/time-ago"');
+        expect(source).not.toMatch(/import \{[^}]*TimeAgoPipe/);
+        expect(source).not.toContain("from 'my-lib/time-ago'");
+    });
+
+    it('writes the whole pipe as the meta of its entry, after the components and the services', () => {
+        const source = generateRuntimeManifest({ components: [BUTTON], services: [TOAST], pipes: [TIME_AGO], libraryImportPath: 'my-lib' });
+
+        expect(source.indexOf('services: [')).toBeLessThan(source.indexOf('pipes: ['));
+        expect(source).toMatch(/pipes: \[\n {4}\{\n {6}meta: \{\n {8}className: "TimeAgoPipe",/);
+        expect(source).toContain('title: "Time ago"');
+        expect(source).toContain('since: "2.0.0"');
+        expect(source).toContain('name: "provideTimeAgo"');
+    });
+
+    it('is a module that parses', () => {
+        const source = generateRuntimeManifest({ components: [], services: [TOAST], pipes: [TIME_AGO], libraryImportPath: 'my-lib' });
+        const { diagnostics } = ts.transpileModule(source, { reportDiagnostics: true, compilerOptions: { module: ts.ModuleKind.ES2022 } });
+
+        expect(diagnostics!.map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'))).toEqual([]);
+    });
+
+    it('writes no pipes line when there are none', () => {
+        expect(generateRuntimeManifest({ components: [BUTTON], pipes: [], libraryImportPath: 'my-lib' })).not.toContain('pipes:');
+        expect(generateRuntimeManifest({ components: [BUTTON], libraryImportPath: 'my-lib' })).not.toContain('pipes:');
+    });
+
+    it('imports nothing for a library that has pipes only', () => {
+        const source = generateRuntimeManifest({ components: [], pipes: [TIME_AGO], libraryImportPath: 'my-lib' });
+
+        expect(source.split('\n').filter((line) => line.startsWith('import '))).toEqual(["import type { RuntimeManifest } from '@ng-prism/core/plugin';"]);
     });
 });
 

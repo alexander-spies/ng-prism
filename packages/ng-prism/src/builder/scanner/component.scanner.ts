@@ -3,11 +3,24 @@ import type { ComponentStatus, ShowcaseConfig } from '../../decorator/showcase.t
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { CANVAS_BGS, type CanvasBg } from '../../shared/canvas-bg.type.js';
 import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.type.js';
+import { classifyShowcaseClass, type ShowcaseClassKind } from './api/angular-decorators.js';
+import { extractComponentApi } from './api/component-api.extractor.js';
+import type { ExportIndex } from './api/export-index.js';
+import { findSetupProperty } from './api/setup.reader.js';
 import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, UNEVALUABLE } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
 import { describeValue, readPseudoStates } from './pseudo-states.js';
-import { describeDeprecatedProviders, describeUnevaluable, describeUnreadableBase } from './showcase-diagnostics.js';
+import {
+    describeDeprecatedProviders,
+    describeLegacyPipeComponent,
+    describeLegacyServiceComponent,
+    describeSetupOnComponent,
+    describeSetupOnLegacyComponent,
+    describeUnevaluable,
+    describeUnreadableApi,
+    describeUnreadableBase
+} from './showcase-diagnostics.js';
 import { readShowcaseStates } from './showcase-states.js';
 
 const COMPONENT_STATUSES = ['stable', 'beta', 'wip', 'deprecated'] as const;
@@ -51,47 +64,80 @@ function isCanvasLayout(value: unknown): value is CanvasLayout {
 type Report = (message: string) => void;
 
 /**
- * Scan exported symbols for Angular components annotated with @Showcase.
+ * The two ways a scan warns, each printing a message once however often it is
+ * raised: `report` for a dropped value, which is also collected in
+ * `diagnostics` and fails the build under `strictShowcase`, and `notify` for
+ * anything else worth saying.
+ */
+export function createReporters(diagnostics: string[], notices: Set<string>): { report: Report; notify: Report } {
+    return {
+        report: (message) => {
+            if (diagnostics.includes(message)) return;
+            diagnostics.push(message);
+            console.warn(`⚠ ng-prism: ${message}`);
+        },
+        notify: (message) => {
+            if (notices.has(message)) return;
+            notices.add(message);
+            console.warn(`⚠ ng-prism: ${message}`);
+        }
+    };
+}
+
+export interface ScanComponentsOptions {
+    /**
+     * Shared across entry points, and with {@link scanServices} and {@link scanPipes}, so that a class exported from
+     * several of them does not repeat its warnings.
+     */
+    diagnostics?: string[];
+    notices?: Set<string>;
+    /**
+     * Tells the API of a component which of the types it names a consumer can import; without one the API has their
+     * text, but no links and no `types`.
+     */
+    exportIndex?: ExportIndex;
+    /** Whether to read {@link ScannedComponent.api}: only a plugin with `componentApi` reads it, so the build leaves it out without one. */
+    api?: boolean;
+}
+
+/**
+ * Read the Angular components among the showcased classes of an entry point.
+ * A class with `@Injectable` or `@Service` is a service and one with `@Pipe` a
+ * pipe, each left to its own scan, unless it declares fields only a component
+ * can use.
  *
  * Every @Showcase value the scan has to drop is printed and collected in
- * `diagnostics`, once: sharing the array across entry points keeps a
- * component exported from several of them from repeating its warnings.
- * `notices` does the same for warnings about what a component inherits,
- * which are not diagnostics.
+ * `diagnostics`, once. `notices` does the same for warnings about what a
+ * component inherits, which are not diagnostics.
  */
-export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, diagnostics: string[] = [], notices = new Set<string>()): ScannedComponent[] {
+export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChecker, options: ScanComponentsOptions = {}): ScannedComponent[] {
+    const { diagnostics = [], notices = new Set<string>(), exportIndex = new Map(), api: readApi = true } = options;
     const components: ScannedComponent[] = [];
-    const report: Report = (message) => {
-        if (diagnostics.includes(message)) return;
-        diagnostics.push(message);
-        console.warn(`⚠ ng-prism: ${message}`);
-    };
-    const notify = (message: string) => {
-        if (notices.has(message)) return;
-        notices.add(message);
-        console.warn(`⚠ ng-prism: ${message}`);
-    };
+    const { report, notify } = createReporters(diagnostics, notices);
 
-    for (const sym of exports) {
-        const resolved = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
-
-        const classDecl = resolved.declarations?.find(ts.isClassDeclaration);
-
-        if (!classDecl) continue;
-
-        // Perf: cheap pre-filter that skips the full decorator walk for files that don't
-        // mention Showcase at all. False positives (string-literal containing "@Showcase")
-        // just lose the optimization for that file; correctness is unaffected.
-        if (!classDecl.getSourceFile().text.includes('@Showcase')) continue;
-
-        const showcaseDecorator = findDecorator(classDecl, 'Showcase');
-
-        if (!showcaseDecorator) continue;
+    for (const { classDecl, decorator: showcaseDecorator, argument: showcaseArg, kind: classKind } of showcased) {
+        if (classKind.kind === 'service' || classKind.kind === 'pipe') continue;
 
         const className = classDecl.name?.text ?? 'Anonymous';
         const showcaseConfig = extractShowcaseConfig(showcaseDecorator, className, report, checker);
 
         if (!showcaseConfig) continue;
+
+        // Not a diagnostic: the component still works, and strictShowcase must not fail the build over a notice about 23.0.0.
+        if (classKind.kind === 'legacy-component') {
+            notify(
+                classKind.source === 'pipe'
+                    ? describeLegacyPipeComponent(className, classKind.fields, classKind.standalone !== false)
+                    : describeLegacyServiceComponent(className, classKind.fields)
+            );
+        }
+
+        const setup = showcaseArg && findSetupProperty(showcaseArg);
+
+        if (setup)
+            report(
+                classKind.kind === 'legacy-component' ? describeSetupOnLegacyComponent(className, setup, classKind.fields) : describeSetupOnComponent(className, setup)
+            );
 
         const componentMeta = extractComponentMeta(classDecl, checker);
         const hierarchy = getClassHierarchy(classDecl, checker);
@@ -114,6 +160,16 @@ export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, di
             notify(describeUnreadableBase(className, base));
         }
 
+        // The API only feeds the API page, which has a fallback for a component without one: a class the extractor
+        // cannot read must not take the scan down. A notice, not a diagnostic, so strictShowcase does not fail over it.
+        let api: ScannedComponent['api'];
+
+        try {
+            if (readApi) api = extractComponentApi(classDecl, inputs, outputs, hierarchy, checker, exportIndex);
+        } catch (error) {
+            notify(describeUnreadableApi(className, error, 'component'));
+        }
+
         components.push({
             className,
             filePath,
@@ -124,11 +180,51 @@ export function scanComponents(exports: ts.Symbol[], checker: ts.TypeChecker, di
             // Plugins look a base class up by name, so an anonymous one is of no use to them.
             baseClasses: hierarchy.classes
                 .slice(1)
-                .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : []))
+                .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : [])),
+            api
         });
     }
 
     return components;
+}
+
+/** An exported class with `@Showcase`, and which scan it belongs to. */
+export interface ShowcasedClass {
+    symbol: ts.Symbol;
+    classDecl: ts.ClassDeclaration;
+    decorator: ts.Decorator;
+    argument: ts.Expression | undefined;
+    kind: ShowcaseClassKind;
+}
+
+/**
+ * The classes with `@Showcase` among the exports of an entry point, each
+ * classified once: the component, the service and the pipe scan each keep
+ * the classes of their own kind.
+ */
+export function findShowcasedClasses(exports: ts.Symbol[], checker: ts.TypeChecker): ShowcasedClass[] {
+    return exports.flatMap((sym) => {
+        const showcased = findShowcasedClass(sym, checker);
+
+        return showcased ? [{ ...showcased, kind: classifyShowcaseClass(showcased.classDecl, showcased.argument, checker) }] : [];
+    });
+}
+
+/** The class an export resolves to, when it carries `@Showcase`. */
+function findShowcasedClass(sym: ts.Symbol, checker: ts.TypeChecker): Omit<ShowcasedClass, 'kind'> | undefined {
+    const symbol = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
+    const classDecl = symbol.declarations?.find(ts.isClassDeclaration);
+
+    if (!classDecl) return undefined;
+
+    // Perf: cheap pre-filter that skips the full decorator walk for files that don't
+    // mention Showcase at all. False positives (string-literal containing "@Showcase")
+    // just lose the optimization for that file; correctness is unaffected.
+    if (!classDecl.getSourceFile().text.includes('@Showcase')) return undefined;
+
+    const decorator = findDecorator(classDecl, 'Showcase');
+
+    return decorator && { symbol, classDecl, decorator, argument: getDecoratorArgument(decorator) };
 }
 
 function hasDecoratorInputs(classDecl: ts.ClassDeclaration): boolean {
@@ -139,7 +235,12 @@ function hasDecoratorInputs(classDecl: ts.ClassDeclaration): boolean {
     return false;
 }
 
-function extractShowcaseConfig(decorator: ts.Decorator, className: string, report: Report, checker: ts.TypeChecker): ShowcaseConfig | undefined {
+/**
+ * `setup` is read for services and pipes only, so a component's is never
+ * part of the config: the issue the evaluator raises for its function is
+ * swallowed here, and {@link scanComponents} says what is wrong with it instead.
+ */
+export function extractShowcaseConfig(decorator: ts.Decorator, className: string, report: Report, checker: ts.TypeChecker): ShowcaseConfig | undefined {
     const arg = getDecoratorArgument(decorator);
 
     if (!arg) return undefined;
@@ -151,6 +252,7 @@ function extractShowcaseConfig(decorator: ts.Decorator, className: string, repor
     const raw = evaluateStatic(arg, {
         checker,
         report: (issue) => {
+            if (issue.path[0] === 'setup') return;
             if (issue.path[0] === 'providers') {
                 providers ??= issue.node;
                 return;

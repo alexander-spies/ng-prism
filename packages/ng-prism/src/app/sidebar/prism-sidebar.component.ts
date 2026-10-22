@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener,
 import type { ComponentStatus } from '../../decorator/showcase.types.js';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { BUILTIN_NAVIGATION_DECORATIONS } from '../panels/builtin-navigation-decorations.js';
+import { itemKey, itemShowcaseConfig } from '../services/navigation-item.js';
 import type { NavigationItem } from '../services/navigation-item.types.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
@@ -12,12 +13,28 @@ const STORAGE_KEY = 'ng-prism-sidebar-collapsed';
 
 const SECTION_ICONS: Record<string, string> = {
     Components: 'box',
-    Directives: 'zap'
+    Directives: 'zap',
+    Services: 'plug',
+    Pipes: 'pipette'
 };
 const DEFAULT_SECTION_ICON = 'box-select';
+const SERVICE_ICON = 'plug';
+const PIPE_ICON = 'pipette';
 
 function sectionIcon(name: string): string {
     return SECTION_ICONS[name] ?? DEFAULT_SECTION_ICON;
+}
+
+/** The glyph of an item's kind, shown unless it is a work in progress. `undefined` for a component: `lifecycleIcon` falls back to the box. */
+function idleIcon(item: NavigationItem): string | undefined {
+    switch (item.kind) {
+        case 'service':
+            return SERVICE_ICON;
+        case 'pipe':
+            return PIPE_ICON;
+        default:
+            return undefined;
+    }
 }
 
 interface SidebarCategory {
@@ -96,7 +113,7 @@ export class PrismSidebarComponent {
             categories: section.categories.map((cat): ComponentCategory => {
                 const items = cat.items.map((item) => ({
                     item,
-                    icon: lifecycleIcon(this.itemStatus(item)),
+                    icon: lifecycleIcon(this.itemStatus(item), idleIcon(item)),
                     decorations: decorateItem(item, defs)
                 }));
 
@@ -124,16 +141,14 @@ export class PrismSidebarComponent {
         });
     }
 
-    protected itemKey(item: NavigationItem): string {
-        return item.kind === 'component' ? item.data.meta.className : `page:${item.data.title}`;
-    }
+    protected readonly itemKey = itemKey;
 
     protected itemLabel(item: NavigationItem): string {
-        return item.kind === 'component' ? item.data.meta.showcaseConfig.title : item.data.title;
+        return item.kind === 'page' ? item.data.title : item.data.meta.showcaseConfig.title;
     }
 
     protected itemStatus(item: NavigationItem): ComponentStatus | undefined {
-        return item.kind === 'component' ? item.data.meta.showcaseConfig.status : undefined;
+        return itemShowcaseConfig(item)?.status;
     }
 
     /**
@@ -168,18 +183,23 @@ export class PrismSidebarComponent {
     protected isActive(item: NavigationItem): boolean {
         const active = this.navigationService.activeItem();
 
-        if (!active || active.kind !== item.kind) return false;
-        if (item.kind === 'component') {
-            return item.data.meta.className === (active as typeof item).data.meta.className;
-        }
-        return item.data.title === (active as typeof item).data.title;
+        return active !== null && itemKey(active) === itemKey(item);
     }
 
     protected onSelect(item: NavigationItem): void {
-        if (item.kind === 'component') {
-            this.navigationService.select(item.data);
-        } else {
-            this.navigationService.selectPage(item.data);
+        switch (item.kind) {
+            case 'component':
+                this.navigationService.select(item.data);
+                break;
+            case 'service':
+                this.navigationService.selectService(item.data);
+                break;
+            case 'pipe':
+                this.navigationService.selectPipe(item.data);
+                break;
+            case 'page':
+                this.navigationService.selectPage(item.data);
+                break;
         }
     }
 

@@ -2,8 +2,26 @@ import { ChangeDetectionStrategy, Component, input, output, ViewEncapsulation } 
 import { Showcase } from '@ng-prism/core';
 
 /**
- * A compact chip element for tags, filters, or selections with optional remove action.
+ * Compact label for tags and filters, optionally selected or removable.
+ *
+ * ## States
+ *
+ * - **Selected**: highlighted, e.g. an active filter
+ * - **Removable**: shows a remove button that emits `removed` with the chip's label
+ * - **Disabled**: dimmed, and the remove button is hidden
+ *
+ * The chip does not remove itself. Listen to `removed` and drop the entry from your list.
+ *
  * @since 1.0.0
+ * @see BadgeComponent
+ * @example
+ * ```html
+ * <sg-chip label="Angular" [selected]="true" />
+ * ```
+ * @example
+ * ```html
+ * <sg-chip [label]="tag" [removable]="true" (removed)="removeTag($event)" />
+ * ```
  */
 @Showcase({
     title: 'Chip',
@@ -83,13 +101,22 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class ChipComponent {
+    /** Text of the chip, and the value `removed` emits. */
     readonly label = input.required<string>();
+
+    /** Shows a remove button. Hidden while the chip is `disabled`. */
     readonly removable = input<boolean>(false);
+
+    /** Highlights the chip, e.g. as an active filter. */
     readonly selected = input<boolean>(false);
+
+    /** Dims the chip and hides its remove button. `remove()` does nothing while it is set. */
     readonly disabled = input<boolean>(false);
+
+    /** Emits the chip's `label` when the remove button is clicked or `remove()` is called. */
     readonly removed = output<string>();
 
-    /** Programmatically triggers the remove event. */
+    /** Emits `removed` as if the remove button was clicked. Does nothing while the chip is `disabled`. */
     remove(): void {
         if (!this.disabled()) {
             this.removed.emit(this.label());

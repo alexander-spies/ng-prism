@@ -1,10 +1,16 @@
 import type { DirectiveHost } from '../../decorator/showcase.types.js';
 import type { StyleguidePage } from '../../plugin/page.types.js';
+import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { InputMeta, ScannedComponent } from '../../plugin/plugin.types.js';
+import type { ScannedService } from '../../plugin/service.types.js';
 import { parseHostString } from './host-parser.js';
 
 export interface RuntimeManifestOptions {
     components: ScannedComponent[];
+    /** Written as data: a service's class is never imported into the styleguide. */
+    services?: ScannedService[];
+    /** Written as data too: a pipe's class is never imported into the styleguide. */
+    pipes?: ScannedPipe[];
     libraryImportPath: string;
     pages?: StyleguidePage[];
     meta?: Record<string, unknown>;
@@ -126,7 +132,7 @@ function groupComponentsByImportPath(components: ScannedComponent[], fallbackImp
 }
 
 export function generateRuntimeManifest(options: RuntimeManifestOptions): string {
-    const { components, libraryImportPath, pages, meta } = options;
+    const { components, services, pipes, libraryImportPath, pages, meta } = options;
 
     const directives = components.filter((c) => c.componentMeta.isDirective);
     const hasDirectives = directives.length > 0;
@@ -185,6 +191,9 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
 
     lines.push('  ],');
 
+    pushDataEntries(lines, 'services', services);
+    pushDataEntries(lines, 'pipes', pipes);
+
     if (pages && pages.length > 0) {
         lines.push(
             `  pages: ${JSON.stringify(pages, null, 2)
@@ -209,6 +218,21 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
     return lines.join('\n');
 }
 
+/** A service or a pipe is `{ meta }` and nothing else: the styleguide never imports its class. Writes no line when there is none. */
+function pushDataEntries(lines: string[], key: 'services' | 'pipes', items: ScannedService[] | ScannedPipe[] | undefined): void {
+    if (!items || items.length === 0) return;
+
+    lines.push(`  ${key}: [`);
+
+    for (const item of items) {
+        lines.push('    {');
+        lines.push(`      meta: ${formatObject(item as unknown as Record<string, unknown>, 6)},`);
+        lines.push('    },');
+    }
+
+    lines.push('  ],');
+}
+
 function json(value: unknown): string {
     return JSON.stringify(value);
 }
@@ -227,11 +251,17 @@ function formatMeta(comp: ScannedComponent, baseIndent: number): string {
     const lines = [
         `${indent(inner)}className: ${json(comp.className)},`,
         `${indent(inner)}filePath: ${json(comp.filePath)},`,
+        // The entry point the class is imported from; a plugin's API page names it, e.g. in a usage snippet.
+        ...(comp.importPath ? [`${indent(inner)}importPath: ${json(comp.importPath)},`] : []),
         `${indent(inner)}showcaseConfig: ${formatObject(comp.showcaseConfig as unknown as Record<string, unknown>, inner)},`,
         `${indent(inner)}inputs: ${formatArray(comp.inputs, inner)},`,
         `${indent(inner)}outputs: ${formatArray(comp.outputs, inner)},`,
         `${indent(inner)}componentMeta: ${formatObject(comp.componentMeta, inner)},`
     ];
+
+    if (comp.api) {
+        lines.push(`${indent(inner)}api: ${formatObject(comp.api as unknown as Record<string, unknown>, inner)},`);
+    }
 
     if (comp.meta && Object.keys(comp.meta).length > 0) {
         lines.push(`${indent(inner)}meta: ${formatObject(comp.meta as Record<string, unknown>, inner)},`);

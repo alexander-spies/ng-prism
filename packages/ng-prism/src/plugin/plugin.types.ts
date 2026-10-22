@@ -2,6 +2,8 @@ import type { Provider, Type } from '@angular/core';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import type { StyleguidePage } from './page.types.js';
+import type { RuntimePipe, ScannedPipe } from './pipe.types.js';
+import type { ApiDocTags, ApiMethod, ApiTypeDoc, ApiTypeRef, PanelTarget, RuntimeService, ScannedService } from './service.types.js';
 
 export interface NgPrismPlugin {
     /** Unique plugin name, used for debugging and conflict detection */
@@ -9,8 +11,18 @@ export interface NgPrismPlugin {
 
     // Build-time hooks (run inside the Angular builder / Node.js)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
+    onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
+    onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
     onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
+    /**
+     * Set when a hook or a panel of the plugin reads {@link ScannedComponent.api}. The scan only reads the API of the
+     * components, and the manifest only carries it, when a plugin in the config sets this. Read from the plugin's
+     * Node entry, like the build-time hooks.
+     *
+     * @experimental Experimental until 23.0.0, like {@link ComponentApi}: it may change in a 22.x minor release.
+     */
+    componentApi?: boolean;
 
     // Runtime contributions (embedded into the Prism app)
     panels?: PanelDefinition[];
@@ -97,6 +109,18 @@ export interface PanelDefinition {
     position?: 'bottom' | 'right';
     /** Where this panel appears: 'addon' (the tab bar below the canvas) or 'view' (top view toolbar). Default: 'addon' */
     placement?: 'addon' | 'view';
+    /**
+     * Where this panel appears. Default: `['component']`. A panel with `'component'`
+     * gets the input `activeComponent`, one with `'service'` gets the input
+     * `activeService` (`RuntimeService | null`), one with `'pipe'` gets the input
+     * `activePipe` (`RuntimePipe | null`). `isVisible` and `badge` are only
+     * called for components.
+     *
+     * `'service'` and `'pipe'` only count on a view panel (`placement: 'view'`): a
+     * service or pipe page has no addon area, so an addon panel shows on component
+     * pages alone, and only when it applies to `'component'`. Since 22.7.0.
+     */
+    appliesTo?: readonly PanelTarget[];
     /** Providers injected into a child EnvironmentInjector scoped to this panel */
     providers?: Provider[];
     /** When provided, the panel tab is only shown if this returns true for the active component */
@@ -133,6 +157,8 @@ export interface ControlDefinition {
 
 export interface PrismManifest {
     components: ScannedComponent[];
+    services?: ScannedService[];
+    pipes?: ScannedPipe[];
     pages?: StyleguidePage[];
     /** Library-wide plugin metadata (e.g. aggregate coverage totals). */
     meta?: Record<string, unknown>;
@@ -157,8 +183,37 @@ export interface ScannedComponent {
      * manifest does not carry it.
      */
     baseClasses?: { className: string; filePath: string }[];
+    /**
+     * What the API page needs beyond `inputs` and `outputs`. Read only when a
+     * plugin in the config sets {@link NgPrismPlugin.componentApi}. Absent
+     * without one, when the scan cannot read it, when a plugin hook builds the
+     * component, or in the manifest of an older core.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    api?: ComponentApi;
     /** Arbitrary plugin metadata */
     meta?: Record<string, unknown>;
+}
+
+/**
+ * What the API page of a component or directive needs beyond `inputs` and `outputs`.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+ */
+export interface ComponentApi {
+    /** The class's own description (Markdown, `{@link}` kept), as for services and pipes. */
+    description?: string;
+    tags: ApiDocTags;
+    /** The type of each input by member name, as written, with links. */
+    inputTypes: Record<string, ApiTypeRef>;
+    /** The payload type of each `output()` by member name. */
+    outputTypes: Record<string, ApiTypeRef>;
+    /** One entry per `model()` input: the change output Angular adds for it. `input` is the member name. */
+    modelChanges: { input: string; event: string; type: ApiTypeRef }[];
+    /** Public methods with JSDoc of their own or inherited, signatures from the code. */
+    methods: ApiMethod[];
+    types: ApiTypeDoc[];
 }
 
 export interface InputMeta {
@@ -186,6 +241,8 @@ export interface OutputMeta {
 
 export interface RuntimeManifest {
     components: RuntimeComponent[];
+    services?: RuntimeService[];
+    pipes?: RuntimePipe[];
     pages?: StyleguidePage[];
     /** Library-wide plugin metadata, mirrored from the build-time PrismManifest. */
     meta?: Record<string, unknown>;

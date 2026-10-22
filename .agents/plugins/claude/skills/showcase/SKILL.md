@@ -1,6 +1,6 @@
 ---
 name: showcase
-description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, states and pseudo states, canvas background and layout, status, component pages), when a build prints a "⚠ ng-prism:" warning, when a component is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
+description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and pipes with @Pipe, with their setup), when a build prints a "⚠ ng-prism:" warning, when a component, service or pipe is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
 ---
 
 # Writing and checking @Showcase configs
@@ -27,9 +27,10 @@ package is right:
    enum members, arithmetic and string concatenation on those, template literals with such placeholders, property
    access on constants (`SIZES.md`), and arrays and objects, spreads included. It drops function calls, ternaries,
    `??` and `&&`, `let` and `var`, `declare`d values, functions, classes and `new`, each with a `⚠ ng-prism:` warning,
-   and keeps the rest. When the whole config can't be evaluated, the component is skipped. Constants imported from a
-   compiled package (`.d.ts`) are readable only as plain literals. `defineConfig({ strictShowcase: true })` in
-   `ng-prism.config.ts` turns every dropped value into a build error.
+   and keeps the rest. The one function that works is the `setup: () => [...]` of a service or pipe: the builder reads the array
+   literal from the source and never calls it. When the whole config can't be evaluated, the component is skipped.
+   Constants imported from a compiled package (`.d.ts`) are readable only as plain literals.
+   `defineConfig({ strictShowcase: true })` in `ng-prism.config.ts` turns every dropped value into a build error.
 2. **The component must be exported by the library's entry point.** The builder scans what the `entryPoint` of the
    library's `prism` target exports, `export *` included: every secondary entry point (an `ng-package.json` without
    `dest` below the library), then the primary one. Up to 22.5.0 the primary entry file is skipped when secondary entry
@@ -83,6 +84,18 @@ package is right:
     page only if it injects `PrismRendererService` from `@ng-prism/core` and reads `inputValues()` and
     `activeVariantIndex()`.
 
+11. **A service is showcased on its class and gets a page without a canvas.** `@Showcase` on a class with `@Injectable`
+    or `@Service`, both from `@angular/core` (an aliased or namespace import counts) and with no `@Component` or `@Directive`
+    beside them, lists the class under **Services** in the sidebar. The page shows the public API read from the code,
+    the types it reaches, the `setup` entries and a generated usage snippet. It needs an installed version whose
+    `showcase.types.d.ts` has `setup`. Read `references/services-and-pipes.md` before writing one.
+12. **A pipe is showcased on its class too, and gets the same kind of page.** `@Showcase` on a class with `@Pipe`
+    from `@angular/core` (an aliased or namespace import counts), with no `@Component` or `@Directive` beside it (an `@Injectable`
+    next to `@Pipe` is fine), lists the class under **Pipes**. The page shows the template name, whether it is pure,
+    every signature of `transform()`, the `setup` entries, the types and a generated usage snippet. Only standalone
+    pipes with a readable `name`. It needs the same installed version as a service (`showcase.types.d.ts` has
+    `setup`): both came in one release. Read `references/services-and-pipes.md` before writing one.
+
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
 deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`). A variant
@@ -125,6 +138,32 @@ export class ButtonComponent {
 }
 ```
 
+## JSDoc on a component or directive
+
+With `jsDocPlugin()` (skill setup) the API tab of a component or directive is the same page as the one of a service
+(since 22.7.0): a generated usage snippet, then Inputs, Outputs, Methods and a card for each type they reach. It is read
+from the code and the JSDoc, so write JSDoc for what the types can't say:
+
+- **Describe every `input()`, `model()` and `output()`.** The description shows in its table row, `@deprecated` becomes
+  a badge and `@since` a note. The type comes from the code, as written (`input.required<TabItem[]>()`) or, without a type
+  argument, as the compiler infers it.
+- **A type is linked only when an entry point exports it.** It then gets a card, with its properties and its JSDoc, and
+  every mention of it in an input type, an output payload or a method signature links to it. A type the library keeps to
+  itself, an `@internal` one and one from another package (`Signal`, `Observable`) stays plain text. Export the
+  interface or union alias from a scanned entry point, a secondary one as well, if it should have a card.
+- **`@see X` and `{@link X}` link to the card of `X`, and only when `X` is on the page**, that is, when an input, an
+  output payload or a documented method reaches it. Otherwise `@see X` stays text and `{@link X}` shows as code (as
+  the link text for `{@link X | text}`). `{@link https://…}` is a normal link. A Markdown link such as `[X](#)` is left
+  as written and goes nowhere.
+- **An output's payload comes from `output<T>()`.** Write the type argument; an `output()` without one shows `void`.
+  The change event of a `model()` (`<name>Change`) is added by itself: don't document it twice.
+- **Only documented methods are listed.** A public method with a doc block, its own or inherited, is a row, with
+  `@param name text` under each parameter. One without is left out, as are `private` and `protected` members, `_x`
+  names, lifecycle hooks, statics and `@internal`. Document the methods a user is meant to call from outside.
+- **Nothing to write for Usage.** The snippet is generated from the selector, the required inputs and, for a directive,
+  the `host` of its `@Showcase`: another reason to declare one (rule 7). `@version` gives a Version chip next to
+  `@since`; `@example` (a fenced block) goes under Examples.
+
 ## Workflow
 
 1. Read the component: its `input()` / `model()` members and their types, its `<ng-content>` slots, whether it is a
@@ -136,10 +175,13 @@ export class ButtonComponent {
 4. Read the build log. Each `⚠ ng-prism:` line is a dropped value or a deprecated option;
    `references/troubleshooting.md` has the cause and the fix for each. The line
    `ng-prism: Generated manifest with N component(s)` (or `Verified (unchanged)`) tells you whether the component was
-   found. If the styleguide runs in a process you didn't start and you can't read its output, ask for the log or run
-   `ng run <lib>:prism-build` once: it scans the same way and prints the same lines.
-5. Check every variant you touched in the browser (next section) and look at each image.
-6. Report the URL, the variant, what the screenshot shows and any warning that's left.
+   found. A service shows as `with N component(s), M service(s)` and a pipe as `, K pipe(s)`; when that part is missing and
+   the "no plugin shows services" or "no plugin shows pipes" hint is in the log, they were left out. If the styleguide runs in a process you didn't start and
+   you can't read its output, ask for the log or run `ng run <lib>:prism-build` once: it scans the same way and prints
+   the same lines.
+5. Check every variant you touched in the browser (next section) and look at each image. For a service or a pipe,
+   capture its API page with `--service` or `--pipe` and check that its JSDoc reads cleanly there.
+6. Report the URL, the variant, service or pipe, what the screenshot shows and any warning that's left.
 7. Stop the background process unless the user wants it running. Install nothing without asking.
 
 ## Checking in the browser
@@ -150,6 +192,8 @@ export class ButtonComponent {
 node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --variant 1
 node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --variant 1 --state 0
 node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --shell
+node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --service NotificationService
+node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --pipe TimeAgoPipe
 ```
 
 - By default it opens the variant in capture mode (`?capture=1`: the component alone on its background, motion
@@ -168,21 +212,47 @@ node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --component ButtonComponent --
 - It selects the variant and the state through URL parameters, like the URL below, and `urlState: false` in
   `ng-prism.config.ts` turns them off. The script then times out with "Variant never rendered"; ask before switching `urlState` back on.
 - Exit codes: `0` saved. `1` the styleguide doesn't answer, the component, variant or state doesn't exist (it lists
-  the components and variants that do), the variant never rendered (it saves the full window for diagnosis), or the
+  the components and variants that do), the variant or the service or pipe page never rendered (it saves the full window for diagnosis), or the
   screenshot failed, e.g. for a component without a visible size (`--shell` still works). `2` invalid arguments. `3`
   Playwright or its Chromium is missing or won't start: suggest `npm i -D playwright && npx playwright install chromium`
   (on Linux with missing system libraries `npx playwright install --with-deps chromium`) and run it only if the user
   agrees. `4` the state doesn't fit the variant, see `--state` above and `references/troubleshooting.md`.
 
+A service has no canvas: its page shows nothing but what its JSDoc says, rendered by `jsDocPlugin()` in the API tab.
+`--service <ClassName>` captures that page at its full length, without the sidebar and header, so you can check that
+the JSDoc you wrote comes out clean: the description and its Markdown, the usage snippet, the setup table with its
+defaults, the members with their `@param` texts, and the type cards with their links. It opens
+`?service=<ClassName>&view=jsdoc` and waits for `[data-prism-service-rendered="<ClassName>"]` and the highlighted
+code blocks. It can't be combined with `--component`, `--variant`, `--state` or `--shell` (exit `2`), and the PNG goes
+to `prism-service-<Class>.png` in the system temp dir unless `--out` says otherwise. Services aren't listed in
+`window.__PRISM_MANIFEST__`, so a wrong class name, a service the build left out (no `jsDocPlugin()` 22.7.0 or newer,
+see `references/services-and-pipes.md`) and `urlState: false` all look the same: the page never renders, the script saves the
+full window for diagnosis and exits `1`. Check the build log line `with N component(s), M service(s)` first. A page
+taller than 15000 px is cut there.
+
+`--pipe <ClassName>` does the same for a pipe: it opens `?pipe=<ClassName>&view=jsdoc`, waits for
+`[data-prism-pipe-rendered="<ClassName>"]` and the highlighted code blocks, and captures the page at its full length,
+where you check the description, the usage snippet with its template line, the setup table and every `transform()`
+row with its overloads, parameters and `@param` texts. It can't be combined with `--service`, `--component`,
+`--variant`, `--state` or `--shell` (exit `2`), and the PNG goes to `prism-pipe-<Class>.png`. Pipes aren't listed in
+`window.__PRISM_MANIFEST__` either: a wrong class name, an NgModule pipe, a pipe the build left out (no
+`jsDocPlugin()` 22.7.0 or newer, see `references/services-and-pipes.md`) and `urlState: false` all end in the page never rendering
+and exit `1`. The build log line says `, K pipe(s)` when the pipe was kept.
+
 Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome DevTools MCP, Claude in Chrome): open
 `http://localhost:4400/?component=<ClassName>&variant=<index>&capture=1`, wait for
 `.demo-wrap[data-prism-rendered="<ClassName>:<index>"]`, then take the screenshot. For a state add
 `&state=<stateIndex>`, wait for `<ClassName>:<index>:<stateIndex>` and skip the screenshot when `.demo-wrap` has a
-`data-prism-excluded` attribute (its value is the reason). Otherwise give the user that URL. This is ng-prism's public
-External Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states.
+`data-prism-excluded` attribute (its value is the reason). For a service open
+`http://localhost:4400/?service=<ClassName>&view=jsdoc` and wait for `[data-prism-service-rendered="<ClassName>"]`; for
+a pipe open `?pipe=<ClassName>&view=jsdoc` and wait for `[data-prism-pipe-rendered="<ClassName>"]`; for the API tab of
+a component or directive open `?component=<ClassName>&view=jsdoc` and wait for
+`[data-prism-component-rendered="<ClassName>"]`. Otherwise give the user that URL. This is ng-prism's public External
+Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states, but no services or pipes.
 
 ## Guides
 
 - `guide/showcase-decorator.md`, `guide/variants.md`, `guide/content-projection.md`, `guide/directive-hosting.md`,
-  `guide/component-pages.md`
+  `guide/component-pages.md`, `guide/showcasing-services.md` (services and `setup`), `guide/showcasing-pipes.md`,
+  `plugins/jsdoc.md`
 - `api/showcase-config.md` (every field), `guide/external-tooling.md` (URL parameters, render marker, capture mode)

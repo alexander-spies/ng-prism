@@ -21,6 +21,7 @@ import { PrismVariantRibbonComponent } from '../variant-ribbon/prism-variant-rib
 import { nextViewId } from '../view-tab-bar/next-view-id.js';
 import { PrismViewPanelHostComponent } from '../view-tab-bar/prism-view-panel-host.component.js';
 import { PrismViewTabBarComponent } from '../view-tab-bar/prism-view-tab-bar.component.js';
+import { shouldSelectFirst } from './should-select-first.js';
 
 @Component({
     selector: 'prism-shell',
@@ -75,9 +76,12 @@ export class PrismShellComponent {
         // old rule watched for the *event* of switching and needed a key to
         // remember; this one states the invariant and needs nothing. The rule
         // itself lives in `nextViewId`, a pure function with its own tests; this
-        // effect only reads the two signals it needs and applies the result.
+        // effect only reads the signals it needs and applies the result. On a
+        // service or pipe page the target switches the rule: neither has a
+        // Playground to fall back to.
         effect(() => {
-            const next = nextViewId(this.panelService.activeViewId(), this.panelService.visibleViewPanels());
+            const target = this.navigationService.activeTarget() ?? 'component';
+            const next = nextViewId(this.panelService.activeViewId(), this.panelService.visibleViewPanels(), target);
 
             if (next !== null) {
                 untracked(() => this.panelService.activeViewId.set(next));
@@ -87,9 +91,11 @@ export class PrismShellComponent {
         effect(() => {
             const item = this.navigationService.activeItem();
             const activeComp = this.navigationService.activeComponent();
+            const activeService = this.navigationService.activeService();
+            const activePipe = this.navigationService.activePipe();
             const activePage = this.navigationService.activePage();
 
-            if (item !== null && activeComp === null && activePage === null) {
+            if (shouldSelectFirst(item, activeComp, activeService, activePipe, activePage)) {
                 untracked(() => this.navigationService.selectFirst());
             }
         });

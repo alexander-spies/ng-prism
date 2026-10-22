@@ -2,8 +2,25 @@ import { ChangeDetectionStrategy, Component, computed, input, model, output, Vie
 import { Showcase } from '@ng-prism/core';
 
 /**
- * A range slider input for selecting numeric values within a defined range.
+ * Range slider for picking a number between `min` and `max`.
+ *
+ * It is built on a native `<input type="range">`, so the arrow keys, Home and End work out of the box.
+ * `value` is a model: bind it with `[(value)]`, or listen to `valueChanged`.
+ *
+ * ## Showing the value
+ *
+ * - `label` adds a header line above the track; with `showValue` the current value sits at its right
+ * - `showValue` without a `label` puts the value below the track
+ *
  * @since 1.0.0
+ * @example
+ * ```html
+ * <sg-slider label="Volume" [(value)]="volume" [showValue]="true" />
+ * ```
+ * @example
+ * ```html
+ * <sg-slider [min]="1" [max]="5" [step]="1" [value]="rating()" (valueChanged)="rate($event)" />
+ * ```
  */
 @Showcase({
     title: 'Slider',
@@ -96,19 +113,34 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class SliderComponent {
+    /** Lowest value the slider allows. */
     readonly min = input<number>(0);
+
+    /** Highest value the slider allows. */
     readonly max = input<number>(100);
+
+    /** Distance between two values the slider can stop at. */
     readonly step = input<number>(1);
+
+    /** Disables the slider and dims it. */
     readonly disabled = input<boolean>(false);
+
+    /** Shows the current value: in the header next to `label`, or below the track without one. */
     readonly showValue = input<boolean>(false);
+
+    /** Text in a header line above the track. */
     readonly label = input<string>('');
+
+    /** Current value. Two-way bindable with `[(value)]`. */
     readonly value = model<number>(50);
+
+    /** Emits the new value on user input and on `reset()`. Not emitted when `value` is set from outside. */
     readonly valueChanged = output<number>();
 
     protected readonly percentage = computed(() => ((this.value() - this.min()) / (this.max() - this.min())) * 100);
 
     /**
-     * Handles native input events from the range element.
+     * Handles the native `input` event of the range element: sets `value` and emits `valueChanged`.
      * @param event The native input event
      */
     onInput(event: Event): void {
@@ -118,7 +150,7 @@ export class SliderComponent {
         this.valueChanged.emit(val);
     }
 
-    /** Resets the slider value to the midpoint between min and max. */
+    /** Moves the slider to the midpoint between `min` and `max`, rounded, and emits `valueChanged`. */
     reset(): void {
         const mid = Math.round((this.min() + this.max()) / 2);
 

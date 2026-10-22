@@ -1,3 +1,5 @@
+import { mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { extractJsDocData } from './jsdoc-extractor.js';
 
@@ -126,5 +128,58 @@ describe('extractJsDocData with accessors', () => {
         const result = extractJsDocData(path.join(__dirname, '__fixtures__/documented-field.ts'), 'AccessorField');
 
         expect(result?.memberTags['value']).toEqual({ since: '3.0.0' });
+    });
+});
+
+describe('extractJsDocData across calls', () => {
+    const source = (description: string) => `/** ${description} */\nexport class CachedComponent {}\n`;
+    let dir: string;
+    let file: string;
+
+    beforeEach(() => {
+        dir = mkdtempSync(path.join(tmpdir(), 'jsdoc-extractor-'));
+        file = path.join(dir, 'cached.component.ts');
+    });
+
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+    // Set by hand on both writes: a time read back with stat and written again can lose its fraction of a millisecond.
+    const written = new Date(2026, 0, 1);
+
+    it('does not read a file again while its size and modification time stay the same', () => {
+        writeFileSync(file, source('First text.'));
+        utimesSync(file, written, written);
+
+        expect(extractJsDocData(file, 'CachedComponent')?.classDescription).toBe('First text.');
+
+        // Same length and the old modification time: only a new read could see the new text.
+        writeFileSync(file, source('Other text.'));
+        utimesSync(file, written, written);
+
+        expect(extractJsDocData(file, 'CachedComponent')?.classDescription).toBe('First text.');
+    });
+
+    it('reads a file again once it has changed', () => {
+        writeFileSync(file, source('First text.'));
+
+        expect(extractJsDocData(file, 'CachedComponent')?.classDescription).toBe('First text.');
+
+        writeFileSync(file, source('A longer second text.'));
+
+        expect(extractJsDocData(file, 'CachedComponent')?.classDescription).toBe('A longer second text.');
+    });
+
+    it('reads a file again when only its modification time has changed', () => {
+        writeFileSync(file, source('First text.'));
+        utimesSync(file, written, written);
+
+        expect(extractJsDocData(file, 'CachedComponent')?.classDescription).toBe('First text.');
+
+        writeFileSync(file, source('Other text.'));
+        const later = new Date(written.getTime() + 2000);
+
+        utimesSync(file, later, later);
+
+        expect(extractJsDocData(file, 'CachedComponent')?.classDescription).toBe('Other text.');
     });
 });

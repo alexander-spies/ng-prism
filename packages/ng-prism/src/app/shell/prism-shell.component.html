@@ -71,6 +71,11 @@
                         <prism-panel-host />
                     </div>
                 }
+            } @else if (navigationService.activeTarget() === 'service' || navigationService.activeTarget() === 'pipe') {
+                <prism-component-head>
+                    <prism-view-tab-bar headEnd />
+                </prism-component-head>
+                <prism-view-panel-host class="prism-main__canvas" />
             } @else if (navigationService.activePage()) {
                 <prism-page-renderer class="prism-main__canvas" />
             } @else {

@@ -9,11 +9,13 @@ The ng-prism build pipeline transforms library source files into a TypeScript `p
 ```
 Config load
     ↓
-Entry point scan  (TypeScript Compiler API)
+Entry point scan  (TypeScript Compiler API; reads what the plugins use)
+    ↓
+Services and pipes gate  (keep each kind only if a panel shows it)
     ↓
 Merge config pages
     ↓
-Plugin hooks  (onComponentScanned, onPageScanned, onManifestReady)
+Plugin hooks  (onComponentScanned, onServiceScanned, onPipeScanned, onPageScanned, onManifestReady)
     ↓
 Runtime manifest generation  (TypeScript source string)
     ↓
@@ -31,25 +33,55 @@ Atomic write  (skip if unchanged)
 - **Directory:** used as the library root directly; its `ng-package.json` names the primary entry file (`findPrimaryEntryFile()`)
 - **File:** `findLibraryRoot()` walks upward to the nearest `ng-package.json` and uses that directory as the library root. The file itself is the primary entry file. Without an `ng-package.json` above it, it is the only entry point (back-compat for non-ng-packagr setups).
 
+The scan returns the components, the services, the pipes and the diagnostics of one run. A `@Showcase` class with `@Injectable` or `@Service` is a service and one with `@Pipe` is a pipe: each goes into its own list, never into `components`, see [Services](architecture/scanner.md#services) and [Pipes](architecture/scanner.md#pipes).
+
+Before scanning, the pipeline looks at the plugins of the loaded config and passes the scan [`ScanOptions`](architecture/scanner.md#entry) for what they use. Reading more costs time on every rebuild of `serve` and makes the manifest bigger:
+
+- **`componentApi`** when some plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi) (`jsDocPlugin()` does). Without one the components come without `ScannedComponent.api`, and the manifest carries none.
+- **`services`** and **`pipes`** when some plugin has a view panel that applies to them, see the next step. Without one the scan only counts that kind: no API, no `setup`, no `@Pipe` metadata is read, so none of their warnings or diagnostics appear and [`strictShowcase`](api/ng-prism-config.md#strictshowcase) cannot fail over them.
+
 Discovery returns one entry per `ng-package.json` (excluding the primary `dest`-rooted one), and the primary entry point is appended last, marked `primary`. A component the primary re-exports from a secondary entry point keeps the secondary's import path. When the list stays empty, the pipeline warns that `entryPoint` resolves to no entry file. All entry points are fed into a single `Scanner` instance that is cached on `PrismPipelineState.scanner`. The import path attached to each scanned component (`my-lib`, `my-lib/atoms`, ...) is derived from the entry-point's relative directory.
 
 On rebuild, the same `Scanner` instance is reused. It passes the previous `ts.Program` to `ts.createProgram()` as `oldProgram`, together with a compiler host that returns the already parsed `SourceFile` of every unchanged file, so only changed files are re-parsed (see [How the Scanner Works](architecture/scanner.md#incremental-builds-the-createscanner-factory)). See [PrismPipelineState](#prismpipelinestate-scanner-reuse-across-rebuilds) below for how the cached scanner is invalidated when the entry-point set itself changes.
 
-### 3. Merge Config Pages
+### 3. Services and Pipes Gate
+
+A service page is made by a plugin's view panel that applies to services (`placement: 'view'` and `PanelDefinition.appliesTo` includes `'service'`, which `jsDocPlugin()` declares from 22.7.0 on). An addon panel does not count: a service page has no addon area. The pipeline reads that from the panels of the loaded config, whose Node side carries them along, before the scan:
+
+- **Some plugin has one:** the scan reads the services, and they go on, into the plugin hooks and the manifest.
+- **None has:** nothing could show the services, so the scan only counts them (`ScanResult.unread.services`). The manifest gets no `services`, no `onServiceScanned` runs, and the pipeline logs one hint instead, through the builder logger and without the `⚠`:
+
+```
+ng-prism: 2 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
+```
+
+The hint names the plugin version because a `@ng-prism/plugin-jsdoc` from before 22.7.0 has no such panel, so a config with `jsDocPlugin()` can still get it. The hint is not a diagnostic, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) does not fail over it. It is logged once per builder run: `PrismPipelineState.hints` remembers it, so `serve` does not repeat it on every rebuild. `PrismPipelineResult.serviceCount` is the number of services in the manifest, `0` when they were only counted however many the scan found.
+
+Pipes go through the same gate, decided on their own: it keeps the pipes when some plugin has a view panel whose `appliesTo` includes `'pipe'` (`jsDocPlugin()` declares it from 22.7.0 on), and a panel for services alone does not count for them. When none has one, the scan only counts the pipes, the manifest gets no `pipes`, no `onPipeScanned` runs, and the pipeline logs the hint for pipes through the same logger, also without the `⚠`:
+
+```
+ng-prism: 2 pipe(s) with @Showcase found, but no plugin shows pipes; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.
+```
+
+The reasoning, the fact that the hint is no diagnostic and that it is logged once per builder run, are the same as for services. `PrismPipelineResult.pipeCount` is the number of pipes in the manifest, `0` when they were only counted.
+
+### 4. Merge Config Pages
 
 `CustomPage` and `ComponentPage` entries from `config.pages` are appended to the page list produced by the scan.
 
-### 4. Plugin Hooks
+### 5. Plugin Hooks
 
 `runPluginHooks()` iterates over registered plugins in registration order:
 
 1. `onComponentScanned` called once per component
-2. `onPageScanned` called once per page
-3. `onManifestReady` called once with the full `PrismManifest`
+2. `onServiceScanned` called once per service
+3. `onPipeScanned` called once per pipe
+4. `onPageScanned` called once per page
+5. `onManifestReady` called once with the full `PrismManifest`
 
 All hooks are awaited, so async plugins are fully supported.
 
-### 5. Runtime Manifest Generation
+### 6. Runtime Manifest Generation
 
 `generateRuntimeManifest()` converts the `PrismManifest` (plain JSON-safe data) into a TypeScript source string that the showcase app can import. The generated file contains real `import` statements:
 
@@ -68,7 +100,18 @@ export default {
 
 This avoids JSON serialization of Angular class references and keeps tree-shaking intact.
 
-### 6. Atomic Write (Skip If Unchanged)
+Services are written as data, in a `services` list next to `components`, and the service class is **not imported**. A service page is documentation, so an import would only add bundle size and possible side effects:
+
+```typescript
+export default {
+    components: [/* ... */],
+    services: [{ meta: { className: 'NotificationService', provision: 'auto', api: {/* ... */} } }]
+};
+```
+
+Pipes are written the same way, in a `pipes` list, with the `meta` of each pipe and no import of its class. A list is only written when there is something in it: a library without services or pipes gets the manifest it always got.
+
+### 7. Atomic Write (Skip If Unchanged)
 
 `writeManifestIfChanged()` reads the existing manifest and compares it string-for-string with the new content. If identical, the write is skipped and `result.written` is `false`.
 
@@ -84,13 +127,15 @@ The generated `prism-manifest.ts` is written to `<workspaceRoot>/ng-prism-cache/
 export interface PrismPipelineState {
     scanner: Scanner | undefined;
     lastEntrySetKey: string | undefined;
+    hints: Set<string>;
 }
 ```
 
-The builder creates one `PrismPipelineState` per builder run (not per file change). It is passed into every `runPrismPipeline()` call and caches two things:
+The builder creates one `PrismPipelineState` per builder run (not per file change). It is passed into every `runPrismPipeline()` call and caches three things:
 
 - **`scanner`:** a single `Scanner` instance that owns the underlying `ts.Program`. When it is reused across rebuilds, the previous program is passed in as `oldProgram` and the scanner's source-file cache hands TypeScript every unchanged `SourceFile`, so only changed files are re-parsed.
 - **`lastEntrySetKey`:** the sorted-and-joined list of entry-file paths from the previous run. It acts as a fingerprint of the entry-point set.
+- **`hints`:** the hints already logged, such as the one about services no plugin shows, so that each appears once per builder run.
 
 Before each scan the pipeline computes a fresh entry-set key. If it differs from `lastEntrySetKey` (for example because a new secondary entry point was added or removed), the cached `scanner` is discarded (`state.scanner = undefined`) so the next call constructs a fresh one with the new entry set. Otherwise the existing scanner is reused, preserving its incremental-compilation state for fast rebuilds.
 

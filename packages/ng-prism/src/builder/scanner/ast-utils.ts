@@ -524,7 +524,27 @@ export function getJsDocComment(node: ts.Node, checker: ts.TypeChecker): string 
 
     if (!symbol) return undefined;
 
-    const doc = ts.displayPartsToString(symbol.getDocumentationComment(checker)).trim();
+    const doc = joinDocParts(symbol.getDocumentationComment(checker)).trim();
 
     return doc || undefined;
+}
+
+/**
+ * Joins the parts of a comment like `ts.displayPartsToString`, except that a
+ * link keeps the separator between its target and its text. TypeScript drops
+ * it, and `{@link Item | the item}` would read `{@link Itemthe item}`. It only
+ * splits a link into a `linkName` and a `linkText` when the target resolves to a
+ * symbol. Any other target comes as one `linkText` that still ends in the blank
+ * before the closing brace, which is trimmed here.
+ */
+function joinDocParts(parts: ts.SymbolDisplayPart[]): string {
+    return parts
+        .map((part, index) => {
+            if (part.kind !== 'linkText') return part.text;
+
+            const text = parts[index + 1]?.kind === 'link' ? part.text.trimEnd() : part.text;
+
+            return parts[index - 1]?.kind === 'linkName' ? ` | ${text}` : text;
+        })
+        .join('');
 }

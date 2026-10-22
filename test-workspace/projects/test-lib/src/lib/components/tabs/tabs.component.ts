@@ -1,15 +1,37 @@
 import { ChangeDetectionStrategy, Component, input, model, output, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** One tab of a `TabsComponent`. */
 export interface TabItem {
+    /** Unique id, the value `activeTabId` holds and `tabChanged` emits. */
     id: string;
+    /** Text on the tab. */
     label: string;
+    /** Shows the tab but keeps it from being selected. */
     disabled?: boolean;
 }
 
 /**
- * A horizontal tab bar for switching between views or content sections.
+ * Horizontal tab bar that switches between sections of a view.
+ *
+ * The bar only tracks which tab is active. Render the content for `activeTabId` yourself, below it.
+ * `activeTabId` is a model, so `[(activeTabId)]` keeps your state in sync, and `tabChanged` emits the same id on every switch.
+ *
+ * The tabs carry `role="tab"` and `aria-selected` inside a `role="tablist"`. Disabled tabs stay visible but cannot be selected.
+ *
  * @since 1.0.0
+ * @see TabItem
+ * @example
+ * ```html
+ * <sg-tabs [tabs]="tabs" [(activeTabId)]="active" />
+ * ```
+ * @example
+ * ```ts
+ * readonly tabs: TabItem[] = [
+ *   { id: 'overview', label: 'Overview' },
+ *   { id: 'billing', label: 'Billing', disabled: true },
+ * ];
+ * ```
  */
 @Showcase({
     title: 'Tabs',
@@ -120,13 +142,18 @@ export interface TabItem {
     `
 })
 export class TabsComponent {
+    /** The tabs, in order, see {@link TabItem}. */
     readonly tabs = input.required<TabItem[]>();
+
+    /** Id of the active tab. Two-way bindable with `[(activeTabId)]`. */
     readonly activeTabId = model<string>('');
+
+    /** Emits the id of a tab when it is activated. Never emitted for a disabled tab. */
     readonly tabChanged = output<string>();
 
     /**
-     * Activates the given tab and emits the tabChanged event.
-     * @param tabId The id of the tab to activate
+     * Activates a tab as a click would: sets `activeTabId` and emits `tabChanged`. Ignored for a disabled tab.
+     * @param tabId The `id` of the tab to activate
      */
     selectTab(tabId: string): void {
         const tab = this.tabs().find((t) => t.id === tabId);

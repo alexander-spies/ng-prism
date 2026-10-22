@@ -1,10 +1,19 @@
 #!/usr/bin/env node
-// Screenshot one @Showcase variant, optionally in one of the component's `states`, in a running ng-prism
-// styleguide. Ships with the `showcase` skill of the ng-prism Claude Code plugin; ng-prism's own repo runs it
-// too (skill prism-test-workspace).
+// Screenshot one @Showcase variant, optionally in one of the component's `states`, or the API page of a showcased
+// service or pipe, in a running ng-prism styleguide. Ships with the `showcase` skill of the ng-prism Claude Code
+// plugin; ng-prism's own repo runs it too (skill prism-test-workspace).
 //
 //   node <skill dir>/scripts/screenshot.mjs --component ButtonComponent [--variant 1] [--state 0] [--shell]
 //        [--url http://localhost:4400] [--out file.png] [--timeout 30000]
+//   node <skill dir>/scripts/screenshot.mjs --service NotificationService [--url …] [--out …] [--timeout …]
+//   node <skill dir>/scripts/screenshot.mjs --pipe TimeAgoPipe [--url …] [--out …] [--timeout …]
+//
+// --service, --pipe: a service or pipe has no canvas; its page is what @ng-prism/plugin-jsdoc renders from its JSDoc.
+// The script opens `?service=<ClassName>&view=jsdoc` (`?pipe=…` for a pipe), waits for
+// `[data-prism-service-rendered="<ClassName>"]` (`data-prism-pipe-rendered` for a pipe) and its code blocks, and
+// screenshots that page at its full length, without the sidebar and header. Neither can be combined with the other,
+// --component, --variant, --state or --shell. Services and pipes aren't listed in `__PRISM_MANIFEST__`, so an unknown
+// class name only shows as the marker never appearing.
 //
 // Run it from the project root. Playwright comes from that project (`playwright`, else `@playwright/test`),
 // resolved from the current directory, never from where this file lives (a plugin cache has no node_modules).
@@ -16,8 +25,8 @@
 // Without it no state is active. A state does not fit every variant: when the styleguide marks the cell with
 // `data-prism-excluded`, the script prints the reason, takes no screenshot and exits 4.
 //
-// Exit codes: 0 saved · 1 styleguide unreachable, component, variant or state unknown, the variant never
-// rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing · 4 the
+// Exit codes: 0 saved · 1 styleguide unreachable, component, variant or state unknown, the variant or the service or
+// pipe page never rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing · 4 the
 // requested state does not fit the variant (the styleguide marked the cell as excluded).
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -42,7 +51,10 @@ try {
     ({ values } = parseArgs({
         options: {
             component: { type: 'string' },
-            variant: { type: 'string', default: '0' },
+            service: { type: 'string' },
+            pipe: { type: 'string' },
+            // No default here: --service and --pipe must be able to tell an explicit --variant from none.
+            variant: { type: 'string' },
             state: { type: 'string' },
             url: { type: 'string', default: 'http://localhost:4400' },
             shell: { type: 'boolean', default: false },
@@ -54,10 +66,32 @@ try {
     exitWith(2, firstLine(error));
 }
 
+// A service and a pipe each have an API page instead of a canvas; `apiPage` says which one is asked for.
+const API_PAGE_KINDS = {
+    service: { example: 'NotificationService', noun: 'Service' },
+    pipe: { example: 'TimeAgoPipe', noun: 'Pipe' }
+};
 const { component, shell } = values;
-if (!component) exitWith(2, 'Missing --component <ClassName>, e.g. --component ButtonComponent');
-if (!/^\d+$/.test(values.variant)) exitWith(2, `--variant must be a 0-based index, got "${values.variant}"`);
-const variant = Number(values.variant);
+const apiPageKinds = Object.keys(API_PAGE_KINDS).filter((kind) => values[kind] !== undefined);
+let apiPage;
+
+if (apiPageKinds.length > 1) {
+    exitWith(2, "--service and --pipe each take a whole API page and can't be combined with each other");
+} else if (apiPageKinds.length === 1) {
+    const [kind] = apiPageKinds;
+    const className = values[kind];
+
+    if (!className) exitWith(2, `Missing class name after --${kind}, e.g. --${kind} ${API_PAGE_KINDS[kind].example}`);
+    const clashing = ['component', 'variant', 'state'].filter((name) => values[name] !== undefined).concat(shell ? ['shell'] : []);
+
+    if (clashing.length > 0) exitWith(2, `--${kind} takes the whole API page and can't be combined with ${clashing.map((name) => `--${name}`).join(', ')}`);
+    apiPage = { kind, className, noun: API_PAGE_KINDS[kind].noun };
+} else if (!component) {
+    exitWith(2, 'Missing --component <ClassName>, --service <ClassName> or --pipe <ClassName>, e.g. --component ButtonComponent');
+}
+const variantArg = values.variant ?? '0';
+if (!/^\d+$/.test(variantArg)) exitWith(2, `--variant must be a 0-based index, got "${variantArg}"`);
+const variant = Number(variantArg);
 if (values.state !== undefined && !/^\d+$/.test(values.state)) exitWith(2, `--state must be a 0-based index, got "${values.state}"`);
 const state = values.state === undefined ? undefined : Number(values.state);
 const timeout = Number(values.timeout);
@@ -71,14 +105,30 @@ try {
 }
 if (!base || !['http:', 'https:'].includes(base.protocol)) exitWith(2, `--url must be an http(s) URL such as http://localhost:4400, got "${values.url}"`);
 
-const out = values.out ?? join(tmpdir(), `prism-${component}-${variant}${state === undefined ? '' : `-s${state}`}${shell ? '-shell' : ''}.png`);
+const out =
+    values.out ??
+    join(
+        tmpdir(),
+        apiPage ? `prism-${apiPage.kind}-${apiPage.className}.png` : `prism-${component}-${variant}${state === undefined ? '' : `-s${state}`}${shell ? '-shell' : ''}.png`
+    );
 const target = new URL(base);
-target.searchParams.set('component', component);
-target.searchParams.set('variant', String(variant));
-if (state !== undefined) target.searchParams.set('state', String(state));
-if (!shell) target.searchParams.set('capture', '1');
+if (apiPage) {
+    target.searchParams.set(apiPage.kind, apiPage.className);
+    // The API page is the JSDoc plugin's view panel, whose id is `jsdoc`.
+    target.searchParams.set('view', 'jsdoc');
+} else {
+    target.searchParams.set('component', component);
+    target.searchParams.set('variant', String(variant));
+    if (state !== undefined) target.searchParams.set('state', String(state));
+    if (!shell) target.searchParams.set('capture', '1');
+}
 const url = target.href;
-const marker = `.demo-wrap[data-prism-rendered="${component}:${variant}${state === undefined ? '' : `:${state}`}"]`;
+const marker = apiPage
+    ? `[data-prism-${apiPage.kind}-rendered="${apiPage.className}"]`
+    : `.demo-wrap[data-prism-rendered="${component}:${variant}${state === undefined ? '' : `:${state}`}"]`;
+
+// An API page longer than this is cut there; Chromium can't capture much more in one image.
+const MAX_API_PAGE_HEIGHT = 15000;
 
 async function loadChromium() {
     const requireFromProject = createRequire(join(process.cwd(), 'package.json'));
@@ -105,6 +155,57 @@ async function saveDiagnosis(page) {
     }
 }
 
+// What has to be true for a service or pipe to get a page. The jsDocPlugin() requirement is the same for both.
+const API_PAGE_HINTS = {
+    service: 'A service is shown only with @Showcase on an @Injectable or @Service class',
+    pipe: 'A pipe is shown only with @Showcase on a standalone @Pipe class'
+};
+
+async function captureApiPage(page) {
+    try {
+        await page.waitForSelector(marker, { state: 'attached', timeout });
+    } catch {
+        console.error(`${apiPage.noun} page never rendered: no ${marker} within ${timeout} ms at ${url}`);
+        await saveDiagnosis(page);
+        console.error(
+            `Check the class name. ${API_PAGE_HINTS[apiPage.kind]} and with jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer. ` +
+                `If ng-prism.config.ts sets urlState: false, the styleguide ignores the URL parameters this script selects the ${apiPage.kind} with.`
+        );
+        return 1;
+    }
+
+    // Highlight.js gives a code block the class `hljs` once it is highlighted; a page caught earlier shows plain code.
+    // Best effort: a block that never gets highlighted is no reason to lose the screenshot.
+    await page
+        .waitForFunction((selector) => [...globalThis.document.querySelectorAll(`${selector} pre code`)].every((code) => code.classList.contains('hljs')), marker, {
+            timeout: Math.min(timeout, 5000)
+        })
+        .catch(() => {});
+
+    // The page is its own scroll container, as high as the window. Growing the window to the page's full height lets
+    // one element screenshot hold all of it, the type cards at the bottom included.
+    const size = await page.evaluate((selector) => {
+        const element = globalThis.document.querySelector(selector);
+
+        return { top: element.getBoundingClientRect().top, height: element.scrollHeight };
+    }, marker);
+    const viewport = page.viewportSize();
+    const fullHeight = Math.ceil(size.top + size.height);
+
+    if (fullHeight > MAX_API_PAGE_HEIGHT) console.error(`The page is ${fullHeight} px high; the screenshot is cut at ${MAX_API_PAGE_HEIGHT} px.`);
+    await page.setViewportSize({ width: viewport.width, height: Math.max(viewport.height, Math.min(fullHeight, MAX_API_PAGE_HEIGHT)) });
+    await page.evaluate(() => new Promise((resolve) => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve))));
+
+    try {
+        await page.locator(marker).screenshot({ path: out, timeout });
+    } catch (error) {
+        console.error(`Could not save the screenshot at ${url} (${firstLine(error).replace(/\.$/, '')}).`);
+        return 1;
+    }
+    console.log(`${url}\n${out}`);
+    return 0;
+}
+
 async function capture(page) {
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
@@ -122,6 +223,8 @@ async function capture(page) {
         await saveDiagnosis(page);
         return 1;
     }
+
+    if (apiPage) return captureApiPage(page);
 
     const entry = manifest.components.find((c) => c.className === component);
     if (!entry) {

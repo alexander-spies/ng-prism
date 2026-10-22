@@ -409,6 +409,472 @@ describe('runPrismPipeline entry point resolution', () => {
     });
 });
 
+describe('runPrismPipeline services', () => {
+    let tmp: string;
+
+    afterEach(() => {
+        if (tmp && existsSync(tmp)) {
+            rmSync(tmp, { recursive: true, force: true });
+        }
+    });
+
+    const options = {
+        entryPoint: 'lib/public-api.ts',
+        libraryImportPath: 'my-lib',
+        prismProject: 'my-lib-prism',
+        configFile: 'ng-prism.config.ts'
+    };
+    const HINT =
+        'ng-prism: 1 service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.';
+
+    /** A library of one component and one service, whose setup function the entry point exports. */
+    function createServicesWorkspace(config: string): string {
+        const root = mkdtempSync(join(tmpdir(), 'ng-prism-pipeline-services-'));
+        const lib = join(root, 'lib');
+
+        mkdirSync(lib);
+        writeFileSync(join(root, 'ng-prism.config.ts'), config, 'utf-8');
+        writeFileSync(
+            join(lib, 'public-api.ts'),
+            ["export { BadgeComponent } from './badge.component.js';", "export { provideToast, ToastService } from './toast.service.js';", ''].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'badge.component.ts'),
+            [
+                "import { Component } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                "@Showcase({ title: 'Badge' })",
+                "@Component({ selector: 'ui-badge', standalone: true, template: '<span></span>' })",
+                'export class BadgeComponent {}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'toast.service.ts'),
+            [
+                "import { Injectable } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                'export function provideToast(): unknown[] {',
+                '    return [];',
+                '}',
+                "@Showcase({ title: 'Toast Service', setup: () => [provideToast] })",
+                "@Injectable({ providedIn: 'root' })",
+                'export class ToastService {',
+                '    show(message: string): void {}',
+                '}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        return root;
+    }
+
+    /** `Object.assign` rather than spread, for the reason the a11y test above gives. */
+    const SERVICE_PANEL_CONFIG = `export default {
+      plugins: [
+        {
+          name: 'test-service-panel-plugin',
+          panels: [{ id: 'api', label: 'API', placement: 'view', appliesTo: ['service'] }],
+          onServiceScanned(service) {
+            return Object.assign({}, service, { meta: { fromPlugin: 'service-hook' } });
+          },
+        },
+      ],
+    };`;
+
+    function hintsLogged(ctx: BuilderContext): unknown[][] {
+        return (ctx.logger.info as jest.Mock).mock.calls.filter(([message]) => String(message).includes('no plugin shows services'));
+    }
+
+    it('drops services and logs a hint when no panel shows services', async () => {
+        tmp = createServicesWorkspace('export default { plugins: [] };');
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.serviceCount).toBe(0);
+        expect(result.componentCount).toBe(1);
+        expect(ctx.logger.info).toHaveBeenCalledWith(HINT);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+        expect(readManifest(tmp)).not.toContain('services:');
+        expect(readManifest(tmp)).not.toContain('ToastService');
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\) at /));
+    });
+
+    it('does not count a panel that applies to components only as one that shows services', async () => {
+        tmp = createServicesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B', appliesTo: ['component'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.serviceCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+    });
+
+    it('logs the hint once per builder run, not on every rebuild of serve', async () => {
+        tmp = createServicesWorkspace('export default { plugins: [] };');
+        const ctx = createMockContext(tmp);
+        const state = createPipelineState();
+
+        await runPrismPipeline(options, ctx, state);
+        await runPrismPipeline(options, ctx, state);
+
+        expect(hintsLogged(ctx)).toHaveLength(1);
+
+        await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(hintsLogged(ctx)).toHaveLength(2);
+    });
+
+    it('only counts the services when nothing shows them, so what it cannot read in them does not fail strictShowcase', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            tmp = createServicesWorkspace('export default { strictShowcase: true, plugins: [] };');
+            const servicePath = join(tmp, 'lib', 'toast.service.ts');
+
+            writeFileSync(servicePath, readFileSync(servicePath, 'utf-8').replace('setup: () => [provideToast]', 'setup: provideToast'), 'utf-8');
+
+            const result = await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+            expect(result.serviceCount).toBe(0);
+            expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('ToastService › setup'));
+
+            writeFileSync(join(tmp, 'ng-prism.config.ts'), SERVICE_PANEL_CONFIG.replace('export default {', 'export default {\n      strictShowcase: true,'), 'utf-8');
+
+            await expect(runPrismPipeline(options, createMockContext(tmp), createPipelineState())).rejects.toThrow(/strictShowcase is enabled and 1 @Showcase value/);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('writes the API of a component into the manifest only when a plugin asks for it', async () => {
+        tmp = createServicesWorkspace('export default { plugins: [] };');
+
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(readManifest(tmp)).not.toContain('api:');
+
+        writeFileSync(join(tmp, 'ng-prism.config.ts'), "export default { plugins: [{ name: 'api-reader', componentApi: true }] };", 'utf-8');
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(readManifest(tmp)).toContain('api:');
+    });
+
+    it('does not count an addon panel that applies to services as one that shows services', async () => {
+        tmp = createServicesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', appliesTo: ['service'] }, { id: 'b', label: 'B', placement: 'addon', appliesTo: ['component', 'service'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.serviceCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+    });
+
+    it('does not turn the hint into a diagnostic: strictShowcase stays quiet about dropped services', async () => {
+        tmp = createServicesWorkspace('export default { strictShowcase: true };');
+        const ctx = createMockContext(tmp);
+
+        await expect(runPrismPipeline(options, ctx, createPipelineState())).resolves.toMatchObject({ serviceCount: 0 });
+    });
+
+    it('keeps services when a plugin panel applies to services', async () => {
+        tmp = createServicesWorkspace(SERVICE_PANEL_CONFIG);
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.serviceCount).toBe(1);
+        expect(hintsLogged(ctx)).toHaveLength(0);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\), 1 service\(s\) at /));
+    });
+
+    it('keeps services when one panel applies to both components and services', async () => {
+        tmp = createServicesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', placement: 'view', appliesTo: ['component', 'service'] }] }] };"
+        );
+
+        const result = await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(result.serviceCount).toBe(1);
+    });
+
+    it('runs onServiceScanned and writes the services into the runtime manifest as data', async () => {
+        tmp = createServicesWorkspace(SERVICE_PANEL_CONFIG);
+
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        const content = readManifest(tmp);
+
+        expect(content).toContain('services: [');
+        expect(content).toContain('className: "ToastService"');
+        expect(content).toContain('fromPlugin: "service-hook"');
+        expect(content).toContain('importPath: "my-lib"');
+        expect(content).toContain('name: "provideToast"');
+        expect(content).toContain("import { BadgeComponent } from 'my-lib';");
+        expect(content).not.toMatch(/import \{[^}]*ToastService/);
+    });
+
+    it('lists services in the log line before the pages', async () => {
+        tmp = createServicesWorkspace(SERVICE_PANEL_CONFIG.replace('export default {', "export default {\n  pages: [{ type: 'custom', title: 'Intro', data: {} }],"));
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pageCount).toBe(1);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\), 1 service\(s\) and 1 page\(s\) at /));
+    });
+
+    it('writes no services and logs no hint for a library that has none', async () => {
+        tmp = createTempWorkspace();
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline({ ...options, libraryImportPath: 'my-lib' }, ctx, createPipelineState());
+
+        expect(result.serviceCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(0);
+        expect(readManifest(tmp)).not.toContain('services:');
+    });
+});
+
+describe('runPrismPipeline pipes', () => {
+    let tmp: string;
+
+    afterEach(() => {
+        if (tmp && existsSync(tmp)) {
+            rmSync(tmp, { recursive: true, force: true });
+        }
+    });
+
+    const options = {
+        entryPoint: 'lib/public-api.ts',
+        libraryImportPath: 'my-lib',
+        prismProject: 'my-lib-prism',
+        configFile: 'ng-prism.config.ts'
+    };
+    const HINT =
+        'ng-prism: 1 pipe(s) with @Showcase found, but no plugin shows pipes; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.';
+
+    /** A library of one component, one pipe whose setup function the entry point exports, and one service. */
+    function createPipesWorkspace(config: string): string {
+        const root = mkdtempSync(join(tmpdir(), 'ng-prism-pipeline-pipes-'));
+        const lib = join(root, 'lib');
+
+        mkdirSync(lib);
+        writeFileSync(join(root, 'ng-prism.config.ts'), config, 'utf-8');
+        writeFileSync(
+            join(lib, 'public-api.ts'),
+            [
+                "export { BadgeComponent } from './badge.component.js';",
+                "export { provideTimeAgo, TimeAgoPipe } from './time-ago.pipe.js';",
+                "export { ToastService } from './toast.service.js';",
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'badge.component.ts'),
+            [
+                "import { Component } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                "@Showcase({ title: 'Badge' })",
+                "@Component({ selector: 'ui-badge', standalone: true, template: '<span></span>' })",
+                'export class BadgeComponent {}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'time-ago.pipe.ts'),
+            [
+                "import { Pipe, type PipeTransform } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                'export function provideTimeAgo(): unknown[] {',
+                '    return [];',
+                '}',
+                "@Showcase({ title: 'Time ago', setup: () => [provideTimeAgo] })",
+                "@Pipe({ name: 'timeAgo' })",
+                'export class TimeAgoPipe implements PipeTransform {',
+                '    transform(value: Date): string {',
+                "        return '';",
+                '    }',
+                '}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        writeFileSync(
+            join(lib, 'toast.service.ts'),
+            [
+                "import { Injectable } from '@angular/core';",
+                'function Showcase(config: Record<string, unknown>): ClassDecorator {',
+                '    return () => {};',
+                '}',
+                "@Showcase({ title: 'Toast Service' })",
+                "@Injectable({ providedIn: 'root' })",
+                'export class ToastService {',
+                '    show(message: string): void {}',
+                '}',
+                ''
+            ].join('\n'),
+            'utf-8'
+        );
+        return root;
+    }
+
+    /** `Object.assign` rather than spread, for the reason the a11y test above gives. */
+    const PIPE_PANEL_CONFIG = `export default {
+      plugins: [
+        {
+          name: 'test-pipe-panel-plugin',
+          panels: [{ id: 'api', label: 'API', placement: 'view', appliesTo: ['pipe'] }],
+          onPipeScanned(pipe) {
+            return Object.assign({}, pipe, { meta: { fromPlugin: 'pipe-hook' } });
+          },
+        },
+      ],
+    };`;
+
+    function hintsLogged(ctx: BuilderContext): unknown[][] {
+        return (ctx.logger.info as jest.Mock).mock.calls.filter(([message]) => String(message).includes('no plugin shows pipes'));
+    }
+
+    it('drops pipes and logs a hint when no view panel applies to pipes', async () => {
+        tmp = createPipesWorkspace('export default { plugins: [] };');
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(result.componentCount).toBe(1);
+        expect(ctx.logger.info).toHaveBeenCalledWith(HINT);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+        expect(readManifest(tmp)).not.toContain('pipes:');
+        expect(readManifest(tmp)).not.toContain('TimeAgoPipe');
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\) at /));
+    });
+
+    it('does not count a panel that applies to components or services only as one that shows pipes', async () => {
+        tmp = createPipesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B', appliesTo: ['component'] }, { id: 'c', label: 'C', placement: 'view', appliesTo: ['service'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(result.serviceCount).toBe(1);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+    });
+
+    it('does not count an addon panel that applies to pipes as one that shows pipes', async () => {
+        tmp = createPipesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', appliesTo: ['pipe'] }, { id: 'b', label: 'B', placement: 'addon', appliesTo: ['component', 'pipe'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(1);
+    });
+
+    it('does not turn the hint into a diagnostic: strictShowcase stays quiet about dropped pipes', async () => {
+        tmp = createPipesWorkspace('export default { strictShowcase: true };');
+        const ctx = createMockContext(tmp);
+
+        await expect(runPrismPipeline(options, ctx, createPipelineState())).resolves.toMatchObject({ pipeCount: 0 });
+    });
+
+    it('keeps pipes when a view panel applies to pipes', async () => {
+        tmp = createPipesWorkspace(PIPE_PANEL_CONFIG);
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(1);
+        expect(hintsLogged(ctx)).toHaveLength(0);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\), 1 pipe\(s\) at /));
+    });
+
+    it('keeps pipes when one view panel applies to components, services and pipes', async () => {
+        tmp = createPipesWorkspace(
+            "export default { plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', placement: 'view', appliesTo: ['component', 'service', 'pipe'] }] }] };"
+        );
+
+        const result = await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        expect(result.pipeCount).toBe(1);
+        expect(result.serviceCount).toBe(1);
+    });
+
+    it('judges services and pipes on their own: a panel that shows pipes does not show services', async () => {
+        tmp = createPipesWorkspace(PIPE_PANEL_CONFIG);
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(1);
+        expect(result.serviceCount).toBe(0);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('1 service(s) with @Showcase found, but no plugin shows services'));
+        expect(readManifest(tmp)).not.toContain('ToastService');
+    });
+
+    it('runs onPipeScanned and writes the pipes into the runtime manifest as data', async () => {
+        tmp = createPipesWorkspace(PIPE_PANEL_CONFIG);
+
+        await runPrismPipeline(options, createMockContext(tmp), createPipelineState());
+
+        const content = readManifest(tmp);
+
+        expect(content).toContain('pipes: [');
+        expect(content).toContain('className: "TimeAgoPipe"');
+        expect(content).toContain('pipeName: "timeAgo"');
+        expect(content).toContain('fromPlugin: "pipe-hook"');
+        expect(content).toContain('importPath: "my-lib"');
+        expect(content).toContain('name: "provideTimeAgo"');
+        expect(content).toContain("import { BadgeComponent } from 'my-lib';");
+        expect(content).not.toMatch(/import \{[^}]*TimeAgoPipe/);
+    });
+
+    it('lists pipes in the log line after the services and before the pages', async () => {
+        tmp = createPipesWorkspace(
+            "export default { pages: [{ type: 'custom', title: 'Intro', data: {} }], plugins: [{ name: 'p', panels: [{ id: 'a', label: 'A', placement: 'view', appliesTo: ['service', 'pipe'] }] }] };"
+        );
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline(options, ctx, createPipelineState());
+
+        expect(result.pageCount).toBe(1);
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringMatching(/with 1 component\(s\), 1 service\(s\), 1 pipe\(s\) and 1 page\(s\) at /));
+    });
+
+    it('writes no pipes and logs no hint for a library that has none', async () => {
+        tmp = createTempWorkspace();
+        const ctx = createMockContext(tmp);
+
+        const result = await runPrismPipeline({ ...options, libraryImportPath: 'my-lib' }, ctx, createPipelineState());
+
+        expect(result.pipeCount).toBe(0);
+        expect(hintsLogged(ctx)).toHaveLength(0);
+        expect(readManifest(tmp)).not.toContain('pipes:');
+    });
+});
+
 describe('runPrismPipeline deprecated options', () => {
     let tmp: string;
 

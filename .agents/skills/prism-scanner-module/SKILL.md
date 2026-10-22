@@ -16,29 +16,40 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
         ↓                      ↓
   resolves exports      uses input.extractor
   from the entry file   uses ast-utils
-  (builder option
-   `entryPoint`, e.g.
+  (builder option       uses api/component-api.extractor
+   `entryPoint`, e.g.   (API of a component or directive)
    public-api.ts)
+        ↓
+  service.scanner, pipe.scanner
+        ↓
+  use api/ (decorators, setup, members, types,
+  export index; the API extractors of services,
+  pipes and components/directives)
 ```
 
-**Orchestrator:** `scanner.ts` connects everything. It exports `createScanner(options: CreateScannerOptions): Scanner` — a factory that returns the scanner, not a bare `scan()` function.
+**Orchestrator:** `scanner.ts` connects everything. It exports `createScanner(options: CreateScannerOptions): Scanner` — a factory that returns the scanner, not a bare `scan()` function. Per entry point it calls `findShowcasedClasses(exports, checker)` (in `component.scanner.ts`) once, which resolves each export to its class, keeps the `@Showcase` ones and classifies each with `classifyShowcaseClass` (`@Component`/`@Directive` first, then `@Pipe`, then `@Injectable`/`@Service`, Angular's decorators found by their name in `@angular/core`, aliased or namespace imports included). `scanComponents`, `scanServices` and `scanPipes` take that `ShowcasedClass[]` and keep the classes of their `kind`, so the three never claim the same class and none classifies again. All three take an export index built from every entry point first, since a setup function or a type is often exported by another entry point than the class that names it. `scanComponents(showcased, checker, { diagnostics, notices, exportIndex, api })` takes an options object. `scan(options?: ScanOptions)` reads `componentApi`, `services` and `pipes` (each `true` when not given): without `services` or `pipes` the scan only counts that kind, and without `componentApi` the components come without `api`. It returns `{ components, services, pipes, unread, diagnostics }`, `unread` counting what the options left unread. An extractor that throws must not take the scan down: catch it and `notify` with `describeUnreadableApi`, as the three scanners do.
 
 ## Existing Modules
 
-| Module                     | Purpose                                                                                                                     |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `ast-utils.ts`             | Static AST evaluation utilities                                                                                             |
-| `class-hierarchy.ts`       | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)                                          |
-| `entry-point.scanner.ts`   | Resolve exports from entry point                                                                                            |
-| `component.scanner.ts`     | Find @Showcase components, extract config                                                                                   |
-| `input.extractor.ts`       | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`)                                         |
-| `manifest.generator.ts`    | Generate prism-manifest.ts source code                                                                                      |
-| `pseudo-states.ts`         | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                     |
-| `showcase-diagnostics.ts`  | Word the warnings for `@Showcase` values the scan had to drop                                                               |
-| `showcase-states.ts`       | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                              |
-| `entry-point-discovery.ts` | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`) |
-| `scanner.ts`               | Orchestrator — exports `createScanner(options)`, which returns a `Scanner`                                                  |
-| `index.ts`                 | Public surface of the scanner (re-exports the functions and their types)                                                    |
+| Module                           | Purpose                                                                                                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ast-utils.ts`                   | Static AST evaluation utilities                                                                                                                                                  |
+| `class-hierarchy.ts`             | Walk a class's `extends` chain so inherited inputs are found (`getClassHierarchy`)                                                                                               |
+| `entry-point.scanner.ts`         | Resolve exports from entry point                                                                                                                                                 |
+| `component.scanner.ts`           | Find @Showcase components, extract config                                                                                                                                        |
+| `input.extractor.ts`             | Extract `input()`/`output()`/`model()` metadata (and legacy `@Input()`/`@Output()`)                                                                                              |
+| `manifest.generator.ts`          | Generate prism-manifest.ts source code                                                                                                                                           |
+| `pseudo-states.ts`               | Read and validate a variant's forced pseudo states (`readPseudoStates`)                                                                                                          |
+| `showcase-diagnostics.ts`        | Word the warnings for `@Showcase` values the scan had to drop                                                                                                                    |
+| `showcase-states.ts`             | Read and validate the component-level `states` list, keeping every slot (`readShowcaseStates`)                                                                                   |
+| `entry-point-discovery.ts`       | Find a library's secondary entry points and its primary entry file (`discoverSecondaryEntryPoints`, `findPrimaryEntryFile`)                                                      |
+| `service.scanner.ts`             | Find @Showcase services (`@Injectable`/`@Service` from `@angular/core`), read provision, `setup` and API (`scanServices`)                                                        |
+| `api/`                           | API extraction for services, pipes, components and directives: decorators, `setup` reader, export index, doc tags, members, types                                                |
+| `pipe.scanner.ts`                | Find @Showcase pipes (`@Pipe` from `@angular/core`), read name, purity and standalone, extract `transform` (`scanPipes`)                                                         |
+| `api/pipe-api.extractor.ts`      | `PipeApi` of one pipe: `transform` overloads (`extractOverloads` from `member.extractor.ts`, shared with service methods), also from a `.d.ts` base, setup and types             |
+| `api/component-api.extractor.ts` | `ComponentApi` of a component or directive, run for each by `scanComponents`: input types, output payloads, `model()` changes, documented methods, types (`extractComponentApi`) |
+| `scanner.ts`                     | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components, services and pipes                                                                   |
+| `index.ts`                       | Public surface of the scanner (re-exports the functions and their types)                                                                                                         |
 
 ## Module Template
 

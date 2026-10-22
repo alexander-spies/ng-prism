@@ -2,8 +2,30 @@ import { ChangeDetectionStrategy, Component, input, output, ViewEncapsulation } 
 import { Showcase } from '@ng-prism/core';
 
 /**
- * A versatile card container with optional header, image, and action footer.
+ * Surface that groups a title, a short text and an optional image.
+ *
+ * ## Modes
+ *
+ * - **Elevated** (default): a soft shadow lifts the card off the page
+ * - **Outlined**: `[elevated]="false"` swaps the shadow for a border
+ * - **Clickable**: `clickable` adds a hover style, a pointer cursor and the `clicked` output
+ *
+ * A clickable card listens for clicks on its host element. It is not a button, so keyboard users
+ * still need a real link or button inside it.
+ *
  * @since 1.0.0
+ * @example
+ * ```html
+ * <sg-card title="Quarterly report" subtitle="Updated 2 hours ago" />
+ * ```
+ * @example
+ * ```html
+ * <sg-card
+ *   title="Open project"
+ *   subtitle="Last edited by Jane"
+ *   [clickable]="true"
+ *   (clicked)="open()" />
+ * ```
  */
 @Showcase({
     title: 'Card',
@@ -94,14 +116,25 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class CardComponent {
+    /** Heading of the card. Left out when empty. */
     readonly title = input<string>('');
+
+    /** Short text below the title. Left out when empty. */
     readonly subtitle = input<string>('');
+
+    /** Adds an image area above the text, filled with a placeholder graphic. */
     readonly showImage = input<boolean>(false);
+
+    /** Makes the whole card react to clicks: hover style, pointer cursor and the `clicked` output. */
     readonly clickable = input<boolean>(false);
+
+    /** Lifts the card with a shadow. `false` draws a border instead. */
     readonly elevated = input<boolean>(true);
+
+    /** Emits when a `clickable` card is clicked. Never emits otherwise. */
     readonly clicked = output<void>();
 
-    /** Emits the clicked event if the card is in clickable mode. */
+    /** Handles a click on the host and emits `clicked` while the card is `clickable`. */
     onClick(): void {
         if (this.clickable()) {
             this.clicked.emit();

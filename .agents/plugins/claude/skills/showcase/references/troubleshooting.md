@@ -54,9 +54,62 @@ These count for `strictShowcase: true`, which ends the build with
 - **`<Class> variant "<name>" declares invalid states <value>, expected false. Skipping.`**: the only value a variant's
   `states` takes is `false`, which keeps it out of the component's states.
 
+- **`<Class> › setup — "<source>" (<file>:<line>:<col>) must be an arrow function returning an array literal, e.g. setup: () => [provideX]; setup was dropped.`**
+  (a service or pipe): `setup` has to be an arrow function whose body is an array literal, or a block with that one `return`.
+  `as const`, a spread, a condition, a call, a plain array and a constant that holds the list are all rejected. Write
+  `setup: () => [provideX, X_TOKEN]` directly in the `@Showcase({ … })` object.
+- **`<Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is neither a function nor an InjectionToken; it was dropped.`**:
+  the entry is a class, a plain value or a call. List a function declaration, a `const` arrow or function, or a
+  `const` of type `InjectionToken`, by name or as `ns.name`.
+- **`<Class> › setup[<i>] — "<source>" (<file>:<line>:<col>) is not exported from any library entry point, so the styleguide cannot show where to import it from; it was dropped.`**:
+  export the function or token from an entry point the `prism` target scans.
+- **`<Class> › setup (<file>:<line>:<col>) only applies to services and pipes (@Injectable, @Service or @Pipe); it was dropped.`**:
+  `setup` sits on a component or directive. Remove it, or check that the class has `@Injectable`, `@Service` or `@Pipe`
+  from `@angular/core` (an aliased import or `@ng.Injectable()` through a namespace import counts too).
+- **`<Class> › setup (<file>:<line>:<col>) was dropped: setup only applies to services and pipes, and the class is still a component because it declares <fields>.`**:
+  the class is an `@Injectable`, `@Service` or `@Pipe`, but the named component-only fields keep it a component until
+  23.0.0 (see the legacy notices below), and a component has no use for `setup`. Remove the fields to make it a
+  service or pipe, which is what `setup` is for, or remove `setup`.
+- **`<Class> › @Pipe (<file>:<line>:<col>) is declared with standalone: false; ng-prism shows standalone pipes only, so it was dropped.`**:
+  the pipe is declared in an NgModule. Make it standalone, which is also what lets the usage snippet put it into a
+  component's `imports`. A pipe with component-only fields in its `@Showcase` gets the notice below instead, until 23.0.0.
+- **`<Class> › @Pipe name (<file>:<line>:<col>) cannot be evaluated statically, so the pipe was dropped.`**: the `name` of
+  `@Pipe({ name })` isn't a string literal or a `const` the builder can read (a `let`, a call). Write it as a literal;
+  without the name a template has nothing to call the pipe by.
+
 ## Notices
 
 Same prefix, but they don't count for `strictShowcase`.
+
+- **`<Class> is an @Injectable/@Service with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`**:
+  the class has a field only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or
+  `renderPage`), so it stays a component until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0). To make it a service now, remove the fields and move the demo to
+  a component page; otherwise leave it, nothing is lost.
+- **`<Class> is a @Pipe with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.`**:
+  the same rule for a `@Pipe` class (deprecated since 22.7.0, removed in 23.0.0): it has a component-only field, so it
+  stays a component until then. To make it a pipe now, remove the fields and move the demo to a component page;
+  otherwise leave it, nothing is lost.
+- **`<Class> is a @Pipe with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.`**:
+  the same for a pipe declared with `standalone: false`, which is gone from 23.0.0, not shown as a pipe. Make the pipe
+  standalone and remove the fields, or move the page to a component page. This notice comes before the
+  `standalone: false` and unreadable-`name` warnings: a pipe with `renderPage` keeps its page in 22.x either way.
+- **`ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`**
+  (no `⚠`, an info line of the normal log, once per build or `serve` run): no plugin has a view panel that applies to
+  services, so the build only counted them and left every service out. It didn't read them either, so none of their
+  `setup` warnings appear until a plugin shows them. Add `jsDocPlugin()` (skill setup). If `jsDocPlugin()` is already there, update
+  `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for services.
+- **`ng-prism: <n> pipe(s) with @Showcase found, but no plugin shows pipes; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`**
+  (no `⚠`, an info line of the normal log, once per build or `serve` run): no plugin has a view panel that applies to
+  pipes, so the build only counted them and left every pipe out, without their `setup` and `@Pipe` warnings. A panel
+  for services alone doesn't count. Add `jsDocPlugin()` (skill setup), or update
+  `@ng-prism/plugin-jsdoc` to 22.7.0 or newer: an older one has no page for pipes.
+- **`<Class>: could not read its API (<reason>); the service is left out of the styleguide.`** (or `the pipe is left
+out`): the scanner failed on the class and skipped it, so that the rest of the library still gets its pages. Nothing
+  in the `@Showcase` is wrong; it is a case the scanner doesn't handle. Tell the user, with the reason and the class, so
+  it can be reported to ng-prism.
+- **`<Class>: could not read its API for the API page (<reason>); the page falls back to its inputs and outputs.`**:
+  the same for a component or directive, which keeps its page: its API tab shows the inputs and outputs without type
+  links, payloads or type cards.
 
 - **`<Class> declares bg "checker", which is deprecated and will be removed in 23.0.0; use 'transparent' for the same look with a capture that keeps its alpha, or 'light'/'dark' for an absolute colour.`**
 - **`<Class> uses @Input() decorators which are not fully supported. …`** or
@@ -143,6 +196,86 @@ Check the log line `ng-prism: Generated manifest with N component(s)` first, the
    `@Showcase()` without an argument is skipped without a warning.
 5. Did the log warn about a missing `title` or a config that "cannot be evaluated statically, so the component is
    skipped"?
+
+## The service is missing from the sidebar
+
+Look at the log first. `ng-prism: … service(s) with @Showcase found, but no plugin shows services; …` means the
+config has no `jsDocPlugin()` (or another plugin with a view panel that has `appliesTo: ['service']`): add it. If
+`jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer. Otherwise:
+
+1. Is the log line `ng-prism: Generated manifest with N component(s), M service(s)` and M is lower than expected?
+2. Is the class exported from an entry point the `prism` target scans?
+3. Does it carry `@Injectable` or `@Service` from `@angular/core`? An aliased import (`import { Injectable as Service }`)
+   and a namespace import (`@ng.Injectable()`) count; a `@Service` from another DI library makes no service.
+4. Does it have `@Component` or `@Directive` too? Then it is a component. Does it have `@Pipe`? Then it is a pipe.
+   Does it declare `variants`, `renderPage` or another component-only field? Then it is still a component until
+   23.0.0 (deprecated since 22.7.0), with a notice in the log.
+5. Is the `@Showcase` argument an object literal with a `title`, readable by the builder? Otherwise the service is
+   skipped with a warning, like a component.
+6. Is there a notice `<Class>: could not read its API (…); the service is left out of the styleguide.`? See Notices.
+
+A service is addressed as `?service=<ClassName>`; `?component=` never selects one.
+
+## The pipe is missing from the sidebar
+
+Look at the log first. `ng-prism: … pipe(s) with @Showcase found, but no plugin shows pipes; …` means the config has no
+`jsDocPlugin()` (or another plugin with a view panel that has `appliesTo: ['pipe']`; one for services alone doesn't
+count): add it. If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or newer. Otherwise:
+
+1. Is the log line `ng-prism: Generated manifest with N component(s), …, K pipe(s)` and K lower than expected?
+2. Is the class exported from an entry point the `prism` target scans?
+3. Does it carry `@Pipe` from `@angular/core` (also aliased, or `@ng.Pipe()`), and no `@Component` or `@Directive`?
+4. Is there a `⚠ ng-prism:` line naming `@Pipe` or `@Pipe name`? Then it is declared with `standalone: false`, or its
+   `name` isn't a string literal or a `const`: make it standalone, or write the name as a literal.
+5. Does it declare `variants`, `renderPage` or another component-only field? Then it is still a component until 23.0.0
+   (deprecated since 22.7.0), with a notice in the log, and it shows under Components.
+6. Is the `@Showcase` argument an object literal with a `title`, readable by the builder? Otherwise the pipe is skipped
+   with a warning, like a component.
+7. Is there a notice `<Class>: could not read its API (…); the pipe is left out of the styleguide.`? See Notices.
+
+A pipe is addressed as `?pipe=<ClassName>`; neither `?component=` nor `?service=` selects one.
+
+## A pipe page is missing something
+
+A pipe page takes the points of "A service page is missing something" for `setup`, defaults, types and `@returns`.
+What is specific to a pipe:
+
+- **A signature is missing:** the page has one row per overload signature of `transform()`, and the implementation
+  signature only when there are no overloads. A `transform()` that exists only in a base class is read too, also from
+  a `.d.ts`; when no class in the chain has one, the **Transform** section is left out without a warning.
+- **A signature has no description:** an overload takes the doc block of its own, else of the implementation, else of
+  the first documented overload, else of a base class's `transform()`. Document one of them. The class description
+  comes from the pipe's own doc block and isn't inherited.
+- **A tag of one overload is missing on another:** from another overload only the description and the `@param` texts
+  are taken, not `@deprecated`, `@since`, `@see` or `@example`. Tags that apply to every signature go on the
+  implementation.
+- **A property or another method of the class isn't listed:** only `transform()` is.
+- **The Pure / Impure chip is missing:** `pure` in `@Pipe({ … })` isn't a literal the builder can read.
+- **The template line has no arguments, or too few:** it is built from the first signature that isn't `@deprecated`
+  (the first one when all are), with each required parameter after the value as `: name`, up to the last required one.
+  Optional and rest parameters after that are left out.
+
+## A service page is missing something
+
+- **A setup function or token is not listed:** look for a `⚠ ng-prism:` line naming `setup` or `setup[<i>]`.
+- **A config table is missing:** the first parameter of the setup function has to be an interface, an object literal
+  type or an object type alias (also in `Partial`, `Required` or `Readonly`). A class, an array, a primitive, or a token
+  whose type argument is a class gets none.
+- **A default shows `—`:** the option needs `@default <value>` in its JSDoc. Prose isn't read.
+- **A type isn't a link:** it must be an interface, class, type alias or enum that a scanned entry point exports and
+  that isn't `@internal`. A type imported under another name stays unlinked.
+- **A property isn't listed:** `private`, `protected`, `#x`, `_x`, statics and `@internal` aren't, and a lifecycle hook
+  never is. A constructor parameter is listed only with `public`, `readonly` or `override`.
+- **A `@returns` text isn't shown:** that is a limit; the return type comes from the code. Say what it means in the
+  method's description.
+- **A method has several rows:** it is overloaded, and each overload signature gets one; the implementation signature
+  is left out. An overload without a doc block takes the implementation's, else the description and `@param` texts of
+  the first documented overload (not its tags, so `@deprecated` stays on its own overload), else the base class's.
+  Document the implementation or the first overload.
+- **The usage snippet imports a setup entry under the wrong name:** the function or token is exported under another
+  name (`export { impl as provideToast }`), and the snippet uses the declared one. Export it under its declared name.
+- **A panel of your own doesn't show on a service page:** it needs `appliesTo: ['service']` and `placement: 'view'`
+  (`['pipe']` for a pipe page).
 
 ## The styleguide build fails with NG8002
 

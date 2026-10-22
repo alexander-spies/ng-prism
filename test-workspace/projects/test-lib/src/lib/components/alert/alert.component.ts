@@ -1,11 +1,37 @@
 import { ChangeDetectionStrategy, Component, input, model, output, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** Severity of an alert. Sets its colours and how urgent it reads. */
 export type AlertSeverityType = 'info' | 'success' | 'warning' | 'error';
 
 /**
- * An inline alert banner for contextual messages with optional dismiss action.
+ * Inline alert banner for a message about the content around it.
+ *
+ * ## Severities
+ *
+ * - `info`: neutral news, e.g. a new version is available
+ * - `success`: confirms that an action worked
+ * - `warning`: something needs attention before it becomes a problem
+ * - `error`: an action failed or data could not be loaded
+ *
+ * The host carries `role="alert"`, so screen readers announce the message as soon as the alert appears.
+ * With `dismissible` the alert gets a close button that sets `visible` to `false` and emits `dismissed`.
+ *
  * @since 1.0.0
+ * @see AlertSeverityType
+ * @example
+ * ```html
+ * <sg-alert severity="success" message="Changes saved." />
+ * ```
+ * @example
+ * ```html
+ * <sg-alert
+ *   severity="warning"
+ *   title="Attention"
+ *   message="Your session expires in 5 minutes."
+ *   [dismissible]="true"
+ *   (dismissed)="snooze()" />
+ * ```
  */
 @Showcase({
     title: 'Alert',
@@ -116,20 +142,34 @@ export type AlertSeverityType = 'info' | 'success' | 'warning' | 'error';
     `
 })
 export class AlertComponent {
+    /** Severity of the message, see {@link AlertSeverityType}. Sets the background and the accent border. */
     readonly severity = input<AlertSeverityType>('info');
+
+    /** The message itself, as plain text. */
     readonly message = input.required<string>();
+
+    /** Optional heading, shown in **bold** above the message. Left out when empty. */
     readonly title = input<string>('');
+
+    /** Adds a close button that hides the alert and emits `dismissed`. */
     readonly dismissible = input<boolean>(false);
+
+    /**
+     * Whether the alert is shown. Two-way bindable with `[(visible)]`, so a dismissed alert can be brought back.
+     * @since 1.2.0
+     */
     readonly visible = model<boolean>(true);
+
+    /** Emits after the user closed the alert. Not emitted when `visible` is set from outside. */
     readonly dismissed = output<void>();
 
-    /** Hides the alert and emits the dismissed event. */
+    /** Hides the alert and emits `dismissed`, as the close button does. */
     dismiss(): void {
         this.visible.set(false);
         this.dismissed.emit();
     }
 
-    /** Resets the alert to its visible state. */
+    /** Shows the alert again after it was dismissed. Does not emit. */
     show(): void {
         this.visible.set(true);
     }

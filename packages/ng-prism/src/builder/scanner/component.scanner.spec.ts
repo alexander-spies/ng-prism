@@ -1,7 +1,17 @@
 import path from 'node:path';
 import ts from 'typescript';
-import { scanComponents } from './component.scanner.js';
-import { resolveEntryPointExports } from './entry-point.scanner.js';
+import type { ScannedComponent } from '../../plugin/plugin.types.js';
+import { extractComponentApi } from './api/component-api.extractor.js';
+import { buildExportIndex } from './api/export-index.js';
+import { findShowcasedClasses, scanComponents } from './component.scanner.js';
+import { type ResolvedEntryPoint, resolveEntryPointExports } from './entry-point.scanner.js';
+
+// The real extractor with a seam: a test makes it throw for one class and leaves the others alone.
+jest.mock('./api/component-api.extractor.js', () => {
+    const actual = jest.requireActual('./api/component-api.extractor.js');
+
+    return { ...actual, extractComponentApi: jest.fn(actual.extractComponentApi) };
+});
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
 
@@ -27,7 +37,7 @@ describe('scanComponents', () => {
     });
 
     it('should find only @Showcase-annotated components', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const names = components.map((c) => c.className);
 
         expect(names).toContain('ButtonComponent');
@@ -43,7 +53,7 @@ describe('scanComponents', () => {
     });
 
     it('should extract showcase config for ButtonComponent', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.showcaseConfig.title).toBe('Button');
@@ -53,7 +63,7 @@ describe('scanComponents', () => {
     });
 
     it('should extract variants', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.showcaseConfig.variants).toHaveLength(2);
@@ -70,7 +80,7 @@ describe('scanComponents', () => {
     });
 
     it('should extract variant-level meta', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.showcaseConfig.variants![0].meta).toEqual({
@@ -80,7 +90,7 @@ describe('scanComponents', () => {
     });
 
     it('should extract component metadata (selector, standalone)', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.componentMeta.selector).toBe('my-button');
@@ -88,7 +98,7 @@ describe('scanComponents', () => {
     });
 
     it('should extract inputs and outputs', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.inputs.length).toBe(5);
@@ -98,14 +108,14 @@ describe('scanComponents', () => {
     });
 
     it('should set filePath', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.filePath).toContain('button.component.ts');
     });
 
     it('should handle CardComponent with minimal config', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const card = components.find((c) => c.className === 'CardComponent')!;
 
         expect(card.showcaseConfig.title).toBe('Card');
@@ -117,7 +127,7 @@ describe('scanComponents', () => {
     });
 
     it('should set isDirective true for directives', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const highlight = components.find((c) => c.className === 'HighlightDirective')!;
 
         expect(highlight.componentMeta.isDirective).toBe(true);
@@ -126,14 +136,14 @@ describe('scanComponents', () => {
     });
 
     it('should set isDirective false for components', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.componentMeta.isDirective).toBe(false);
     });
 
     it('should extract inputs and outputs from directives', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const highlight = components.find((c) => c.className === 'HighlightDirective')!;
 
         expect(highlight.inputs).toHaveLength(1);
@@ -146,7 +156,7 @@ describe('scanComponents', () => {
     });
 
     it('should extract host config from directive showcase', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const highlight = components.find((c) => c.className === 'HighlightDirective')!;
 
         expect(highlight.showcaseConfig.host).toBe('<span class="demo-text">');
@@ -155,7 +165,7 @@ describe('scanComponents', () => {
     it('should warn when @Showcase class uses @Input() decorators', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('ButtonComponent uses @Input() decorators'));
 
@@ -164,7 +174,7 @@ describe('scanComponents', () => {
 
     it('should warn and skip @Showcase classes without a title', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(components.find((c) => c.className === 'MissingTitleComponent')).toBeUndefined();
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('MissingTitleComponent has @Showcase without a "title" field'));
@@ -175,7 +185,7 @@ describe('scanComponents', () => {
     it('should warn that a checker background is deprecated', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         // Once for the component and once for the variant that declares its own:
         // a reviewer fixing this has to find both, and only the variant warning
@@ -190,7 +200,7 @@ describe('scanComponents', () => {
 
     it('should keep a checker background despite deprecating it', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const deprecated = components.find((c) => c.className === 'DeprecatedBgComponent')!;
 
         // Deprecated is not invalid. Dropping the value would change what the
@@ -204,7 +214,7 @@ describe('scanComponents', () => {
     it('should not warn for signal-based components', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('SignalButtonComponent'));
         expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('HighlightDirective'));
@@ -213,14 +223,14 @@ describe('scanComponents', () => {
     });
 
     it('should extract component-level bg', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.showcaseConfig.bg).toBe('dark');
     });
 
     it('should extract variant-level bg', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.showcaseConfig.variants![0].bg).toBe('light');
@@ -228,7 +238,7 @@ describe('scanComponents', () => {
     });
 
     it('should leave bg undefined when not declared', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const card = components.find((c) => c.className === 'CardComponent')!;
 
         expect(card.showcaseConfig.bg).toBeUndefined();
@@ -236,7 +246,7 @@ describe('scanComponents', () => {
 
     it('should warn and skip invalid bg values', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
 
         const invalid = components.find((c) => c.className === 'InvalidBgComponent')!;
 
@@ -247,14 +257,14 @@ describe('scanComponents', () => {
     });
 
     it('should extract status from showcase config', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.showcaseConfig.status).toBe('beta');
     });
 
     it('should leave status undefined when not declared', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const card = components.find((c) => c.className === 'CardComponent')!;
 
         expect(card.showcaseConfig.status).toBeUndefined();
@@ -262,7 +272,7 @@ describe('scanComponents', () => {
 
     it('should warn and skip invalid status values', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
 
         const invalid = components.find((c) => c.className === 'InvalidStatusComponent')!;
 
@@ -273,7 +283,7 @@ describe('scanComponents', () => {
     });
 
     it('extracts section and sectionOrder from showcaseConfig', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const sectioned = components.find((c) => c.className === 'SectionedComponent')!;
 
         expect(sectioned.showcaseConfig.section).toBe('Pipes');
@@ -281,7 +291,7 @@ describe('scanComponents', () => {
     });
 
     it('extracts categoryOrder and componentOrder from showcaseConfig', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const sectioned = components.find((c) => c.className === 'SectionedComponent')!;
 
         expect(sectioned.showcaseConfig.categoryOrder).toBe(3);
@@ -292,7 +302,7 @@ describe('scanComponents', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
         const diagnostics: string[] = [];
 
-        scanComponents(exports, checker, diagnostics);
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
 
         expect(diagnostics).toEqual([
             expect.stringContaining('MissingTitleComponent has @Showcase without a "title" field'),
@@ -304,7 +314,7 @@ describe('scanComponents', () => {
     });
 
     it('omits section and sectionOrder when not declared', () => {
-        const components = scanComponents(exports, checker);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
         const button = components.find((c) => c.className === 'ButtonComponent')!;
 
         expect(button.showcaseConfig.section).toBeUndefined();
@@ -335,7 +345,7 @@ describe('scanComponents with forced pseudo states', () => {
 
     function scan() {
         const diagnostics: string[] = [];
-        const [component] = scanComponents(exports, checker, diagnostics);
+        const [component] = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
         const pseudoOf = (name: string) => component.showcaseConfig.variants!.find((v) => v.name === name)!.pseudo;
 
         return { diagnostics, pseudoOf };
@@ -446,7 +456,7 @@ describe('scanComponents with component states', () => {
 
     function scan() {
         const diagnostics: string[] = [];
-        const components = scanComponents(exports, checker, diagnostics);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
         const config = (className: string) => components.find((c) => c.className === className)!.showcaseConfig;
 
         return { diagnostics, config };
@@ -543,7 +553,7 @@ describe('scanComponents with @Showcase values it cannot evaluate', () => {
 
     function scan() {
         const diagnostics: string[] = [];
-        const components = scanComponents(exports, checker, diagnostics);
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
 
         return { components, diagnostics };
     }
@@ -605,7 +615,7 @@ describe('scanComponents with @Showcase values it cannot evaluate', () => {
             }
         });
 
-        scanComponents(exports, recording, []);
+        scanComponents(findShowcasedClasses(exports, recording), recording, { diagnostics: [] });
 
         expect(looked).not.toContain('ChildComponent');
         expect(looked).toContain('SELECTOR');
@@ -661,8 +671,8 @@ describe('scanComponents with @Showcase values it cannot evaluate', () => {
     it('reports a loss once when a component is scanned from several entry points', () => {
         const diagnostics: string[] = [];
 
-        scanComponents(exports, checker, diagnostics);
-        scanComponents(exports, checker, diagnostics);
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
 
         expect(diagnostics).toHaveLength(10);
         expect(warnSpy.mock.calls.filter(([message]) => String(message).includes('megabytes(5)'))).toHaveLength(1);
@@ -699,7 +709,7 @@ describe('scanComponents with base classes', () => {
     }
 
     function scanned(className: string) {
-        return scanComponents(exports, checker).find((c) => c.className === className)!;
+        return scanComponents(findShowcasedClasses(exports, checker), checker).find((c) => c.className === className)!;
     }
 
     it('records inherited inputs on the scanned component', () => {
@@ -726,7 +736,7 @@ describe('scanComponents with base classes', () => {
     });
 
     it('warns about the inputs of a base class that only exists in a declaration file, by their public names', () => {
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warningsAbout('LibraryBackedComponent')).toEqual([
             expect.stringMatching(/LibraryBackedComponent inherits placeholder, maxlength from LibraryField, .*library-field\.d\.ts/)
@@ -734,7 +744,7 @@ describe('scanComponents with base classes', () => {
     });
 
     it('warns once for each such base class up the chain', () => {
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warningsAbout('LabelledLibraryComponent')).toEqual([
             expect.stringContaining('LabelledLibraryComponent inherits label from LibraryLabelledField'),
@@ -743,7 +753,7 @@ describe('scanComponents with base classes', () => {
     });
 
     it('warns about an ambient base class in a .ts file like about a declaration file', () => {
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warningsAbout('AmbientComponent')).toEqual([
             expect.stringMatching(/AmbientComponent inherits ambientLabel, importTyped, aliased from AmbientField, .*ambient-field\.ts/)
@@ -752,20 +762,20 @@ describe('scanComponents with base classes', () => {
     });
 
     it('does not warn about a declaration-file base class without inputs', () => {
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warningsAbout('LoggingComponent')).toEqual([]);
     });
 
     // The Angular compiler writes ɵdir for every decorated class, so a compiled class without it is undecorated.
     it('does not warn about a compiled base class without a directive definition', () => {
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warningsAbout('UndecoratedLibraryComponent')).toEqual([]);
     });
 
     it('does not warn about base classes it can read, or about mixins', () => {
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         for (const className of ['CountryPickerComponent', 'ColorPickerComponent', 'UndecoratedChildComponent', 'MiddleChildComponent', 'MixinComponent']) {
             expect(warningsAbout(className)).toEqual([]);
@@ -773,7 +783,7 @@ describe('scanComponents with base classes', () => {
     });
 
     it('names the base class an @Input() decorator comes from', () => {
-        scanComponents(exports, checker);
+        scanComponents(findShowcasedClasses(exports, checker), checker);
 
         expect(warningsAbout('LegacyChildComponent')).toEqual([expect.stringContaining('LegacyChildComponent inherits @Input() decorators from LegacyBase')]);
     });
@@ -781,8 +791,8 @@ describe('scanComponents with base classes', () => {
     it('warns once per base class, however many entry points export the component', () => {
         const notices = new Set<string>();
 
-        scanComponents(exports, checker, [], notices);
-        scanComponents(exports, checker, [], notices);
+        scanComponents(findShowcasedClasses(exports, checker), checker, { notices });
+        scanComponents(findShowcasedClasses(exports, checker), checker, { notices });
 
         expect(warningsAbout('LibraryBackedComponent')).toHaveLength(1);
         expect(warningsAbout('LegacyChildComponent')).toHaveLength(1);
@@ -793,8 +803,242 @@ describe('scanComponents with base classes', () => {
     it('keeps the warnings out of the diagnostics', () => {
         const diagnostics: string[] = [];
 
-        scanComponents(exports, checker, diagnostics);
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
 
+        expect(diagnostics).toEqual([]);
+    });
+});
+
+describe('scanComponents with services in the entry point', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'services', 'services-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture/toast' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan() {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices });
+
+        return { components, diagnostics, notices };
+    }
+
+    it('leaves the services to the service scan', () => {
+        const names = scan().components.map((c) => c.className);
+
+        expect(names).not.toContain('AutoService');
+        expect(names).not.toContain('OptOutService');
+        expect(names).not.toContain('RootService');
+        expect(names).not.toContain('PlatformService');
+        expect(names).not.toContain('ManualService');
+        expect(names).not.toContain('DynamicService');
+    });
+
+    it('keeps a @Service from another package and a service with a component page as components', () => {
+        const names = scan().components.map((c) => c.className);
+
+        expect(names).toContain('TypeDiService');
+        expect(names).toContain('LegacyPageService');
+        expect(names).toContain('SetupOnComponent');
+    });
+
+    it('notices a service that is kept a component, without counting it as a diagnostic', () => {
+        const { diagnostics, notices } = scan();
+
+        expect(notices).toContain(
+            'LegacyPageService is an @Injectable/@Service with @Showcase and declares renderPage, so it is still treated as a component. ' +
+                'From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.'
+        );
+        expect(diagnostics.filter((d) => d.startsWith('LegacyPageService'))).toEqual([]);
+    });
+
+    it('says that setup only applies to services and pipes, once per component', () => {
+        const { components, diagnostics } = scan();
+        const file = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'services', 'setup-on-component.component.ts'));
+
+        expect(components.find((c) => c.className === 'SetupOnComponent')!.showcaseConfig).toEqual({ title: 'Setup on component' });
+        expect(diagnostics.filter((d) => d.startsWith('SetupOnComponent'))).toEqual([
+            `SetupOnComponent › setup (${file}:4:42) only applies to services and pipes (@Injectable, @Service or @Pipe); it was dropped.`
+        ]);
+    });
+
+    it('says why setup is dropped from a service that its component-only fields keep a component', () => {
+        const { diagnostics } = scan();
+        const file = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'services', 'legacy.service.ts'));
+
+        expect(diagnostics.filter((d) => d.startsWith('LegacySetupService › setup'))).toEqual([
+            `LegacySetupService › setup (${file}:8:72) was dropped: setup only applies to services and pipes, and the class is still a component because it declares renderPage.`
+        ]);
+    });
+
+    it('does not report the setup function as a runtime value', () => {
+        expect(scan().diagnostics.filter((d) => d.includes('runtime value'))).toEqual([]);
+    });
+});
+
+describe('scanComponents with pipes in the entry point', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'pipes', 'pipes-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture/pipes' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan() {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices });
+
+        return { components, diagnostics, notices };
+    }
+
+    it('leaves the pipes to the pipe scan', () => {
+        const names = scan().components.map((c) => c.className);
+
+        for (const pipe of ['StandalonePipe', 'ImpurePipe', 'NgModulePipe', 'InjectablePipe', 'DynamicNamePipe', 'DynamicPurePipe']) {
+            expect(names).not.toContain(pipe);
+        }
+    });
+
+    it('keeps a pipe with component-only fields as a component', () => {
+        const names = scan().components.map((c) => c.className);
+
+        expect(names.sort()).toEqual(['LegacyPagePipe', 'NgModulePagePipe']);
+    });
+
+    it('notices a pipe that is kept a component, without counting it as a diagnostic', () => {
+        const { diagnostics, notices } = scan();
+
+        expect(notices).toContain(
+            'LegacyPagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. ' +
+                'From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.'
+        );
+        expect(notices).toContain(
+            'NgModulePagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. ' +
+                'From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.'
+        );
+        expect(diagnostics).toEqual([]);
+    });
+});
+
+describe('scanComponents with an export index', () => {
+    let checker: ts.TypeChecker;
+    let entries: ResolvedEntryPoint[];
+
+    beforeAll(() => {
+        const dir = path.join(FIXTURES_DIR, 'component-api');
+        const result = resolveEntryPointExports(
+            [
+                { entryFile: path.join(dir, 'component-api.ts'), importPath: 'fixture/components' },
+                { entryFile: path.join(dir, 'component-api-types.ts'), importPath: 'fixture/types' }
+            ],
+            compilerOptions
+        );
+
+        checker = result.program.getTypeChecker();
+        entries = result.entries;
+    });
+
+    it('sets the API of a component', () => {
+        const tabsOf = (components: ScannedComponent[]) => components.find((c) => c.className === 'FixtureTabsComponent')!;
+        const indexed = tabsOf(scanComponents(findShowcasedClasses(entries[0].exports, checker), checker, { exportIndex: buildExportIndex(entries, checker) }));
+        const plain = tabsOf(scanComponents(findShowcasedClasses(entries[0].exports, checker), checker));
+
+        expect(indexed.api!.types.map((t) => t.name)).toEqual(['FixtureVariant', 'FixtureTab', 'FixtureSize', 'FixtureBadge']);
+        expect(indexed.api!.inputTypes['items']).toEqual({ text: 'FixtureTab[]', links: ['FixtureTab'] });
+        expect(plain.api!.types).toEqual([]);
+        expect(plain.api!.inputTypes['items']).toEqual({ text: 'FixtureTab[]' });
+    });
+
+    it('leaves the API out when told to', () => {
+        const extract = jest.mocked(extractComponentApi);
+
+        extract.mockClear();
+
+        const components = scanComponents(findShowcasedClasses(entries[0].exports, checker), checker, { api: false });
+
+        expect(components.length).toBeGreaterThan(0);
+        expect(components.every((c) => c.api === undefined)).toBe(true);
+        expect(extract).not.toHaveBeenCalled();
+    });
+});
+
+describe('scanComponents when the API of a component cannot be read', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+    const extract = jest.mocked(extractComponentApi);
+    const realExtract = extract.getMockImplementation()!;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'component-api', 'component-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture/components' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        extract.mockImplementation((classDecl, ...rest) => {
+            if (classDecl.name?.text === 'FixtureTabsComponent') throw new Error('boom');
+            return realExtract(classDecl, ...rest);
+        });
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+        extract.mockImplementation(realExtract);
+    });
+
+    it('keeps scanning the component, without an API, and the others with theirs', () => {
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker);
+        const tabs = components.find((c) => c.className === 'FixtureTabsComponent')!;
+
+        expect(tabs).toBeDefined();
+        expect(tabs.api).toBeUndefined();
+        expect(tabs.inputs.map((i) => i.name)).toContain('items');
+        expect(components.filter((c) => c !== tabs).every((c) => c.api !== undefined)).toBe(true);
+    });
+
+    it('says so once, however often the component is scanned, and does not count it as a diagnostic', () => {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices });
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices });
+
+        const messages = warnSpy.mock.calls.map((call) => String(call[0])).filter((message) => message.includes('FixtureTabsComponent'));
+
+        expect(messages).toEqual(['⚠ ng-prism: FixtureTabsComponent: could not read its API for the API page (boom); the page falls back to its inputs and outputs.']);
         expect(diagnostics).toEqual([]);
     });
 });

@@ -12,6 +12,16 @@ For each component (in scan order):
   → plugin[1].onComponentScanned(component)
   → ...
 
+For each service (in scan order, only when a plugin shows services):
+  → plugin[0].onServiceScanned(service)
+  → plugin[1].onServiceScanned(service)
+  → ...
+
+For each pipe (in scan order, only when a plugin shows pipes):
+  → plugin[0].onPipeScanned(pipe)
+  → plugin[1].onPipeScanned(pipe)
+  → ...
+
 For each page (in config order):
   → plugin[0].onPageScanned(page)
   → plugin[1].onPageScanned(page)
@@ -58,11 +68,67 @@ onComponentScanned(component) {
 
 **Chaining:** When plugin A and plugin B both implement `onComponentScanned`, the `ScannedComponent` passed to plugin B is the (possibly modified) output from plugin A.
 
+`component.api` (since `22.7.0`) is experimental until 23.0.0: its shape may change in a 22.x minor release. The scan only reads it when a plugin in the config sets [`componentApi`](api/ng-prism-plugin.md#componentapi), so a plugin that reads it sets the flag, and a component that another hook built from scratch has none. `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Add your own data to `component.meta`, and read `component.api` knowing it can change.
+
 **Typical uses:**
 
 - Extract JSDoc from `component.filePath` using `ts.createSourceFile()` (JSDoc plugin)
 - Fetch external metadata keyed on `component.className`
 - Validate that required `meta` fields are present and warn if missing
+
+## `onServiceScanned`
+
+Called once per `@Showcase`-decorated [service](guide/showcasing-services.md), after the scanner has extracted its API.
+
+```typescript
+onServiceScanned(service: ScannedService): ScannedService | void | Promise<ScannedService | void>
+```
+
+The same mutation, return and chaining rules as `onComponentScanned`, and the same error handling: a hook that throws stops the build with `ng-prism: plugin "<name>" failed in onServiceScanned for service "<ClassName>": <cause>`.
+
+```typescript
+onServiceScanned(service) {
+  return {
+    ...service,
+    meta: { ...service.meta, myPlugin: { setupEntries: service.api.setup.length } },
+  };
+}
+```
+
+**A separate hook, not a second kind of component.** A service has no inputs, outputs, selector or canvas, and the four plugins that implement `onComponentScanned` (coverage, jsdoc, perf and visual regression) read exactly those. Giving services their own list and hook means none of them is ever called with one, and the manifest they write stays what it was. The JSDoc plugin does not need the hook: its service page reads `service.api` in the browser.
+
+**It may not run.** Services go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'service'`. Without one the scan only counts them, without reading them, so `onServiceScanned` is not called, and the pipeline logs a hint, see the services gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.services` only when they were kept.
+
+`service.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `service.meta`, which is stable, and read `service.api` knowing it can change.
+
+**No navigation decorations.** `navigationDecorations` are not called for a service. The `badge()` of a decoration takes a component, and coverage, a11y and visual regression measure what renders.
+
+## `onPipeScanned`
+
+Called once per `@Showcase`-decorated [pipe](guide/showcasing-pipes.md), after the scanner has extracted its API.
+
+```typescript
+onPipeScanned(pipe: ScannedPipe): ScannedPipe | void | Promise<ScannedPipe | void>
+```
+
+The same mutation, return and chaining rules as `onServiceScanned`, and the same error handling: a hook that throws stops the build with `ng-prism: plugin "<name>" failed in onPipeScanned for pipe "<ClassName>": <cause>`.
+
+```typescript
+onPipeScanned(pipe) {
+  return {
+    ...pipe,
+    meta: { ...pipe.meta, myPlugin: { signatures: pipe.api.transform.length } },
+  };
+}
+```
+
+**A separate hook, for the same reason.** A pipe has no inputs, outputs, selector or canvas, and it is not a service either: it has a template name, a purity and `transform()` signatures instead of members and a provision. Its own list and hook keep it away from `onComponentScanned` and `onServiceScanned`, so none of the plugins that implement those is called with one. The JSDoc plugin does not need the hook: its pipe page reads `pipe.api` in the browser.
+
+**It may not run.** Pipes go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services. Without one the scan only counts them, without reading them, so `onPipeScanned` is not called, and the pipeline logs a hint, see the services and pipes gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.pipes` only when they were kept.
+
+`pipe.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `pipe.meta`, which is stable, and read `pipe.api` knowing it can change.
+
+**No navigation decorations.** `navigationDecorations` are not called for a pipe either.
 
 ## `onPageScanned`
 
@@ -87,7 +153,7 @@ onPageScanned(page) {
 
 ## `onManifestReady`
 
-Called once with the complete `PrismManifest` after all `onComponentScanned` and `onPageScanned` hooks have finished.
+Called once with the complete `PrismManifest` after all `onComponentScanned`, `onServiceScanned`, `onPipeScanned` and `onPageScanned` hooks have finished.
 
 ```typescript
 onManifestReady(manifest: PrismManifest): PrismManifest | void | Promise<PrismManifest | void>
@@ -166,7 +232,7 @@ All three built-in sources follow this split. See `packages/plugin-visual-regres
 
 ## Async Hooks
 
-All three hooks accept `Promise` return values. The pipeline runner uses `await` for each hook:
+All four hooks accept `Promise` return values. The pipeline runner uses `await` for each hook:
 
 ```typescript
 async onComponentScanned(component) {

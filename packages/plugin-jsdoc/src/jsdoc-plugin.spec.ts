@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { ScannedComponent } from '@ng-prism/core/plugin';
+import { jsDocPlugin as browserJsDocPlugin } from './jsdoc-plugin.browser.js';
 import { jsDocPlugin } from './jsdoc-plugin.js';
 
 const FIXTURE_PATH = path.join(__dirname, '__fixtures__/documented-button.ts');
@@ -38,6 +39,22 @@ describe('jsDocPlugin', () => {
         expect(panel.position).toBeUndefined();
         expect(panel.loadComponent).toBeDefined();
         expect(panel.component).toBeUndefined();
+    });
+
+    it('registers the API panel for components, services and pipes', () => {
+        expect(jsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service', 'pipe']);
+        expect(browserJsDocPlugin().panels![0].appliesTo).toEqual(['component', 'service', 'pipe']);
+    });
+
+    // The build only keeps services and pipes when a view panel applies to them, and it reads the Node half.
+    it('registers the API panel as a view on both halves', () => {
+        expect(jsDocPlugin().panels![0].placement).toBe('view');
+        expect(browserJsDocPlugin().panels![0].placement).toBe('view');
+    });
+
+    // The scan only reads ScannedComponent.api for a plugin that asks for it, and the build reads the Node half.
+    it('asks the build for the API of the components', () => {
+        expect(jsDocPlugin().componentApi).toBe(true);
     });
 
     it('should lazy-load the panel component', async () => {

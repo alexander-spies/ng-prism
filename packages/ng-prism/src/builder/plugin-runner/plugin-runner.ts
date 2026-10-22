@@ -1,5 +1,4 @@
-import type { StyleguidePage } from '../../plugin/page.types.js';
-import type { NgPrismPlugin, PrismManifest, ScannedComponent } from '../../plugin/plugin.types.js';
+import type { NgPrismPlugin, PrismManifest } from '../../plugin/plugin.types.js';
 
 function pluginLabel(plugin: NgPrismPlugin): string {
     return plugin.name ? `"${plugin.name}"` : '<unnamed>';
@@ -15,50 +14,65 @@ function wrapPluginError(plugin: NgPrismPlugin, hook: string, target: string, er
     return wrapped;
 }
 
+/** The hooks that run once per scanned item, in the order the plugins are listed. */
+type ItemHookName = 'onComponentScanned' | 'onServiceScanned' | 'onPipeScanned' | 'onPageScanned';
+
+type ItemOf<K extends ItemHookName> = Parameters<NonNullable<NgPrismPlugin[K]>>[0];
+
+type ItemHook<T> = (item: T) => T | void | Promise<T | void>;
+
+/**
+ * Runs a per-item hook over every item: each item goes through all plugins in
+ * turn, and a plugin that returns a value replaces the item for the next one.
+ */
+async function runItemHook<K extends ItemHookName>(
+    items: readonly ItemOf<K>[],
+    plugins: NgPrismPlugin[],
+    hook: K,
+    label: (item: ItemOf<K>) => string
+): Promise<ItemOf<K>[]> {
+    const done: ItemOf<K>[] = [];
+
+    for (const item of items) {
+        let current = item;
+
+        for (const plugin of plugins) {
+            const run = plugin[hook] as ItemHook<ItemOf<K>> | undefined;
+
+            if (run) {
+                try {
+                    const result = await run.call(plugin, current);
+
+                    if (result) {
+                        current = result;
+                    }
+                } catch (err) {
+                    throw wrapPluginError(plugin, hook, label(current), err);
+                }
+            }
+        }
+        done.push(current);
+    }
+    return done;
+}
+
 export async function runPluginHooks(manifest: PrismManifest, plugins: NgPrismPlugin[]): Promise<PrismManifest> {
-    const components = [...manifest.components];
+    const components = await runItemHook(manifest.components, plugins, 'onComponentScanned', (component) => `component "${component.className}"`);
+    const services = await runItemHook(manifest.services ?? [], plugins, 'onServiceScanned', (service) => `service "${service.className}"`);
+    const pipes = await runItemHook(manifest.pipes ?? [], plugins, 'onPipeScanned', (pipe) => `pipe "${pipe.className}"`);
+    const pages = await runItemHook(manifest.pages ?? [], plugins, 'onPageScanned', (page) => `page "${page.title}"`);
 
-    for (let i = 0; i < components.length; i++) {
-        let current: ScannedComponent = components[i];
+    let result: PrismManifest = { components, pages };
 
-        for (const plugin of plugins) {
-            if (plugin.onComponentScanned) {
-                try {
-                    const result = await plugin.onComponentScanned(current);
-
-                    if (result) {
-                        current = result;
-                    }
-                } catch (err) {
-                    throw wrapPluginError(plugin, 'onComponentScanned', `component "${current.className}"`, err);
-                }
-            }
-        }
-        components[i] = current;
+    if (manifest.services) {
+        result.services = services;
     }
-
-    const pages = [...(manifest.pages ?? [])];
-
-    for (let i = 0; i < pages.length; i++) {
-        let current: StyleguidePage = pages[i];
-
-        for (const plugin of plugins) {
-            if (plugin.onPageScanned) {
-                try {
-                    const result = await plugin.onPageScanned(current);
-
-                    if (result) {
-                        current = result;
-                    }
-                } catch (err) {
-                    throw wrapPluginError(plugin, 'onPageScanned', `page "${current.title}"`, err);
-                }
-            }
-        }
-        pages[i] = current;
+    if (manifest.pipes) {
+        result.pipes = pipes;
     }
-
-    let result: PrismManifest = manifest.meta ? { components, pages, meta: manifest.meta } : { components, pages };
+    if (manifest.meta) {
+        result.meta = manifest.meta;
+    }
 
     for (const plugin of plugins) {
         if (plugin.onManifestReady) {

@@ -1,5 +1,7 @@
 import { Injector, runInInjectionContext } from '@angular/core';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 import { PrismSearchService } from './prism-search.service.js';
@@ -18,6 +20,38 @@ function createComponent(overrides: Partial<{ title: string; category: string; t
             inputs: [],
             outputs: [],
             componentMeta: { selector: 'test', standalone: true, isDirective: false }
+        }
+    };
+}
+
+function createService(overrides: Partial<{ title: string; category: string; tags: string[]; className: string }> = {}): RuntimeService {
+    return {
+        meta: {
+            className: overrides.className ?? 'SomeService',
+            filePath: '/some.service.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Default',
+                category: overrides.category,
+                tags: overrides.tags
+            },
+            provision: 'auto',
+            api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+        }
+    };
+}
+
+function createPipe(overrides: Partial<{ title: string; category: string; tags: string[]; className: string; pipeName: string }> = {}): RuntimePipe {
+    return {
+        meta: {
+            className: overrides.className ?? 'SomePipe',
+            filePath: '/some.pipe.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Default',
+                category: overrides.category,
+                tags: overrides.tags
+            },
+            pipeName: overrides.pipeName ?? 'some',
+            api: { tags: {}, transform: [], setup: [], types: [] }
         }
     };
 }
@@ -94,5 +128,72 @@ describe('PrismSearchService', () => {
 
         service.search('nonexistent');
         expect(service.filteredComponents()).toEqual([]);
+    });
+
+    it('filters services by title, category, tags and className', () => {
+        const toast = createService({ title: 'Toasts', className: 'ToastService', category: 'Feedback', tags: ['notification'] });
+        const auth = createService({ title: 'Session', className: 'AuthStore', category: 'Security', tags: ['login'] });
+        const service = setup({ components: [], services: [toast, auth] });
+
+        expect(service.filteredServices()).toEqual([toast, auth]);
+
+        service.search('toasts');
+        expect(service.filteredServices()).toEqual([toast]);
+
+        service.search('security');
+        expect(service.filteredServices()).toEqual([auth]);
+
+        service.search('NOTIFICATION');
+        expect(service.filteredServices()).toEqual([toast]);
+
+        service.search('authstore');
+        expect(service.filteredServices()).toEqual([auth]);
+
+        service.search('nonexistent');
+        expect(service.filteredServices()).toEqual([]);
+    });
+
+    it('has no services for a manifest without them', () => {
+        const service = setup({ components: [createComponent({ title: 'Button' })] });
+
+        expect(service.filteredServices()).toEqual([]);
+    });
+
+    it('filters pipes by title, category, tags and className', () => {
+        const truncate = createPipe({ title: 'Truncate', className: 'TruncatePipe', category: 'Text', tags: ['shorten'] });
+        const money = createPipe({ title: 'Money', className: 'CurrencyFormat', category: 'Numbers', tags: ['locale'] });
+        const service = setup({ components: [], pipes: [truncate, money] });
+
+        expect(service.filteredPipes()).toEqual([truncate, money]);
+
+        service.search('truncate');
+        expect(service.filteredPipes()).toEqual([truncate]);
+
+        service.search('numbers');
+        expect(service.filteredPipes()).toEqual([money]);
+
+        service.search('SHORTEN');
+        expect(service.filteredPipes()).toEqual([truncate]);
+
+        service.search('currencyformat');
+        expect(service.filteredPipes()).toEqual([money]);
+
+        service.search('nonexistent');
+        expect(service.filteredPipes()).toEqual([]);
+    });
+
+    it('has no pipes for a manifest without them', () => {
+        const service = setup({ components: [createComponent({ title: 'Button' })] });
+
+        expect(service.filteredPipes()).toEqual([]);
+    });
+
+    it('finds a pipe by its template name', () => {
+        const timeAgo = createPipe({ title: 'Relative time', className: 'RelativeTimePipe', pipeName: 'timeAgo' });
+        const truncate = createPipe({ title: 'Truncate', className: 'TruncatePipe', pipeName: 'truncate' });
+        const service = setup({ components: [], pipes: [timeAgo, truncate] });
+
+        service.search('timeago');
+        expect(service.filteredPipes()).toEqual([timeAgo]);
     });
 });

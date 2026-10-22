@@ -2,9 +2,23 @@ import { ChangeDetectionStrategy, Component, input, model, output, ViewEncapsula
 import { Showcase } from '@ng-prism/core';
 
 /**
- * A toggle switch component for boolean on/off states.
+ * Switch for a setting that takes effect right away.
+ *
+ * Use it where flipping the switch applies the change on the spot, like turning notifications on.
+ * In a form that is submitted later, a checkbox is the clearer choice.
+ *
+ * The track is a `<button role="switch">` with `aria-checked`, so it is reachable with the keyboard and announces its state.
+ * `checked` is a model: bind it with `[(checked)]`, or listen to `changed`.
+ *
  * @since 1.0.0
- * @see ButtonComponent
+ * @example
+ * ```html
+ * <sg-toggle label="Notifications" [(checked)]="notify" />
+ * ```
+ * @example
+ * ```html
+ * <sg-toggle label="Dark mode" [checked]="dark()" (changed)="setDark($event)" />
+ * ```
  */
 @Showcase({
     title: 'Toggle',
@@ -85,12 +99,19 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class ToggleComponent {
+    /** Text next to the switch. Left out when empty. */
     readonly label = input<string>('');
+
+    /** Disables the switch and dims it. `toggle()` does nothing while it is set. */
     readonly disabled = input<boolean>(false);
+
+    /** Whether the switch is on. Two-way bindable with `[(checked)]`. */
     readonly checked = model<boolean>(false);
+
+    /** Emits the new state when the switch is flipped, by a click or by `toggle()`. */
     readonly changed = output<boolean>();
 
-    /** Toggles the checked state and emits the new value. */
+    /** Flips the switch as a click would and emits `changed`. Ignored while `disabled`. */
     toggle(): void {
         if (this.disabled()) return;
         this.checked.set(!this.checked());

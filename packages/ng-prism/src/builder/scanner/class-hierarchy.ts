@@ -36,18 +36,26 @@ export interface ClassHierarchy {
 }
 
 /**
- * Follow `extends` from a class up to the root of its hierarchy. A mixin
- * (`extends withX(Base)`) ends the walk: what the call returns has no class
- * declaration to read members from.
+ * The class, then each base class it extends, nearest first, the ones that
+ * only exist as a declaration included. A mixin (`extends withX(Base)`) ends
+ * the chain: what the call returns has no class declaration to read members from.
  */
+export function getClassChain(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): ts.ClassDeclaration[] {
+    const chain: ts.ClassDeclaration[] = [];
+
+    for (let current: ts.ClassDeclaration | undefined = classDecl; current && !chain.includes(current); current = getBaseClass(current, checker)) {
+        chain.push(current);
+    }
+
+    return chain;
+}
+
+/** The classes of {@link getClassChain} that have source, and the declaration-only ones among them that declare inputs. */
 export function getClassHierarchy(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): ClassHierarchy {
     const classes: HierarchyClass[] = [];
     const unreadable: UnreadableBase[] = [];
-    const visited = new Set<ts.ClassDeclaration>();
 
-    for (let current: ts.ClassDeclaration | undefined = classDecl; current && !visited.has(current); current = getBaseClass(current, checker)) {
-        visited.add(current);
-
+    for (const current of getClassChain(classDecl, checker)) {
         if (!isDeclarationOnly(current)) {
             classes.push({ classDecl: current, definesMetadata: current === classDecl || isAngularClass(current) });
             continue;

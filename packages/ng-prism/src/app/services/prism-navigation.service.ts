@@ -1,16 +1,21 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { StyleguidePage } from '../../plugin/page.types.js';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeComponent, ScannedComponent } from '../../plugin/plugin.types.js';
+import type { PanelTarget, RuntimeService } from '../../plugin/service.types.js';
+import { itemShowcaseConfig } from './navigation-item.js';
 import type { NavigationItem } from './navigation-item.types.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 import { PrismSearchService } from './prism-search.service.js';
 
 const DEFAULT_SECTION_ORDER: Record<string, number> = {
     Components: 0,
-    Directives: 10
+    Directives: 10,
+    Services: 20,
+    Pipes: 30
 };
 
-const SECTION_TIEBREAK: readonly string[] = ['Components', 'Directives'];
+const SECTION_TIEBREAK: readonly string[] = ['Components', 'Directives', 'Services', 'Pipes'];
 
 export interface CategoryNode {
     name: string;
@@ -27,6 +32,21 @@ export interface SectionNode {
 export function resolveSection(c: ScannedComponent): string {
     if (c.showcaseConfig.section) return c.showcaseConfig.section;
     return c.componentMeta.isDirective ? 'Directives' : 'Components';
+}
+
+/** An item that carries a `@Showcase` config, so everything but a page. */
+type ShowcasedItem = Exclude<NavigationItem, { kind: 'page' }>;
+
+/** The section an item lists under: its own `section`, else the default for what it is. */
+function resolveItemSection(item: ShowcasedItem): string {
+    switch (item.kind) {
+        case 'component':
+            return resolveSection(item.data.meta);
+        case 'service':
+            return item.data.meta.showcaseConfig.section ?? 'Services';
+        case 'pipe':
+            return item.data.meta.showcaseConfig.section ?? 'Pipes';
+    }
 }
 
 function defaultSectionOrder(name: string): number {
@@ -60,6 +80,36 @@ export class PrismNavigationService {
         return relinked ?? null;
     });
 
+    readonly activeService = computed<RuntimeService | null>(() => {
+        const item = this.activeItem();
+
+        if (item?.kind !== 'service') return null;
+        const relinked = this.manifestService.services().find((s) => s.meta.className === item.data.meta.className);
+
+        return relinked ?? null;
+    });
+
+    readonly activePipe = computed<RuntimePipe | null>(() => {
+        const item = this.activeItem();
+
+        if (item?.kind !== 'pipe') return null;
+        const relinked = this.manifestService.pipes().find((p) => p.meta.className === item.data.meta.className);
+
+        return relinked ?? null;
+    });
+
+    /**
+     * What the active item is, for the panels that apply to one kind only.
+     * Built from the re-linked signals, so an item the manifest no longer has
+     * (and a page, which no panel targets) reports `null`.
+     */
+    readonly activeTarget = computed<PanelTarget | null>(() => {
+        if (this.activeComponent()) return 'component';
+        if (this.activeService()) return 'service';
+        if (this.activePipe()) return 'pipe';
+        return null;
+    });
+
     readonly activePage = computed<StyleguidePage | null>(() => {
         const item = this.activeItem();
 
@@ -71,23 +121,28 @@ export class PrismNavigationService {
     });
 
     readonly sectionTree = computed<SectionNode[]>(() => {
-        const comps = this.searchService.filteredComponents();
+        const items: ShowcasedItem[] = [
+            ...this.searchService.filteredComponents().map((data): ShowcasedItem => ({ kind: 'component', data })),
+            ...this.searchService.filteredServices().map((data): ShowcasedItem => ({ kind: 'service', data })),
+            ...this.searchService.filteredPipes().map((data): ShowcasedItem => ({ kind: 'pipe', data }))
+        ];
 
         const sections = new Map<string, Map<string, NavigationItem[]>>();
         const sectionOrders = new Map<string, number>();
 
-        for (const comp of comps) {
-            const section = resolveSection(comp.meta);
-            const category = comp.meta.showcaseConfig.category ?? 'Uncategorized';
+        for (const item of items) {
+            const config = item.data.meta.showcaseConfig;
+            const section = resolveItemSection(item);
+            const category = config.category ?? 'Uncategorized';
 
             const catMap = sections.get(section) ?? new Map<string, NavigationItem[]>();
-            const items = catMap.get(category) ?? [];
+            const list = catMap.get(category) ?? [];
 
-            items.push({ kind: 'component', data: comp });
-            catMap.set(category, items);
+            list.push(item);
+            catMap.set(category, list);
             sections.set(section, catMap);
 
-            const explicit = comp.meta.showcaseConfig.sectionOrder;
+            const explicit = config.sectionOrder;
             const current = sectionOrders.get(section);
 
             if (explicit !== undefined) {
@@ -102,23 +157,23 @@ export class PrismNavigationService {
 
             const categories: CategoryNode[] = [];
 
-            for (const [catName, items] of catMap.entries()) {
-                items.sort((a, b) => {
-                    const oa = a.kind === 'component' ? (a.data.meta.showcaseConfig.componentOrder ?? Infinity) : Infinity;
-                    const ob = b.kind === 'component' ? (b.data.meta.showcaseConfig.componentOrder ?? Infinity) : Infinity;
+            for (const [catName, catItems] of catMap.entries()) {
+                catItems.sort((a, b) => {
+                    const oa = itemShowcaseConfig(a)?.componentOrder ?? Infinity;
+                    const ob = itemShowcaseConfig(b)?.componentOrder ?? Infinity;
 
                     if (oa !== ob) return oa - ob;
-                    const la = a.kind === 'component' ? a.data.meta.showcaseConfig.title : '';
-                    const lb = b.kind === 'component' ? b.data.meta.showcaseConfig.title : '';
+                    const la = itemShowcaseConfig(a)?.title ?? '';
+                    const lb = itemShowcaseConfig(b)?.title ?? '';
 
                     return la.localeCompare(lb);
                 });
-                categories.push({ name: catName, items });
+                categories.push({ name: catName, items: catItems });
             }
 
             categories.sort((a, b) => {
-                const oa = Math.min(...a.items.map((i) => (i.kind === 'component' ? (i.data.meta.showcaseConfig.categoryOrder ?? Infinity) : Infinity)));
-                const ob = Math.min(...b.items.map((i) => (i.kind === 'component' ? (i.data.meta.showcaseConfig.categoryOrder ?? Infinity) : Infinity)));
+                const oa = Math.min(...a.items.map((i) => itemShowcaseConfig(i)?.categoryOrder ?? Infinity));
+                const ob = Math.min(...b.items.map((i) => itemShowcaseConfig(i)?.categoryOrder ?? Infinity));
 
                 if (oa !== ob) return oa - ob;
                 return a.name.localeCompare(b.name);
@@ -141,6 +196,14 @@ export class PrismNavigationService {
         this.activeItem.set({ kind: 'component', data: comp });
     }
 
+    selectService(service: RuntimeService): void {
+        this.activeItem.set({ kind: 'service', data: service });
+    }
+
+    selectPipe(pipe: RuntimePipe): void {
+        this.activeItem.set({ kind: 'pipe', data: pipe });
+    }
+
     selectPage(page: StyleguidePage): void {
         this.activeItem.set({ kind: 'page', data: page });
     }
@@ -156,6 +219,18 @@ export class PrismNavigationService {
 
         if (comps.length > 0) {
             this.activeItem.set({ kind: 'component', data: comps[0] });
+            return;
+        }
+        const services = this.searchService.filteredServices();
+
+        if (services.length > 0) {
+            this.activeItem.set({ kind: 'service', data: services[0] });
+            return;
+        }
+        const pipes = this.searchService.filteredPipes();
+
+        if (pipes.length > 0) {
+            this.activeItem.set({ kind: 'pipe', data: pipes[0] });
             return;
         }
         this.activeItem.set(null);

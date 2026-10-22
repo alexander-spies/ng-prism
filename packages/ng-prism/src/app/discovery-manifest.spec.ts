@@ -1,6 +1,8 @@
 import type { Type } from '@angular/core';
 import type { ShowcaseConfig } from '../decorator/showcase.types.js';
+import type { RuntimePipe } from '../plugin/pipe.types.js';
 import type { RuntimeManifest } from '../plugin/plugin.types.js';
+import type { RuntimeService } from '../plugin/service.types.js';
 import { DEFAULT_VARIANT_BG } from '../shared/variant-bg.js';
 import { buildDiscoveryManifest, serializableMeta } from './discovery-manifest.js';
 
@@ -106,6 +108,39 @@ describe('serializableMeta', () => {
 });
 
 describe('buildDiscoveryManifest', () => {
+    it('leaves services out of the discovery manifest', () => {
+        const service: RuntimeService = {
+            meta: {
+                className: 'ToastService',
+                filePath: 'src/toast.service.ts',
+                showcaseConfig: { title: 'Toast Service' },
+                provision: 'auto',
+                api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+            }
+        };
+        const result = buildDiscoveryManifest({ components: [], services: [service] });
+
+        expect(result.components).toEqual([]);
+        expect(result).not.toHaveProperty('services');
+    });
+
+    it('leaves pipes out of the discovery manifest', () => {
+        const pipe: RuntimePipe = {
+            meta: {
+                className: 'TimeAgoPipe',
+                filePath: 'src/time-ago.pipe.ts',
+                showcaseConfig: { title: 'Time ago' },
+                pipeName: 'timeAgo',
+                pure: true,
+                api: { tags: {}, transform: [], setup: [], types: [] }
+            }
+        };
+        const result = buildDiscoveryManifest({ components: [], pipes: [pipe] });
+
+        expect(result.components).toEqual([]);
+        expect(result).not.toHaveProperty('pipes');
+    });
+
     it('exposes className, title and variant indices', () => {
         const result = buildDiscoveryManifest(
             manifestOf({

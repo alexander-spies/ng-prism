@@ -318,6 +318,49 @@ Relative paths resolve against `workspaceRoot`. If you set this option, also upd
 
 None of this affects `ShowcaseConfig`, the manifest format, or any plugin's public API. See [`PrismMetricBadgeComponent` and `PrismIconComponent`](../plugins/writing-plugins.md#header-and-panel-widgets) if you are building a header widget and want the same building blocks the built-in gauge uses.
 
+## Breaking changes and deprecations in 22.7.0
+
+`22.7.0` adds [services](showcasing-services.md) and [pipes](showcasing-pipes.md) to the styleguide. Everything else is additive: for components and directives, `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. The exception is a class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe`, which used to be scanned as a component and now leaves `components`, as described below. Its Playground never rendered it, so nothing that worked is lost; a tool that enumerated `components` simply no longer sees it. The one breaking change in application code is a type-level one. The deprecation below changes nothing in 22.x.
+
+Before 22.7.0 every class with `@Showcase` was a component, so a class with `@Showcase` and `@Pipe` was in `components` (with the selector `''`), in `__PRISM_MANIFEST__` and in `onComponentScanned`, and its Playground never rendered it. In 22.7.0 it depends on the pipe:
+
+- **Standalone, without component-only fields:** it leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`. With `jsDocPlugin()` from `@ng-prism/plugin-jsdoc` 22.7.0 or newer it is listed under **Pipes** and goes through `onPipeScanned`; without it the build leaves it out and says so once, see [Showcasing Pipes: Without the JSDoc plugin](showcasing-pipes.md#without-the-jsdoc-plugin).
+- **`standalone: false`, or a `name` the scanner cannot read, without component-only fields:** it is dropped with a warning, which fails a [`strictShowcase`](../api/ng-prism-config.md#strictshowcase) build.
+- **With a component-only field** such as `renderPage`: it stays a component until 23.0.0, with a notice, see [the deprecation below](#deprecation-injectables-and-pipes-with-component-only-fields). From 23.0.0 a standalone pipe is shown as a pipe and one declared in an NgModule is dropped.
+
+A class with `@Injectable` or `@Service` moves the same way: without component-only fields it leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`, and with `jsDocPlugin()` 22.7.0 or newer it is listed under **Services** and goes through `onServiceScanned`, see [Showcasing Services](showcasing-services.md).
+
+### Breaking change: NavigationItem has two new kinds
+
+`NavigationItem` is exported from `@ng-prism/core` and gains `{ kind: 'service'; data: RuntimeService }` and `{ kind: 'pipe'; data: RuntimePipe }`. It only affects code of your own that narrows a `NavigationItem` by `kind` and reads `data`, for example a custom page or a plugin panel reading `PrismNavigationService.activeItem()`. That code needs a `'service'` and a `'pipe'` branch. A plain two-way check now fails to compile, because the other branch is `RuntimeService | RuntimePipe | StyleguidePage`:
+
+```typescript
+// before 22.7.0
+function label(item: NavigationItem): string {
+    return item.kind === 'component' ? item.data.meta.showcaseConfig.title : item.data.title;
+}
+
+// from 22.7.0
+function label(item: NavigationItem): string {
+    switch (item.kind) {
+        case 'component':
+        case 'service':
+        case 'pipe':
+            return item.data.meta.showcaseConfig.title;
+        case 'page':
+            return item.data.title;
+    }
+}
+```
+
+The same goes for a `switch` that ends in `never` and for a lookup typed on the union. At runtime nothing changes until your styleguide actually contains a service or a pipe. The members `PrismNavigationService.activeService`, `selectService()`, `activePipe` and `selectPipe()` and the `service` and `pipe` URL parameters are new and change nothing for existing code. See [`NavigationItem`](../api/types.md#navigationitem).
+
+### Deprecation: injectables and pipes with component-only fields
+
+**Deprecated since 22.7.0, removed in 23.0.0. Nothing changes in 22.x.** Before services and pipes had a page, a class with `@Showcase` and `@Injectable` or `@Pipe` landed in `components`, and with `renderPage` it had a working page. It keeps that page in 22.x: a class with `@Injectable`, `@Service` or `@Pipe` that declares `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or `renderPage` stays a component, and the build prints a notice (it does not count for [`strictShowcase`](../api/ng-prism-config.md#strictshowcase)). From 23.0.0 it is shown as a service or a pipe and those fields are dropped. To switch now, remove the fields, or move the page to a [component page](component-pages.md) and keep the service or pipe on its own. See [Showcasing Services: Compatibility until 23.0.0](showcasing-services.md#compatibility-until-2300) and [Showcasing Pipes: Compatibility until 23.0.0](showcasing-pipes.md#compatibility-until-2300).
+
+A `@Pipe` declared in an NgModule (`standalone: false`) goes one step further. ng-prism shows standalone pipes only, so such a pipe without component-only fields is already dropped with a warning in 22.7.0 (see above), and one with component-only fields keeps its page in 22.x and loses it in 23.0.0. The notice in 22.x says so: `From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.` Make the pipe standalone and remove the fields to have it shown as a pipe, or move the page to a component page.
+
 ## Related
 
 - Issue [#13](https://github.com/ng-prism/ng-prism/issues/13)

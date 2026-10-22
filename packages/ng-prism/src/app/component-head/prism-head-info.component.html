@@ -2,8 +2,8 @@
     class="info-btn"
     type="button"
     popovertarget="prism-head-info"
-    title="Component details"
-    aria-label="Component details">
+    [attr.title]="label()"
+    [attr.aria-label]="label()">
     <prism-icon
         name="info"
         [size]="13" />
@@ -14,8 +14,8 @@
     id="prism-head-info"
     class="info-card"
     role="dialog"
-    aria-label="Component details">
-    <code class="info-card__selector">&lt;{{ selector() }}&gt;</code>
+    [attr.aria-label]="label()">
+    <code class="info-card__selector">{{ codeBlock() }}</code>
     @if (description()) {
         <p class="info-card__desc">{{ description() }}</p>
     }
@@ -31,6 +31,9 @@
                 {{ stateCount() }} {{ stateCount() === 1 ? 'state' : 'states' }}
             }
         </p>
+    }
+    @for (fact of facts(); track fact) {
+        <p class="info-card__meta">{{ fact }}</p>
     }
     @if (tags().length) {
         <div class="info-card__tags">

@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import type { InputMeta, OutputMeta } from '../../plugin/plugin.types.js';
 import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, getJsDocComment } from './ast-utils.js';
-import { getClassHierarchy } from './class-hierarchy.js';
+import { type ClassHierarchy, getClassHierarchy } from './class-hierarchy.js';
 
 /**
  * Extract all @Input(), input() and model() signal metadata from a class
@@ -47,6 +47,46 @@ export function extractInputs(classDecl: ts.ClassDeclaration, checker: ts.TypeCh
     }
 
     return inputs;
+}
+
+/**
+ * The declaration Angular takes an input from: the member of that name in the
+ * nearest class that defines metadata and declares it an input, the one
+ * {@link extractInputs} reads.
+ */
+export function findInputDeclaration(hierarchy: ClassHierarchy, name: string): { member: ts.PropertyDeclaration; owner: ts.ClassDeclaration } | undefined {
+    return findDeclaration(hierarchy, name, (member) => !isStatic(member) && (!!findDecorator(member, 'Input') || !!getInputSignalCall(member)));
+}
+
+/** The declaration Angular takes an output from, as {@link findInputDeclaration} for an input. */
+export function findOutputDeclaration(hierarchy: ClassHierarchy, name: string): { member: ts.PropertyDeclaration; owner: ts.ClassDeclaration } | undefined {
+    return findDeclaration(hierarchy, name, (member) => !!findDecorator(member, 'Output') || isOutputSignal(member));
+}
+
+/** Whether an input is a `model()` or `model.required()`, for which Angular adds a change output. */
+export function isModelInput(member: ts.PropertyDeclaration): boolean {
+    const call = getInputSignalCall(member);
+    const callee = call && (ts.isPropertyAccessExpression(call.expression) ? call.expression.expression : call.expression);
+
+    return !!callee && ts.isIdentifier(callee) && callee.text === 'model';
+}
+
+function findDeclaration(
+    hierarchy: ClassHierarchy,
+    name: string,
+    declares: (member: ts.PropertyDeclaration) => boolean
+): { member: ts.PropertyDeclaration; owner: ts.ClassDeclaration } | undefined {
+    for (const { classDecl: owner, definesMetadata } of hierarchy.classes) {
+        if (!definesMetadata) continue;
+
+        const member = owner.members.find(
+            (m): m is ts.PropertyDeclaration => ts.isPropertyDeclaration(m) && ts.isIdentifier(m.name) && m.name.text === name && declares(m)
+        );
+
+        if (member) return { member, owner };
+    }
+
+    return undefined;
 }
 
 function isStatic(member: ts.PropertyDeclaration): boolean {
@@ -174,7 +214,7 @@ export function extractOutputs(classDecl: ts.ClassDeclaration, checker: ts.TypeC
  * mentions a type parameter of the class that declares it. Only then does the
  * subclass change the type; otherwise the source text stays, alias names included.
  */
-function usesTypeParameters(node: ts.Node | undefined, owner: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+export function usesTypeParameters(node: ts.Node | undefined, owner: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
     const parameters = owner.typeParameters;
 
     if (!node || !parameters?.length) return false;
@@ -218,7 +258,7 @@ function typeMentions(
  * sees it: `items = input.required<T[]>()` in `Field<T>` is an
  * `InputSignal<Country[]>` on `Picker extends Field<Country>`.
  */
-function getInstantiatedType(name: string, subclass: ts.ClassDeclaration, checker: ts.TypeChecker): ts.Type | undefined {
+export function getInstantiatedType(name: string, subclass: ts.ClassDeclaration, checker: ts.TypeChecker): ts.Type | undefined {
     const property = checker.getPropertyOfType(checker.getTypeAtLocation(subclass), name);
 
     return property && checker.getTypeOfSymbolAtLocation(property, subclass);

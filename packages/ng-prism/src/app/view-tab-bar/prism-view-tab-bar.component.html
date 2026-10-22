@@ -1,10 +1,12 @@
 <div class="prism-view-tab-bar">
-    <button
-        class="prism-view-tab-bar__tab"
-        [class.prism-view-tab-bar__tab--active]="panelService.activeViewId() === 'renderer'"
-        (click)="panelService.activeViewId.set('renderer')">
-        Playground
-    </button>
+    @if (navigationService.activeTarget() === 'component') {
+        <button
+            class="prism-view-tab-bar__tab"
+            [class.prism-view-tab-bar__tab--active]="panelService.activeViewId() === 'renderer'"
+            (click)="panelService.activeViewId.set('renderer')">
+            Playground
+        </button>
+    }
     @for (panel of viewPanels(); track panel.id) {
         <button
             class="prism-view-tab-bar__tab"

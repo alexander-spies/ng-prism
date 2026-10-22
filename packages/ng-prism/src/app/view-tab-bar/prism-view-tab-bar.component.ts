@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
 
 @Component({
@@ -10,6 +11,7 @@ import { PrismPanelService } from '../services/prism-panel.service.js';
 })
 export class PrismViewTabBarComponent {
     protected readonly panelService = inject(PrismPanelService);
+    protected readonly navigationService = inject(PrismNavigationService);
 
     protected readonly viewPanels = this.panelService.visibleViewPanels;
 }

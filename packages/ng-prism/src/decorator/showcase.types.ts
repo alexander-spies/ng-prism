@@ -1,4 +1,4 @@
-import type { InputSignalWithTransform, Provider } from '@angular/core';
+import type { InjectionToken, InputSignalWithTransform, Provider } from '@angular/core';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { CanvasLayout } from '../shared/canvas-layout.type.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
@@ -45,6 +45,12 @@ export interface ShowcaseState {
     pseudo: ForcedPseudoStates;
 }
 
+/**
+ * A function or injection token that configures a service or pipe, listed in
+ * `ShowcaseConfig.setup`. ng-prism only reads its name, signature and type.
+ */
+export type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
+
 export interface ShowcaseConfig<T = unknown> {
     /** Display name in the ng-prism UI */
     title: string;
@@ -58,17 +64,18 @@ export interface ShowcaseConfig<T = unknown> {
     componentOrder?: number;
     /**
      * Top-level section in the sidebar. Auto-detected if omitted:
-     * 'Directives' for a `@Directive`, otherwise 'Components'. Free-form string:
-     * any value creates a new top-level section (e.g. 'Pipes', 'Utilities').
+     * 'Directives' for a `@Directive`, 'Services' for a service, 'Pipes' for a
+     * pipe, otherwise 'Components'. Free-form string: any value creates a new
+     * top-level section (e.g. 'Forms', 'Utilities').
      */
     section?: string;
     /**
      * Sort order of this section in the sidebar (lower = higher in list).
      * The section's effective order is the minimum `sectionOrder` of all its items.
-     * Defaults: 'Components' 0, 'Directives' 10, all others 100.
+     * Defaults: 'Components' 0, 'Directives' 10, 'Services' 20, 'Pipes' 30, all others 100.
      */
     sectionOrder?: number;
-    /** Predefined variants shown as tabs */
+    /** Predefined variants shown as tabs. Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0. */
     variants?: Variant<T>[];
     /**
      * Named pseudo-state combinations, e.g. `{ name: 'Hover', pseudo: { hover: '.btn' } }`.
@@ -76,6 +83,7 @@ export interface ShowcaseConfig<T = unknown> {
      * a column per state and a variant can be viewed in any of them. A variant opts out with
      * `states: false`.
      * Not combinable with `renderPage`: a component page has no Overview.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      *
      * The position in the list identifies a state, so keep the order stable.
      */
@@ -93,10 +101,20 @@ export interface ShowcaseConfig<T = unknown> {
     /** Arbitrary metadata for plugins (e.g. { figma: 'https://...' }) */
     meta?: Record<string, unknown>;
     /**
+     * Services and pipes only: the functions and tokens that configure the service
+     * or pipe, for example `provideToasts` and `TOAST_CONFIG`. The styleguide
+     * documents them next to the service or pipe. A function, not a list, so that
+     * a service and its `provide*` function can live in files that import each
+     * other without the list reading a binding that is not initialised yet.
+     * ng-prism never calls it. Since 22.7.0.
+     */
+    setup?: () => readonly ShowcaseSetupRef[];
+    /**
      * Recommended canvas background for this component. Applied when the user
      * opens the component, unless a variant defines its own `bg`. The user
      * can override via the canvas toolbar; the override is transient and
      * resets when switching variants or components.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
     bg?: CanvasBg;
     /**
@@ -106,11 +124,18 @@ export interface ShowcaseConfig<T = unknown> {
      *   components without intrinsic width (e.g. horizontal dividers) and components that
      *   opt into `width: 100%` (e.g. full-width buttons) render correctly.
      * A `Variant.canvasLayout` overrides this.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
     canvasLayout?: CanvasLayout;
-    /** Host element for directive showcases. String = HTML element (e.g. '<button class="btn">'), object = Angular component. */
+    /**
+     * Host element for directive showcases. String = HTML element (e.g. '<button class="btn">'), object = Angular component.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
+     */
     host?: string | DirectiveHost;
-    /** Title of a registered ComponentPage to render instead of the component itself. Use for complex components that need template projections or mock data. The page component can inject PrismRendererService to react to control panel changes. */
+    /**
+     * Title of a registered ComponentPage to render instead of the component itself. Use for complex components that need template projections or mock data. The page component can inject PrismRendererService to react to control panel changes.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
+     */
     renderPage?: string;
     /**
      * Migration / maturity status. When unset, the component is treated as `stable`
