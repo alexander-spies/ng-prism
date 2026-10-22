@@ -8,7 +8,7 @@
 - Puts a **count on that tab** of the variants waiting on a decision: red once something changed, amber while the only open items are ones that could not be compared, and absent entirely when the component is clean
 - Shows a **library-wide VRT pill** in the header ("VRT 96%", the share of unchanged variants), graded against your thresholds: ok at the target, warn from 75% of it, danger below
 - Adds a **VRT diff** row to the component head's gauge readout: the worst diff among that component's variants. The gauge chip in the head only names it while it deviates, and only when nothing else deviates more
-- Heads the variant list with a **per-component summary**: a composition bar over the statuses present, plus the worst diff. It sits in the list column instead of across the panel, because the dock is only 260px tall by default and a full-width strip would use up that height
+- Carries a **per-component summary** in the tooltip of the list headings: every status present with its count, plus the worst diff (`1 changed · 2 new · 7 unchanged · max diff 10.26%`). There is no summary strip, so the list and the comparison keep the whole height of the dock
 - **Groups the variant list by what needs you**, with the clean variants collapsed out of the way (see below)
 - Per variant, and per variant and state when the component declares [`states`](guide/variants.md#states): status, diff percentage, and a baseline / current / diff comparison. The list and the comparison scroll independently, so choosing a variant never scrolls the image you chose it for out of view
 - Three comparison modes: **Wipe**, **Side by side**, and **Diff** (the last only when the report records a distinct diff mask alongside a current capture)
@@ -78,11 +78,10 @@ The first pairing is what this repository's test workspace uses. The report reco
 Most of a library's variants are usually unchanged, and a flat list gives all of them equal weight, so the list is grouped instead.
 
 ```
-NEEDS REVIEW · 1
-  ┃ Outlined                    87.40%
-  ┃ CHANGED
+Needs review · 1
+  [Changed]  Outlined               87.40%
 
-UNCHANGED · 14                        ▶
+▸ Unchanged · 14
 ```
 
 | Group            | Holds                             | Behaviour                        |
@@ -97,23 +96,21 @@ Empty groups are not rendered. Within **Needs review** the order is worst news f
 
 When nothing needs review the first group starts open, because two collapsed headers and no rows would look like a panel that failed to load.
 
-The rows use the same card as the a11y violations list (severity edge, status label, diff percentage), so the two panels look consistent.
+The rows are the same list rows as the a11y violations: a status badge, the name and the diff percentage on the right, and a tinted surface for the selected one, so the two panels look consistent.
 
 ### Variants and states
 
 A component that declares [`states`](guide/variants.md#states) is captured once per variant and state, so a variant can have several rows: its own, and one for each state it was captured in. A state row reads `<variant> × <state>`:
 
 ```
-NEEDS REVIEW · 2
-  ┃ Outlined × Hover            12.30%
-  ┃ CHANGED
-  ┃ Outlined × State 1          —
-  ┃ NEW
+Needs review · 2
+  [Changed]  Outlined × Hover       12.30%
+  [New]      Outlined × State 1     —
 ```
 
 The state part is the entry's `stateName`. An entry that carries a `stateIndex` but no `stateName` reads `State <stateIndex + 1>`, the name the scanner gives a state declared without one, so the row reads like the state's column in the Overview: `State 1` above is `stateIndex` 0.
 
-Each row is its own entry in the report and counts on its own: in the summary bar, in the group counts and in the tab badge. A state that does not fit a variant (the render marker says [why](guide/external-tooling.md#a-state-that-does-not-apply)) is reported as `excluded` with the runner's `reason`, like any other capture the runner skipped.
+Each row is its own entry in the report and counts on its own: in the headings' summary, in the group counts and in the tab badge. A state that does not fit a variant (the render marker says [why](guide/external-tooling.md#a-state-that-does-not-apply)) is reported as `excluded` with the runner's `reason`, like any other capture the runner skipped.
 
 Rows of the same status are ordered by `variantIndex`, then the variant's own entry before its states, then the states by `stateIndex`. An entry without a `stateIndex` behaves as it always did, so a report from before states renders unchanged.
 

@@ -362,15 +362,15 @@ When `status` is omitted, the component is treated as stable but renders without
 
 **Visual impact**
 
-| Status         | Sidebar item                           | Component head                              |
-| -------------- | -------------------------------------- | ------------------------------------------- |
-| _unset_        | unchanged                              | no status chip                              |
-| `'stable'`     | unchanged                              | muted outlined "Stable" chip                |
-| `'beta'`       | unchanged                              | amber "Beta" chip                           |
-| `'wip'`        | dashed-circle leading icon (tooltip)   | amber "Work in progress" chip (hollow ring) |
-| `'deprecated'` | name struck-through + dimmed (tooltip) | red "Deprecated" chip                       |
+| Status         | Sidebar item                           | Component head                                       |
+| -------------- | -------------------------------------- | ---------------------------------------------------- |
+| _unset_        | unchanged                              | no status badge                                      |
+| `'stable'`     | unchanged                              | "Stable" badge in the success colour                 |
+| `'beta'`       | unchanged                              | "Beta" badge in the warning colour                   |
+| `'wip'`        | dashed-circle leading icon (tooltip)   | "Work in progress" badge, warning, with a hollow dot |
+| `'deprecated'` | name struck-through + dimmed (tooltip) | "Deprecated" badge in the danger colour              |
 
-The status chip is rendered inline with the title in the component head's single row; the `<selector>` now lives in the details popover behind the ⓘ glyph. All colors come from the `--prism-mark-*` role tokens, so light/dark mode are handled automatically. A status chip is always an outline and never a filled surface. A permanently visible band is the wrong place for a filled alarm colour, so `deprecated` separates itself by hue rather than by weight.
+The status badge is rendered inline with the title in the component head's single row; the `<selector>` now lives in the details popover behind the ⓘ glyph. It is a soft-tinted badge with a dot, coloured with `--prism-success`, `--prism-warn` and `--prism-danger`, so light and dark mode are handled automatically, and its tooltip says what the status means.
 
 Use this to communicate migration state while moving components from a legacy library into a new one: set `'wip'` on what's actively being migrated, `'deprecated'` on what should no longer be used, and `'stable'` / `'beta'` to badge maturity once a component is done.
 

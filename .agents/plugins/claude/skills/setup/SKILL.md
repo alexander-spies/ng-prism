@@ -78,7 +78,8 @@ the Node way, without tsconfig `paths`.
 - `appProviders`: providers for the whole styleguide app, where `@Showcase({ providers })` moved to.
 - `pages`: custom pages declared in the config.
 - `theme`, `darkTheme`, `lightTheme`: CSS custom property overrides (see Theming).
-- `title`, `subtitle`, `logo: { light, dark }`, `buildInfo: { version, gitHash }`: the header.
+- `title`, `subtitle`, `logo: { light, dark }`, `buildInfo: { version, gitHash }`: the header. Since 22.7 the header is
+  navy in both themes, so `logo.dark` is shown whenever it is set; a `title` is plain text, not in the brand gradient.
 - `urlState` (default `true`) keeps the selection in the URL; `persistState` (default `true`) keeps state in
   sessionStorage across reloads.
 - `a11y`: thresholds and report path for the accessibility audit (`api/ng-prism-config.md`).
@@ -162,7 +163,10 @@ In Nx, a target with `"command": "npx ng-prism-strip dist/<path>"` and `"depends
 - 22.7.0 is such a release. A class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe` but no component-only
   field leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`; it is listed as a service or a pipe with
   `jsDocPlugin()` 22.7.0 or newer. Code that narrows a `NavigationItem` by `kind` needs a `'service'` and a `'pipe'`
-  branch. See `guide/migration-v22.md#breaking-changes-and-deprecations-in-2270`.
+  branch. 22.7.0 also brings a new palette and look: `--prism-primary` is the text role and fills read
+  `--prism-primary-fill`, the `--prism-mark-*`, `--prism-spectrum` and `--prism-primary-from/-to` tokens are deprecated
+  (the build names any override of them), and `PanelBadge.variant` gives way to `kind`. See
+  `guide/migration-v22.md#breaking-changes-and-deprecations-in-2270`.
 - Update the core and all plugins in one call: `ng update @ng-prism/core @ng-prism/plugin-jsdoc …`.
 - The migrations to v22 (manifest moved to `ng-prism-cache/`, `.ng-prism/` renamed) read `angular.json` only; in an Nx
   workspace apply them by hand following `guide/migration-v22.md`. They need Angular CLI 22 and a Node version it

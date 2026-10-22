@@ -40,11 +40,11 @@ export default defineConfig({
 
 ## Options
 
-| Option         | Default             | Description                                                                        |
-| -------------- | ------------------- | ---------------------------------------------------------------------------------- |
-| `reportPath`   | `'vrt-report.json'` | Path to the report JSON, relative to the workspace root.                           |
-| `assetBaseUrl` | `''`                | Prefix applied to the image paths in the report so they resolve against the build. |
-| `thresholds`   | `{ score: 100 }`    | Minimum score before the header badge stops being green.                           |
+| Option         | Default             | Description                                                                                           |
+| -------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `reportPath`   | `'vrt-report.json'` | Path to the report JSON, relative to the workspace root.                                              |
+| `assetBaseUrl` | `''`                | Prefix applied to the image paths in the report so they resolve against the build.                    |
+| `thresholds`   | `{ score: 100 }`    | Target for the share of unchanged variants: below it the header pill is warn, below 75% of it danger. |
 
 ## Report Format
 

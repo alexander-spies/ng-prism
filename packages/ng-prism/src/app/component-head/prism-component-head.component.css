@@ -71,11 +71,6 @@ prism-head-gauge,
     display: none;
 }
 
-/* Always an outline, never a filled surface. Deprecated separates itself
-   by hue, not by weight. A filled alarm-coloured chip in a permanently
-   visible band is the "red as background texture" problem this
-   redesign exists to fix. */
-
 /* Work in progress keeps its ring: the one status without a settled state. */
 .comp-status--wip {
     --prism-badge-dot-fill: transparent;

@@ -37,7 +37,8 @@ This repo is an Nx monorepo on npm workspaces:
   packages. Its `test-lib` is the demo styleguide and the scanner's real-world
   input (skill `prism-test-workspace`).
 - `docs/` is the published docsify site, `scripts/` holds the release and
-  lint-fix scripts.
+  lint-fix scripts and `render-brand-assets.mjs`, which renders the README cover
+  and the docs logo from `docs/assets/brand/cover.html`.
 
 # Architecture
 

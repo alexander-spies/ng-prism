@@ -40,7 +40,9 @@ export { enablePrismHmr } from './hmr.js';
 //
 // They still reach Node: `@ng-prism/plugin-coverage` and
 // `@ng-prism/plugin-visual-regression` re-export their header badges statically
-// from their Node entry, and those import `PrismMetricBadgeComponent` from here.
+// from their Node entry, and those import `PrismMetricBadgeComponent` from here;
+// since 22.7 `@ng-prism/plugin-perf` does the same with its panel, which is
+// built from the UI primitives below.
 // Loading a plugin config in `builder/config-loader` therefore pulls this whole
 // file, shell included, into Node. That only works because the config loader
 // imports `@angular/compiler` first.

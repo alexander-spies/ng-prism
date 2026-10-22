@@ -124,6 +124,14 @@ export function notesPlugin(): NgPrismPlugin {
   `@ng-prism/core/plugin` (warn down to 75 % of the target, danger below), and `worstTone()` for several. The header
   badge, the sidebar and the built-in panels grade the same way, so a plugin that does too never disagrees with them.
 
+- Panel ids are not deduplicated: prefix yours and avoid the built-in `overview`, `controls`, `events` and `a11y`.
+- Decoration ids are deduplicated: built-ins first (only `a11y`), then plugins in registration order. The first
+  definition of an id wins, later ones are dropped silently. The orders 10, 20 and 30 belong to a11y, visual regression
+  and coverage.
+- The first control whose `matchType` matches wins, in registration order.
+- `wrapComponent` and a panel's `position` are in the typings, but nothing has ever read them; they are deprecated
+  (removed in 23.0.0). Don't use them. Where a panel appears is `placement`.
+
 ## Panel look
 
 Since 22.7 the built-in panels share one anatomy, and the same primitives are exported from `@ng-prism/core`:
@@ -142,15 +150,8 @@ follow the rules the built-ins follow:
 - Content padded 16 × 18 px on a 12 px grid, following the dragged panel height; images and charts fit.
 - Background `--prism-bg-surface`, embeds too. Actions right in the toolbar, `prismButton` `sm`, secondary before
   primary.
-- Colours only through `--prism-*` tokens, so the panel works in both themes; `docs/plugins/writing-plugins.md`
+- Colours only through `--prism-*` tokens, so the panel works in both themes; `plugins/writing-plugins.md`
   (Panel Guidelines) has a full example.
-- Panel ids are not deduplicated: prefix yours and avoid the built-in `overview`, `controls`, `events` and `a11y`.
-- Decoration ids are deduplicated: built-ins first (only `a11y`), then plugins in registration order. The first
-  definition of an id wins, later ones are dropped silently. The orders 10, 20 and 30 belong to a11y, visual regression
-  and coverage.
-- The first control whose `matchType` matches wins, in registration order.
-- `wrapComponent` and a panel's `position` are in the typings, but nothing has ever read them; they are deprecated
-  (removed in 23.0.0). Don't use them. Where a panel appears is `placement`.
 
 ## Packaging for npm
 

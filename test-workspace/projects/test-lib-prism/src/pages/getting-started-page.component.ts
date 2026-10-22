@@ -200,12 +200,12 @@ interface EntryGroup {
         }
 
         .status[data-status='stable'] {
-            color: var(--prism-mark-nominal);
+            color: var(--prism-success);
         }
 
         .status[data-status='beta'],
         .status[data-status='deprecated'] {
-            color: var(--prism-mark-attention);
+            color: var(--prism-warn);
         }
     `
 })

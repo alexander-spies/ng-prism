@@ -522,7 +522,44 @@ import { PrismBadgeComponent, PrismMetricCardComponent, PrismPanelToolbarCompone
 | `PrismIconButtonComponent`   | `button[prismIconButton]` | `size`: `md` (32 px) \| `sm` (28 px) \| `xs` (26 px); `pressed`                                                                                                | Icon-only actions and toggles. Give it an `aria-label`.                                        |
 | `PrismButtonComponent`       | `button[prismButton]`     | `variant`: `secondary` \| `primary` \| `ghost`; `size`: `sm` (26 px) \| `md`                                                                                   | Text actions in a toolbar, secondary before primary.                                           |
 
-`toneForStatus(status)` maps a status verdict (`'ok' | 'warn' | 'danger'`, see `statusFor` in `@ng-prism/core/plugin`) to the badge tone.
+`toneForStatus(status)` maps a status verdict (`'ok' | 'warn' | 'danger'`, see [Status grading](#status-grading)) to the badge tone.
+
+## Status grading
+
+Since 22.7 every key figure the styleguide grades, the a11y score, coverage, the visual regression share and the perf budgets, goes through one rule, exported from `@ng-prism/core/plugin` so a plugin grades the same way. It is framework-free, so the same call works in a build-time hook in Node and in a panel in the browser.
+
+```typescript
+import { STATUS_DANGER_RATIO, statusFor, thresholdFromTarget, worstTone } from '@ng-prism/core/plugin';
+import type { StatusThreshold, StatusTone } from '@ng-prism/core/plugin';
+
+type StatusTone = 'ok' | 'warn' | 'danger';
+
+interface StatusThreshold {
+    ok: number;
+    warn: number;
+    direction?: 'higher' | 'lower';
+}
+
+function statusFor(value: number, threshold: StatusThreshold): StatusTone;
+function thresholdFromTarget(target: number): StatusThreshold;
+function worstTone(tones: Iterable<StatusTone>): StatusTone;
+const STATUS_DANGER_RATIO = 0.75;
+```
+
+| Export                | Description                                                                                                                                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `statusFor`           | Grades a value. With `direction: 'higher'` (the default) it is `ok` from `ok` up, `warn` from `warn` up and `danger` below. With `'lower'`, for budgets such as a size, it is `ok` up to `ok`, `warn` up to `warn` and `danger` above. |
+| `thresholdFromTarget` | A threshold from a single target, the shape of every built-in threshold option: `ok` at the target, `warn` down to `STATUS_DANGER_RATIO` of it. `thresholdFromTarget(80)` is `{ ok: 80, warn: 60 }`.                                   |
+| `worstTone`           | The most severe of several verdicts, `ok` when there are none. The tab of a panel that grades several figures takes this one.                                                                                                          |
+| `STATUS_DANGER_RATIO` | `0.75`: how far below its target a value may fall before it is danger.                                                                                                                                                                 |
+
+```typescript
+statusFor(72, thresholdFromTarget(80)); // 'warn' (60 ≤ 72 < 80)
+statusFor(12.4, { ok: 10, warn: 12.5, direction: 'lower' }); // 'warn'
+worstTone(['ok', 'danger', 'warn']); // 'danger'
+```
+
+A verdict feeds [`PrismMetricBadgeComponent`](#prismmetricbadgecomponent)'s `variant` directly; for a [`prism-badge`](#ui-primitives) or a metric card, map it with `toneForStatus()` from `@ng-prism/core`.
 
 ## NavigationDecorationDefinition
 
