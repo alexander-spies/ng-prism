@@ -20,16 +20,24 @@
 .json-input {
     padding: 4px 8px;
     margin: 0;
+    scrollbar-gutter: stable;
     font-family: var(--font-mono);
     font-size: 12px;
     line-height: 1.4;
     overflow-wrap: break-word;
     tab-size: 2;
     white-space: pre-wrap;
+    scrollbar-color: var(--prism-border-strong) transparent;
+    scrollbar-width: thin;
 }
 
+/* The pre sizes the editor up to ten lines; past that the textarea scrolls
+   and syncScroll() moves the pre along. Both reserve the same scrollbar
+   gutter, so their text wraps at the same width. */
 .json-pre {
     min-height: 56px;
+    max-height: calc(10lh + 8px);
+    overflow: hidden;
     pointer-events: none;
 }
 

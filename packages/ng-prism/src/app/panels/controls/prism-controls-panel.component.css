@@ -25,11 +25,15 @@
     }
 }
 
+/* Top-aligned: a tall control such as the JSON editor grows downward, while
+   its label and the row beside it in the two-up grid stay at the top. Label
+   and input cells are at least one text control high, which keeps
+   single-line rows centred. */
 .ctl-row {
     display: grid;
     grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
     gap: 12px;
-    align-items: center;
+    align-items: start;
     min-height: 45px;
     padding: 6px 0;
     border-bottom: 1px solid var(--prism-border);
@@ -39,8 +43,10 @@
     display: flex;
     flex-wrap: wrap;
     gap: 2px 8px;
+    align-content: center;
     align-items: baseline;
     min-width: 0;
+    min-height: 32px;
 }
 
 .ctl-name {
@@ -63,6 +69,7 @@
     gap: 6px;
     align-items: center;
     min-width: 0;
+    min-height: 32px;
 }
 
 .ctl-not-editable {
