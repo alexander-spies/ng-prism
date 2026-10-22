@@ -1,3 +1,4 @@
+import { statusFor, thresholdFromTarget } from '@ng-prism/core/plugin';
 import type { CoverageSummary, CoverageThresholds } from './coverage.types.js';
 
 /**
@@ -15,7 +16,7 @@ export function avgThreshold(thresholds: CoverageThresholds): number {
 
 export function deriveCoverageSummary(score: number, thresholds: CoverageThresholds): CoverageSummary {
     const avg = avgThreshold(thresholds);
-    const variant: CoverageSummary['variant'] = score >= avg ? 'ok' : score >= avg * 0.75 ? 'warn' : 'danger';
+    const variant: CoverageSummary['variant'] = statusFor(score, thresholdFromTarget(avg));
 
     return { variant, label: `Coverage: ${score}% (target ${avg}%)` };
 }

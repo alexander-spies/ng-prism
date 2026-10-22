@@ -6,7 +6,7 @@
 
 - Adds a **Visual Regression** panel to the addon tab bar, shown only for components that have results
 - Puts a **count on that tab** of the variants waiting on a decision: red once something changed, amber while the only open items are ones that could not be compared, and absent entirely when the component is clean
-- Shows a **library-wide VRT pill** in the header, color-coded against your thresholds
+- Shows a **library-wide VRT pill** in the header ("VRT 96%", the share of unchanged variants), graded against your thresholds: ok at the target, warn from 75% of it, danger below
 - Adds a **VRT diff** row to the component head's gauge readout: the worst diff among that component's variants. The gauge chip in the head only names it while it deviates, and only when nothing else deviates more
 - Heads the variant list with a **per-component summary**: a composition bar over the statuses present, plus the worst diff. It sits in the list column instead of across the panel, because the dock is only 260px tall by default and a full-width strip would use up that height
 - **Groups the variant list by what needs you**, with the clean variants collapsed out of the way (see below)
@@ -49,7 +49,7 @@ export default defineConfig({
 | -------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `reportPath`   | `'vrt-report.json'` | Path to the report JSON, relative to the workspace root. Read at build time.                                                        |
 | `assetBaseUrl` | `''`                | Prefix applied to the image paths in the report to resolve them against the served styleguide. Empty means paths are used as given. |
-| `thresholds`   | `{ score: 100 }`    | Minimum acceptable score before the header pill turns orange, then red.                                                             |
+| `thresholds`   | `{ score: 100 }`    | Target for the share of unchanged variants: below it the header pill is warn, below 75% of it danger.                               |
 
 ### Serving the images
 

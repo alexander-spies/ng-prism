@@ -51,6 +51,15 @@ describe('coveragePlugin', () => {
         expect(panel.component).toBeUndefined();
     });
 
+    /**
+     * A percentage is not a number of open findings, and since 22.7 a filled tab
+     * badge means exactly that. The value stays in the gauge, the sidebar, the
+     * header and the panel.
+     */
+    it('should not put a badge on the Coverage tab', () => {
+        expect(coveragePlugin().panels![0].badge).toBeUndefined();
+    });
+
     it('should lazy-load the panel component', async () => {
         const plugin = coveragePlugin();
         const panel = plugin.panels![0];
