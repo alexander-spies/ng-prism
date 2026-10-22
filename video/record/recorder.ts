@@ -77,7 +77,7 @@ export async function recordShot(shot: Shot, baseUrl: string, outDir: string): P
         const ctx: ShotContext = {
             page,
             mark: async (name: string, target: Locator) => {
-                const rect = await target.boundingBox();
+                const rect = unionBox(await Promise.all((await target.all()).map((element) => element.boundingBox())));
                 if (!rect) throw new Error(`Shot ${shot.id}: mark "${name}" has no box`);
                 focus.push({ name, at: now(), rect });
             },
@@ -95,10 +95,14 @@ export async function recordShot(shot: Shot, baseUrl: string, outDir: string): P
             type: (text, perCharMs) => page.keyboard.type(text, { delay: perCharMs * SLOW })
         };
 
-        await page.mouse.move(pointer.x, pointer.y);
-        await shot.run(ctx);
-        capturing = false;
-        await capture;
+        try {
+            await page.mouse.move(pointer.x, pointer.y);
+            await shot.run(ctx);
+        } finally {
+            // Stop the loop before the browser closes, so a failing shot reports its own error, not the loop's.
+            capturing = false;
+            await capture.catch(() => {});
+        }
 
         let list = '';
         frames.forEach((frame, i) => {
@@ -123,6 +127,22 @@ export async function recordShot(shot: Shot, baseUrl: string, outDir: string): P
     } finally {
         await browser.close();
     }
+}
+
+type Box = { x: number; y: number; width: number; height: number };
+
+/** The rectangle around every visible box, or null when there is none. */
+function unionBox(boxes: Array<Box | null>): Box | null {
+    const visible = boxes.filter((box): box is Box => box !== null);
+    if (visible.length === 0) return null;
+    const x = Math.min(...visible.map((box) => box.x));
+    const y = Math.min(...visible.map((box) => box.y));
+    return {
+        x,
+        y,
+        width: Math.max(...visible.map((box) => box.x + box.width)) - x,
+        height: Math.max(...visible.map((box) => box.y + box.height)) - y
+    };
 }
 
 /** For a still, waits run in real time and there is nothing to record. */

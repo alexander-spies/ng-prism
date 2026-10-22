@@ -8,7 +8,7 @@ export type { FocusMark } from '../../src/lib/recordings.ts';
  */
 export interface ShotContext {
     page: Page;
-    /** Stores where `target` is right now, for the camera of the scene that shows this recording. */
+    /** Stores where `target` is right now (the rectangle around all its matches), for the camera of the scene that shows this recording. */
     mark(name: string, target: Locator): Promise<void>;
     pause(ms: number): Promise<void>;
     /** Glides the visible pointer to (x, y) in CSS px. */
