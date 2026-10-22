@@ -189,6 +189,18 @@
     text-decoration-style: solid;
 }
 
+/* A deprecation message is rendered Markdown inside the badge: its code and links take the badge's colour, not the description's blue. */
+:host ::ng-deep .prism-jsdoc-panel__badge--deprecated code {
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    color: inherit;
+}
+
+:host ::ng-deep .prism-jsdoc-panel__badge--deprecated a {
+    color: inherit;
+    text-decoration: underline;
+}
+
 /* ──── Type cards ──── */
 
 .prism-jsdoc-api-page__type {
