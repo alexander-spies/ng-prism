@@ -26,7 +26,7 @@ Analyzes the component's keyboard accessibility:
 - Tab order visualization with numbered indicators
 - Focus trap detection
 - Missing `tabindex` warnings
-- Overlay with indigo-colored focus indicators on the rendered component
+- Overlay with numbered focus indicators in the primary colour on the rendered component
 
 ### ARIA Tree
 
@@ -42,7 +42,7 @@ Simulates how a screen reader would interpret the component:
 
 - **List mode** (visual perspective): shows all announced elements
 - **Player mode** (screen reader perspective): step-by-step navigation with previous/next controls
-- Violet overlay indicators on the rendered component
+- Overlay indicators in the primary colour on the rendered component
 
 ## Perspective Toggle
 
@@ -51,7 +51,7 @@ The renderer toolbar includes a perspective toggle:
 - **Visual**: default view, component rendered normally
 - **Screen Reader**: canvas dims, overlay shows SR-announced elements
 
-The active perspective affects which overlays are visible (Keyboard uses indigo, Screen Reader uses violet).
+The active perspective decides which overlay is visible: Keyboard shows the tab order, Screen Reader the announced elements.
 
 ## Configuration
 

@@ -457,7 +457,7 @@ The shipped `@ng-prism/plugin-coverage` header badge is the reference for this p
 ```typescript
 // coverage-header-badge.component.ts
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { PRISM_MANIFEST, type RuntimeManifest } from '@ng-prism/core/plugin';
+import { PRISM_MANIFEST, type RuntimeManifest, statusFor, thresholdFromTarget } from '@ng-prism/core/plugin';
 import { PrismMetricBadgeComponent } from '@ng-prism/core';
 
 @Component({
@@ -479,7 +479,7 @@ export class CoverageHeaderBadgeComponent {
         if (!meta?.total?.found) return null;
         return {
             score: meta.total.score,
-            variant: 'ok' as const,
+            variant: statusFor(meta.total.score, thresholdFromTarget(80)),
             title: 'Library coverage'
         };
     });

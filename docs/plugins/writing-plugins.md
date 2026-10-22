@@ -238,7 +238,7 @@ Renders one glyph from the same registry `PanelDefinition.icon` resolves against
 ```typescript
 // coverage-header-badge.component.ts
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { PRISM_MANIFEST, type RuntimeManifest } from '@ng-prism/core/plugin';
+import { PRISM_MANIFEST, type RuntimeManifest, statusFor, thresholdFromTarget } from '@ng-prism/core/plugin';
 import { PrismMetricBadgeComponent } from '@ng-prism/core';
 
 @Component({
@@ -256,7 +256,7 @@ export class CoverageHeaderBadgeComponent {
     private readonly manifest = inject<RuntimeManifest>(PRISM_MANIFEST);
     protected readonly data = computed(() => {
         const meta = this.manifest.meta?.['coverage'] as { total?: { found: boolean; score: number } } | undefined;
-        return meta?.total?.found ? { score: meta.total.score, variant: 'ok' as const } : null;
+        return meta?.total?.found ? { score: meta.total.score, variant: statusFor(meta.total.score, thresholdFromTarget(80)) } : null;
     });
 }
 ```
@@ -277,6 +277,7 @@ Registered like any other `headerWidgets` entry; see [`HeaderWidgetDefinition`](
 | `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._                                              |
 | `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                                                                   |
 | `appliesTo`            | `PanelTarget[]`       | `['component']` (default), `['service']`, `['pipe']` or several (since `22.7.0`), see [Panels for services and pipes](#panels-for-services-and-pipes) |
+| `badge`                | `(c) => PanelBadge`   | Marker on the panel's tab for the active component, `null` for nothing to report, see [`PanelBadge`](api/ng-prism-plugin.md#panelbadge)               |
 | `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                                                             |
 
 > **Note:** Always use `loadComponent` rather than `component` if your panel component imports anything from `@angular/platform-browser` or any other browser-only package. The config file is loaded in Node.js during the build, and a static import of a browser component crashes the builder.
@@ -323,6 +324,77 @@ export class NotesPanelComponent {
     componentTitle() {
         return this.nav.activeComponent()?.meta.showcaseConfig.title ?? '—';
     }
+}
+```
+
+## Panel Guidelines
+
+Since `22.7.0` every built-in panel follows the same eight rules. A plugin panel that follows them too looks like part of the styleguide in both themes, and the [UI primitives](api/ng-prism-plugin.md#ui-primitives) from `@ng-prism/core` do most of the work:
+
+- **P1 Toolbar only when there is something to put in it.** `prism-panel-toolbar` is 36 px high, sub-tabs in `[toolbarStart]`, actions in `[toolbarEnd]`. A panel without sub-tabs or actions has no toolbar. No meta text in it: timestamps, thresholds, sizes and counts go into tooltips.
+- **P2 Sub-tabs** are `prism-tabs` with `size="sm"`.
+- **P3 Measured values** are `prism-metric-card`: label, status badge, value with unit and optionally a bar with a threshold tick. No visible subtitle; details such as bytes, the threshold or branch counts are the card's `title`.
+- **P4 Colour carries a verdict.** A graded value takes its status colour (`statusFor` from `@ng-prism/core/plugin`, then `toneForStatus`), a plain quantity stays in `--prism-primary`. The brand gradient is for the brand, not for data bars or rings.
+- **P5 Lists** are `prism-list-row`: badge, title, description and meta on the right. A selected row is tinted (`selected`), without a coloured left border.
+- **P6 Content** has 16 × 18 px of padding on a 12 px grid and follows the height the panel is dragged to. Charts and images fit instead of being cut off.
+- **P7 Surface:** the panel's background is `--prism-bg-surface`, embeds included.
+- **P8 Actions** sit on the right of the toolbar as `button[prismButton]` (`sm`, 26 px), secondary before primary.
+
+```typescript
+// budget-panel.component.ts
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { PrismButtonComponent, PrismMetricCardComponent, PrismPanelToolbarComponent, type PrismTabItem, PrismTabsComponent, toneForStatus } from '@ng-prism/core';
+import { type RuntimeComponent, statusFor } from '@ng-prism/core/plugin';
+
+@Component({
+    selector: 'my-budget-panel',
+    standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [PrismPanelToolbarComponent, PrismTabsComponent, PrismButtonComponent, PrismMetricCardComponent],
+    template: `
+        <prism-panel-toolbar>
+            <prism-tabs toolbarStart size="sm" ariaLabel="Budget" [items]="tabs" [(active)]="tab" />
+            <span toolbarEnd>
+                <button prismButton type="button">Export</button>
+                <button prismButton variant="primary" type="button">Measure</button>
+            </span>
+        </prism-panel-toolbar>
+        <div class="budget">
+            <prism-metric-card
+                label="Size"
+                unit="kb"
+                [value]="size().toFixed(1)"
+                [tone]="tone()"
+                [statusLabel]="tone() === 'success' ? 'OK' : 'Over'"
+                [fraction]="size() / 20"
+                [threshold]="0.5"
+                [title]="'Budget: 10 kb'" />
+        </div>
+    `,
+    styles: `
+        :host {
+            display: block;
+            background: var(--prism-bg-surface);
+        }
+        .budget {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            padding: 16px 18px;
+        }
+    `
+})
+export class BudgetPanelComponent {
+    readonly activeComponent = input<RuntimeComponent | null>(null);
+
+    protected readonly tabs: PrismTabItem[] = [
+        { id: 'size', label: 'Size' },
+        { id: 'history', label: 'History' }
+    ];
+    protected readonly tab = signal<string | null>('size');
+
+    protected readonly size = computed(() => (this.activeComponent()?.meta.showcaseConfig.meta?.['sizeKb'] as number | undefined) ?? 0);
+    protected readonly tone = computed(() => toneForStatus(statusFor(this.size(), { ok: 10, warn: 12.5, direction: 'lower' })));
 }
 ```
 

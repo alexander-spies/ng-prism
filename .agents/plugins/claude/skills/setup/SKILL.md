@@ -130,10 +130,15 @@ itself. Keep the core and every plugin on the same version: plugins require `@ng
 
 Theme values are CSS custom properties, set inline on `<html>`. The order: built-in tokens, the built-in dark or light
 theme, `darkTheme` / `lightTheme`, then `theme`, which wins in both modes. Dark is the default; the user's choice is
-stored in localStorage (`ng-prism-theme`). The main tokens: `--prism-primary`, `--prism-primary-from`,
-`--prism-primary-to`, `--prism-accent`, `--prism-bg`, `--prism-bg-surface`, `--prism-bg-elevated`, `--prism-text`,
-`--prism-text-muted`, `--prism-border`, `--prism-success`, `--prism-warn`, `--prism-danger`, `--prism-font-sans`,
-`--prism-font-mono`.
+stored in localStorage (`ng-prism-theme`). The main tokens: `--prism-primary` (text and indicators; overriding it
+alone also recolours the fills `--prism-primary-fill`, `-fill-hover` and `--prism-toggle-on`), `--prism-on-primary`
+(text on a fill; set it with a light primary of your own), `--prism-accent`, `--prism-bg`, `--prism-bg-surface`,
+`--prism-bg-elevated`, `--prism-text`, `--prism-text-muted`, `--prism-border`, `--prism-success`, `--prism-warn`,
+`--prism-danger`, `--prism-font-sans`, `--prism-font-mono`. The header is a navy brand band in both modes and renders
+with the dark set, `darkTheme` included; a custom `title` replaces the wordmark and is shown in neutral text.
+Deprecated since 22.7 (removed in 23.0): `--prism-primary-from`, `--prism-primary-to`, `--prism-spectrum` and
+`--prism-mark-nominal|attention|critical` (aliases of success, warn and danger; an override still carries over, with a
+console warning). Don't suggest them in new config.
 
 ## Publishing the library
 

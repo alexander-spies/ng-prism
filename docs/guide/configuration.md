@@ -10,9 +10,8 @@ import { jsDocPlugin } from '@ng-prism/plugin-jsdoc';
 export default defineConfig({
     plugins: [jsDocPlugin()],
     theme: {
-        '--prism-primary': '#6366f1',
-        '--prism-primary-from': '#6366f1',
-        '--prism-primary-to': '#8b5cf6'
+        '--prism-primary': '#0ea5e9',
+        '--prism-font-sans': '"Inter", system-ui, sans-serif'
     }
 });
 ```
