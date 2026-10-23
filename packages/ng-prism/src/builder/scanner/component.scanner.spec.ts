@@ -1150,10 +1150,39 @@ describe('scanComponents with composition fields', () => {
             'GapComponent › variants[0]',
             'GapComponent › imports[2]',
             'GapComponent › variants[1] "After gap" › content',
+            'HostImportDirective › host.import',
             'HostOnComponent › host',
+            'ImportNamesComponent › imports[0]',
+            'ImportNamesComponent › imports[1]',
+            'ImportNamesComponent › imports[2]',
             'NoStringHostDirective › host',
             'ObjectHostComponent › host'
         ]);
+    });
+
+    // The generated manifest imports each of them by name: anything else is a syntax error there.
+    it('reports an import whose name is not a name a class is exported under, and drops it', () => {
+        const { diagnostics, config } = scan();
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(
+                /^ImportNamesComponent › imports\[0\] — expected the name a class is exported under, got "@angular\/cdk\/text-field"; it was dropped \(.*host-on-component\.component\.ts:\d+:\d+\)$/
+            )
+        );
+        expect(diagnostics).toContainEqual(
+            expect.stringContaining('ImportNamesComponent › imports[1] — expected the name a class is exported under, got "Cdk.TextareaAutosize"')
+        );
+        expect(diagnostics).toContainEqual(expect.stringContaining('ImportNamesComponent › imports[2] — expected the name a class is exported under, got "default"'));
+        expect(config('ImportNamesComponent').imports).toEqual([{ name: 'QuotedDirective', from: "it's" }]);
+    });
+
+    it("reports an object host's import whose name is not a name a class is exported under, and drops the import", () => {
+        const { diagnostics, config } = scan();
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(/^HostImportDirective › host\.import — expected the name a class is exported under, got "lib-frame"; it was dropped/)
+        );
+        expect(config('HostImportDirective').host).toEqual({ selector: 'lib-frame' });
     });
 
     it('reports a host whose template is no string, and drops it', () => {

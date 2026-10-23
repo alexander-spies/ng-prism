@@ -106,7 +106,9 @@ In the threat model described above this is safe:
 - `imports` entries become `import` statements in the generated manifest. The
   module a `from` names is loaded into the styleguide bundle like any other
   dependency of the app, and the entry comes from the developer's own
-  `@Showcase`.
+  `@Showcase`. The scanner drops an entry whose `name` is not an identifier,
+  and `from` is written as a JSON string, so that neither can end the
+  statement and put code of its own into the file.
 
 The URL state and the control panel edits stay what they are above: they never
 reach a template. A control value is set on an input of the rendered component

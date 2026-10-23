@@ -1,3 +1,25 @@
+import ts from 'typescript';
+
+/**
+ * Whether the generated module can import `name` by name, `import { name } from '…'`: an identifier and no reserved
+ * word, which also rules out `default`.
+ */
+export function isImportableName(name: string): boolean {
+    const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, name);
+    const token = scanner.scan();
+
+    if (scanner.getTokenEnd() !== name.length) return false;
+    if (token === ts.SyntaxKind.Identifier) return true;
+
+    const isReserved =
+        (token >= ts.SyntaxKind.FirstReservedWord && token <= ts.SyntaxKind.LastReservedWord) ||
+        (token >= ts.SyntaxKind.FirstFutureReservedWord && token <= ts.SyntaxKind.LastFutureReservedWord) ||
+        token === ts.SyntaxKind.AwaitKeyword;
+
+    // A contextual keyword such as `type` or `from` is a name like any other.
+    return token >= ts.SyntaxKind.FirstKeyword && token <= ts.SyntaxKind.LastKeyword && !isReserved;
+}
+
 /** The key of `{ name, from }` in the map of {@link ManifestImports.names}. */
 export function importKey(from: string, name: string): string {
     return `${from}#${name}`;
@@ -53,12 +75,15 @@ export class ManifestImports {
         return names;
     }
 
-    /** One `import` statement per module, in the order the modules were first used. */
+    /**
+     * One `import` statement per module, in the order the modules were first used. The module is written as a JSON
+     * string, which is a valid one whatever it holds; the names are the scan's, which only lets identifiers through.
+     */
     lines(): string[] {
         return [...this.modules].map(([from, module]) => {
             const specifiers = [...module].map(([name, local]) => (local === name ? name : `${name} as ${local}`));
 
-            return `import { ${specifiers.join(', ')} } from '${from}';`;
+            return `import { ${specifiers.join(', ')} } from ${JSON.stringify(from)};`;
         });
     }
 

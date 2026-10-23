@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import type { ShowcaseImport } from '../../../decorator/showcase.types.js';
+import { isImportableName } from '../../manifest/manifest-imports.js';
 import { findDecorator, getDecoratorArgument, readDecoratorField } from '../ast-utils.js';
 
 /** A component, directive or pipe that a template can use, and the module specifier a consumer imports it from. */
@@ -70,7 +71,8 @@ export function buildDeclarableIndex(entries: ReadonlyArray<{ exports: ts.Symbol
             const classDecl = resolved.declarations?.find(ts.isClassDeclaration);
             const shape = classDecl && readDeclarable(classDecl, checker);
 
-            if (shape) declarables.push({ name: sym.name, from: importPath, ...shape });
+            // A default export, or one under a string name, cannot be imported by its name.
+            if (shape && isImportableName(sym.name)) declarables.push({ name: sym.name, from: importPath, ...shape });
         }
     }
 

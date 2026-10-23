@@ -90,8 +90,8 @@ All hooks are awaited, so async plugins are fully supported.
 ```typescript
 // ng-prism-cache/<prism-project>/prism-manifest.ts (generated)
 import type { RuntimeManifest } from '@ng-prism/core/plugin';
-import { ButtonComponent } from 'my-lib';
-import { CardComponent } from 'my-lib/molecules';
+import { ButtonComponent } from "my-lib";
+import { CardComponent } from "my-lib/molecules";
 
 export const PRISM_RUNTIME_MANIFEST: RuntimeManifest = {
   components: [

@@ -1,8 +1,9 @@
 import ts from 'typescript';
-import type { ComponentStatus, HostTemplate, ShowcaseConfig, ShowcaseImport } from '../../decorator/showcase.types.js';
+import type { ComponentStatus, DirectiveHost, HostTemplate, ShowcaseConfig, ShowcaseImport } from '../../decorator/showcase.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { CANVAS_BGS, type CanvasBg } from '../../shared/canvas-bg.type.js';
 import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.type.js';
+import { isImportableName } from '../manifest/manifest-imports.js';
 import { classifyShowcaseClass, type ShowcaseClassKind } from './api/angular-decorators.js';
 import { extractComponentApi } from './api/component-api.extractor.js';
 import type { ExportIndex } from './api/export-index.js';
@@ -67,6 +68,14 @@ function isShowcaseImport(value: unknown): value is ShowcaseImport {
     const { name, from } = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
 
     return typeof name === 'string' && name !== '' && typeof from === 'string' && from !== '';
+}
+
+/**
+ * What is wrong with an import the generated manifest would write as `import { name } from 'from'`, `undefined` when
+ * nothing is: anything but an identifier there, `default` or a module path, is a syntax error in the whole manifest.
+ */
+function importProblem(entry: ShowcaseImport): string | undefined {
+    return isImportableName(entry.name) ? undefined : `expected the name a class is exported under, got ${JSON.stringify(entry.name)}; it was dropped`;
 }
 
 function isHostTemplate(value: unknown): value is HostTemplate {
@@ -173,6 +182,21 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
                 )
             );
             delete showcaseConfig.host;
+        }
+
+        const host = showcaseConfig.host;
+
+        // The manifest imports the class of a directive's object host, as an import of the showcase.
+        if (componentMeta.isDirective && typeof host === 'object' && host !== null && !isHostTemplate(host) && host.import !== undefined) {
+            const hostImport: unknown = host.import;
+            const problem = isShowcaseImport(hostImport)
+                ? importProblem(hostImport)
+                : `expected { name, from } with a non-empty string each, got ${describeValue(hostImport)}; it was dropped`;
+
+            if (problem) {
+                report(describeShowcaseIssue(className, showcaseArg, ['host', 'import'], problem));
+                delete (host as Partial<DirectiveHost>).import;
+            }
         }
 
         const hierarchy = getClassHierarchy(classDecl, checker);
@@ -495,11 +519,12 @@ function readShowcaseImports(
     }
 
     return value.flatMap((entry, index) => {
-        if (isShowcaseImport(entry)) return [{ entry: { name: entry.name, from: entry.from }, source: sourceIndex(index, unevaluable) }];
+        const source = sourceIndex(index, unevaluable);
+        const text = isShowcaseImport(entry) ? importProblem(entry) : `expected { name, from } with a non-empty string each, got ${describeValue(entry)}; it was dropped`;
 
-        const text = `expected { name, from } with a non-empty string each, got ${describeValue(entry)}; it was dropped`;
+        if (!text) return [{ entry: { name: entry.name, from: entry.from }, source }];
 
-        report(describeShowcaseIssue(className, config, ['imports', sourceIndex(index, unevaluable)], text));
+        report(describeShowcaseIssue(className, config, ['imports', source], text));
         return [];
     });
 }

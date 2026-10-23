@@ -1,11 +1,11 @@
-import { importKey, localName, ManifestImports } from './manifest-imports.js';
+import { importKey, isImportableName, localName, ManifestImports } from './manifest-imports.js';
 
 describe('ManifestImports', () => {
     it('imports a class under its own name', () => {
         const imports = new ManifestImports([]);
 
         expect(imports.local('lib', 'IconComponent')).toBe('IconComponent');
-        expect(imports.lines()).toEqual(["import { IconComponent } from 'lib';"]);
+        expect(imports.lines()).toEqual(['import { IconComponent } from "lib";']);
     });
 
     it('gives a class from the same module the identifier it already has', () => {
@@ -14,7 +14,7 @@ describe('ManifestImports', () => {
         imports.keep('lib', 'IconComponent');
 
         expect(imports.local('lib', 'IconComponent')).toBe('IconComponent');
-        expect(imports.lines()).toEqual(["import { IconComponent } from 'lib';"]);
+        expect(imports.lines()).toEqual(['import { IconComponent } from "lib";']);
     });
 
     it('imports a class of the same name from another module under an alias', () => {
@@ -23,7 +23,7 @@ describe('ManifestImports', () => {
         imports.local('a', 'Icon');
 
         expect(imports.local('b', 'Icon')).toBe('Icon__2');
-        expect(imports.lines()).toEqual(["import { Icon } from 'a';", "import { Icon as Icon__2 } from 'b';"]);
+        expect(imports.lines()).toEqual(['import { Icon } from "a";', 'import { Icon as Icon__2 } from "b";']);
     });
 
     it('numbers the aliases and keeps the alias of a class it was asked for twice', () => {
@@ -55,7 +55,7 @@ describe('ManifestImports', () => {
         imports.keep('b', 'Icon');
 
         expect(imports.names().size).toBe(0);
-        expect(imports.lines()).toEqual(["import { Icon } from 'a';", "import { Icon } from 'b';"]);
+        expect(imports.lines()).toEqual(['import { Icon } from "a";', 'import { Icon } from "b";']);
     });
 
     it('lists the identifiers that differ from the name by module and name', () => {
@@ -78,6 +78,24 @@ describe('ManifestImports', () => {
         imports.keep('b', 'Two');
         imports.local('a', 'Three');
 
-        expect(imports.lines()).toEqual(["import { One, Three } from 'a';", "import { Two } from 'b';"]);
+        expect(imports.lines()).toEqual(['import { One, Three } from "a";', 'import { Two } from "b";']);
+    });
+
+    it('writes the module as a string literal, whatever it holds', () => {
+        const imports = new ManifestImports([]);
+
+        imports.local(`it's "quoted"`, 'Quoted');
+
+        expect(imports.lines()).toEqual([`import { Quoted } from "it's \\"quoted\\"";`]);
+    });
+});
+
+describe('isImportableName', () => {
+    it('accepts an identifier', () => {
+        expect(['IconComponent', '$icon', '_Icon', 'Ícono', 'type'].filter(isImportableName)).toEqual(['IconComponent', '$icon', '_Icon', 'Ícono', 'type']);
+    });
+
+    it('rejects what an import cannot name: a module, a dotted name, a reserved word', () => {
+        expect(['@angular/cdk/text-field', 'Cdk.TextareaAutosize', 'my-icon', 'default', 'class', 'await', 'let', ''].filter(isImportableName)).toEqual([]);
     });
 });

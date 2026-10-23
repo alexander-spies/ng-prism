@@ -57,6 +57,28 @@ describe('buildDeclarableIndex', () => {
         expect(twice.every((declarable) => declarable.from === 'fixture-lib/secondary')).toBe(true);
     });
 
+    it('leaves out a default export, which the manifest cannot import by its name', () => {
+        const dir = mkdtempSync(path.join(tmpdir(), 'ng-prism-declarables-'));
+        const entryFile = path.join(dir, 'public-api.ts');
+
+        writeFileSync(
+            entryFile,
+            [
+                `import { Directive } from '@angular/core';`,
+                `@Directive({ selector: '[libDefault]' })`,
+                `export default class DefaultDirective {}`,
+                `@Directive({ selector: '[libNamed]' })`,
+                `export class NamedDirective {}`
+            ].join('\n')
+        );
+
+        try {
+            expect(indexOf([{ entryFile, importPath: 'fixture-lib' }]).map((declarable) => declarable.name)).toEqual(['NamedDirective']);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
     it('reads the classes of a dependency from their .d.ts, and nothing that is not a component, directive or pipe', () => {
         const thirdParty = indexOf([{ entryFile: path.join(FIXTURES_DIR, 'third-party-api.ts'), importPath: 'fixture-lib' }]);
 

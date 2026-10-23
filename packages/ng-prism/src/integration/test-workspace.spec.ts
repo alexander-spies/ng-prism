@@ -198,7 +198,7 @@ describe('test-workspace integration', () => {
             expect(content).toContain('class FormFieldComponent__PrismComposition {');
             expect(content).toContain('class InputDirective__PrismComposition {');
             expect(content).toContain('class RadioGroupComponent__PrismComposition {');
-            expect(content).toContain("import { CdkTextareaAutosize } from '@angular/cdk/text-field';");
+            expect(content).toContain('import { CdkTextareaAutosize } from "@angular/cdk/text-field";');
             expect(content).toMatch(/imports: \[FormFieldComponent, [^\]]*\bIconComponent\b[^\]]*\]/);
             expect(warnings.filter((message) => COMPOSITION_CLASSES.some((name) => message.includes(name)))).toEqual([]);
         } finally {

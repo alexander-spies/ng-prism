@@ -136,7 +136,7 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'my-lib'
         });
 
-        expect(source).toContain("import { ButtonComponent, CardComponent } from 'my-lib';");
+        expect(source).toContain('import { ButtonComponent, CardComponent } from "my-lib";');
     });
 
     it('should export PRISM_RUNTIME_MANIFEST with RuntimeManifest type', () => {
@@ -256,7 +256,7 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: '@my-org/components'
         });
 
-        expect(source).toContain("from '@my-org/components'");
+        expect(source).toContain('from "@my-org/components"');
     });
 
     it('should generate grouped imports when components have different importPaths', () => {
@@ -276,9 +276,9 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'sgui-lib'
         });
 
-        expect(source).toContain("import { PillComponent } from 'sgui-lib/atoms/pill';");
-        expect(source).toContain("import { TooltipComponent } from 'sgui-lib/overlay/tooltip';");
-        expect(source).not.toContain("from 'sgui-lib';");
+        expect(source).toContain('import { PillComponent } from "sgui-lib/atoms/pill";');
+        expect(source).toContain('import { TooltipComponent } from "sgui-lib/overlay/tooltip";');
+        expect(source).not.toContain('from "sgui-lib";');
     });
 
     it('should group multiple components from the same importPath', () => {
@@ -298,7 +298,7 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'sgui-lib'
         });
 
-        expect(source).toContain("import { PillComponent, PillModelComponent } from 'sgui-lib/atoms/pill';");
+        expect(source).toContain('import { PillComponent, PillModelComponent } from "sgui-lib/atoms/pill";');
     });
 
     it('should fall back to libraryImportPath when component has no importPath', () => {
@@ -314,8 +314,8 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'sgui-lib'
         });
 
-        expect(source).toContain("import { PillComponent } from 'sgui-lib/atoms/pill';");
-        expect(source).toContain("import { CardComponent } from 'sgui-lib';");
+        expect(source).toContain('import { PillComponent } from "sgui-lib/atoms/pill";');
+        expect(source).toContain('import { CardComponent } from "sgui-lib";');
     });
 });
 
@@ -392,7 +392,7 @@ describe('generateRuntimeManifest services', () => {
         expect(source).toContain('importPath: "my-lib/toast"');
         expect(source).toContain('provision: "auto"');
         expect(source).not.toMatch(/import \{[^}]*ToastService/);
-        expect(source).not.toContain("from 'my-lib/toast'");
+        expect(source).not.toContain('from "my-lib/toast"');
     });
 
     it('writes the whole service as the meta of its entry, next to the components', () => {
@@ -458,7 +458,7 @@ describe('generateRuntimeManifest pipes', () => {
         expect(source).toContain('pure: true');
         expect(source).toContain('importPath: "my-lib/time-ago"');
         expect(source).not.toMatch(/import \{[^}]*TimeAgoPipe/);
-        expect(source).not.toContain("from 'my-lib/time-ago'");
+        expect(source).not.toContain('from "my-lib/time-ago"');
     });
 
     it('writes the whole pipe as the meta of its entry, after the components and the services', () => {
@@ -581,7 +581,7 @@ describe('directive wrapper generation', () => {
         });
 
         expect(source).toContain('imports: [TooltipDirective, ButtonComponent]');
-        expect(source).toContain("ButtonComponent } from 'my-lib';");
+        expect(source).toContain('ButtonComponent } from "my-lib";');
         expect(source).toContain('<my-button');
         expect(source).toContain('appTooltip');
         expect(source).toContain('label="Click me"');
@@ -966,8 +966,8 @@ describe('compositions', () => {
     it('imports the composition classes', () => {
         const source = manifest([FRAME]);
 
-        expect(source).toContain("import { FormFieldComponent, InputDirective } from 'my-lib';");
-        expect(source).toContain("import { IconComponent } from 'my-lib/icon';");
+        expect(source).toContain('import { FormFieldComponent, InputDirective } from "my-lib";');
+        expect(source).toContain('import { IconComponent } from "my-lib/icon";');
         expect(source).toContain('imports: [FormFieldComponent, InputDirective, IconComponent],');
     });
 
@@ -980,16 +980,16 @@ describe('compositions', () => {
         ]);
 
         expect(ts.transpileModule(source, { reportDiagnostics: true }).diagnostics).toEqual([]);
-        expect(source).toContain("import { IconComponent } from 'my-lib/icon';");
-        expect(source).toContain("import { IconComponent as IconComponent__2 } from 'other-lib';");
+        expect(source).toContain('import { IconComponent } from "my-lib/icon";');
+        expect(source).toContain('import { IconComponent as IconComponent__2 } from "other-lib";');
         expect(source).toContain('imports: [FormFieldComponent, IconComponent, IconComponent__2],');
     });
 
     it("aliases a class that has the subject's name", () => {
         const source = manifest([frameImporting([{ name: 'FormFieldComponent', from: 'other-lib' }])]);
 
-        expect(source).toContain("import { FormFieldComponent } from 'my-lib';");
-        expect(source).toContain("import { FormFieldComponent as FormFieldComponent__2 } from 'other-lib';");
+        expect(source).toContain('import { FormFieldComponent } from "my-lib";');
+        expect(source).toContain('import { FormFieldComponent as FormFieldComponent__2 } from "other-lib";');
         expect(source).toContain('imports: [FormFieldComponent, FormFieldComponent__2],');
     });
 
@@ -1003,8 +1003,8 @@ describe('compositions', () => {
             icon
         ]);
 
-        expect(source).toContain("import { IconComponent } from 'my-lib/icon';");
-        expect(source).toContain("import { IconComponent as IconComponent__2 } from 'other-lib';");
+        expect(source).toContain('import { IconComponent } from "my-lib/icon";');
+        expect(source).toContain('import { IconComponent as IconComponent__2 } from "other-lib";');
         expect(source.match(/import \{[^}]*\bIconComponent\b[^}]*\} from/g)).toHaveLength(2);
         expect(source).toContain('imports: [FormFieldComponent, IconComponent, IconComponent__2],');
     });
@@ -1012,7 +1012,15 @@ describe('compositions', () => {
     it('does not take an identifier the module imports from Angular for a class', () => {
         const source = manifest([frameImporting([{ name: 'input', from: 'other-lib' }])]);
 
-        expect(source).toContain("import { input as input__2 } from 'other-lib';");
+        expect(source).toContain('import { input as input__2 } from "other-lib";');
+    });
+
+    it('writes a module that holds quotes as a valid string', () => {
+        const source = manifest([frameImporting([{ name: 'QuotedDirective', from: `it's "quoted"` }])]);
+        const { diagnostics = [] } = ts.transpileModule(source, { reportDiagnostics: true });
+
+        expect(diagnostics.map(({ messageText }) => ts.flattenDiagnosticMessageText(messageText, ' '))).toEqual([]);
+        expect(source).toContain(`import { QuotedDirective } from "it's \\"quoted\\"";`);
     });
 
     it('writes composition data with its imports and without the origin of a case', () => {
@@ -1084,7 +1092,7 @@ describe('compositions', () => {
         };
         const source = manifest([tooltip]);
 
-        expect(source).toContain("import { TooltipDirective, ButtonComponent } from 'my-lib';");
+        expect(source).toContain('import { TooltipDirective, ButtonComponent } from "my-lib";');
         expect(source).toContain('imports: [TooltipDirective, ButtonComponent],');
     });
 
@@ -1154,8 +1162,8 @@ describe('compositions', () => {
         const button: ScannedComponent = { ...BUTTON, importPath: 'other-lib' };
         const source = manifest([button, TOOLTIP_WITH_HOST_COMPONENT]);
 
-        expect(source).toContain("import { ButtonComponent } from 'other-lib';");
-        expect(source).toContain("import { TooltipDirective, ButtonComponent as ButtonComponent__2 } from 'my-lib';");
+        expect(source).toContain('import { ButtonComponent } from "other-lib";');
+        expect(source).toContain('import { TooltipDirective, ButtonComponent as ButtonComponent__2 } from "my-lib";');
         expect(source).toContain('imports: [TooltipDirective, ButtonComponent__2],');
     });
 });
