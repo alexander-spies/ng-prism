@@ -1,17 +1,26 @@
-import { ChangeDetectionStrategy, Component, computed, contentChild, input, ViewEncapsulation } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, contentChild, input, signal, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 import { LIB_FORM_FIELD, LIB_FORM_FIELD_CONTROL, type LibFormField } from './form-field.tokens.js';
+
+/** A click on one of these is meant for that element, not for the control the box would focus. */
+const INTERACTIVE_ELEMENTS =
+    'button, a[href], input, textarea, select, label, [role="button"], [tabindex]:not([tabindex="-1"]), [contenteditable]:not([contenteditable="false"])';
 
 let nextId = 0;
 
 /**
- * Frame around a native form control: a label above it, a hint below it and a box that holds the control and an
- * optional prefix.
+ * Frame around a native form control: a label above it, a hint or an error below it and a box that holds the control
+ * between an optional prefix and suffix.
  *
  * The control is a native `<input>` or `<textarea>` with `libInput`. The field finds it as content, points its label at
  * the control's id and marks the label while the control is required. The control in turn reads the field and takes
- * the label and the hint as its accessible name and description. An element with `libPrefix`, such as a `lib-icon`,
- * goes before the control.
+ * the hint or the error as its description. An element with `libPrefix`, such as a `lib-icon`, goes before the control,
+ * one with `libSuffix`, such as a small button, after it. A click on the box focuses the control, except a click on a
+ * button, a link or another control inside the box.
+ *
+ * The field is in its error state while `invalid` is set or the control shows as invalid by itself, which `libInput`
+ * does once it was left with an invalid value. The `error` text then replaces the hint; without one the error shows by
+ * colour alone.
  *
  * The styles of `libInput` live here, so a control looks right only inside a field.
  *
@@ -19,7 +28,7 @@ let nextId = 0;
  * @see InputDirective
  * @example
  * ```html
- * <lib-form-field label="E-Mail" hint="We never share it">
+ * <lib-form-field label="E-Mail" hint="We only use it for replies" error="Enter a valid e-mail address">
  *   <input libInput type="email" required />
  * </lib-form-field>
  * ```
@@ -34,7 +43,7 @@ let nextId = 0;
 @Showcase<FormFieldComponent>({
     title: 'Form Field',
     category: 'Forms',
-    description: 'Label, hint and prefix slot around a native control with `libInput`, composed as a real Angular template.',
+    description: 'Label, hint or error, prefix and suffix slots around a native control with `libInput`, composed as a real Angular template.',
     imports: [{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }],
     bg: 'light',
     states: [
@@ -46,7 +55,18 @@ let nextId = 0;
         { name: 'Required', inputs: { label: 'E-Mail' }, template: '<input libInput type="email" required />' },
         { name: 'Disabled', inputs: { label: 'E-Mail' }, template: '<input libInput disabled />' },
         { name: 'With icon', inputs: { label: 'Search' }, template: '<lib-icon libPrefix name="search" /><input libInput />' },
-        { name: 'Note', inputs: { label: 'Note' }, template: '<textarea libInput cdkTextareaAutosize></textarea>' }
+        { name: 'Note', inputs: { label: 'Note' }, template: '<textarea libInput cdkTextareaAutosize></textarea>' },
+        { name: 'With hint', inputs: { label: 'E-Mail', hint: 'We only use it for replies' }, template: '<input libInput type="email" />' },
+        {
+            name: 'Error',
+            inputs: { label: 'E-Mail', hint: 'We only use it for replies', error: 'Enter a valid e-mail address', invalid: true },
+            template: '<input libInput type="email" />'
+        },
+        {
+            name: 'Suffix button',
+            inputs: { label: 'Password' },
+            template: `<input libInput #password type="password" /><button libSuffix type="button" aria-label="Show password" [attr.aria-pressed]="password.type === 'text'" (click)="password.type = password.type === 'password' ? 'text' : 'password'"><lib-icon name="eye" /></button>`
+        }
     ],
     tags: ['form', 'field', 'label', 'input']
 })
@@ -58,22 +78,26 @@ let nextId = 0;
     providers: [{ provide: LIB_FORM_FIELD, useExisting: FormFieldComponent }],
     host: {
         class: 'lib-form-field',
+        '[class.lib-form-field--invalid]': 'errorState()',
         '[class.lib-form-field--disabled]': '!!control()?.disabled()'
     },
     template: `
         @if (label()) {
-            <label class="lib-form-field__label" [id]="labelElementId" [attr.for]="control()?.id ?? null">
+            <label class="lib-form-field__label" [id]="labelId()" [attr.for]="control()?.id() ?? null">
                 {{ label() }}
                 @if (control()?.required()) {
                     <span class="lib-form-field__required" aria-hidden="true">*</span>
                 }
             </label>
         }
-        <div class="lib-form-field__box">
+        <div class="lib-form-field__box" (click)="onBoxClick($event)">
             <ng-content select="[libPrefix]" />
             <ng-content />
+            <ng-content select="[libSuffix]" />
         </div>
-        @if (hint()) {
+        @if (showError()) {
+            <p class="lib-form-field__error" [id]="errorElementId">{{ error() }}</p>
+        } @else if (hint()) {
             <p class="lib-form-field__hint" [id]="hintElementId">{{ hint() }}</p>
         }
     `,
@@ -102,6 +126,7 @@ let nextId = 0;
             border: 1px solid #d1d5db;
             border-radius: 8px;
             background: #fff;
+            cursor: text;
             transition:
                 border-color 0.15s,
                 box-shadow 0.15s;
@@ -116,17 +141,55 @@ let nextId = 0;
         .lib-form-field__box:has(.lib-input:disabled) {
             border-color: #e5e7eb;
             background: #f9fafb;
+            cursor: not-allowed;
         }
-        .lib-form-field__box > [libPrefix] {
+        /* After the hover rule of the same weight, so the error border stays while the pointer is over the box. */
+        .lib-form-field--invalid .lib-form-field__box {
+            border-color: #dc2626;
+        }
+        .lib-form-field--invalid .lib-form-field__box:has(.lib-input:focus-visible) {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+        }
+        .lib-form-field__box > [libPrefix],
+        .lib-form-field__box > [libSuffix] {
             color: #6b7280;
+        }
+        .lib-form-field__box > button[libSuffix] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            margin-right: -6px;
+            padding: 0;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            cursor: pointer;
+        }
+        .lib-form-field__box > button[libSuffix]:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        .lib-form-field__box > button[libSuffix]:focus-visible {
+            outline: 2px solid #6366f1;
+            outline-offset: 0;
+        }
+        .lib-form-field__box > button[libSuffix][aria-pressed='true'] {
+            color: #4f46e5;
         }
         .lib-form-field--disabled .lib-form-field__label {
             color: #9ca3af;
         }
-        .lib-form-field__hint {
+        .lib-form-field__hint,
+        .lib-form-field__error {
             margin: 0;
             font-size: 12px;
             color: #6b7280;
+        }
+        .lib-form-field__error {
+            color: #dc2626;
         }
         .lib-input {
             flex: 1;
@@ -155,16 +218,39 @@ export class FormFieldComponent implements LibFormField {
     /** Text of the label above the control. No label is rendered while it is empty. */
     readonly label = input<string>('');
 
-    /** Help text below the control, which the control takes as its description. Left out when empty. */
+    /** Help text below the control, which the control takes as its description. Left out when empty and while the error shows. */
     readonly hint = input<string>('');
 
-    /** Id of the label element, `null` while there is no label. */
-    readonly labelId = computed(() => (this.label() ? this.labelElementId : null));
+    /** Message in place of the hint while the field is in its error state. Without it the error shows by colour alone. */
+    readonly error = input<string>('');
 
-    /** Id of the hint element, `null` while there is no hint. */
-    readonly hintId = computed(() => (this.hint() ? this.hintElementId : null));
+    /** Shows the error state right away, on top of the control's own, e.g. for an error only a server knows about. */
+    readonly invalid = input(false, { transform: booleanAttribute });
+
+    private readonly baseId = `lib-form-field-${nextId++}`;
+
+    /** Id of the label element. */
+    readonly labelId = signal(`${this.baseId}-label`).asReadonly();
+
+    /** The final error state: `invalid` or the control's own `showInvalid`. */
+    readonly errorState = computed(() => this.invalid() || !!this.control()?.showInvalid());
+
+    /** Ids of the hint or error element the field shows right now. */
+    readonly describedByIds = computed<readonly string[]>(() => {
+        if (this.showError()) return [this.errorElementId];
+        return this.hint() ? [this.hintElementId] : [];
+    });
 
     protected readonly control = contentChild(LIB_FORM_FIELD_CONTROL);
-    protected readonly labelElementId = `lib-form-field-label-${nextId}`;
-    protected readonly hintElementId = `lib-form-field-hint-${nextId++}`;
+    protected readonly showError = computed(() => this.errorState() && !!this.error());
+    protected readonly hintElementId = `${this.baseId}-hint`;
+    protected readonly errorElementId = `${this.baseId}-error`;
+
+    protected onBoxClick(event: MouseEvent): void {
+        const box = event.currentTarget as Element;
+        const interactive = (event.target as Element | null)?.closest(INTERACTIVE_ELEMENTS);
+
+        if (interactive && box.contains(interactive)) return;
+        this.control()?.onContainerClick(event);
+    }
 }
