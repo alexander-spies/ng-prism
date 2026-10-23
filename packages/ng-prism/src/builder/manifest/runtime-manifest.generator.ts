@@ -3,7 +3,12 @@ import type { StyleguidePage } from '../../plugin/page.types.js';
 import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { InputMeta, ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
+import { VOID_ELEMENTS } from '../../shared/void-elements.js';
 import { parseHostString } from './host-parser.js';
+import { firstSelectorAttribute, selectorElement } from './selector-element.js';
+import { escapeTemplateLiteral } from './template-literal.js';
+
+type Warn = (message: string) => void;
 
 export interface RuntimeManifestOptions {
     components: ScannedComponent[];
@@ -14,6 +19,11 @@ export interface RuntimeManifestOptions {
     libraryImportPath: string;
     pages?: StyleguidePage[];
     meta?: Record<string, unknown>;
+    /**
+     * Where the generator reports a host it cannot render as written. Defaults to `console.warn` under a `⚠ ng-prism:` prefix.
+     * Since 22.7.0.
+     */
+    warn?: Warn;
 }
 
 function inputTypeAnnotation(input: InputMeta): string {
@@ -46,12 +56,6 @@ function formatInputDeclaration(input: InputMeta): string {
     return `input(${def})`;
 }
 
-function directiveSelector(selector: string): string {
-    const match = selector.match(/^\[([^\]]+)]$/);
-
-    return match ? match[1] : selector;
-}
-
 function isBindableInput(input: InputMeta): boolean {
     if (input.type === 'string' || input.type === 'number' || input.type === 'boolean' || input.type === 'union') {
         return true;
@@ -59,47 +63,78 @@ function isBindableInput(input: InputMeta): boolean {
     return input.defaultValue !== undefined;
 }
 
-function generateWrapperClass(comp: ScannedComponent): string {
+/** The class an object host renders, or `undefined` when it names none: a plain-JS config can leave `import` out, which the types would have caught. */
+function objectHostImport(host: DirectiveHost): DirectiveHost['import'] | undefined {
+    const { import: hostImport } = host as Partial<DirectiveHost>;
+
+    return hostImport?.name && hostImport.from ? hostImport : undefined;
+}
+
+function hasContent(content: string | Record<string, string> | undefined): boolean {
+    return typeof content === 'string' ? content !== '' : content !== undefined && Object.keys(content).length > 0;
+}
+
+function generateWrapperClass(comp: ScannedComponent, warn: Warn): string {
     const wrapperName = `${comp.className}__PrismHost`;
     const host = comp.showcaseConfig.host;
-    const directiveAttr = directiveSelector(comp.componentMeta.selector);
+    const selector = comp.componentMeta.selector;
     const bindableInputs = comp.inputs.filter(isBindableInput);
 
-    let tag: string;
-    let attrs: string;
-    let importsArray: string;
+    // `undefined` without a host: the element then comes from the directive's selector.
+    let hostTag: string | undefined;
+    let attrs = '';
+    let importsArray = `[${comp.className}]`;
     let hostContentDefault = '';
 
     if (typeof host === 'string') {
         const parsed = parseHostString(host);
 
-        tag = parsed?.tag ?? 'div';
+        hostTag = parsed?.tag ?? 'div';
         attrs = parsed?.attrs ? ` ${parsed.attrs}` : '';
         hostContentDefault = parsed?.content ?? '';
-        importsArray = `[${comp.className}]`;
     } else if (host && typeof host === 'object') {
-        const hostObj = host as DirectiveHost;
+        const hostImport = objectHostImport(host);
 
-        tag = hostObj.selector;
-        const staticInputs = Object.entries(hostObj.inputs ?? {})
-            .map(([k, v]) => ` ${k}="${String(v)}"`)
-            .join('');
-
-        attrs = staticInputs;
-        importsArray = `[${comp.className}, ${hostObj.import.name}]`;
-    } else {
-        tag = 'div';
-        attrs = '';
-        importsArray = `[${comp.className}]`;
+        if (hostImport) {
+            hostTag = host.selector;
+            attrs = Object.entries(host.inputs ?? {})
+                .map(([k, v]) => ` ${k}="${String(v)}"`)
+                .join('');
+            importsArray = `[${comp.className}, ${hostImport.name}]`;
+        } else {
+            warn(`${comp.className}: the host names no class to import (host.import), so it renders as <div>.`);
+            hostTag = 'div';
+        }
     }
+
+    const element = selectorElement(selector, hostTag);
+    const tag = element?.tag ?? hostTag ?? 'div';
+
+    if (!element) {
+        warn(`${comp.className}: no part of the selector "${selector}" fits the host <${tag}>, so only its first attribute is set.`);
+    }
+    const selectorAttributes = element ? element.attributes : firstSelectorAttribute(selector);
 
     // The wrapper declares its inputs and outputs under the member names and binds the directive's public ones.
     const inputBindings = bindableInputs.map((i) => ` [${i.alias ?? i.name}]="${i.name}()"`).join('');
 
     const outputBindings = comp.outputs.map((o) => ` (${o.alias ?? o.name})="${o.name}.emit($event)"`).join('');
 
-    const template = `<${tag}${attrs} ${directiveAttr}${inputBindings}${outputBindings}>{{ __prismContent__() }}</${tag}>`;
+    const opening = `<${tag}${attrs}${selectorAttributes ? ` ${selectorAttributes}` : ''}${inputBindings}${outputBindings}`;
+    let template: string;
 
+    if (VOID_ELEMENTS.has(tag.toLowerCase())) {
+        // A void element has no end tag and no content: Angular rejects `<input></input>` as well as `<input>{{ ... }}`.
+        template = `${opening} />`;
+
+        if (hasContent(hostContentDefault) || comp.showcaseConfig.variants?.some((v) => hasContent(v.content))) {
+            warn(`${comp.className}: <${tag}> is a void element and takes no content, so the content of the host and of the variants is not rendered.`);
+        }
+    } else {
+        template = `${opening}>{{ __prismContent__() }}</${tag}>`;
+    }
+
+    // The runtime sets `__prismContent__` on every directive, void host or not, so the wrapper declares it either way.
     const members: string[] = [];
 
     for (const i of bindableInputs) {
@@ -110,7 +145,16 @@ function generateWrapperClass(comp: ScannedComponent): string {
     }
     members.push(`  __prismContent__ = input(${JSON.stringify(hostContentDefault)});`);
 
-    const lines = [`@Component({`, `  standalone: true,`, `  imports: ${importsArray},`, `  template: \`${template}\`,`, `})`, `class ${wrapperName} {`, ...members, `}`];
+    const lines = [
+        `@Component({`,
+        `  standalone: true,`,
+        `  imports: ${importsArray},`,
+        `  template: \`${escapeTemplateLiteral(template)}\`,`,
+        `})`,
+        `class ${wrapperName} {`,
+        ...members,
+        `}`
+    ];
 
     return lines.join('\n');
 }
@@ -131,8 +175,10 @@ function groupComponentsByImportPath(components: ScannedComponent[], fallbackImp
     return groups;
 }
 
+const defaultWarn: Warn = (message) => console.warn(`⚠ ng-prism: ${message}`);
+
 export function generateRuntimeManifest(options: RuntimeManifestOptions): string {
-    const { components, services, pipes, libraryImportPath, pages, meta } = options;
+    const { components, services, pipes, libraryImportPath, pages, meta, warn = defaultWarn } = options;
 
     const directives = components.filter((c) => c.componentMeta.isDirective);
     const hasDirectives = directives.length > 0;
@@ -148,17 +194,17 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
 
         for (const comp of directives) {
             const host = comp.showcaseConfig.host;
+            const hostImport = host && typeof host === 'object' ? objectHostImport(host) : undefined;
 
-            if (host && typeof host === 'object' && 'import' in host) {
-                const hostObj = host as DirectiveHost;
-                const existing = groups.get(hostObj.import.from);
+            if (hostImport) {
+                const existing = groups.get(hostImport.from);
 
                 if (existing) {
-                    if (!existing.includes(hostObj.import.name)) {
-                        existing.push(hostObj.import.name);
+                    if (!existing.includes(hostImport.name)) {
+                        existing.push(hostImport.name);
                     }
                 } else {
-                    groups.set(hostObj.import.from, [hostObj.import.name]);
+                    groups.set(hostImport.from, [hostImport.name]);
                 }
             }
         }
@@ -171,7 +217,7 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
     if (hasDirectives) {
         lines.push('');
         for (const comp of directives) {
-            lines.push(generateWrapperClass(comp));
+            lines.push(generateWrapperClass(comp, warn));
             lines.push('');
         }
     }

@@ -1,7 +1,9 @@
 import ts from 'typescript';
+import type { DirectiveHost, Variant } from '../../decorator/showcase.types.js';
 import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
+import { templateErrors } from './__test-utils__/template-errors.js';
 import { generateRuntimeManifest } from './runtime-manifest.generator.js';
 
 const BUTTON: ScannedComponent = {
@@ -767,5 +769,155 @@ describe('directive wrapper generation', () => {
         });
 
         expect(source).toContain('offset = input');
+    });
+});
+
+/** A directive named after the selector it carries; `host` and `variants` default to none. */
+function directive(options: { selector: string; host?: ScannedComponent['showcaseConfig']['host']; variants?: Variant[] }): ScannedComponent {
+    return {
+        className: 'InputDirective',
+        filePath: 'src/lib/input/input.directive.ts',
+        showcaseConfig: { title: 'Input', host: options.host, variants: options.variants },
+        inputs: [],
+        outputs: [],
+        componentMeta: { selector: options.selector, standalone: true, isDirective: true }
+    };
+}
+
+/** The template of the one wrapper `component` generates, as Angular's compiler sees it: without the literal's escapes. */
+function wrapperTemplate(component: ScannedComponent): string {
+    const source = generateRuntimeManifest({ components: [component], libraryImportPath: 'lib', warn: () => undefined });
+    const literal = source.match(/template: `((?:\\[\s\S]|[^`\\])*)`,/);
+
+    return literal ? literal[1].replace(/\\([\s\S])/g, '$1') : '';
+}
+
+describe('directive hosts', () => {
+    it.each(['<input type="text">', '<input type="text" />', '<img src="x.png">'])('closes no void host %s and drops content', (host) => {
+        const template = wrapperTemplate(directive({ host, selector: '[libInput]' }));
+
+        expect(templateErrors(template)).toEqual([]);
+        expect(template).not.toContain('__prismContent__');
+    });
+
+    it('binds the inputs and outputs of a void host', () => {
+        const input: ScannedComponent = {
+            ...directive({ host: '<input>', selector: '[libInput]' }),
+            inputs: [{ name: 'size', type: 'string', defaultValue: 'm', required: false }],
+            outputs: [{ name: 'changed' }]
+        };
+        const template = wrapperTemplate(input);
+
+        expect(template).toBe('<input libInput [size]="size()" (changed)="changed.emit($event)" />');
+        expect(templateErrors(template)).toEqual([]);
+    });
+
+    it('still declares __prismContent__ on a void host, since the runtime sets it for every directive', () => {
+        const source = generateRuntimeManifest({ components: [directive({ host: '<input>', selector: '[libInput]' })], libraryImportPath: 'lib' });
+
+        expect(source).toContain('__prismContent__ = input("")');
+    });
+
+    it('puts input[libInput], textarea[libInput] on a textarea as libInput', () => {
+        const template = wrapperTemplate(directive({ host: '<textarea>', selector: 'input[libInput], textarea[libInput]' }));
+
+        expect(template).toMatch(/^<textarea libInput[ >]/);
+        expect(templateErrors(template)).toEqual([]);
+    });
+
+    it('keeps the attributes of the host and adds the ones of the selector', () => {
+        const template = wrapperTemplate(directive({ host: '<button class="demo">', selector: 'button[libBtn][type=submit]' }));
+
+        expect(template).toMatch(/^<button class="demo" libBtn type="submit">/);
+        expect(templateErrors(template)).toEqual([]);
+    });
+
+    it('renders a directive without host on the element its selector names', () => {
+        expect(wrapperTemplate(directive({ selector: 'input[libInput]' }))).toMatch(/^<input libInput /);
+    });
+
+    it('renders a directive without host on a div when its selector names no element', () => {
+        expect(wrapperTemplate(directive({ selector: '[libTooltip]' }))).toMatch(/^<div libTooltip>/);
+    });
+
+    it('warns when the selector fits no part of the host', () => {
+        const warn = jest.fn();
+
+        generateRuntimeManifest({ components: [directive({ host: '<div>', selector: 'input[libInput]' })], libraryImportPath: 'lib', warn });
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('InputDirective'));
+    });
+
+    it('sets the first attribute of the selector when it fits no part of the host', () => {
+        const template = wrapperTemplate(directive({ host: '<div>', selector: 'input[libInput]' }));
+
+        expect(template).toMatch(/^<div libInput>/);
+        expect(templateErrors(template)).toEqual([]);
+    });
+
+    it('warns about content on a void host', () => {
+        const warn = jest.fn();
+        const input = directive({
+            host: '<input>',
+            selector: 'input[libInput]',
+            variants: [
+                { name: 'Filled', content: 'x' },
+                { name: 'Other', content: 'y' }
+            ]
+        });
+
+        generateRuntimeManifest({ components: [input], libraryImportPath: 'lib', warn });
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('InputDirective'));
+    });
+
+    it('does not warn about a void host without content', () => {
+        const warn = jest.fn();
+
+        generateRuntimeManifest({
+            components: [directive({ host: '<input>', selector: 'input[libInput]', variants: [{ name: 'Plain' }] })],
+            libraryImportPath: 'lib',
+            warn
+        });
+
+        expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('warns with the default writer under a ⚠ ng-prism: prefix', () => {
+        const spy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            generateRuntimeManifest({ components: [directive({ host: '<div>', selector: 'input[libInput]' })], libraryImportPath: 'lib' });
+
+            expect(spy).toHaveBeenCalledWith(expect.stringMatching(/^⚠ ng-prism: .*InputDirective/));
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    it('escapes a backtick in a string host', () => {
+        const source = generateRuntimeManifest({ components: [directive({ host: '<button title="`">', selector: '[libBtn]' })], libraryImportPath: 'lib' });
+        const { diagnostics } = ts.transpileModule(source, { reportDiagnostics: true, compilerOptions: { module: ts.ModuleKind.ES2022 } });
+
+        expect(diagnostics!.map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'))).toEqual([]);
+        expect(wrapperTemplate(directive({ host: '<button title="`">', selector: '[libBtn]' }))).toContain('title="`"');
+    });
+
+    it('escapes ${ and a backslash in a string host', () => {
+        const template = wrapperTemplate(directive({ host: '<button title="${a}\\b">', selector: '[libBtn]' }));
+
+        expect(template).toContain('title="${a}\\b"');
+    });
+
+    it('warns and treats an object host without import as a div instead of throwing', () => {
+        const warn = jest.fn();
+        const host = { selector: 'lib-button' } as unknown as DirectiveHost;
+        const source = generateRuntimeManifest({ components: [directive({ host, selector: '[libTooltip]' })], libraryImportPath: 'lib', warn });
+
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('InputDirective'));
+        expect(source).toContain('imports: [InputDirective],');
+        expect(source).toMatch(/template: `<div libTooltip>/);
     });
 });
