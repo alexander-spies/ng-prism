@@ -3,7 +3,9 @@ import ts from 'typescript';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { extractComponentApi } from './api/component-api.extractor.js';
 import { buildExportIndex } from './api/export-index.js';
-import { findShowcasedClasses, scanComponents } from './component.scanner.js';
+import { createReporters, findShowcasedClasses, scanComponents } from './component.scanner.js';
+import { buildDeclarableIndex } from './composition/declarables.js';
+import { createCompositionContext } from './composition/read-composition.js';
 import { type ResolvedEntryPoint, resolveEntryPointExports } from './entry-point.scanner.js';
 
 // The real extractor with a seam: a test makes it throw for one class and leaves the others alone.
@@ -1149,8 +1151,32 @@ describe('scanComponents with composition fields', () => {
             'GapComponent › imports[2]',
             'GapComponent › variants[1] "After gap" › content',
             'HostOnComponent › host',
+            'NoStringHostDirective › host',
             'ObjectHostComponent › host'
         ]);
+    });
+
+    it('reports a host whose template is no string, and drops it', () => {
+        const { diagnostics, config } = scan();
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(
+                /^NoStringHostDirective › host — expected \{ template: string \}, got \{"template":42\}; it was dropped \(.*host-on-component\.component\.ts:19:\d+\)$/
+            )
+        );
+        expect(config('NoStringHostDirective')).not.toHaveProperty('host');
+    });
+
+    it('names the variants and imports of a composition by their position in the source', () => {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+        const entries = [{ exports, importPath: 'fixture' }];
+        const composition = createCompositionContext(buildDeclarableIndex(entries, checker), compilerOptions, createReporters(diagnostics, notices).notify);
+        const gap = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices, composition }).find((c) => c.className === 'GapComponent')!;
+
+        expect(gap.composition?.variantCases).toEqual([0]);
+        expect(gap.composition?.cases[0].origin).toBe('variants[1] "After gap" (src/builder/scanner/__fixtures__/composition-fields.component.ts:63:31)');
+        expect([...notices]).toContainEqual(expect.stringMatching(/^GapComponent › imports\[1\] — "Listed" from "lib" is not a component, directive or pipe/));
     });
 
     it('reports a string or object host on a component as without effect, and drops it', () => {

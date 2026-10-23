@@ -9,6 +9,7 @@ import type { ExportIndex } from './api/export-index.js';
 import { findSetupProperty } from './api/setup.reader.js';
 import { evaluateStatic, findDecorator, getDecoratorArgument, readDecoratorField, UNEVALUABLE } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
+import { type CompositionContext, readComposition } from './composition/read-composition.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
 import { describeValue, readPseudoStates } from './pseudo-states.js';
 import {
@@ -114,6 +115,8 @@ export interface ScanComponentsOptions {
     exportIndex?: ExportIndex;
     /** Whether to read {@link ScannedComponent.api}: only a plugin with `componentApi` reads it, so the build leaves it out without one. */
     api?: boolean;
+    /** What {@link ScannedComponent.composition} is read against; without it, no composition is read. */
+    composition?: CompositionContext;
 }
 
 /**
@@ -127,7 +130,7 @@ export interface ScanComponentsOptions {
  * component inherits, which are not diagnostics.
  */
 export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChecker, options: ScanComponentsOptions = {}): ScannedComponent[] {
-    const { diagnostics = [], notices = new Set<string>(), exportIndex = new Map(), api: readApi = true } = options;
+    const { diagnostics = [], notices = new Set<string>(), exportIndex = new Map(), api: readApi = true, composition: compositionContext } = options;
     const components: ScannedComponent[] = [];
     const { report, notify } = createReporters(diagnostics, notices);
 
@@ -135,9 +138,11 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
         if (classKind.kind === 'service' || classKind.kind === 'pipe') continue;
 
         const className = classDecl.name?.text ?? 'Anonymous';
-        const showcaseConfig = extractShowcaseConfig(showcaseDecorator, className, report, checker);
+        const read = readShowcaseConfig(showcaseDecorator, className, report, checker);
 
-        if (!showcaseConfig || !showcaseArg) continue;
+        if (!read || !showcaseArg) continue;
+
+        const { config: showcaseConfig, sources } = read;
 
         // Not a diagnostic: the component still works, and strictShowcase must not fail the build over a notice about 23.0.0.
         if (classKind.kind === 'legacy-component') {
@@ -200,6 +205,23 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
             notify(describeUnreadableApi(className, error, 'component'));
         }
 
+        const composition =
+            compositionContext &&
+            readComposition(
+                {
+                    className,
+                    filePath,
+                    selector: componentMeta.selector,
+                    isDirective: componentMeta.isDirective,
+                    inputs,
+                    config: showcaseConfig,
+                    configNode: showcaseArg,
+                    sources
+                },
+                compositionContext,
+                { report, notify }
+            );
+
         components.push({
             className,
             filePath,
@@ -211,7 +233,8 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
             baseClasses: hierarchy.classes
                 .slice(1)
                 .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : [])),
-            api
+            api,
+            ...(composition && { composition })
         });
     }
 
@@ -271,6 +294,22 @@ function hasDecoratorInputs(classDecl: ts.ClassDeclaration): boolean {
  * swallowed here, and {@link scanComponents} says what is wrong with it instead.
  */
 export function extractShowcaseConfig(decorator: ts.Decorator, className: string, report: Report, checker: ts.TypeChecker): ShowcaseConfig | undefined {
+    return readShowcaseConfig(decorator, className, report, checker)?.config;
+}
+
+/** Where each kept entry of `variants` and `imports` is written in the `@Showcase` argument, which the scan's later messages name it by. */
+interface ShowcaseSources {
+    variants: number[];
+    imports: number[];
+}
+
+/** {@link extractShowcaseConfig}, and where the entries it kept are written. */
+function readShowcaseConfig(
+    decorator: ts.Decorator,
+    className: string,
+    report: Report,
+    checker: ts.TypeChecker
+): { config: ShowcaseConfig; sources: ShowcaseSources } | undefined {
     const arg = getDecoratorArgument(decorator);
 
     if (!arg) return undefined;
@@ -314,6 +353,7 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
     const config: ShowcaseConfig = {
         title: obj['title'] as string
     };
+    const sources: ShowcaseSources = { variants: [], imports: [] };
 
     if (obj['description']) config.description = obj['description'] as string;
     if (obj['category']) config.category = obj['category'] as string;
@@ -329,7 +369,14 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
     }
     if (obj['tags']) config.tags = obj['tags'] as string[];
     if (obj['meta']) config.meta = obj['meta'] as Record<string, unknown>;
-    if (obj['host'] !== undefined) config.host = obj['host'] as ShowcaseConfig['host'];
+    if (obj['host'] !== undefined) {
+        // An object with a `template` is meant as a host template, so one that is no string is not a host of another kind.
+        if (typeof obj['host'] === 'object' && obj['host'] !== null && 'template' in obj['host'] && !isHostTemplate(obj['host'])) {
+            report(describeShowcaseIssue(className, arg, ['host'], `expected { template: string }, got ${describeValue(obj['host'])}; it was dropped`));
+        } else {
+            config.host = obj['host'] as ShowcaseConfig['host'];
+        }
+    }
     if (obj['renderPage']) config.renderPage = obj['renderPage'] as string;
 
     if (obj['states'] !== undefined) {
@@ -370,7 +417,10 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
     if (obj['imports'] !== undefined) {
         const imports = readShowcaseImports(obj['imports'], className, arg, report, unevaluableElements.imports);
 
-        if (imports.length > 0) config.imports = imports;
+        if (imports.length > 0) {
+            config.imports = imports.map(({ entry }) => entry);
+            sources.imports = imports.map(({ source }) => source);
+        }
     }
 
     if (Array.isArray(obj['variants'])) {
@@ -421,24 +471,31 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
             }
             return cleaned;
         }) as unknown as ShowcaseConfig['variants'];
+        sources.variants = (config.variants ?? []).map((_, index) => sourceIndex(index, unevaluableElements.variants));
     }
 
-    return config;
+    return { config, sources };
 }
 
 /**
  * `ShowcaseConfig.imports` as the scanner evaluated it, with every entry that is not a `{ name, from }` pair of
  * non-empty strings reported and dropped. `unevaluable` holds the source positions the evaluator dropped, which keep
- * the later entries named by the position they have in the source.
+ * the later entries named by the position they have in the source; `source` is that position for each kept entry.
  */
-function readShowcaseImports(value: unknown, className: string, config: ts.Expression, report: Report, unevaluable: ReadonlySet<number>): ShowcaseImport[] {
+function readShowcaseImports(
+    value: unknown,
+    className: string,
+    config: ts.Expression,
+    report: Report,
+    unevaluable: ReadonlySet<number>
+): { entry: ShowcaseImport; source: number }[] {
     if (!Array.isArray(value)) {
         report(describeShowcaseIssue(className, config, ['imports'], `expected a list of { name, from }, got ${describeValue(value)}; it was dropped`));
         return [];
     }
 
     return value.flatMap((entry, index) => {
-        if (isShowcaseImport(entry)) return [{ name: entry.name, from: entry.from }];
+        if (isShowcaseImport(entry)) return [{ entry: { name: entry.name, from: entry.from }, source: sourceIndex(index, unevaluable) }];
 
         const text = `expected { name, from } with a non-empty string each, got ${describeValue(entry)}; it was dropped`;
 

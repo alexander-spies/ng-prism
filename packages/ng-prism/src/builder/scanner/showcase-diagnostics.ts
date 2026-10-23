@@ -46,6 +46,16 @@ export function describeShowcaseIssue(className: string, config: ts.Expression, 
 }
 
 /**
+ * Name the places of a `@Showcase` config that something comes from, and where the first of them is written, read as
+ * in {@link describeShowcaseIssue}.
+ *
+ * `variants[0] "Default", variants[3] "Again" (src/form-field.component.ts:20:9)`
+ */
+export function describeShowcaseOrigin(config: ts.Expression, paths: readonly EvaluationPath[]): string {
+    return `${paths.map((path) => formatShowcasePath(path, config)).join(', ')} (${location((paths[0] && nodeAtPath(config, paths[0])) ?? config)})`;
+}
+
+/**
  * `providers` never reached the manifest: classes, factories and instances
  * cannot be written into static data. One message for the field, not one per
  * provider, because none of them could have been kept. It points at the

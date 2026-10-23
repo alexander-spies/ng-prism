@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Directive } from '@angular/core';
 
 function Showcase(config: unknown): ClassDecorator {
     return () => {};
@@ -15,3 +15,7 @@ export class ObjectHostComponent {}
 @Showcase({ title: 'Host template on component', host: { template: '<lib-frame><lib-template-host /></lib-frame>' } })
 @Component({ selector: 'lib-template-host', standalone: true, template: '' })
 export class TemplateHostComponent {}
+
+@Showcase({ title: 'Host template that is no string', host: { template: 42 } })
+@Directive({ selector: '[libNoStringHost]', standalone: true })
+export class NoStringHostDirective {}

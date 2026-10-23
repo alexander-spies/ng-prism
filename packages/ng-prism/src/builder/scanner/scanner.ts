@@ -3,7 +3,9 @@ import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
 import { buildExportIndex } from './api/export-index.js';
-import { findShowcasedClasses, scanComponents } from './component.scanner.js';
+import { createReporters, findShowcasedClasses, scanComponents } from './component.scanner.js';
+import { buildDeclarableIndex } from './composition/declarables.js';
+import { createCompositionContext } from './composition/read-composition.js';
 import { type EntryPointInput, resolveEntryPointExports } from './entry-point.scanner.js';
 import { scanPipes } from './pipe.scanner.js';
 import { scanServices } from './service.scanner.js';
@@ -96,12 +98,14 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             // A setup function or a type is often exported by another entry point than the component, service or pipe that names it.
             const exportIndex = buildExportIndex(entries, checker);
             const context = { exportIndex, diagnostics, notices };
+            // A showcase's templates use what any entry point exports, not only its own.
+            const composition = createCompositionContext(buildDeclarableIndex(entries, checker), compilerOptions, createReporters(diagnostics, notices).notify);
 
             const fromPrimary = new Set<object>();
 
             for (const { exports, importPath, primary } of entries) {
                 const showcased = findShowcasedClasses(exports, checker);
-                const components = scanComponents(showcased, checker, { ...context, api: componentApi });
+                const components = scanComponents(showcased, checker, { ...context, api: componentApi, composition });
                 const services = readServices ? scanServices(showcased, checker, context) : [];
                 const pipes = readPipes ? scanPipes(showcased, checker, context) : [];
 
