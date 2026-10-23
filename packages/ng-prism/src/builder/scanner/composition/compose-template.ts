@@ -1,5 +1,4 @@
 import {
-    BindingType,
     CssSelector,
     parseTemplate,
     SelectorMatcher,
@@ -12,6 +11,7 @@ import {
 import { COMPOSITION_SUBJECT_SLOT, SUBJECT_MARKER_ATTR } from '../../../shared/composition.js';
 import { VOID_ELEMENTS } from '../../../shared/void-elements.js';
 import { selectorElement } from '../../manifest/selector-element.js';
+import { elementSelector, isInputBinding, localName } from './template-elements.js';
 
 export interface ComposeInput {
     selector: string;
@@ -165,28 +165,6 @@ function collectElements(nodes: TmplAstNode[]): TmplAstElement[] {
     return collector.elements;
 }
 
-/** What a directive matcher sees of an element, built the way Angular builds it: tag, static attributes and classes, bound inputs and outputs. */
-function elementSelector(element: TmplAstElement): CssSelector {
-    const selector = new CssSelector();
-
-    selector.setElement(localName(element.name));
-    for (const attribute of element.attributes) {
-        selector.addAttribute(attribute.name, attribute.value);
-        if (attribute.name.toLowerCase() === 'class') {
-            for (const className of attribute.value.trim().split(/\s+/)) {
-                if (className) selector.addClassName(className);
-            }
-        }
-    }
-    for (const bound of element.inputs) {
-        if (isInputBinding(bound.type)) selector.addAttribute(bound.name, '');
-    }
-    for (const output of element.outputs) {
-        selector.addAttribute(output.name, '');
-    }
-    return selector;
-}
-
 /**
  * The member names of the inputs that the host template sets on the subject, statically or by a property binding.
  * An attribute without a value that the selector names is there to match it (`<button libTooltip>`), so ng-prism
@@ -204,16 +182,6 @@ function ownedInputs(element: TmplAstElement, { selector, inputNames }: ComposeI
     }
 
     return [...inputNames].filter(([publicName]) => written.has(publicName)).map(([, member]) => member);
-}
-
-/** `[name]` and `[(name)]`; attribute, class, style and animation bindings set no input. */
-function isInputBinding(type: BindingType): boolean {
-    return type === BindingType.Property || type === BindingType.TwoWay;
-}
-
-/** The parser names an element in a namespace `:svg:rect`; selectors match the local name. */
-function localName(name: string): string {
-    return name.replace(/^:[^:]+:/, '');
 }
 
 /** The tag name as the host template writes it, which is what an end tag and a message repeat. */
