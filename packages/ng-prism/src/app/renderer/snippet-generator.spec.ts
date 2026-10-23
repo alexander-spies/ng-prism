@@ -170,14 +170,14 @@ describe('generateSnippet', () => {
             const inputs = [meta({ name: 'color', alias: 'appHighlightColor' })];
             const result = generateSnippet('[appHighlight]', inputs, { color: 'red' }, undefined, undefined, { host: '<div>' });
 
-            expect(result).toBe('<div appHighlight appHighlightColor="red" />');
+            expect(result).toBe('<div appHighlight appHighlightColor="red"></div>');
         });
 
         it('writes an input aliased to the directive selector once, with its value', () => {
             const inputs = [meta({ name: 'color', alias: 'appHighlight' })];
             const result = generateSnippet('[appHighlight]', inputs, { color: 'red' }, undefined, undefined, { host: '<div>' });
 
-            expect(result).toBe('<div appHighlight="red" />');
+            expect(result).toBe('<div appHighlight="red"></div>');
         });
 
         it('should render directive on host element', () => {
@@ -191,7 +191,7 @@ describe('generateSnippet', () => {
             const inputs = [meta({ name: 'color' })];
             const result = generateSnippet('[appHighlight]', inputs, { color: 'red' }, undefined, undefined, { host: '<div>' });
 
-            expect(result).toBe('<div appHighlight color="red" />');
+            expect(result).toBe('<div appHighlight color="red"></div>');
         });
 
         it('should render directive with object host', () => {
@@ -216,19 +216,65 @@ describe('generateSnippet', () => {
             const inputs = [meta({ name: 'truncate', type: 'boolean', defaultValue: true })];
             const result = generateSnippet('libTooltip', inputs, { truncate: false }, undefined, undefined, { host: 'div' });
 
-            expect(result).toBe('<div libTooltip [truncate]="false" />');
+            expect(result).toBe('<div libTooltip [truncate]="false"></div>');
         });
 
-        it('keeps the tag of a string host with content', () => {
+        it('keeps the tag of a string host with content, and its content when the variant has none', () => {
             const result = generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: '<button>Hover me</button>' });
 
-            expect(result).toMatch(/^<button libTooltip/);
+            expect(result).toBe('<button libTooltip>Hover me</button>');
         });
 
         it('keeps the attributes of a string host with content', () => {
             const result = generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: '<button class="btn">Hover me</button>' });
 
-            expect(result).toBe('<button class="btn" libTooltip />');
+            expect(result).toBe('<button class="btn" libTooltip>Hover me</button>');
+        });
+
+        it('prefers the content of the variant to the content of the host', () => {
+            const host = { host: '<button>Hover me</button>' };
+
+            expect(generateSnippet('[libTooltip]', [], {}, undefined, 'Save', host)).toBe('<button libTooltip>Save</button>');
+            expect(generateSnippet('[libTooltip]', [], { __prismContent__: 'Save' }, undefined, undefined, host)).toBe('<button libTooltip>Save</button>');
+            expect(generateSnippet('[libTooltip]', [], { __prismContent__: '' }, undefined, undefined, host)).toBe('<button libTooltip></button>');
+        });
+
+        it('never self-closes a native element that is not void', () => {
+            expect(generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: '<button>' })).toBe('<button libTooltip></button>');
+            expect(generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: '<button></button>' })).toBe('<button libTooltip></button>');
+        });
+
+        it('breaks the attributes of an element that is closed with its end tag', () => {
+            const inputs = [meta({ name: 'tooltipText' }), meta({ name: 'tooltipPosition' }), meta({ name: 'tooltipDelay', type: 'number' })];
+            const result = generateSnippet(
+                '[libTooltip]',
+                inputs,
+                { tooltipText: 'Some longer tooltip text', tooltipPosition: 'bottom', tooltipDelay: 300 },
+                undefined,
+                undefined,
+                {
+                    host: '<button class="btn">'
+                }
+            );
+
+            expect(result).toBe(
+                '<button\n  class="btn"\n  libTooltip\n  tooltipText="Some longer tooltip text"\n  tooltipPosition="bottom"\n  [tooltipDelay]="300"></button>'
+            );
+        });
+
+        it('lets a custom element host close itself', () => {
+            expect(generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: '<lib-badge>' })).toBe('<lib-badge libTooltip />');
+        });
+
+        it('lets an object host without content close itself, and closes it with its end tag when it is no custom element', () => {
+            const host = { selector: 'lib-badge', import: { name: 'LibBadge', from: 'lib' } };
+
+            expect(generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host })).toBe('<lib-badge libTooltip />');
+            expect(generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: { ...host, selector: 'button' } })).toBe('<button libTooltip></button>');
+        });
+
+        it('writes the content of a directive without host as content, not as an attribute', () => {
+            expect(generateSnippet('[libTooltip]', [], { __prismContent__: 'Hover me' })).toBe('<div libTooltip>Hover me</div>');
         });
 
         it('closes a void host without content', () => {
@@ -280,6 +326,38 @@ describe('generateSnippet', () => {
             });
 
             expect(result).toBe('<sgui-label sguiTooltip>Hover me</sgui-label>');
+        });
+    });
+
+    describe('component selectors', () => {
+        it('writes the element and the attributes of a selector like button[libBtn]', () => {
+            expect(generateSnippet('button[libBtn]', [], {})).toBe('<button libBtn></button>');
+            expect(generateSnippet('button[libBtn]', [meta({ name: 'size' })], { size: 'lg' })).toBe('<button libBtn size="lg"></button>');
+            expect(generateSnippet('button[libBtn]', [], {}, undefined, 'Save')).toBe('<button libBtn>Save</button>');
+        });
+
+        it('writes the classes and attribute values of a selector', () => {
+            expect(generateSnippet('button.primary[libBtn][type=submit]', [], {})).toBe('<button libBtn type="submit" class="primary"></button>');
+        });
+
+        it('takes the first part of a selector list and ignores :not()', () => {
+            expect(generateSnippet('button[libBtn]:not([disabled]), a[libBtn]', [], {})).toBe('<button libBtn></button>');
+        });
+
+        it('falls back to a div for a selector without element', () => {
+            expect(generateSnippet('[libCard]', [], {})).toBe('<div libCard></div>');
+        });
+
+        it('lets a void or a custom element close itself', () => {
+            expect(generateSnippet('input[libInput]', [], {})).toBe('<input libInput />');
+            expect(generateSnippet('input[libInput]', [], {}, undefined, 'ignored')).toBe('<input libInput />');
+            expect(generateSnippet('lib-button', [], {})).toBe('<lib-button />');
+        });
+
+        it('writes an attribute of the selector once when an input is aliased to it', () => {
+            const inputs = [meta({ name: 'variant', alias: 'libBtn' })];
+
+            expect(generateSnippet('button[libBtn]', inputs, { variant: 'primary' })).toBe('<button libBtn="primary"></button>');
         });
     });
 

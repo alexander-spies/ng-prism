@@ -87,39 +87,81 @@ export function generateSnippet(
         return generateDirectiveSnippet(selector, inputs, values, explicitKeys, content, host);
     }
 
-    const attributes = subjectAttributes(inputs, values, explicitKeys);
-    const contentHtml = resolveContentHtml(content);
+    // A directive without a host renders on the element of its selector, with its text content in `__prismContent__`.
+    const attributes = subjectAttributes(inputs, values, explicitKeys, HOST_CONTENT_KEYS);
+    const element = selectorToElement(selector);
+    const selectorAttributes = unwrittenSelectorAttributes(element.attributes, attributes);
 
-    if (!contentHtml) {
-        if (attributes.length === 0) {
-            return `<${selector} />`;
+    return renderElement(element.tag, [...selectorAttributes, ...attributes], resolveContentHtml(content ?? hostContentValue(values)));
+}
+
+function hostContentValue(values: Record<string, unknown>): string | undefined {
+    const value = values[PRISM_CONTENT_INPUT];
+
+    return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * The element and the attributes a component's selector asks for: `button[libBtn]` is `<button libBtn>`. Of a selector
+ * list only the first part counts, `:not()` is ignored, and a selector without an element is a `div`, as when the
+ * styleguide renders it.
+ */
+function selectorToElement(selector: string): { tag: string; attributes: string[] } {
+    const part = selector
+        .split(',')[0]
+        .replace(/:not\([^)]*\)/g, '')
+        .trim();
+    const tag = part.match(/^[a-zA-Z][\w-]*/)?.[0];
+    const attributes: string[] = [];
+    const classNames: string[] = [];
+
+    for (const [, name, value, className] of part.slice(tag?.length ?? 0).matchAll(/\[([^\]=]+)(?:=["']?([^\]"']*)["']?)?\]|\.([\w-]+)/g)) {
+        if (className) {
+            classNames.push(className);
+        } else {
+            attributes.push(value ? `${name}="${escapeAttrValue(value)}"` : name);
         }
-        const singleLine = `<${selector} ${attributes.join(' ')} />`;
-
-        if (singleLine.length <= 80) {
-            return singleLine;
-        }
-        const indented = attributes.map((attr) => `  ${attr}`).join('\n');
-
-        return `<${selector}\n${indented} />`;
     }
+    if (classNames.length > 0) attributes.push(`class="${classNames.join(' ')}"`);
 
-    const attrStr = attributes.length > 0 ? ' ' + attributes.join(' ') : '';
-    const openTag = `<${selector}${attrStr}>`;
-    const closeTag = `</${selector}>`;
-    const singleLine = `${openTag}${contentHtml}${closeTag}`;
+    return { tag: tag ?? 'div', attributes };
+}
 
-    if (singleLine.length <= 80) {
-        return singleLine;
-    }
+/** The attributes of a selector that no written attribute sets yet: an input aliased to one of them gives it its value. */
+function unwrittenSelectorAttributes(selectorAttributes: string[], written: string[]): string[] {
+    return selectorAttributes.filter((attribute) => {
+        const name = attribute.split('=')[0];
 
-    if (attributes.length <= 2) {
-        return `${openTag}\n  ${contentHtml}\n${closeTag}`;
-    }
+        return !written.some((w) => w.startsWith(`${name}=`) || w.startsWith(`[${name}]=`));
+    });
+}
 
+/**
+ * One element, on a single line when it fits in 80 characters. A void element takes no content and no end tag
+ * (`<input>` and `<input />` are valid, `<input>text</input>` is not). Only void and custom elements may close
+ * themselves: Angular rejects `<button />`, so any other element without content gets its end tag.
+ */
+function renderElement(tag: string, attributes: string[], contentHtml: string | undefined): string {
+    const attrStr = attributes.length > 0 ? ` ${attributes.join(' ')}` : '';
     const indented = attributes.map((attr) => `  ${attr}`).join('\n');
+    const content = VOID_ELEMENTS.has(tag.toLowerCase()) ? undefined : contentHtml;
 
-    return `<${selector}\n${indented}>\n  ${contentHtml}\n${closeTag}`;
+    if (!content) {
+        const selfClosing = VOID_ELEMENTS.has(tag.toLowerCase()) || tag.includes('-');
+        const end = selfClosing ? ' />' : `></${tag}>`;
+        const singleLine = `<${tag}${attrStr}${end}`;
+
+        if (attributes.length === 0 || singleLine.length <= 80) return singleLine;
+        return `<${tag}\n${indented}${end}`;
+    }
+
+    const openTag = `<${tag}${attrStr}>`;
+    const closeTag = `</${tag}>`;
+    const singleLine = `${openTag}${content}${closeTag}`;
+
+    if (singleLine.length <= 80) return singleLine;
+    if (attributes.length <= 2) return `${openTag}\n  ${content}\n${closeTag}`;
+    return `<${tag}\n${indented}>\n  ${content}\n${closeTag}`;
 }
 
 function directiveSelectorToAttr(selector: string): string {
@@ -129,15 +171,17 @@ function directiveSelectorToAttr(selector: string): string {
 }
 
 /**
- * The element a string host starts with and its attributes as written. A host may carry content and an end tag
- * (`<button class="btn">Hover me</button>`): the showcase renders all of it, the snippet only needs the element to put
- * the directive on.
+ * The element a string host starts with, its attributes as written, and the content between its start and end tag
+ * (`<button class="btn">Hover me</button>`): that content is what the host renders when a variant sets none.
  */
-function parseHostStringSimple(host: string): { tag: string; attrs: string } {
-    const match = host.match(/^\s*<\s*([a-zA-Z][\w-]*)([^>]*?)\s*\/?\s*>/);
+function parseHostStringSimple(host: string): { tag: string; attrs: string; content?: string } {
+    const start = host.match(/^\s*<\s*([a-zA-Z][\w-]*)([^>]*?)\s*\/?\s*>/);
 
-    if (!match) return { tag: 'div', attrs: '' };
-    return { tag: match[1], attrs: match[2].trim() };
+    if (!start) return { tag: 'div', attrs: '' };
+    const [opening, tag, attrs] = start;
+    const content = host.slice(opening.length).match(new RegExp(`^([\\s\\S]*?)<\\/\\s*${tag}\\s*>\\s*$`, 'i'))?.[1];
+
+    return { tag, attrs: attrs.trim(), content };
 }
 
 function generateDirectiveSnippet(
@@ -151,12 +195,14 @@ function generateDirectiveSnippet(
     const directiveAttr = directiveSelectorToAttr(selector);
 
     let tag: string;
+    let hostContent: string | undefined;
     const hostAttrs: string[] = [];
 
     if (typeof host === 'string') {
         const parsed = parseHostStringSimple(host);
 
         tag = parsed.tag;
+        hostContent = parsed.content;
         if (parsed.attrs) hostAttrs.push(parsed.attrs);
     } else {
         tag = host.selector;
@@ -168,38 +214,12 @@ function generateDirectiveSnippet(
     }
 
     const attributes = subjectAttributes(inputs, values, explicitKeys, HOST_CONTENT_KEYS);
-    const projectedContent = content ?? (typeof values[PRISM_CONTENT_INPUT] === 'string' ? (values[PRISM_CONTENT_INPUT] as string) : undefined);
+    // The variant's content, else the content of the host: the generated host's `__prismContent__` defaults to it.
+    const projectedContent = content ?? hostContentValue(values) ?? hostContent;
     // An input aliased to the directive's own selector already puts the directive on the host.
-    const selectorAttrs = attributes.some((a) => a.startsWith(`${directiveAttr}=`) || a.startsWith(`[${directiveAttr}]=`)) ? [] : [directiveAttr];
-    const allAttrs = [...hostAttrs, ...selectorAttrs, ...attributes].join(' ');
-    // A void element takes no content and no end tag: `<input>` and `<input />` are valid, `<input>text</input>` is not.
-    const contentHtml = VOID_ELEMENTS.has(tag.toLowerCase()) ? undefined : resolveContentHtml(projectedContent);
+    const selectorAttrs = unwrittenSelectorAttributes([directiveAttr], attributes);
 
-    if (!contentHtml) {
-        if (!allAttrs) return `<${tag} />`;
-        const singleLine = `<${tag} ${allAttrs} />`;
-
-        if (singleLine.length <= 80) return singleLine;
-        const indented = [...hostAttrs, ...selectorAttrs, ...attributes].map((a) => `  ${a}`).join('\n');
-
-        return `<${tag}\n${indented} />`;
-    }
-
-    const openTag = `<${tag} ${allAttrs}>`;
-    const closeTag = `</${tag}>`;
-    const singleLine = `${openTag}${contentHtml}${closeTag}`;
-
-    if (singleLine.length <= 80) return singleLine;
-
-    const allAttrsList = [...hostAttrs, ...selectorAttrs, ...attributes];
-
-    if (allAttrsList.length <= 2) {
-        return `${openTag}\n  ${contentHtml}\n${closeTag}`;
-    }
-
-    const indented = allAttrsList.map((a) => `  ${a}`).join('\n');
-
-    return `<${tag}\n${indented}>\n  ${contentHtml}\n${closeTag}`;
+    return renderElement(tag, [...hostAttrs, ...selectorAttrs, ...attributes], resolveContentHtml(projectedContent));
 }
 
 function resolveContentHtml(content?: string | Record<string, string>): string | undefined {
