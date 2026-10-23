@@ -4,13 +4,17 @@
     display: block;
 }
 
+/* The padding keeps the brand edge out of the content box, so the content centres
+   in what is visible below the edge. Without it, it sits a pixel too high. */
 .prism-header {
+    --brand-edge: 2px;
+
     position: relative;
     display: grid;
     grid-template-columns: minmax(min-content, var(--sw, 264px)) 1fr auto;
     align-items: center;
     height: var(--band-header);
-    padding: 0 14px 0 0;
+    padding: var(--brand-edge) 14px 0 0;
     color: var(--prism-text);
     background: var(--prism-bg);
     border-bottom: 1px solid var(--prism-border);
@@ -20,7 +24,7 @@
 .prism-header::before {
     position: absolute;
     inset: 0 0 auto;
-    height: 2px;
+    height: var(--brand-edge);
     pointer-events: none;
     content: '';
     background: var(--prism-brand-gradient);
