@@ -1,4 +1,5 @@
-// Builds video-lib's styleguide, serves it on STYLEGUIDE_PORT and records shots into out/recordings/.
+// Builds the core and plugins, then video-lib's styleguide, serves it on STYLEGUIDE_PORT and records shots into
+// out/recordings/.
 //
 //   node record/record.ts                 every shot
 //   node record/record.ts --shot reveal   only these (repeatable); the manifest keeps the others
@@ -7,7 +8,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { hashSources, REPO_ROOT, SOURCE_PATHS, type RecordingsManifest } from '../src/lib/recordings.ts';
 import { recordShot } from './recorder.ts';
-import { buildStyleguide, serveStatic, STYLEGUIDE_DIST, STYLEGUIDE_PORT } from './serve.ts';
+import { buildPackages, buildStyleguide, serveStatic, STYLEGUIDE_DIST, STYLEGUIDE_PORT } from './serve.ts';
 import { SHOTS, shotById } from './shots/index.ts';
 
 export const RECORDINGS_DIR = join(REPO_ROOT, 'video/out/recordings');
@@ -16,6 +17,8 @@ const MANIFEST = join(RECORDINGS_DIR, 'manifest.json');
 const { values } = parseArgs({ options: { shot: { type: 'string', multiple: true } } });
 const shots = values.shot?.length ? values.shot.map(shotById) : [...SHOTS];
 
+console.log('Building the core and plugins …');
+await buildPackages();
 console.log('Building video-lib:prism-build …');
 await buildStyleguide();
 const sourceHash = await hashSources(SOURCE_PATHS);

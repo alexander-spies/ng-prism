@@ -5,10 +5,22 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { extname, join, normalize } from 'node:path';
-import { REPO_ROOT } from '../src/lib/recordings.ts';
+import { buildPackagesArgs, REPO_ROOT } from '../src/lib/recordings.ts';
 
 export const STYLEGUIDE_PORT = 4420;
 export const STYLEGUIDE_DIST = join(REPO_ROOT, 'test-workspace/dist/video-lib-prism');
+
+/** Builds the core and the plugins the styleguide uses (`buildPackagesArgs`); rejects when the build fails. */
+export function buildPackages(): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const child = spawn('npx', buildPackagesArgs(), { cwd: REPO_ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+        let output = '';
+        child.stdout.on('data', (chunk) => (output += chunk));
+        child.stderr.on('data', (chunk) => (output += chunk));
+        child.on('error', reject);
+        child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`Building the packages failed (exit ${code}):\n${output.slice(-2000)}`))));
+    });
+}
 
 /** Runs `ng run video-lib:prism-build`; rejects on a failed build and on any `⚠ ng-prism:` warning, which would mean the code on screen and the styleguide disagree. */
 export function buildStyleguide(): Promise<void> {

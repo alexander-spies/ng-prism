@@ -4,7 +4,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium, type Locator } from 'playwright';
+import { chromium, type Locator, type Page } from 'playwright';
 import { RECORDING_SCALE, type FocusMark, type RecordingInfo } from '../src/lib/recordings.ts';
 import { CURSOR_SCRIPT } from './cursor.ts';
 import type { Shot, ShotContext } from './shots/shot.ts';
@@ -13,6 +13,24 @@ export const RECORDING_FPS = 60;
 export const SLOW = 10;
 const VIEWPORT = { width: 1920, height: 1080 };
 const SCALE = RECORDING_SCALE;
+
+/** The fonts the styleguide loads from Google Fonts (video-lib-prism's index.html). */
+const STYLEGUIDE_FONTS = ['Inter', 'JetBrains Mono'];
+
+/**
+ * The styleguide fonts the page could not load. `document.fonts.ready` resolves when a font failed too, and the page
+ * then draws in a system font: offline, or with Google Fonts blocked, every recording would.
+ */
+export async function missingFonts(page: Page): Promise<string[]> {
+    return page.evaluate(async (families) => {
+        const missing: string[] = [];
+        for (const family of families) {
+            const faces = await document.fonts.load(`16px "${family}"`).catch(() => []);
+            if (faces.length === 0) missing.push(family);
+        }
+        return missing;
+    }, STYLEGUIDE_FONTS);
+}
 
 function ffprobeDuration(file: string): number {
     return Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' }).trim());
@@ -31,6 +49,10 @@ export async function recordShot(shot: Shot, baseUrl: string, outDir: string): P
         // ten times too fast. A caret that stays on reads as typing, as in an editor.
         await page.addStyleTag({ content: '* { caret-animation: manual !important; }' });
         await page.evaluate('document.fonts.ready');
+        const missing = await missingFonts(page);
+        if (missing.length > 0) {
+            throw new Error(`Shot ${shot.id}: the styleguide could not load ${missing.join(' and ')}; it loads them from Google Fonts. Offline?`);
+        }
         await page.waitForTimeout(500);
 
         const cdp = await context.newCDPSession(page);

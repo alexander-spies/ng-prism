@@ -20,14 +20,14 @@ These are decided. Don't trade them for something else; ask when one can't be me
 
 - **Four No-Gos:** code on screen that differs from the source (never write code into a scene by hand); marketing speak (no superlatives, no emojis: one developer showing another); blurry or jerky pictures (never enlarge a recording beyond ~2× full frame); dead time.
 - **Pace.** A viewer must follow what happens and why. Every beat opens with 1.5–2 s of stillness while its caption is read; after every action the effect stays 1.2 s or longer; pointer glides take 0.9–1.7 s; typing in the controls ~130 ms per character.
-- **Lengths:** release clip 15–25 s (version card 2.5 s, 1–3 beats of 6–10 s, end card 4 s); tour ~68 s.
+- **Lengths:** release clip with 1–2 beats 15–25 s, with 3 beats up to ~37 s (accepted for 22.7); version card 2.5 s, `ui` beats 6–10 s, `api` beats 10–14 s (caption, typing at 0.4 s a line, recording), end card 4 s. Tour ~68 s. Pace beats length: shorten by dropping a beat, never by rushing one.
 - **Captions:** one line, at most ~45 characters, a full stop, one emphasised part in balanced `**…**`.
 - **Sound** only through `cue()`/`typingCues()` in `src/components/sfx.tsx`. Master levels: `max_volume` ≤ −6 dB, `mean_volume` ≤ −28 dB.
 - 1920×1080, 60 fps. The end card is the HQ logo (`docs/logo_withtext_big.png`) with the command: `ng add` in the tour, `ng update @ng-prism/core` in release clips.
 
 ## Making a release clip
 
-1. **The features must be merged and built** into `packages/*/dist`. The recordings' hash covers those and video-lib, and a render refuses stale recordings. Build with `npm run build:all`, never `npm run test:workspace:update` while the maintainer's styleguide runs on :4400 (it kills it and clears `.angular/cache`) — ask.
+1. **The features must be merged** into your branch. `record` builds the core and plugins itself (Nx-cached) and stops when the styleguide's Google Fonts don't load. Never `npm run test:workspace:update` while the maintainer's styleguide runs on :4400 (it kills it and clears `.angular/cache`) — ask.
 2. **Pick 1–3 beats.** A UI feature is a `ui` beat (its recording with a caption). New `@Showcase` API is an `api` beat (the decorator types itself into a video-lib source on the left, the recording plays on the right). A feature only a few pixels big needs `"zoom"` on its beat: the camera moves onto the shot's **first** mark (a `ui` beat up to 2, an `api` beat up to 4; without it a `ui` beat shows the whole frame and an `api` beat zooms by 1.3).
 3. **video-lib.** Leave `button/` alone: it is the tour's on-screen code. An `api` source has to fit the code card: from `@Showcase` on at most 80 characters wide and ~24 lines, so template and styles in files (`templateUrl`), not inline. Check first that a feature is really new (`git log -S`) before a caption calls it new.
 4. **Write the shot** (`record/shots/<id>.ts`, registered in `index.ts` and `index.test.ts`):
@@ -44,7 +44,7 @@ These are decided. Don't trade them for something else; ask when one can't be me
     npm --prefix video run export -- release-<v>
     ```
 
-    `npm run video -- --release <v>` does the same in one go, but records every shot and rebuilds the tour too.
+    `npm run video -- --release <v>` does the same in one go, recording every shot; it leaves the committed tour alone (add `--tour` only when the tour should change too).
 
 7. **Check the cut** (below), then show it to the maintainer against the four No-Gos. Nothing is committed before they say yes.
 

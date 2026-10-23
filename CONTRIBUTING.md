@@ -184,17 +184,18 @@ npm run docs   # Starts docsify on http://localhost:3000
 - `npm run video:install` installs `video/`'s own dependencies
 - The test workspace is installed (`npm run test:workspace:install`, with Verdaccio running)
 
-The recordings build `video-lib`'s styleguide and serve it on port **4420**, so a styleguide of your own on 4400 can keep running. Do not run `npm run test:workspace:update` while it does: that script frees port 4400 and clears the Angular cache.
+The recordings first build the core and the plugins they show (Nx-cached), then `video-lib`'s styleguide, and serve it on port **4420**, so a styleguide of your own on 4400 can keep running. Do not run `npm run test:workspace:update` while it does: that script frees port 4400 and clears the Angular cache. The styleguide loads its fonts from Google Fonts; a recording without them stops.
 
 #### Commands
 
 ```bash
-npm run video                         # record every shot, render the tour, export it
-npm run video -- --release 22.7       # the same, plus the release clip described in video/releases/22.7.json
-npm run video -- --skip-record        # reuse the recordings; refused when video-lib changed since they were made
+npm run video                                # record every shot, render the tour, export it to out/deliver/ and the docs
+npm run video -- --release 22.7              # record every shot, render only the release clip of video/releases/22.7.json
+npm run video -- --release 22.7 --tour       # both
+npm run video -- --release 22.7 --skip-record   # reuse the recordings; refused when the sources changed since they were made
 ```
 
-A run stops at the first failing step with its message. The single steps are scripts in `video/` as well (`npm --prefix video run record|render|export`).
+A release run leaves the committed tour (`docs/assets/video/tour.mp4`) alone. A run stops at the first failing step with its message. The single steps are scripts in `video/` as well (`npm --prefix video run record|render|export`).
 
 #### A release clip
 

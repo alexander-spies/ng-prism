@@ -10,17 +10,24 @@ export { RECORDING_SCALE, type FocusMark, type RecordingInfo, type RecordingsMan
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
+/** The core and the plugins video-lib's styleguide uses (Nx project names, which are also their folders under packages/). */
+export const BUILT_PACKAGES: readonly string[] = ['ng-prism', 'plugin-box-model', 'plugin-coverage', 'plugin-jsdoc', 'plugin-visual-regression'];
+
 /** Everything the recorded styleguide is built from: video-lib and the built core and plugins it uses. */
 export const SOURCE_PATHS: readonly string[] = [
     'test-workspace/projects/video-lib/src',
     'test-workspace/projects/video-lib/fixtures',
     'test-workspace/video-lib.prism.config.ts',
-    'packages/ng-prism/dist',
-    'packages/plugin-box-model/dist',
-    'packages/plugin-coverage/dist',
-    'packages/plugin-jsdoc/dist',
-    'packages/plugin-visual-regression/dist'
+    ...BUILT_PACKAGES.map((name) => `packages/${name}/dist`)
 ].map((path) => join(REPO_ROOT, path));
+
+/**
+ * `npx` arguments that build those packages before a recording, so the recordings show the current sources and not
+ * whatever an earlier build left in `dist`. Nx caches the build, so it costs nothing when nothing changed.
+ */
+export function buildPackagesArgs(): string[] {
+    return ['nx', 'run-many', '-t', 'build', `--projects=${BUILT_PACKAGES.join(',')}`];
+}
 
 async function files(path: string): Promise<string[]> {
     if (!(await stat(path)).isDirectory()) return [path];

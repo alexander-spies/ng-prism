@@ -3,7 +3,16 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { assertFresh, hashSources, type RecordingsManifest } from './recordings.ts';
+import { assertFresh, BUILT_PACKAGES, buildPackagesArgs, hashSources, REPO_ROOT, SOURCE_PATHS, type RecordingsManifest } from './recordings.ts';
+
+test('the recorder builds exactly the packages whose build the recordings are hashed from', () => {
+    const hashedDists = SOURCE_PATHS.filter((path) => path.startsWith(join(REPO_ROOT, 'packages/')));
+    assert.deepEqual(
+        hashedDists,
+        BUILT_PACKAGES.map((name) => join(REPO_ROOT, 'packages', name, 'dist'))
+    );
+    assert.deepEqual(buildPackagesArgs(), ['nx', 'run-many', '-t', 'build', `--projects=${BUILT_PACKAGES.join(',')}`]);
+});
 
 const manifest: RecordingsManifest = {
     sourceHash: 'abc',
