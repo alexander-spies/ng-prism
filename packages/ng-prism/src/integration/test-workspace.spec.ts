@@ -1,6 +1,6 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join, relative, resolve } from 'path';
+import { dirname, join, relative, resolve } from 'path';
 import type { BuilderContext } from '@angular-devkit/architect';
 import { Tree } from '@angular-devkit/schematics';
 import { SchematicTestRunner } from '@angular-devkit/schematics/testing';
@@ -13,6 +13,13 @@ const TEST_WORKSPACE_DIR = join(__dirname, '..', '..', '..', '..', 'test-workspa
 // does not need `node_modules` here: CI never installs it for test-workspace.
 const EXCLUDED_ENTRIES = new Set(['node_modules', 'dist', '.angular', 'ng-prism-cache']);
 
+// The one package a showcase of test-lib imports from outside the library: the
+// scan reads the class from its `.d.ts`, so it is linked from the repo's own.
+const LINKED_PACKAGES = ['@angular/cdk'];
+
+/** The classes the compositions of test-lib bring in, with or without a showcase of their own. */
+const COMPOSITION_CLASSES = ['FormFieldComponent', 'InputDirective', 'IconComponent', 'RadioGroupComponent', 'RadioComponent'];
+
 function createTempWorkspace(): string {
     const tmp = mkdtempSync(join(tmpdir(), 'ng-prism-integration-'));
 
@@ -20,6 +27,11 @@ function createTempWorkspace(): string {
         recursive: true,
         filter: (src) => !EXCLUDED_ENTRIES.has(relative(TEST_WORKSPACE_DIR, src))
     });
+
+    for (const name of LINKED_PACKAGES) {
+        mkdirSync(join(tmp, 'node_modules', dirname(name)), { recursive: true });
+        symlinkSync(dirname(require.resolve(`${name}/package.json`)), join(tmp, 'node_modules', name), 'dir');
+    }
 
     mkdirSync(join(tmp, 'projects', 'test-lib-prism', 'src'), {
         recursive: true
@@ -100,7 +112,7 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(15);
+        expect(result.componentCount).toBe(18);
     });
 
     it('should write prism-manifest.ts into prism project', async () => {
@@ -167,10 +179,31 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(15);
+        expect(result.componentCount).toBe(18);
         expect(ctx.reportStatus).toHaveBeenCalledWith('Loading ng-prism config...');
         expect(ctx.reportStatus).toHaveBeenCalledWith('Running plugin hooks...');
-        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 15 component(s)'));
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 18 component(s)'));
+    });
+
+    it('should compile the compositions of the form field, input and radio group showcases', async () => {
+        tmp = createTempWorkspace();
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            await runPrismPipeline(pipelineOptions, createMockContext(tmp), createPipelineState());
+
+            const content = readFileSync(join(tmp, 'ng-prism-cache', 'test-lib-prism', 'prism-manifest.ts'), 'utf-8');
+            const warnings = warn.mock.calls.map(([message]) => String(message)).filter((message) => message.startsWith('⚠ ng-prism:'));
+
+            expect(content).toContain('class FormFieldComponent__PrismComposition {');
+            expect(content).toContain('class InputDirective__PrismComposition {');
+            expect(content).toContain('class RadioGroupComponent__PrismComposition {');
+            expect(content).toContain("import { CdkTextareaAutosize } from '@angular/cdk/text-field';");
+            expect(content).toMatch(/imports: \[FormFieldComponent, [^\]]*\bIconComponent\b[^\]]*\]/);
+            expect(warnings.filter((message) => COMPOSITION_CLASSES.some((name) => message.includes(name)))).toEqual([]);
+        } finally {
+            warn.mockRestore();
+        }
     });
 
     it('end-to-end: core ng-add then plugin ng-add wires config + deps', async () => {
