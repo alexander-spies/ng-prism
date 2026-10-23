@@ -28,10 +28,10 @@
                             <span class="ctl-type">{{ input.rawType ?? input.type }}</span>
                         </div>
                         <div class="ctl-input">
-                            @if (isNonEditable(input)) {
+                            @if (notEditableReason(input, comp); as reason) {
                                 <span
                                     class="ctl-not-editable"
-                                    title="This input type can't be edited from the controls panel"
+                                    [title]="reason"
                                     >Not editable</span
                                 >
                             } @else {

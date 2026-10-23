@@ -35,6 +35,10 @@ export class FactoryService {}
 @Injectable({ providedIn: 'root' })
 export class SpreadFieldService {}
 
+@Showcase({ title: 'Imports', imports: [{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }] })
+@Injectable({ providedIn: 'root' })
+export class ImportsService {}
+
 @Showcase({ title: 'Field by constant', variants: SHARED.variants, bg: 'dark' })
 @Injectable({ providedIn: 'root' })
 export class LiteralFieldsService {}

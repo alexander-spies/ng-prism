@@ -11,7 +11,7 @@ import { PrismPluginService } from '../../services/prism-plugin.service.js';
 import { PrismRendererService } from '../../services/prism-renderer.service.js';
 import { PrismButtonComponent } from '../../shared/prism-button.component.js';
 import { PrismPanelToolbarComponent } from '../../shared/prism-panel-toolbar.component.js';
-import { isNonEditableInputType } from './non-editable-input-types.js';
+import { nonEditableReason } from './non-editable-input-types.js';
 
 @Component({
     selector: 'prism-controls-panel',
@@ -41,8 +41,9 @@ export class PrismControlsPanelComponent {
         return this.pluginService.controls().find((ctrl) => ctrl.matchType(input)) ?? null;
     }
 
-    protected isNonEditable(input: InputMeta): boolean {
-        return isNonEditableInputType(input);
+    /** Why `input` cannot be edited in the active variant, `null` when it can. */
+    protected notEditableReason(input: InputMeta, comp: RuntimeComponent): string | null {
+        return nonEditableReason(input, comp, this.rendererService.activeVariantIndex());
     }
 
     protected asBoolean(val: unknown): boolean {

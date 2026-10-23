@@ -59,6 +59,8 @@ async onComponentScanned(component) {
 
 `ScannedComponent.api` (since `22.7.0`) is the extracted API of the component or directive: the type of each input, the payload of each output, the change event of each `model()`, the documented methods and the types they reach. The scan only reads it when a plugin in the config sets [`componentApi`](#componentapi), `jsDocPlugin()` does. A hook then reads it as it does the rest, for example `component.api?.types`. Its shape is experimental, see [`ComponentApi`](api/types.md#componentapi). The runtime manifest carries it, so a panel reads it at `activeComponent()?.meta.api`. Without a plugin that asks for it, a component has none, and neither does one that a hook builds from scratch: the API page of the JSDoc plugin then shows its `inputs` and `outputs` without links.
 
+`ScannedComponent.composition` (since `22.7.0`) is what the scan read from the `template`, host template and `imports` fields, see [`ComponentComposition`](api/types.md#componentcomposition), experimental like `api`. It is read before the hooks run, so changing those fields in a hook does not change what renders; to show the markup of a variant, replace `COMPOSITION_SUBJECT_SLOT`, exported from `@ng-prism/core/plugin`, in each case's `template` with the attributes you want on the subject.
+
 ---
 
 ### `onServiceScanned`

@@ -147,6 +147,30 @@ void SetupUsage;
 class BadSetupUsage {}
 void BadSetupUsage;
 
+// (h) Compositions: a host template, a template and a host template per variant, and the imports they need.
+@Showcase<FixtureComponent>({
+    title: 'Composition',
+    host: { template: '<lib-frame><lib-fixture /></lib-frame>' },
+    imports: [{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }],
+    variants: [{ name: 'a', template: '<input libInput />', host: { template: '<lib-frame><lib-fixture /></lib-frame>' } }]
+})
+class CompositionUsage {}
+void CompositionUsage;
+
+@Showcase<FixtureComponent>({
+    title: 'Composition',
+    // @ts-expect-error: an import names the class and its module, both as strings
+    imports: [{ name: 'CdkTextareaAutosize' }],
+    variants: [
+        // @ts-expect-error: a variant host is a { template }, not a host string
+        { name: 'b', host: '<lib-frame>' },
+        // @ts-expect-error: a variant template is a string
+        { name: 'c', template: 42 }
+    ]
+})
+class BadCompositionUsage {}
+void BadCompositionUsage;
+
 describe('@Showcase<T> typed variant inputs', () => {
     it('loads without runtime errors (all checks are compile-time)', () => {
         expect(true).toBe(true);

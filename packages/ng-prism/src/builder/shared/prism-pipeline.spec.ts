@@ -116,7 +116,7 @@ describe('runPrismPipeline integration', () => {
         const content = readFileSync(join(tmp, 'ng-prism-cache', 'my-lib-prism', 'prism-manifest.ts'), 'utf-8');
 
         expect(content).toContain(
-            "import { ButtonComponent, CardComponent, SignalButtonComponent, ModelInputComponent, HighlightDirective, InvalidBgComponent, InvalidStatusComponent, DeprecatedBgComponent, SectionedComponent } from 'my-lib'"
+            'import { ButtonComponent, CardComponent, SignalButtonComponent, ModelInputComponent, HighlightDirective, InvalidBgComponent, InvalidStatusComponent, DeprecatedBgComponent, SectionedComponent } from "my-lib"'
         );
     });
 
@@ -296,9 +296,9 @@ describe('runPrismPipeline multi-entry-point integration', () => {
 
         const content = readFileSync(join(tmp, 'ng-prism-cache', 'my-lib-prism', 'prism-manifest.ts'), 'utf-8');
 
-        expect(content).toContain("from 'multi-entry-lib/atoms/icon'");
-        expect(content).toContain("from 'multi-entry-lib/atoms/pill'");
-        expect(content).not.toContain("from 'multi-entry-lib';");
+        expect(content).toContain('from "multi-entry-lib/atoms/icon"');
+        expect(content).toContain('from "multi-entry-lib/atoms/pill"');
+        expect(content).not.toContain('from "multi-entry-lib";');
     });
 
     it('should include component type references', async () => {
@@ -323,9 +323,9 @@ describe('runPrismPipeline multi-entry-point integration', () => {
 
         const content = readFileSync(join(tmp, 'ng-prism-cache', 'my-lib-prism', 'prism-manifest.ts'), 'utf-8');
 
-        expect(content).toContain("from 'multi-entry-lib/atoms/icon'");
-        expect(content).toContain("from 'multi-entry-lib/atoms/pill'");
-        expect(content).not.toContain("from 'multi-entry-lib';");
+        expect(content).toContain('from "multi-entry-lib/atoms/icon"');
+        expect(content).toContain('from "multi-entry-lib/atoms/pill"');
+        expect(content).not.toContain('from "multi-entry-lib";');
     });
 });
 
@@ -387,7 +387,7 @@ describe('runPrismPipeline entry point resolution', () => {
         const result = await runPrismPipeline({ ...options, libraryImportPath: 'multi-entry-lib', entryPoint: 'lib' }, createMockContext(tmp), createPipelineState());
 
         expect(result.componentCount).toBe(3);
-        expect(readManifest(tmp)).toContain("from 'multi-entry-lib';");
+        expect(readManifest(tmp)).toContain('from "multi-entry-lib";');
         expect(readManifest(tmp)).toContain('type: BadgeComponent,');
     });
 
@@ -398,8 +398,8 @@ describe('runPrismPipeline entry point resolution', () => {
         const result = await runPrismPipeline({ ...options, libraryImportPath: 'multi-entry-lib', entryPoint: 'lib' }, createMockContext(tmp), createPipelineState());
 
         expect(result.componentCount).toBe(2);
-        expect(readManifest(tmp)).toContain("from 'multi-entry-lib/atoms/pill'");
-        expect(readManifest(tmp)).not.toContain("from 'multi-entry-lib';");
+        expect(readManifest(tmp)).toContain('from "multi-entry-lib/atoms/pill"');
+        expect(readManifest(tmp)).not.toContain('from "multi-entry-lib";');
         expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('multiple entry points'));
     });
 
@@ -625,7 +625,7 @@ describe('runPrismPipeline services', () => {
         expect(content).toContain('fromPlugin: "service-hook"');
         expect(content).toContain('importPath: "my-lib"');
         expect(content).toContain('name: "provideToast"');
-        expect(content).toContain("import { BadgeComponent } from 'my-lib';");
+        expect(content).toContain('import { BadgeComponent } from "my-lib";');
         expect(content).not.toMatch(/import \{[^}]*ToastService/);
     });
 
@@ -851,7 +851,7 @@ describe('runPrismPipeline pipes', () => {
         expect(content).toContain('fromPlugin: "pipe-hook"');
         expect(content).toContain('importPath: "my-lib"');
         expect(content).toContain('name: "provideTimeAgo"');
-        expect(content).toContain("import { BadgeComponent } from 'my-lib';");
+        expect(content).toContain('import { BadgeComponent } from "my-lib";');
         expect(content).not.toMatch(/import \{[^}]*TimeAgoPipe/);
     });
 

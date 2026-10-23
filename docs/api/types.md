@@ -29,8 +29,11 @@ A single entry in the runtime manifest, combining scan metadata with the actual 
 interface RuntimeComponent {
     meta: ScannedComponent;
     type: Type<unknown>;
+    composition?: Type<unknown>;
 }
 ```
+
+`composition` (since `22.7.0`) is the generated wrapper that renders the [compositions](#componentcomposition) of the showcase. The renderer sets its `__prismVariant__` input to the index of the variant and binds the inputs of the subject through the member names of the wrapper. It is only there when `meta.composition` is. When every variant is composed, `type` is the wrapper too. A variant without a composition renders `type` as before.
 
 ---
 
@@ -53,6 +56,7 @@ interface ScannedComponent {
     importPath?: string;
     baseClasses?: { className: string; filePath: string }[];
     api?: ComponentApi;
+    composition?: ComponentComposition;
     meta?: Record<string, unknown>;
 }
 ```
@@ -70,11 +74,14 @@ interface ScannedComponent {
 | `importPath`                | Import path of the entry point that exports the component (e.g. `'my-lib'` or `'my-lib/atoms'`). The scanner sets it for every entry point it scans, the primary one included                                                                                                    |
 | `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest                                                                                                                                                                              |
 | `api`                       | What the API page needs beyond `inputs` and `outputs`, see [`ComponentApi`](#componentapi) (since `22.7.0`). Only read when a plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi), missing otherwise and when a plugin hook builds the component. **Experimental** |
+| `composition`               | What the variants render when they have a `template` or a host template, see [`ComponentComposition`](#componentcomposition) (since `22.7.0`). Missing when no variant is composed and when a plugin hook builds the component. **Experimental**                                 |
 | `meta`                      | Plugin-injected metadata                                                                                                                                                                                                                                                         |
 
-The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them.
+The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them. `composition` is carried too, with its `imports` and without the `origin` of each case, which only the generated code uses.
 
-`className`, `filePath`, `showcaseConfig`, `inputs`, `outputs`, `componentMeta`, `importPath` and `meta` follow semver as they are. The shape of `api` does not, see below.
+The scan reads `composition` before the plugin hooks run. A hook that changes `showcaseConfig.variants[].template`, a host template or `imports` afterwards does not change what renders.
+
+`className`, `filePath`, `showcaseConfig`, `inputs`, `outputs`, `componentMeta`, `importPath` and `meta` follow semver as they are. The shape of `api` does not, see below, and neither does the shape of `composition`, see [`ComponentComposition`](#componentcomposition).
 
 ---
 
@@ -330,21 +337,25 @@ interface InputMeta {
     rawType?: string;
     values?: string[];
     defaultValue?: unknown;
+    defaultUnreadable?: true;
     required: boolean;
     doc?: string;
 }
 ```
 
-| Field          | Description                                                                                                |
-| -------------- | ---------------------------------------------------------------------------------------------------------- |
-| `name`         | Property name; variants and controls use it                                                                |
-| `alias`        | Public name from `alias` (or `@Input('x')`), when it differs from `name`                                   |
-| `type`         | Normalized type category used to select a control                                                          |
-| `rawType`      | Raw TypeScript type string (e.g. `'primary' \| 'danger'`)                                                  |
-| `values`       | For union types: the individual member values                                                              |
-| `defaultValue` | Value from `input(defaultValue)`                                                                           |
-| `required`     | `true` if declared with `input.required<T>()`                                                              |
-| `doc`          | JSDoc comment from the property, as written: `{@link X \| text}` keeps its bar (since `22.7.0`, see below) |
+| Field               | Description                                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`              | Property name; variants and controls use it                                                                                                                                                                                    |
+| `alias`             | Public name from `alias` (or `@Input('x')`), when it differs from `name`                                                                                                                                                       |
+| `type`              | Normalized type category used to select a control                                                                                                                                                                              |
+| `rawType`           | Raw TypeScript type string (e.g. `'primary' \| 'danger'`)                                                                                                                                                                      |
+| `values`            | For union types: the individual member values                                                                                                                                                                                  |
+| `defaultValue`      | Value from `input(defaultValue)`                                                                                                                                                                                               |
+| `defaultUnreadable` | `true` when the input starts out with a value the scan could not evaluate, such as the result of a function call (since `22.7.0`). `defaultValue` is missing then. Not set for `input<string>()`, which starts out `undefined` |
+| `required`          | `true` if declared with `input.required<T>()`                                                                                                                                                                                  |
+| `doc`               | JSDoc comment from the property, as written: `{@link X \| text}` keeps its bar (since `22.7.0`, see below)                                                                                                                     |
+
+`defaultUnreadable` is what tells a composition to leave an input alone. The wrapper of a [composed variant](#componentcomposition) does not bind an input with an unreadable default unless the variant sets it, because binding `undefined` would replace the default the subject has. In a variant that does not set it, its control reads `Not editable` with the reason "Its default is unknown to ng-prism".
 
 `doc` of an input and of an output is the JSDoc comment of the property with its Markdown and `{@link}` tags as written. The bar of `{@link X | text}` stays since `22.7.0`, so a reader can tell the target from the text. Before, a link whose target TypeScript resolves to a symbol came out as `{@link Xtext}`.
 
@@ -460,6 +471,8 @@ interface Variant<T = unknown> {
     name: string;
     inputs?: Partial<InputsOf<T>>;
     content?: string | Record<string, string>;
+    template?: string;
+    host?: HostTemplate;
     description?: string;
     meta?: Record<string, unknown>;
     bg?: CanvasBg;
@@ -476,6 +489,8 @@ The optional type parameter `T` is the component class. When provided (via `@Sho
 | `name`         | Tab label                                                                                                                                                                                                                                                                    |
 | `inputs`       | Key-value map of input signal names to values. Typed via [`InputsOf<T>`](#inputsof) when a component generic is supplied to `@Showcase`.                                                                                                                                     |
 | `content`      | Content projected into `<ng-content>`: string for single slot, record for named slots                                                                                                                                                                                        |
+| `template`     | An Angular template, compiled as the content of the subject (since `22.7.0`). Wins over `content`. See [Compiled Content](guide/content-projection.md#compiled-content-template)                                                                                             |
+| `host`         | A [`HostTemplate`](#hosttemplate) the subject renders in for this variant (since `22.7.0`). Overrides `ShowcaseConfig.host`. See [Host Template](guide/directive-hosting.md#host-template)                                                                                   |
 | `description`  | Optional description rendered below the variant tab                                                                                                                                                                                                                          |
 | `meta`         | Arbitrary plugin metadata (e.g. `{ figma: 'url' }`)                                                                                                                                                                                                                          |
 | `bg`           | Recommended canvas background. Overrides `ShowcaseConfig.bg`. One of `dots`, `plain`, `light`, `dark`, `checker`, `transparent`. See [Per-Variant Background](guide/variants.md#per-variant-background).                                                                     |
@@ -563,7 +578,79 @@ interface DirectiveHost {
 }
 ```
 
-Used in `ShowcaseConfig.host` for directive showcases that require an Angular component as the host element. See [Directive Hosting](guide/directive-hosting.md).
+Used in `ShowcaseConfig.host` for directive showcases that require an Angular component as the host element. Exported from `@ng-prism/core` since `22.7.0`. See [Directive Hosting](guide/directive-hosting.md).
+
+---
+
+## HostTemplate
+
+```typescript
+interface HostTemplate {
+    template: string;
+}
+```
+
+The markup the showcased component or directive renders in, compiled as an Angular template (since `22.7.0`). The element that the selector of the subject matches is the subject, and `prism-subject` marks it when several match. Used in `ShowcaseConfig.host` and `Variant.host`; `ShowcaseConfig.host` is `string | DirectiveHost | HostTemplate`. See [Host Template](guide/directive-hosting.md#host-template).
+
+---
+
+## ShowcaseImport
+
+```typescript
+interface ShowcaseImport {
+    name: string;
+    from: string;
+}
+```
+
+A class that the templates of a showcase use and ng-prism cannot find in the library on its own, an entry of `ShowcaseConfig.imports` (since `22.7.0`). `name` is the exported name (`'CdkTextareaAutosize'`) and `from` the module specifier (`'@angular/cdk/text-field'`). Strings, not a class reference, so that `ng-prism-strip` leaves no import behind. See [`imports`](api/showcase-config.md#imports).
+
+`HostTemplate` and `ShowcaseImport` are exported from `@ng-prism/core`.
+
+---
+
+## ComponentComposition
+
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `ComponentComposition`, which is `ScannedComponent.composition`, `CompositionCase` and the four constants below.
+
+What the variants of a showcase render when they have a `template` or a host template (since `22.7.0`): the distinct compositions, and which one each variant uses. It is `ScannedComponent.composition`, and the runtime manifest carries it next to the generated wrapper in [`RuntimeComponent.composition`](#runtimecomponent).
+
+```typescript
+interface ComponentComposition {
+    variantCases: number[];
+    cases: CompositionCase[];
+    imports?: ShowcaseImport[];
+}
+
+interface CompositionCase {
+    template: string;
+    unbound: { name: string; reason: 'template' | 'default' }[];
+    origin?: string;
+}
+```
+
+| Field          | Description                                                                                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `variantCases` | One entry per variant, or one for a showcase without variants, which renders as one implicit variant. Each is the index into `cases`, or `-1` for a variant without a composition, which renders as it did before                                                                    |
+| `cases`        | One entry per distinct composition. Variants with the same markup and the same unbound inputs share one                                                                                                                                                                              |
+| `imports`      | Every class the generated wrapper imports besides the subject: the library classes the templates use, the showcase's `imports` and the class of a directive's object host. Set by the scan and carried in the runtime manifest, so that a usage example in the browser can name them |
+
+| `CompositionCase` field | Description                                                                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `template`              | The markup as written, the subject element included, with `COMPOSITION_SUBJECT_SLOT` at the end of the start tag of the subject. The code snippet replaces the slot with the current attributes, the generated wrapper with the bindings                |
+| `unbound`               | The inputs of the subject that the wrapper does not bind in this case, by member name. `'template'`: the template sets the input itself. `'default'`: its default could not be read and the variant does not set it. Controls show them as not editable |
+| `origin`                | Where the case comes from, as the variants and `file:line`. Set at build time for the comments and errors of the generated code, not in the runtime manifest                                                                                            |
+
+A plugin that shows the markup of a variant, such as a snippet or a usage example, replaces the slot with the attributes of its choice. Four constants name what ng-prism puts into a composition and takes out of it, exported from `@ng-prism/core/plugin`:
+
+| Constant                   | Value                  | Meaning                                                                                           |
+| -------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `COMPOSITION_SUBJECT_SLOT` | `'\uE000'`             | Where the subject element takes its attributes and bindings in `CompositionCase.template`         |
+| `COMPOSITION_SUBJECT_ATTR` | `'data-prism-subject'` | Attribute the generated wrapper puts on the subject element, which is how the styleguide finds it |
+| `SUBJECT_MARKER_ATTR`      | `'prism-subject'`      | Attribute an author puts on the one of several matching elements that is the subject              |
+| `PRISM_VARIANT_INPUT`      | `'__prismVariant__'`   | The input of the wrapper that selects the case of a variant                                       |
+
+The `unbound` list is what the Controls panel and the snippet read: an input in it is neither bound nor written. See [Compiled Content](guide/content-projection.md#compiled-content-template) for how a composition is written and what the canvas shows.
 
 ---
 
@@ -634,9 +721,11 @@ type ForcedPseudoStates = Partial<Record<PseudoState, PseudoTarget>>;
 
 | Target              | Forces the state on                                                                   |
 | ------------------- | ------------------------------------------------------------------------------------- |
-| `true`              | Every element of the rendered component, the host included                            |
+| `true`              | Every element of what is rendered, the host included                                  |
 | `string`            | The elements matching the selector, matched against the host and everything inside it |
 | `readonly string[]` | The elements matching any of the selectors                                            |
+
+What is rendered is the whole [composition](#componentcomposition) for a variant with a `template` or a host template, so a selector reaches the frame and the other parts too, and `true` means every element of them.
 
 ```typescript
 { 'focus-visible': '.btn' }                          // the inner <button> of the host

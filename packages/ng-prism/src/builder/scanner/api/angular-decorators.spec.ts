@@ -134,6 +134,10 @@ describe('angular-decorators edge cases', () => {
         expect(classify('UnreadableFieldService')).toEqual({ kind: 'legacy-component', fields: ['bg'], source: 'injectable' });
     });
 
+    it('counts imports as a component-only field', () => {
+        expect(classify('ImportsService')).toEqual({ kind: 'legacy-component', fields: ['imports'], source: 'injectable' });
+    });
+
     it('classifies a service whose @Showcase has no component-only field, with or without a literal', () => {
         expect(classify('BareShowcaseService')).toMatchObject({ kind: 'service' });
         expect(classify('ConstantProvidedService')).toMatchObject({ kind: 'service' });

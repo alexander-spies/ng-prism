@@ -5,6 +5,19 @@ export interface ParsedHost {
 }
 
 export function parseHostString(host: string): ParsedHost | null {
+    const parsed = matchHostString(host);
+
+    if (!parsed && host.trim().length > 0) {
+        console.warn(
+            `[ng-prism] @Showcase host="${host}" could not be parsed and will fall back to <div>. ` +
+                `Supported forms: "<tag>", "<tag attrs>", "<tag />", or "<tag>text</tag>".`
+        );
+    }
+    return parsed;
+}
+
+/** {@link parseHostString} without its warning, for a caller that reports a host it cannot parse itself. */
+export function matchHostString(host: string): ParsedHost | null {
     const trimmed = host.trim();
 
     const open = trimmed.match(/^<\s*([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^>]*?)?)\s*\/?\s*>$/);
@@ -23,11 +36,5 @@ export function parseHostString(host: string): ParsedHost | null {
         };
     }
 
-    if (trimmed.length > 0) {
-        console.warn(
-            `[ng-prism] @Showcase host="${host}" could not be parsed and will fall back to <div>. ` +
-                `Supported forms: "<tag>", "<tag attrs>", "<tag />", or "<tag>text</tag>".`
-        );
-    }
     return null;
 }
