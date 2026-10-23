@@ -14,7 +14,8 @@
         "prereqs": "node scripts/prereqs.ts",
         "record": "node record/record.ts",
         "render": "node scripts/render.ts",
-        "export": "node scripts/export.ts"
+        "export": "node scripts/export.ts",
+        "video": "node scripts/video.ts"
     },
     "dependencies": {
         "@codemirror/language": "^6.13.1",
