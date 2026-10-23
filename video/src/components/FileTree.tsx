@@ -1,5 +1,5 @@
 import { Layout, Rect, Txt, type LayoutProps } from '@revideo/2d';
-import { all, easeInOutCubic, type ThreadGenerator } from '@revideo/core';
+import { all, easeInOutCubic, type ThreadGenerator, type Vector2 } from '@revideo/core';
 import { FONT_MONO, STATUS, TEXT } from '../brand.ts';
 
 export interface FileTreeProps extends LayoutProps {
@@ -37,6 +37,11 @@ export class FileTree extends Layout {
         const row = this.rows.get(name);
         if (!row) throw new Error(`FileTree has no entry "${name}"`);
         return row;
+    }
+
+    /** Where the entry's row sits inside the tree, for a camera move onto it. */
+    public entryPosition(name: string): Vector2 {
+        return this.entry(name).row.position();
     }
 
     public *highlight(name: string, color: string, seconds = 0.4): ThreadGenerator {

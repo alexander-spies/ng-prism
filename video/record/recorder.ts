@@ -27,15 +27,11 @@ export async function recordShot(shot: Shot, baseUrl: string, outDir: string): P
         const page = await context.newPage();
         await page.goto(`${baseUrl}/?${shot.query}`);
         await page.waitForSelector(shot.ready);
+        // The text caret blinks in wall time, not with the slowed animations: stretched to real time it would flicker
+        // ten times too fast. A caret that stays on reads as typing, as in an editor.
+        await page.addStyleTag({ content: '* { caret-animation: manual !important; }' });
         await page.evaluate('document.fonts.ready');
         await page.waitForTimeout(500);
-
-        if (shot.kind === 'still') {
-            await shot.run(stillContext(page));
-            const file = `${shot.id}.png`;
-            await page.screenshot({ path: join(outDir, file) });
-            return { id: shot.id, file, durationSec: 0, width: VIEWPORT.width * SCALE, height: VIEWPORT.height * SCALE, fps: 0, focus: [], clicks: [] };
-        }
 
         const cdp = await context.newCDPSession(page);
         await cdp.send('Animation.enable');
@@ -163,17 +159,5 @@ function unionBox(boxes: Array<Box | null>): Box | null {
         y,
         width: Math.max(...visible.map((box) => box.x + box.width)) - x,
         height: Math.max(...visible.map((box) => box.y + box.height)) - y
-    };
-}
-
-/** For a still, waits run in real time and there is nothing to record. */
-function stillContext(page: ShotContext['page']): ShotContext {
-    return {
-        page,
-        mark: async () => {},
-        pause: (ms) => page.waitForTimeout(ms),
-        move: async (x, y) => page.mouse.move(x, y),
-        click: async (target) => target.click(),
-        type: (text) => page.keyboard.type(text)
     };
 }

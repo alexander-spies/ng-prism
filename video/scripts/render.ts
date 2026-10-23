@@ -5,7 +5,8 @@ import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { REPO_ROOT, type RecordingInfo, type RecordingsManifest } from '../src/lib/recordings.ts';
+import { assertFresh, hashSources, REPO_ROOT, SOURCE_PATHS, type RecordingInfo, type RecordingsManifest } from '../src/lib/recordings.ts';
+import { codeExcerpt, stripShowcase } from '../src/lib/source.ts';
 
 export type Cut = 'sandbox' | 'tour' | 'readme-loop' | 'release';
 export interface CutOptions {
@@ -41,11 +42,30 @@ function byId(manifest: RecordingsManifest): Record<string, RecordingInfo> {
     return Object.fromEntries(manifest.shots.map((shot) => [shot.id, shot]));
 }
 
+const BUTTON_SOURCE = join(REPO_ROOT, 'test-workspace/projects/video-lib/src/lib/button/button.component.ts');
+const TOUR_SHOTS = ['reveal', 'controls', 'quality', 'states'] as const;
+
+/** The recordings, refused when they were made from other sources than the ones on disk now (No-Go 1). */
+async function freshRecordings(requiredIds: readonly string[]): Promise<Record<string, RecordingInfo>> {
+    const manifest = readManifest();
+    assertFresh(manifest, await hashSources(SOURCE_PATHS), requiredIds);
+    return byId(manifest);
+}
+
+/** The button before and after its @Showcase, as the code card shows it, and how many lines the decorator has. */
+function buttonCode(): { codeBefore: string; codeAfter: string; showcaseLines: number } {
+    const source = readFileSync(BUTTON_SOURCE, 'utf8');
+    const codeAfter = codeExcerpt(source);
+    return { codeBefore: codeExcerpt(stripShowcase(source)), codeAfter, showcaseLines: codeAfter.split('\n').findIndex((line) => line.startsWith('@Component')) };
+}
+
 /** Everything a cut's scenes read from `useScene().variables`. They replace the project defaults, so it is complete. */
 export async function variablesFor(cut: Cut, _options: CutOptions = {}): Promise<Record<string, unknown>> {
     switch (cut) {
         case 'sandbox':
             return { recordings: byId(readManifest()) };
+        case 'tour':
+            return { ...buttonCode(), recordings: await freshRecordings(TOUR_SHOTS) };
         default:
             throw new Error(`No variables for the cut "${cut}" yet`);
     }

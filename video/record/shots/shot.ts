@@ -25,7 +25,5 @@ export interface Shot {
     query: string;
     /** Selector that must be present before recording starts. */
     ready: string;
-    /** `still` takes one 2× screenshot after `run` instead of a video. */
-    kind?: 'video' | 'still';
     run(ctx: ShotContext): Promise<void>;
 }

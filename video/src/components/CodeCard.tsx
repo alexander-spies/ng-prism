@@ -1,7 +1,7 @@
 import { Code, lines, Rect, Txt, type RectProps } from '@revideo/2d';
 import { DEFAULT, waitFor, type ThreadGenerator } from '@revideo/core';
 import { BORDER, FONT_MONO, TEXT, VOID } from '../brand.ts';
-import { typingSteps } from '../lib/typing.ts';
+import { highlightAsFinished, typingSteps } from '../lib/typing.ts';
 import { tsHighlighter } from './highlighter.ts';
 
 export interface CodeCardProps extends RectProps {
@@ -35,6 +35,7 @@ export class CodeCard extends Rect {
     /** Types the block that `after` adds to the current code, token by token, in `seconds`. */
     public *typeTo(after: string, seconds: number): ThreadGenerator {
         const steps = typingSteps(this.code.parsed(), after);
+        this.code.highlighter(highlightAsFinished(tsHighlighter, after));
         for (const step of steps) {
             this.code.code(step);
             yield* waitFor(seconds / steps.length);

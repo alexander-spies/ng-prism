@@ -16,8 +16,8 @@ import { Showcase } from '@ng-prism/core';
 })
 @Component({
     selector: 'ui-button',
-    styleUrl: './button.component.css',
-    template: `<button class="btn" [class.btn--ghost]="variant() === 'ghost'" (click)="clicked.emit()">{{ label() }}</button>`
+    templateUrl: './button.component.html',
+    styleUrl: './button.component.css'
 })
 export class ButtonComponent {
     readonly label = input('Button');

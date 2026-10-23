@@ -2,8 +2,8 @@ import { activePanel, canvas, panelTab, stateChip, stateMenuButton } from './loc
 import type { Shot } from './shot.ts';
 
 /**
- * Tour beat "Every state. Every pixel." (0:32–0:38): the declared states one after the other, then the box model, which
- * draws its overlay for the element under the pointer. ~6.7 s.
+ * Tour beat "Every state. Every pixel.": the declared states one after the other, then the box model, which draws its
+ * overlay for the element under the pointer. ~12 s.
  */
 export const states: Shot = {
     id: 'states',
@@ -11,20 +11,21 @@ export const states: Shot = {
     ready: '.demo-wrap[data-prism-rendered="ButtonComponent:0"]',
     async run({ page, mark, pause, click, move }) {
         await mark('canvas', canvas(page));
-        await click(stateMenuButton(page), 500);
-        await pause(250);
+        await pause(1400);
+        await click(stateMenuButton(page), 800);
+        await pause(400);
         await mark('state-chips', page.locator('#prism-tools button.is-rec'));
         for (const name of ['Hover', 'Focus visible', 'Pressed']) {
-            await click(stateChip(page, name), 350);
-            await pause(800);
+            await click(stateChip(page, name), 600);
+            await pause(1100);
         }
         await page.keyboard.press('Escape');
-        await pause(150);
-        await click(panelTab(page, 'Box Model'), 500);
-        await pause(150);
+        await pause(400);
+        await click(panelTab(page, 'Box Model'), 900);
+        await pause(300);
         const button = await page.locator('ui-button button').boundingBox();
-        if (button) await move(button.x + button.width * 0.6, button.y + button.height * 0.55, 550);
+        if (button) await move(button.x + button.width * 0.6, button.y + button.height * 0.55, 800);
         await mark('box-model-panel', activePanel(page));
-        await pause(800);
+        await pause(1800);
     }
 };

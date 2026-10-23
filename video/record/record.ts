@@ -22,8 +22,10 @@ const sourceHash = await hashSources(SOURCE_PATHS);
 const server = await serveStatic(STYLEGUIDE_DIST, STYLEGUIDE_PORT);
 try {
     const previous: RecordingsManifest | null = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : null;
-    // Recordings from other sources are worth nothing next to new ones: start over instead of mixing them.
-    const kept = previous?.sourceHash === sourceHash ? previous.shots.filter((shot) => !shots.some((s) => s.id === shot.id)) : [];
+    // Recordings from other sources are worth nothing next to new ones: start over instead of mixing them. A shot that
+    // is no longer registered drops out.
+    const isKept = (id: string) => SHOTS.some((s) => s.id === id) && !shots.some((s) => s.id === id);
+    const kept = previous?.sourceHash === sourceHash ? previous.shots.filter((shot) => isKept(shot.id)) : [];
     const recorded = [];
     for (const shot of shots) {
         console.log(`Recording ${shot.id} …`);

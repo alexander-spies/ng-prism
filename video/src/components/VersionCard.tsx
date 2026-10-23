@@ -14,7 +14,8 @@ const SIZE = 120;
 export class VersionCard extends Layout {
     public constructor({ version, ...props }: VersionCardProps) {
         super({ layout: true, direction: 'row', alignItems: 'center', gap: SIZE * 0.3, opacity: 0, ...props });
-        this.add(<Lockup size={SIZE} />);
+        // The logo's wordmark at about the size of the version next to it.
+        this.add(<Lockup height={SIZE * 1.6} />);
         this.add(<Txt text={version} fontFamily={FONT_SANS} fontWeight={800} fontSize={SIZE} letterSpacing={-SIZE * 0.045} fill={TEXT.primary} />);
     }
 

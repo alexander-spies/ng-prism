@@ -21,7 +21,7 @@ export default makeScene2D('sandbox', function* (view) {
     const recordings = useScene().variables.get<Record<string, RecordingInfo>>('recordings', {})();
     view.add(<BrandBackground />);
 
-    const lockup = <Lockup size={110} />;
+    const lockup = <Lockup height={180} />;
     view.add(lockup);
     yield* waitFor(1.5);
     lockup.remove();
@@ -73,7 +73,7 @@ export default makeScene2D('sandbox', function* (view) {
     yield* waitFor(1);
     version.remove();
 
-    const end = new EndCard({ still: '/recordings/endcard.png', command: 'ng add @ng-prism/core' });
+    const end = new EndCard({ command: 'ng add @ng-prism/core' });
     view.add(end);
     yield* all(end.show(), waitFor(2));
 });

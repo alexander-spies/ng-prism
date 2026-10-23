@@ -1,0 +1,90 @@
+import { Code, makeScene2D } from '@revideo/2d';
+import { all, easeInOutCubic, useScene, waitFor } from '@revideo/core';
+import { BrandBackground } from '../../components/BrandBackground.tsx';
+import { CodeCard } from '../../components/CodeCard.tsx';
+import { EndCard } from '../../components/EndCard.tsx';
+import { ensureFonts } from '../../components/fonts.ts';
+import { tsHighlighter } from '../../components/highlighter.ts';
+import { clickAt, markAt, type RecordingInfo } from '../../lib/recording-info.ts';
+import { codeSegment, treeSegment } from './act1.tsx';
+import { recordingBeat } from './beat.tsx';
+
+Code.defaultHighlighter = tsHighlighter;
+
+/** How long the end card stays. */
+const END_HOLD = 5;
+
+/**
+ * The social cut, storyboard A "Der Vergleich", about 65 s. Act 1 runs on fixed times; the recorded beats follow one
+ * another, and their cameras follow the clicks and marks of the recordings, so a new recording keeps them in step.
+ */
+export default makeScene2D('tour', function* (view) {
+    yield* ensureFonts();
+    const variables = useScene().variables;
+    const codeBefore = variables.get('codeBefore', '')();
+    const codeAfter = variables.get('codeAfter', '')();
+    const showcaseLines = variables.get('showcaseLines', 0)();
+    const recordings = variables.get<Record<string, RecordingInfo>>('recordings', {})();
+    view.add(<BrandBackground />);
+    yield view.toPromise();
+
+    // Act 1: the problem and the answer.
+    const card = new CodeCard({ code: codeBefore, file: 'button.component.ts', fontSize: 22, y: -40 });
+    yield* treeSegment(view, card);
+    yield* codeSegment(view, card, codeAfter, showcaseLines);
+    // The code gives way to the styleguide it produces.
+    const reveal = recordingBeat(view, card, {
+        info: recordings['reveal'],
+        caption: 'That’s the **styleguide.**',
+        camera: [
+            { at: 2.0, mark: 'sidebar-button', scale: 1.7, seconds: 1.3 },
+            { at: 5.6, mark: 'variant-tabs', scale: 1.9, seconds: 1.3 },
+            { at: 8.3, seconds: 1 }
+        ]
+    });
+    yield* all(card.scale(0.6, 0.6, easeInOutCubic), reveal.run());
+
+    // Act 2: what you get.
+    const controlsInfo = recordings['controls'];
+    const controls = recordingBeat(view, reveal.recording, {
+        info: controlsInfo,
+        caption: 'Change inputs. **See it live.**',
+        camera: [
+            { at: 0.4, mark: 'controls-panel', scale: 1.5, seconds: 1 },
+            // Once the variant switch has landed: the whole frame for the click and its event.
+            { at: clickAt(controlsInfo, 1) + 0.6, seconds: 1 }
+        ]
+    });
+    yield* controls.run();
+    const qualityInfo = recordings['quality'];
+    const quality = recordingBeat(view, controls.recording, {
+        info: qualityInfo,
+        caption: 'A11y, coverage, regressions: **at a glance.**',
+        camera: [
+            { at: clickAt(qualityInfo, 0) + 0.4, mark: 'a11y-panel', scale: 1.6, seconds: 1 },
+            { at: markAt(qualityInfo, 'sidebar-markers'), mark: 'sidebar-markers', scale: 1.9, seconds: 1.1 },
+            { at: qualityInfo.durationSec - 1.4, seconds: 0.9 }
+        ]
+    });
+    yield* quality.run();
+    const statesInfo = recordings['states'];
+    const states = recordingBeat(view, quality.recording, {
+        info: statesInfo,
+        caption: 'Every state. **Every pixel.**',
+        camera: [
+            { at: 0.3, mark: 'canvas', scale: 1.25, seconds: 1 },
+            // Back to the whole frame before the Box Model tab is clicked (the fifth click).
+            { at: clickAt(statesInfo, 4) - 1, seconds: 0.8 }
+        ]
+    });
+    yield* states.run();
+
+    // The end card: the logo and the command that installs it.
+    const end = new EndCard({ command: 'ng add @ng-prism/core' });
+    view.add(end);
+    // The logo is an image: let it load before the card fades in.
+    yield end.toPromise();
+    yield* all(states.recording.opacity(0, 0.5), end.show());
+    states.recording.remove();
+    yield* waitFor(END_HOLD);
+});
