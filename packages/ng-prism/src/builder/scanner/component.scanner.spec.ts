@@ -1200,7 +1200,7 @@ describe('scanComponents with composition fields', () => {
         const diagnostics: string[] = [];
         const notices = new Set<string>();
         const entries = [{ exports, importPath: 'fixture' }];
-        const composition = createCompositionContext(buildDeclarableIndex(entries, checker), compilerOptions, createReporters(diagnostics, notices).notify);
+        const composition = createCompositionContext(() => buildDeclarableIndex(entries, checker), compilerOptions, createReporters(diagnostics, notices));
         const gap = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices, composition }).find((c) => c.className === 'GapComponent')!;
 
         expect(gap.composition?.variantCases).toEqual([0]);

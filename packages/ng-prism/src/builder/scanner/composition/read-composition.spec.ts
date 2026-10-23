@@ -48,8 +48,7 @@ beforeAll(() => {
     const checker = program.getTypeChecker();
 
     for (const entry of entries) {
-        const { notify } = createReporters(diagnostics, notices);
-        const composition = createCompositionContext(buildDeclarableIndex([entry], checker), compilerOptions, notify);
+        const composition = createCompositionContext(() => buildDeclarableIndex([entry], checker), compilerOptions, createReporters(diagnostics, notices));
 
         scanned.set(
             path.relative(FIXTURES_DIR, entry.entryFile),

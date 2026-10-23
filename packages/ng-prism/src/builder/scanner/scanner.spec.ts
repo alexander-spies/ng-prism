@@ -2,9 +2,21 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import path, { join } from 'node:path';
 import ts from 'typescript';
+import { buildDeclarableIndex } from './composition/declarables.js';
 import { createScanner } from './scanner.js';
 
+// The real index with a seam: a test counts the calls or makes one throw.
+jest.mock('./composition/declarables.js', () => {
+    const actual = jest.requireActual('./composition/declarables.js');
+
+    return { ...actual, buildDeclarableIndex: jest.fn(actual.buildDeclarableIndex) };
+});
+
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
+
+afterEach(() => {
+    jest.mocked(buildDeclarableIndex).mockClear();
+});
 
 describe('createScanner', () => {
     const entryFile = path.join(FIXTURES_DIR, 'public-api.ts');
@@ -301,6 +313,39 @@ describe('createScanner', () => {
             expect(printed).toEqual([expect.stringContaining('OddComponent from "fixture-lib" has the selector "lib-odd:not(.a:not(.b))"')]);
             expect(result.components.find((c) => c.className === 'OddComponent')).not.toHaveProperty('composition');
             expect(result.diagnostics).toEqual([expect.stringMatching(/^OddComponent › host — @angular\/compiler failed on it/)]);
+        });
+
+        // A library without compositions pays nothing for them, on every re-scan of `serve`, and hears nothing about them.
+        it('reads no declarables and says nothing about them when no showcase composes', () => {
+            const scanner = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'uncomposed.showcase.ts'), importPath: 'fixture-lib' }] });
+
+            scanner.scan();
+            scanner.scan();
+
+            expect(buildDeclarableIndex).not.toHaveBeenCalled();
+            expect(warnSpy).not.toHaveBeenCalled();
+        });
+
+        it('reads the declarables once per scan, however many showcases compose', () => {
+            const scanner = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'throws.showcase.ts'), importPath: 'fixture-lib' }] });
+
+            scanner.scan();
+            expect(buildDeclarableIndex).toHaveBeenCalledTimes(1);
+            scanner.scan();
+            expect(buildDeclarableIndex).toHaveBeenCalledTimes(2);
+        });
+
+        it('turns a failure to read the declarables into one diagnostic, and reads no composition', () => {
+            jest.mocked(buildDeclarableIndex).mockImplementationOnce(() => {
+                throw new Error('boom');
+            });
+
+            const result = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'throws.showcase.ts'), importPath: 'fixture-lib' }] }).scan();
+
+            expect(result.diagnostics).toEqual([
+                "ng-prism could not read the library's components, directives and pipes (boom), so no variant renders a template or a host template."
+            ]);
+            expect(result.components.filter((c) => c.composition)).toEqual([]);
         });
     });
 

@@ -15,8 +15,11 @@ type Report = (message: string) => void;
 
 /** What the compositions of every showcase in one scan are read against. */
 export interface CompositionContext {
-    /** The components, directives and pipes the library's entry points export. */
-    declarables: readonly Declarable[];
+    /**
+     * The components, directives and pipes the library's entry points export, read when a showcase first asks for
+     * them; `undefined` when they could not be read.
+     */
+    declarables(): readonly Declarable[] | undefined;
     /** Look up the `imports` of a showcase written in `containingFile`. */
     resolveImports(imports: readonly ShowcaseImport[], containingFile: string): { resolved: Declarable[]; unresolved: ShowcaseImport[] };
 }
@@ -50,24 +53,52 @@ const IMPLICIT_VARIANT: Variant = { name: 'Default' };
 type ElementHost = (HostTemplate & { import?: ShowcaseImport }) | { problem: string };
 
 /**
- * The context of one scan: the library's declarables, without those whose selector Angular cannot parse, each named
- * once in a notice, so that one of them cannot fail every composition; and the lookup of a showcase's `imports` with
- * the scan's compiler options.
+ * The context of one scan: the library's declarables, and the lookup of a showcase's `imports` with the scan's
+ * compiler options.
+ *
+ * `readDeclarables` runs once, for the first showcase that composes, so that a library without compositions pays
+ * nothing for them on any scan. Its declarables come without those whose selector Angular cannot parse, each named
+ * once in a notice, so that one of them cannot fail every composition. When it throws, that is one diagnostic, and no
+ * showcase of the scan has a composition.
  */
-export function createCompositionContext(declarables: readonly Declarable[], compilerOptions: ts.CompilerOptions, notify: Report): CompositionContext {
-    return {
-        declarables: declarables.filter((declarable) => {
-            const problem = selectorProblem(declarable);
+export function createCompositionContext(
+    readDeclarables: () => readonly Declarable[],
+    compilerOptions: ts.CompilerOptions,
+    reporters: { report: Report; notify: Report }
+): CompositionContext {
+    let read: { declarables: readonly Declarable[] | undefined } | undefined;
 
-            if (problem) {
-                notify(
-                    `${declarable.name} from "${declarable.from}" has the selector "${declarable.selector}", which Angular cannot parse (${problem}); no composition imports it.`
-                );
-            }
-            return !problem;
-        }),
+    return {
+        declarables: () => {
+            read ??= { declarables: indexDeclarables(readDeclarables, reporters) };
+            return read.declarables;
+        },
         resolveImports: (imports, containingFile) => resolveShowcaseImports(imports, containingFile, compilerOptions)
     };
+}
+
+function indexDeclarables(readDeclarables: () => readonly Declarable[], { report, notify }: { report: Report; notify: Report }): readonly Declarable[] | undefined {
+    let declarables: readonly Declarable[];
+
+    try {
+        declarables = readDeclarables();
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+
+        report(`ng-prism could not read the library's components, directives and pipes (${reason}), so no variant renders a template or a host template.`);
+        return undefined;
+    }
+
+    return declarables.filter((declarable) => {
+        const problem = selectorProblem(declarable);
+
+        if (problem) {
+            notify(
+                `${declarable.name} from "${declarable.from}" has the selector "${declarable.selector}", which Angular cannot parse (${problem}); no composition imports it.`
+            );
+        }
+        return !problem;
+    });
 }
 
 /**
@@ -87,7 +118,7 @@ export function createCompositionContext(declarables: readonly Declarable[], com
  * inputs that the template sets on the subject, each with a diagnostic.
  *
  * `undefined` when no variant is composed. Also when `@angular/compiler` throws, which is one diagnostic for the
- * showcase, so that the build goes on.
+ * showcase, so that the build goes on, and when the library's declarables could not be read.
  */
 export function readComposition(
     subject: CompositionSubject,
@@ -127,6 +158,10 @@ export function readComposition(
         return undefined;
     }
 
+    const declarables = context.declarables();
+
+    if (!declarables) return undefined;
+
     // Messages and mutations wait for the end, so that a compiler failure leaves nothing behind but its own diagnostic.
     const pending: Array<() => void> = [];
     const report = (message: string) => pending.push(() => reporters.report(message));
@@ -136,7 +171,7 @@ export function readComposition(
 
     try {
         const hostImport = elementHost && 'import' in elementHost && hosts.includes(elementHost) ? elementHost.import : undefined;
-        const { resolved, unresolved } = readImports(subject, hostImport, context, (path, text) => notify(at(path, text)));
+        const { resolved, unresolved } = readImports(subject, hostImport, declarables, context, (path, text) => notify(at(path, text)));
         const inputNames = new Map(subject.inputs.map((input) => [input.alias ?? input.name, input.name]));
         const cases: { template: string; unbound: CompositionCase['unbound']; paths: EvaluationPath[] }[] = [];
         const caseIndex = new Map<string, number>();
@@ -165,7 +200,7 @@ export function readComposition(
                 return -1;
             }
 
-            const match = matchDeclarables(composed.nodes, context.declarables, resolved);
+            const match = matchDeclarables(composed.nodes, declarables, resolved);
 
             // Before the problems, which one of them may explain: the element it declares is unknown without its NgModule.
             match.notStandalone.forEach((name) => notStandalone.add(name));
@@ -270,6 +305,7 @@ export function readComposition(
 function readImports(
     { config, filePath, sources }: CompositionSubject,
     hostImport: ShowcaseImport | undefined,
+    declarables: readonly Declarable[],
     context: CompositionContext,
     notice: (path: EvaluationPath, text: string) => void
 ): { resolved: Declarable[]; unresolved: ShowcaseImport[] } {
@@ -281,7 +317,7 @@ function readImports(
     if (hostImport) listed.push({ entry: hostImport, path: ['host', 'import'] });
 
     const isEntry = (entry: ShowcaseImport) => (declarable: Declarable) => declarable.name === entry.name && declarable.from === entry.from;
-    const fromLibrary = listed.flatMap(({ entry }) => context.declarables.filter(isEntry(entry)));
+    const fromLibrary = listed.flatMap(({ entry }) => declarables.filter(isEntry(entry)));
     const elsewhere = listed.filter(({ entry }) => !fromLibrary.some(isEntry(entry))).map(({ entry }) => entry);
     const looked = elsewhere.length > 0 ? context.resolveImports(elsewhere, filePath).resolved : [];
     const resolved = [...fromLibrary, ...looked.filter((declarable) => !selectorProblem(declarable))];

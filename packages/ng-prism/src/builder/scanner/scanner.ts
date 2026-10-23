@@ -98,8 +98,8 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             // A setup function or a type is often exported by another entry point than the component, service or pipe that names it.
             const exportIndex = buildExportIndex(entries, checker);
             const context = { exportIndex, diagnostics, notices };
-            // A showcase's templates use what any entry point exports, not only its own.
-            const composition = createCompositionContext(buildDeclarableIndex(entries, checker), compilerOptions, createReporters(diagnostics, notices).notify);
+            // A showcase's templates use what any entry point exports, not only its own. Read for the first one that composes.
+            const composition = createCompositionContext(() => buildDeclarableIndex(entries, checker), compilerOptions, createReporters(diagnostics, notices));
 
             const fromPrimary = new Set<object>();
 
