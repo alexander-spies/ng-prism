@@ -9,6 +9,8 @@ interface Variant<T = unknown> {
     name: string;
     inputs?: Partial<InputsOf<T>>;
     content?: string | Record<string, string>;
+    template?: string;
+    host?: HostTemplate;
     description?: string;
     meta?: Record<string, unknown>;
     bg?: 'dots' | 'plain' | 'light' | 'dark' | 'checker' | 'transparent';
@@ -194,6 +196,28 @@ variants: [
 
 For multi-slot content projection, use a record. See [Content Projection](guide/content-projection.md).
 
+## Per-Variant Template and Host Template
+
+`content` is HTML. When a variant has to render components or directives that find each other through Angular, give it a `template` (since `22.7.0`), an Angular template that is compiled as the content of the showcased component:
+
+```typescript
+variants: [
+  { name: 'Default', inputs: { label: 'E-Mail' }, template: '<input libInput type="email" />' },
+  { name: 'With icon', inputs: { label: 'Search' }, template: '<lib-icon libPrefix name="search" /><input libInput />' },
+],
+```
+
+`host: { template }` on a variant (also since `22.7.0`) is the template the subject renders in, for a directive that sits in a frame or a radio in a group. It overrides the `host` of the showcase for that variant:
+
+```typescript
+variants: [
+  { name: 'Default' },
+  { name: 'With hint', host: { template: '<lib-form-field label="Name" hint="As on your ID"><input libInput /></lib-form-field>' } },
+],
+```
+
+`inputs` and the Controls stay the ones of the showcased component or directive. Whatever the template sets on the subject element itself belongs to the template, and its control reads `Not editable` in that variant. See [Compiled Content](guide/content-projection.md#compiled-content-template) and [Host Template](guide/directive-hosting.md#host-template) for the imports, the errors and what the canvas shows.
+
 ## Per-Variant Plugin Metadata
 
 Plugins like Figma support variant-level metadata to link each variant to a different design node:
@@ -317,7 +341,7 @@ The scanner checks `states` the way it checks `pseudo`. An entry that is not an 
 
 A state does not suit every variant. `.sg-chip__remove` exists only while a chip is removable, the button of a disabled variant cannot take focus, and a card shows its hover style only when it is clickable. Forcing the state anyway would show a picture the browser could never produce, such as a focus ring on a disabled button. A state therefore fits a rendered variant only if every pseudo-class it forces has at least one target the browser could put into that state:
 
-- A target has to exist: `true` is the host and everything inside it, a selector is matched against the host and everything inside it.
+- A target has to exist: `true` is the host and everything inside it, a selector is matched against the host and everything inside it. For a [composition](guide/content-projection.md#compiled-content-template) that means the whole composition, the frame around the subject included.
 - **`focus` and `focus-visible`**: the target is not `:disabled` (what `<fieldset disabled>` passes on to its fields included) and does not sit under `[inert]` inside the component. An element with `aria-disabled="true"` still counts, because the browser can focus it. For `true`, the fit is decided on what in the component could take focus at all (a button, a field, a link with `href`, `summary`, `iframe`, `[tabindex]` or an editable region), so a component whose only button is disabled reads `the component is disabled`; a component with nothing focusable in it is judged on all of its elements.
 - **`hover` and `active`**: the target, or something inside it, has a computed `pointer-events` other than `none`. A disabled button usually fails this, since components often set `pointer-events: none` on it. The styles are read with the variant's forced states and all of the state's own in place, so an action that takes the pointer only inside a hovered row counts when the variant or the state hovers that row, and a rule that sets `pointer-events: none` under its own `:hover` makes the state not fit, as the browser could not keep that element hovered either.
 - **`focus-within`**: not filtered. Whether anything inside can take focus is not something the browser tells.
@@ -411,8 +435,10 @@ Hover, active and focus states cannot be set through an input. Focusing an eleme
 
 The keys are the states: `hover`, `active`, `focus`, `focus-visible` and `focus-within`. Each one takes a target:
 
-- **`true`**: every element of the rendered component, the host included. Closest to what a pointer resting on the component does.
-- **A selector, or a list of them**: only the matching elements, matched against the host element and everything inside it. Use it for the element the state belongs to, such as the inner `<button>` of a host component or a visually hidden `<input>` whose sibling draws the box.
+- **`true`**: every element of what is rendered, the host included. Closest to what a pointer resting on the component does.
+- **A selector, or a list of them**: only the matching elements, matched against what is rendered: the host element and everything inside it. Use it for the element the state belongs to, such as the inner `<button>` of a host component or a visually hidden `<input>` whose sibling draws the box.
+
+What is rendered is the whole [composition](guide/content-projection.md#compiled-content-template) when a variant has a `template` or a host template, so both forms reach the elements of the frame and of the other parts as well: `{ hover: '.lib-form-field__box' }` hovers the box of the frame around the subject, and `true` is every element of the composition.
 
 ```typescript
 variants: [

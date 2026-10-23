@@ -13,6 +13,7 @@
 - **Zero-config discovery**: TypeScript Compiler API scans your library at build time
 - **Signal-native**: works with `input()` / `output()` signals
 - **Directive support**: showcase directives with configurable host elements
+- **Compositions**: show a component with the parts it works with, such as a form field with its input, as a compiled Angular template with `template`, `host: { template }` and `imports`
 - **Services and pipes**: `@Showcase` on a service or pipe gives it an API page, no canvas needed
 - **Plugin architecture**: JSDoc, A11y, Figma, Performance, Box Model, Coverage
 - **Live Controls**: auto-generated input controls with type-aware editors
@@ -96,7 +97,7 @@ export default defineConfig({
 
 ## Directives
 
-Directives need a host element. Use `host` to wrap them:
+A directive renders on the element its selector names. To put it on another element or component, or inside other markup, such as an input in its form field, configure `host`:
 
 ```typescript
 @Showcase({

@@ -10,7 +10,7 @@ ng-prism does not ship a screenshot runner. Capturing and comparing belongs to y
 
 Screenshot `.demo-wrap`. It is [public API](guide/external-tooling.md) and safe to depend on.
 
-It is the innermost wrapper around your rendered component: it carries the `data-prism-rendered` marker you already wait on, and it hugs the component's own box instead of the whole canvas.
+It is the innermost wrapper around your rendered component: it carries the `data-prism-rendered` marker you already wait on, and it hugs the component's own box instead of the whole canvas. For a variant with a `template` or a host template, that box holds the whole composition, see [Canvas State](architecture/canvas-state.md#composed-variants-root-and-subject).
 
 ```js
 const shot = await page.locator('.demo-wrap').screenshot();

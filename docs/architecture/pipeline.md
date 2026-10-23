@@ -17,9 +17,9 @@ Merge config pages
     ↓
 Plugin hooks  (onComponentScanned, onServiceScanned, onPipeScanned, onPageScanned, onManifestReady)
     ↓
-Runtime manifest generation  (TypeScript source string)
+Runtime manifest generation  (TypeScript source string, with the wrappers)
     ↓
-Atomic write  (skip if unchanged)
+Write in place  (skip if unchanged)
 ```
 
 ### 1. Config Load
@@ -34,6 +34,8 @@ Atomic write  (skip if unchanged)
 - **File:** `findLibraryRoot()` walks upward to the nearest `ng-package.json` and uses that directory as the library root. The file itself is the primary entry file. Without an `ng-package.json` above it, it is the only entry point (back-compat for non-ng-packagr setups).
 
 The scan returns the components, the services, the pipes and the diagnostics of one run. A `@Showcase` class with `@Injectable` or `@Service` is a service and one with `@Pipe` is a pipe: each goes into its own list, never into `components`, see [Services](architecture/scanner.md#services) and [Pipes](architecture/scanner.md#pipes).
+
+The scan also reads the [compositions](architecture/scanner.md#compositions) of every showcase that has a `template` or a host template, against an index of every component, directive and pipe the entry points export, which it builds only when a showcase composes. What it finds wrong is a diagnostic, and the variant is then left out of the composition, so a template error does not stop the build, unless [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on.
 
 Before scanning, the pipeline looks at the plugins of the loaded config and passes the scan [`ScanOptions`](architecture/scanner.md#entry) for what they use. Reading more costs time on every rebuild of `serve` and makes the manifest bigger:
 
@@ -87,23 +89,65 @@ All hooks are awaited, so async plugins are fully supported.
 
 ```typescript
 // ng-prism-cache/<prism-project>/prism-manifest.ts (generated)
-import { ButtonComponent } from 'my-lib';
-import { CardComponent } from 'my-lib/molecules';
+import type { RuntimeManifest } from '@ng-prism/core/plugin';
+import { ButtonComponent } from "my-lib";
+import { CardComponent } from "my-lib/molecules";
 
-export default {
+export const PRISM_RUNTIME_MANIFEST: RuntimeManifest = {
   components: [
-    { meta: { className: 'ButtonComponent', ... }, type: ButtonComponent },
-    { meta: { className: 'CardComponent', ... }, type: CardComponent },
+    { type: ButtonComponent, meta: { className: 'ButtonComponent', ... } },
+    { type: CardComponent, meta: { className: 'CardComponent', ... } },
   ],
 };
 ```
 
-This avoids JSON serialization of Angular class references and keeps tree-shaking intact.
+This avoids JSON serialization of Angular class references and keeps tree-shaking intact. The manifest is a named export, `PRISM_RUNTIME_MANIFEST`, which `main.ts` passes to `providePrism()`.
+
+**Wrappers.** Two kinds of showcase need a class that the library does not have, so the manifest declares one next to the imports. Both are standalone components that Angular compiles with the Prism app, ahead of time, which is why their templates are real Angular templates and not strings parsed in the browser.
+
+- **`<Class>__PrismHost`** for every directive that has a variant without a composition. It renders the directive on the element of its host, or of its selector when it has no host: `<tag attrs dirAttr [inputs] (outputs)>{{ __prismContent__() }}</tag>`, and a void element as `<input … />` without content. The class is the `type` of the directive's entry.
+- **`<Class>__PrismComposition`** for a showcase with at least one composed variant, a `template` or a host template. There is one per showcase, with a `@switch` over its distinct compositions. It declares the inputs and outputs of the subject under their member names, so the renderer binds them like those of a directive, plus `__prismVariant__`, the index of the variant, which a `computed` maps onto a case. Variants with the same markup share a case. The entry carries the wrapper as `composition`, and the renderer creates it for a composed variant and `type` for any other. When every variant is composed, `type` is the wrapper as well.
+
+```typescript
+// FormFieldComponent · projects/my-lib/src/lib/form-field/form-field.component.ts
+@Component({
+    standalone: true,
+    imports: [FormFieldComponent, InputDirective, IconComponent],
+    host: { style: 'display: block' },
+    template: `@switch (__prismCase__()) {
+        @case (0) {
+            <!-- variants[0] "Default" (projects/my-lib/src/lib/form-field/form-field.component.ts:45:9) -->
+            <lib-form-field data-prism-subject [label]="this.label()" [hint]="this.hint()"><input libInput type="email" /></lib-form-field>
+        }
+        @case (1) {
+            <!-- variants[3] "With icon" (projects/my-lib/src/lib/form-field/form-field.component.ts:48:9) -->
+            <lib-form-field data-prism-subject [label]="this.label()" [hint]="this.hint()"><lib-icon libPrefix name="search" /><input libInput /></lib-form-field>
+        }
+    }`
+})
+class FormFieldComponent__PrismComposition {
+    label = input<any>('');
+    hint = input<any>('');
+    __prismVariant__ = input(0);
+    protected __prismCase__ = computed(() => [0, 1][this.__prismVariant__()]);
+}
+```
+
+What the generator does with a composition:
+
+- The subject element carries `data-prism-subject`, every input is bound as `[alias]="this.member()"` and every output as `(alias)="this.member.emit($event)"`. The members are read with `this.`, so that a variable the author's markup declares, such as `@for (label of …)`, cannot shadow a binding. An input the template sets on the subject, and one whose default could not be read and that the variant does not set, is not bound in that case.
+- Inputs are `input<any>(default)`, so that `strictTemplates` accepts any value, arrays and objects included, and `input.required<any>()` for a required one. The wrapper is declared once per showcase, so an input that no case binds is not declared at all.
+- The classes the templates use are imported from the entry point the scan found them in, from the showcase's `imports`, or from the module of a directive's object host. Two classes of one name from different modules are told apart with an alias, `Name__2`.
+- The host element of the wrapper is `display: block`. The wrapper of a directive without a composition, `__PrismHost`, stays inline.
+- Every template goes into the generated file as a template literal with backslash, backtick and `${` escaped, so that no template can break the file.
+- Errors point back to the showcase. A TypeScript comment above each wrapper names the showcase file, and an HTML comment before each `@case` names the variants and the position in the source (`--` in a variant name becomes two Unicode hyphens, since `-->` would end the comment). What Angular still finds in the generated file, such as a binding to an input the subject does not have, is reported at a line in `prism-manifest.ts` right under such a comment. Angular drops the comments from the compiled template, so they cost nothing at runtime.
+
+The manifest also carries the data a composition needs in the browser: `meta.composition` has `variantCases` and each case's `template` (the markup as written, for the code snippet) and `unbound` list, and the `imports` of the wrapper, which a plugin's usage example names. It does not have the `origin` of a case, which only the comments of the generated code use.
 
 Services are written as data, in a `services` list next to `components`, and the service class is **not imported**. A service page is documentation, so an import would only add bundle size and possible side effects:
 
 ```typescript
-export default {
+export const PRISM_RUNTIME_MANIFEST: RuntimeManifest = {
     components: [/* ... */],
     services: [{ meta: { className: 'NotificationService', provision: 'auto', api: {/* ... */} } }]
 };
@@ -111,11 +155,11 @@ export default {
 
 Pipes are written the same way, in a `pipes` list, with the `meta` of each pipe and no import of its class. A list is only written when there is something in it: a library without services or pipes gets the manifest it always got.
 
-### 7. Atomic Write (Skip If Unchanged)
+### 7. Write in Place (Skip If Unchanged)
 
 `writeManifestIfChanged()` reads the existing manifest and compares it string-for-string with the new content. If identical, the write is skipped and `result.written` is `false`.
 
-When the file must be written, it is first written to `prism-manifest.ts.tmp` then renamed to `prism-manifest.ts`. This prevents the Angular dev server from seeing a partially-written file mid-recompile.
+When the file must be written, it is overwritten in place: truncated and written again, with the same inode. A temporary file that is renamed over the manifest would create a new inode every time, and Vite's watcher loses a file that lives in a cache directory outside the project's source root, so a change to a `@Showcase` would stop triggering HMR. The manifest is a few kilobytes, so a bundler that sees a partial write is unlikely.
 
 ### Manifest Output Location
 
@@ -155,11 +199,13 @@ The serve builder orchestrates the full dev experience:
 
 `createChangeHandler()` wraps the rebuild callback with:
 
-- **300 ms debounce:** rapid saves (e.g. auto-format on save) trigger only one rebuild
-- **`isRebuilding` guard:** prevents overlapping rebuild runs
-- **Extension filter:** only `.ts`, `.scss`, `.css`, `.svg` changes trigger rebuilds
+- **50 ms debounce:** rapid saves (e.g. auto-format on save) trigger only one rebuild. The serve builder passes `debounceMs: 50`, and the handler's own default, which a caller that passes nothing gets, is 300 ms
+- **`isRebuilding` guard:** prevents overlapping rebuild runs. A change that arrives during a rebuild runs one more afterwards
+- **Extension filter:** only `.ts` changes trigger rebuilds. Style and template files are the Angular dev server's business and do not set off a scan
 
 After a successful rebuild, if the manifest content changed, the Angular dev server detects the file write and triggers a browser reload.
+
+A showcase is a `.ts` file, so a change to one is a rescan like any other, and so is a change to a library class: a new selector is picked up by the compositions that use it. A scan that finds a problem in a template does not leave the old manifest standing: the variant loses its composition with a warning, and the rest stays usable. With `strictShowcase` on, the rebuild fails instead and the previous manifest stays in place. What only Angular finds appears in the dev server's error overlay, with the comment of the generated file naming the showcase, and goes away with the next save.
 
 ## Build Builder
 

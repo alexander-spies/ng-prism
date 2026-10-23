@@ -64,7 +64,7 @@ export interface NotificationConfig {
   only show up once the plugin is there.
 - **Fields.** A service takes `title` (required), `description`, `category`, `categoryOrder`, `componentOrder`,
   `section` (default `Services`), `sectionOrder`, `tags`, `status`, `meta` and `setup`. `variants`, `states`,
-  `providers`, `bg`, `canvasLayout`, `host` and `renderPage` need a canvas. **Until 23.0.0 one of them keeps an
+  `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` need a canvas. **Until 23.0.0 one of them keeps an
   `@Injectable` class a component** (deprecated since 22.7.0, removed in 23.0.0), with a notice that does not count for `strictShowcase`:
   `<Class> is an @Injectable/@Service with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`
   To make it a service, remove those fields and move the demo to a component page.
@@ -165,7 +165,7 @@ same type cards and the same page without a canvas. What differs:
   For the second, make the pipe standalone: the usage snippet puts it into a component's `imports`, which an NgModule
   pipe can't be. `pure` defaults to `true`; one the builder can't read only removes the Pure / Impure chip.
 - **Fields.** The same as for a service, with `section` defaulting to `Pipes`. `variants`, `states`, `providers`,
-  `bg`, `canvasLayout`, `host` and `renderPage` need a canvas, and **until 23.0.0 one of them keeps a `@Pipe` class a
+  `bg`, `canvasLayout`, `host`, `imports` and `renderPage` need a canvas, and **until 23.0.0 one of them keeps a `@Pipe` class a
   component** (deprecated since 22.7.0, removed in 23.0.0), with a notice that does not count for `strictShowcase`:
   `<Class> is a @Pipe with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.`
   For a pipe with `standalone: false` the notice ends differently, because such a pipe is gone in 23.0.0:

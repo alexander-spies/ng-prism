@@ -21,13 +21,15 @@ import ts from 'typescript';
 
 const PACKAGES_DIR = 'packages';
 const BUILTINS = new Set([...builtinModules, ...builtinModules.map((m) => `node:${m}`)]);
+// Test-only code that the build of a package leaves out (see `exclude` in its tsconfig.lib.json), so consumers never import it.
+const TEST_ONLY_DIRS = new Set(['__mocks__', '__fixtures__', '__test-utils__']);
 
 function collectSources(dir, out = []) {
     if (!existsSync(dir)) return out;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const full = join(dir, entry.name);
         if (entry.isDirectory()) {
-            if (entry.name !== '__mocks__') collectSources(full, out);
+            if (!TEST_ONLY_DIRS.has(entry.name)) collectSources(full, out);
         } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts') && !entry.name.startsWith('test-setup')) {
             out.push(full);
         }

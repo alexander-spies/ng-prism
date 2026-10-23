@@ -3,6 +3,8 @@ import type { DirectiveHost, Variant } from '../../decorator/showcase.types.js';
 import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
+import { COMPOSITION_SUBJECT_SLOT } from '../../shared/composition.js';
+import { extractTemplate, FRAME, manifestMeta } from './__test-utils__/composition-fixtures.js';
 import { templateErrors } from './__test-utils__/template-errors.js';
 import { generateRuntimeManifest } from './runtime-manifest.generator.js';
 
@@ -134,7 +136,7 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'my-lib'
         });
 
-        expect(source).toContain("import { ButtonComponent, CardComponent } from 'my-lib';");
+        expect(source).toContain('import { ButtonComponent, CardComponent } from "my-lib";');
     });
 
     it('should export PRISM_RUNTIME_MANIFEST with RuntimeManifest type', () => {
@@ -254,7 +256,7 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: '@my-org/components'
         });
 
-        expect(source).toContain("from '@my-org/components'");
+        expect(source).toContain('from "@my-org/components"');
     });
 
     it('should generate grouped imports when components have different importPaths', () => {
@@ -274,9 +276,9 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'sgui-lib'
         });
 
-        expect(source).toContain("import { PillComponent } from 'sgui-lib/atoms/pill';");
-        expect(source).toContain("import { TooltipComponent } from 'sgui-lib/overlay/tooltip';");
-        expect(source).not.toContain("from 'sgui-lib';");
+        expect(source).toContain('import { PillComponent } from "sgui-lib/atoms/pill";');
+        expect(source).toContain('import { TooltipComponent } from "sgui-lib/overlay/tooltip";');
+        expect(source).not.toContain('from "sgui-lib";');
     });
 
     it('should group multiple components from the same importPath', () => {
@@ -296,7 +298,7 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'sgui-lib'
         });
 
-        expect(source).toContain("import { PillComponent, PillModelComponent } from 'sgui-lib/atoms/pill';");
+        expect(source).toContain('import { PillComponent, PillModelComponent } from "sgui-lib/atoms/pill";');
     });
 
     it('should fall back to libraryImportPath when component has no importPath', () => {
@@ -312,8 +314,8 @@ describe('generateRuntimeManifest', () => {
             libraryImportPath: 'sgui-lib'
         });
 
-        expect(source).toContain("import { PillComponent } from 'sgui-lib/atoms/pill';");
-        expect(source).toContain("import { CardComponent } from 'sgui-lib';");
+        expect(source).toContain('import { PillComponent } from "sgui-lib/atoms/pill";');
+        expect(source).toContain('import { CardComponent } from "sgui-lib";');
     });
 });
 
@@ -390,7 +392,7 @@ describe('generateRuntimeManifest services', () => {
         expect(source).toContain('importPath: "my-lib/toast"');
         expect(source).toContain('provision: "auto"');
         expect(source).not.toMatch(/import \{[^}]*ToastService/);
-        expect(source).not.toContain("from 'my-lib/toast'");
+        expect(source).not.toContain('from "my-lib/toast"');
     });
 
     it('writes the whole service as the meta of its entry, next to the components', () => {
@@ -456,7 +458,7 @@ describe('generateRuntimeManifest pipes', () => {
         expect(source).toContain('pure: true');
         expect(source).toContain('importPath: "my-lib/time-ago"');
         expect(source).not.toMatch(/import \{[^}]*TimeAgoPipe/);
-        expect(source).not.toContain("from 'my-lib/time-ago'");
+        expect(source).not.toContain('from "my-lib/time-ago"');
     });
 
     it('writes the whole pipe as the meta of its entry, after the components and the services', () => {
@@ -579,7 +581,7 @@ describe('directive wrapper generation', () => {
         });
 
         expect(source).toContain('imports: [TooltipDirective, ButtonComponent]');
-        expect(source).toContain("ButtonComponent } from 'my-lib';");
+        expect(source).toContain('ButtonComponent } from "my-lib";');
         expect(source).toContain('<my-button');
         expect(source).toContain('appTooltip');
         expect(source).toContain('label="Click me"');
@@ -919,5 +921,249 @@ describe('directive hosts', () => {
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('InputDirective'));
         expect(source).toContain('imports: [InputDirective],');
         expect(source).toMatch(/template: `<div libTooltip>/);
+    });
+});
+
+describe('compositions', () => {
+    const SLOT = COMPOSITION_SUBJECT_SLOT;
+    const HYPHEN = String.fromCharCode(0x2010);
+
+    /** `FRAME` with other imports. */
+    function frameImporting(imports: { name: string; from: string }[]): ScannedComponent {
+        return { ...FRAME, composition: { ...FRAME.composition!, imports } };
+    }
+
+    /** A directive whose host template is its one composition: no variant needs the wrapper that renders the host as a string. */
+    const COMPOSED_DIRECTIVE: ScannedComponent = {
+        ...HIGHLIGHT,
+        showcaseConfig: { title: 'Highlight', host: { template: '<span appHighlight>Hover</span>' } },
+        composition: {
+            variantCases: [0],
+            cases: [{ template: `<span appHighlight${SLOT}>Hover</span>`, unbound: [], origin: 'host (src/lib/highlight/highlight.directive.ts:9:5)' }],
+            imports: []
+        }
+    };
+
+    function manifest(components: ScannedComponent[]): string {
+        return generateRuntimeManifest({ components, libraryImportPath: 'my-lib', warn: () => undefined });
+    }
+
+    it('generates one wrapper per composed showcase and renders the composition through it', () => {
+        const source = manifest([FRAME, BUTTON]);
+
+        expect(source.match(/class \w+__PrismComposition/g)).toEqual(['class FormFieldComponent__PrismComposition']);
+        expect(extractTemplate(source)).toContain('@switch (__prismCase__()) {');
+        expect(templateErrors(extractTemplate(source)!)).toEqual([]);
+    });
+
+    it('imports computed only when a wrapper needs it', () => {
+        expect(manifest([FRAME])).toContain("import { Component, computed, input, output } from '@angular/core';");
+        expect(manifest([HIGHLIGHT])).toContain("import { Component, input, output } from '@angular/core';");
+        expect(manifest([BUTTON])).not.toContain('computed');
+        expect(manifest([BUTTON])).not.toContain('composition');
+    });
+
+    it('imports the composition classes', () => {
+        const source = manifest([FRAME]);
+
+        expect(source).toContain('import { FormFieldComponent, InputDirective } from "my-lib";');
+        expect(source).toContain('import { IconComponent } from "my-lib/icon";');
+        expect(source).toContain('imports: [FormFieldComponent, InputDirective, IconComponent],');
+    });
+
+    it('aliases a class whose name another module already took', () => {
+        const source = manifest([
+            frameImporting([
+                { name: 'IconComponent', from: 'my-lib/icon' },
+                { name: 'IconComponent', from: 'other-lib' }
+            ])
+        ]);
+
+        expect(ts.transpileModule(source, { reportDiagnostics: true }).diagnostics).toEqual([]);
+        expect(source).toContain('import { IconComponent } from "my-lib/icon";');
+        expect(source).toContain('import { IconComponent as IconComponent__2 } from "other-lib";');
+        expect(source).toContain('imports: [FormFieldComponent, IconComponent, IconComponent__2],');
+    });
+
+    it("aliases a class that has the subject's name", () => {
+        const source = manifest([frameImporting([{ name: 'FormFieldComponent', from: 'other-lib' }])]);
+
+        expect(source).toContain('import { FormFieldComponent } from "my-lib";');
+        expect(source).toContain('import { FormFieldComponent as FormFieldComponent__2 } from "other-lib";');
+        expect(source).toContain('imports: [FormFieldComponent, FormFieldComponent__2],');
+    });
+
+    it('aliases a class that has the name of another component in the manifest, and reuses that component from its own module', () => {
+        const icon: ScannedComponent = { ...CARD, className: 'IconComponent', importPath: 'my-lib/icon' };
+        const source = manifest([
+            frameImporting([
+                { name: 'IconComponent', from: 'my-lib/icon' },
+                { name: 'IconComponent', from: 'other-lib' }
+            ]),
+            icon
+        ]);
+
+        expect(source).toContain('import { IconComponent } from "my-lib/icon";');
+        expect(source).toContain('import { IconComponent as IconComponent__2 } from "other-lib";');
+        expect(source.match(/import \{[^}]*\bIconComponent\b[^}]*\} from/g)).toHaveLength(2);
+        expect(source).toContain('imports: [FormFieldComponent, IconComponent, IconComponent__2],');
+    });
+
+    it('does not take an identifier the module imports from Angular for a class', () => {
+        const source = manifest([frameImporting([{ name: 'input', from: 'other-lib' }])]);
+
+        expect(source).toContain('import { input as input__2 } from "other-lib";');
+    });
+
+    it('writes a module that holds quotes as a valid string', () => {
+        const source = manifest([frameImporting([{ name: 'QuotedDirective', from: `it's "quoted"` }])]);
+        const { diagnostics = [] } = ts.transpileModule(source, { reportDiagnostics: true });
+
+        expect(diagnostics.map(({ messageText }) => ts.flattenDiagnosticMessageText(messageText, ' '))).toEqual([]);
+        expect(source).toContain(`import { QuotedDirective } from "it's \\"quoted\\"";`);
+    });
+
+    it('writes composition data with its imports and without the origin of a case', () => {
+        const meta = manifestMeta(manifest([FRAME]));
+
+        expect(meta.composition).toEqual({
+            variantCases: [0, 1, 2, 0],
+            cases: FRAME.composition!.cases.map(({ template }) => ({ template, unbound: [] })),
+            imports: FRAME.composition!.imports
+        });
+        expect(meta.composition!.cases[0]).not.toHaveProperty('origin');
+        expect(meta.composition!.cases[0].template).toContain(SLOT);
+    });
+
+    it('writes no imports for a composition that has none', () => {
+        const subject: ScannedComponent = { ...FRAME, composition: { ...FRAME.composition!, imports: undefined } };
+
+        expect(manifestMeta(manifest([subject])).composition).not.toHaveProperty('imports');
+    });
+
+    it('writes the unbound inputs of a case', () => {
+        const unbound = [{ name: 'label', reason: 'template' as const }];
+        const subject: ScannedComponent = {
+            ...FRAME,
+            composition: { variantCases: [0], cases: [{ ...FRAME.composition!.cases[0], unbound }], imports: [] }
+        };
+
+        expect(manifestMeta(manifest([subject])).composition!.cases[0].unbound).toEqual(unbound);
+    });
+
+    it('writes no composition into the meta of a component without one', () => {
+        expect(manifest([BUTTON])).not.toContain('composition');
+    });
+
+    it('uses the wrapper as type and as composition when every variant is composed', () => {
+        const source = manifest([FRAME]);
+
+        expect(source).toMatch(/type: FormFieldComponent__PrismComposition,\n {6}composition: FormFieldComponent__PrismComposition,\n {6}meta: \{/);
+        expect(source).not.toContain('type: FormFieldComponent,');
+    });
+
+    it('drops __PrismHost when the wrapper is the type', () => {
+        const source = manifest([COMPOSED_DIRECTIVE]);
+
+        expect(source).toContain('type: HighlightDirective__PrismComposition,');
+        expect(source).toContain('composition: HighlightDirective__PrismComposition,');
+        expect(source).not.toContain('__PrismHost');
+        expect(templateErrors(extractTemplate(source)!)).toEqual([]);
+        expect(extractTemplate(source)).toContain(
+            '<span appHighlight data-prism-subject [highlightColor]="this.highlightColor()" (highlighted)="this.highlighted.emit($event)">Hover</span>'
+        );
+    });
+
+    it('does not import the class of an object host that no wrapper renders', () => {
+        const source = manifest([{ ...TOOLTIP_WITH_HOST_COMPONENT, composition: { ...COMPOSED_DIRECTIVE.composition! } }]);
+
+        expect(source).toContain('type: TooltipDirective__PrismComposition,');
+        expect(source).not.toMatch(/import \{[^}]*ButtonComponent/);
+    });
+
+    it('imports the class of an object host through the composition that renders it', () => {
+        const tooltip: ScannedComponent = {
+            ...TOOLTIP_WITH_HOST_COMPONENT,
+            composition: {
+                variantCases: [0],
+                cases: [{ template: `<my-button appTooltip${SLOT}></my-button>`, unbound: [] }],
+                imports: [{ name: 'ButtonComponent', from: 'my-lib' }]
+            }
+        };
+        const source = manifest([tooltip]);
+
+        expect(source).toContain('import { TooltipDirective, ButtonComponent } from "my-lib";');
+        expect(source).toContain('imports: [TooltipDirective, ButtonComponent],');
+    });
+
+    it('keeps type and adds composition when only some variants are composed', () => {
+        const partial: ScannedComponent = { ...FRAME, composition: { ...FRAME.composition!, variantCases: [0, -1, 1, 2] } };
+        const source = manifest([partial]);
+
+        expect(source).toMatch(/type: FormFieldComponent,\n {6}composition: FormFieldComponent__PrismComposition,/);
+        expect(source).toContain('computed(() => [0, -1, 1, 2][this.__prismVariant__()])');
+    });
+
+    it('keeps __PrismHost for a directive with variants that are not composed', () => {
+        const partial: ScannedComponent = { ...COMPOSED_DIRECTIVE, composition: { ...COMPOSED_DIRECTIVE.composition!, variantCases: [-1, 0] } };
+        const source = manifest([partial]);
+
+        expect(source).toMatch(/type: HighlightDirective__PrismHost,\n {6}composition: HighlightDirective__PrismComposition,/);
+        expect(source).toContain('class HighlightDirective__PrismHost');
+        expect(source).toContain('class HighlightDirective__PrismComposition');
+    });
+
+    it('keeps the host wrapper of a directive that is not composed next to one that is', () => {
+        const source = manifest([HIGHLIGHT, { ...COMPOSED_DIRECTIVE, className: 'MarkDirective' }]);
+
+        expect(source).toContain('class HighlightDirective__PrismHost');
+        expect(source).not.toContain('MarkDirective__PrismHost');
+        expect(source).toContain('class MarkDirective__PrismComposition');
+    });
+
+    it('generates the wrapper of a showcase without variants', () => {
+        const source = manifest([COMPOSED_DIRECTIVE]);
+
+        expect(source).toContain('computed(() => [0][this.__prismVariant__()])');
+        expect(manifestMeta(source).composition!.variantCases).toEqual([0]);
+    });
+
+    it('survives backticks, ${, backslashes and --> in templates and names', () => {
+        // The `-->` is in the variant name only: in the markup, it would be the author's own text.
+        const nasty = 'a\\b `c` ${d}';
+        const subject: ScannedComponent = {
+            ...FRAME,
+            showcaseConfig: { title: nasty, variants: [{ name: `${nasty} --> e`, template: '<input libInput />' }] },
+            composition: {
+                variantCases: [0],
+                cases: [
+                    {
+                        template: `<lib-form-field${SLOT} title="${nasty}"><!-- ${nasty} --><input libInput /></lib-form-field>`,
+                        unbound: [],
+                        origin: `variants[0] "${nasty} --> e" (src/x.ts:1:2)`
+                    }
+                ],
+                imports: []
+            }
+        };
+        const source = manifest([subject]);
+        const template = extractTemplate(source)!;
+
+        expect(ts.transpileModule(source, { reportDiagnostics: true }).diagnostics).toEqual([]);
+        expect(templateErrors(template)).toEqual([]);
+        expect(template).toContain(`title="${nasty}"`);
+        expect(template).toContain(`${nasty} ${HYPHEN}${HYPHEN}> e`);
+        expect(template).not.toMatch(/<!--(?:(?!-->)[\s\S])*-->(?:(?!<!--)[\s\S])*-->/);
+        expect(manifestMeta(source).composition!.cases[0].template).toContain(`title="${nasty}"`);
+        expect(manifestMeta(source).showcaseConfig.variants![0].name).toBe(`${nasty} --> e`);
+    });
+
+    it('aliases the class of an object host that another module took', () => {
+        const button: ScannedComponent = { ...BUTTON, importPath: 'other-lib' };
+        const source = manifest([button, TOOLTIP_WITH_HOST_COMPONENT]);
+
+        expect(source).toContain('import { ButtonComponent } from "other-lib";');
+        expect(source).toContain('import { TooltipDirective, ButtonComponent as ButtonComponent__2 } from "my-lib";');
+        expect(source).toContain('imports: [TooltipDirective, ButtonComponent__2],');
     });
 });

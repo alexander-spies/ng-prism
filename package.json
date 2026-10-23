@@ -50,6 +50,7 @@
         "@angular-devkit/architect": "^0.2201.8",
         "@angular-devkit/core": "^22.1.8",
         "@angular-devkit/schematics": "^22.1.8",
+        "@angular/cdk": "^22.1.7",
         "@angular/common": "^22.1.7",
         "@angular/compiler": "^22.1.7",
         "@angular/compiler-cli": "^22.1.7",

@@ -141,17 +141,17 @@ A service is only listed when you mark it. There is no automatic discovery of ev
 
 ## Which `@Showcase` fields apply
 
-| Field                                                                         | On a service                                                                                                                                   |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `title`                                                                       | Required, as everywhere                                                                                                                        |
-| `description`                                                                 | Shown in the head's details popover, behind the ⓘ glyph. The class JSDoc is the page's own text                                                |
-| `category`, `categoryOrder`, `componentOrder`                                 | Group and sort the item in the sidebar, as for components                                                                                      |
-| `section`, `sectionOrder`                                                     | `section` defaults to `'Services'`, whose default `sectionOrder` is `20`, after Components and Directives                                      |
-| `tags`                                                                        | Searchable, and shown in the popover                                                                                                           |
-| `status`                                                                      | As for components: a status chip in the head, the dashed-circle marker for `'wip'` and a struck-through name for `'deprecated'` in the sidebar |
-| `meta`                                                                        | For plugins, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned)                                                                 |
-| [`setup`](#setup)                                                             | The functions and tokens that configure the service. Services and pipes only                                                                   |
-| `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage` | Do not apply: a service has no canvas                                                                                                          |
+| Field                                                                                    | On a service                                                                                                                                   |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`                                                                                  | Required, as everywhere                                                                                                                        |
+| `description`                                                                            | Shown in the head's details popover, behind the ⓘ glyph. The class JSDoc is the page's own text                                                |
+| `category`, `categoryOrder`, `componentOrder`                                            | Group and sort the item in the sidebar, as for components                                                                                      |
+| `section`, `sectionOrder`                                                                | `section` defaults to `'Services'`, whose default `sectionOrder` is `20`, after Components and Directives                                      |
+| `tags`                                                                                   | Searchable, and shown in the popover                                                                                                           |
+| `status`                                                                                 | As for components: a status chip in the head, the dashed-circle marker for `'wip'` and a struck-through name for `'deprecated'` in the sidebar |
+| `meta`                                                                                   | For plugins, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned)                                                                 |
+| [`setup`](#setup)                                                                        | The functions and tokens that configure the service. Services and pipes only                                                                   |
+| `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage` | Do not apply: a service has no canvas                                                                                                          |
 
 The fields that do not apply have a consequence until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0), see [Compatibility until 23.0.0](#compatibility-until-2300).
 
@@ -280,7 +280,7 @@ It is a notice, not a warning: nothing is wrong with the library, so [`strictSho
 
 > **Deprecated since 22.7.0, removed in 23.0.0.** Until then a class with a component-only field stays a component. See [Deprecation: injectables and pipes with component-only fields](guide/migration-v22.md#deprecation-injectables-and-pipes-with-component-only-fields).
 
-A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. To keep that working in 22.x, a class with `@Injectable` or `@Service` that declares one of the fields only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) stays a component, as before. The build prints this notice:
+A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. To keep that working in 22.x, a class with `@Injectable` or `@Service` that declares one of the fields only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage`) stays a component, as before. The build prints this notice:
 
 ```
 ⚠ ng-prism: ToastService is an @Injectable/@Service with @Showcase and declares variants, renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.

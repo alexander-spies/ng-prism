@@ -137,7 +137,7 @@ ng-prism scans your library at build time with the TypeScript Compiler API, so t
 
 In the UI you get generated controls with an editor for each input type, plus an Angular template snippet per variant that updates while you change the controls. Every variant gets an axe-core audit, and that's part of the core, not a plugin. The visual regression plugin shows a diff report for each variant next to the live component. Your own screenshot runner writes a plain JSON report for it, and the example in the docs uses Playwright. A variant can also force `:hover`, `:active` or `:focus-visible` on the elements you name, and `states` declare such conditions once for every variant: the Overview lines the variants up against them in a matrix, and a state that cannot apply to a variant, like a focus ring on a disabled button, is left out instead of faked. Your component's own CSS draws the state, so focus rings show up in the styleguide and get a baseline like everything else.
 
-You can also showcase directives on a configurable host element and write your own demo pages for complex components. The URL always reflects the current component, variant, state and view, so you can share links to them. The UI is themed through CSS custom properties, and you can replace whole sections of it.
+You can also showcase directives on a configurable host element and write your own demo pages for complex components. A variant can show a component with the parts it works with, such as a form field with its input: `template`, `host: { template }` and `imports` compile that markup as an Angular template, and the Overview, states and Controls stay as they are. The URL always reflects the current component, variant, state and view, so you can share links to them. The UI is themed through CSS custom properties, and you can replace whole sections of it.
 
 There are official plugins for JSDoc, Figma, performance, box model, coverage and visual regression.
 
@@ -178,7 +178,7 @@ export default defineConfig({
 
 ## Directives
 
-A directive needs a host element. You configure it with `host`:
+A directive renders on the element its selector names. To put it on another element or component, or inside other markup, such as an input in its form field, configure `host`:
 
 ```typescript
 @Showcase({

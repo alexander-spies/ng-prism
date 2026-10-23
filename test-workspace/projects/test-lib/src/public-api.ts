@@ -13,6 +13,13 @@ export { TooltipComponent, type TooltipPositionType } from './lib/components/too
 export { SpinnerComponent, type SpinnerSizeType } from './lib/components/spinner/spinner.component.js';
 export { TooltipDirective, type TooltipDirectivePositionType } from './lib/directives/tooltip/tooltip.directive.js';
 export { DividerComponent, type DividerOrientationType, type DividerVariantType } from './lib/components/divider/divider.component.js';
+export { FormFieldComponent } from './lib/components/form-field/form-field.component.js';
+export { InputDirective } from './lib/components/form-field/input.directive.js';
+export { LIB_FORM_FIELD, LIB_FORM_FIELD_CONTROL, type LibFormField, type LibFormFieldControl } from './lib/components/form-field/form-field.tokens.js';
+export { IconComponent, type IconNameType } from './lib/components/icon/icon.component.js';
+export { RadioGroupComponent } from './lib/components/radio/radio-group.component.js';
+export { RadioComponent } from './lib/components/radio/radio.component.js';
+export { LIB_RADIO_GROUP, type LibRadioGroup } from './lib/components/radio/radio.tokens.js';
 export { NotificationService } from './lib/services/notification/notification.service.js';
 export { provideNotifications } from './lib/services/notification/provide-notifications.js';
 export { NotificationRef } from './lib/services/notification/notification-ref.js';

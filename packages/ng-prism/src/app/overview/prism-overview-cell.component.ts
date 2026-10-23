@@ -15,10 +15,12 @@ import {
     ViewContainerRef
 } from '@angular/core';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
+import { PRISM_VARIANT_INPUT } from '../../shared/composition.js';
 import type { ForcedPseudoStates } from '../../shared/pseudo-state.type.js';
 import { resolveVariantBg } from '../../shared/variant-bg.js';
 import { CANVAS_BG_STYLES } from '../canvas/canvas-bg.styles.js';
 import type { StateFit } from '../pseudo/state-fit.js';
+import { activeCase, renderTypeFor } from '../renderer/composition.js';
 import { buildInputBindings } from '../renderer/input-bindings.js';
 import { parseContentToNodes } from '../renderer/projectable-content.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
@@ -199,18 +201,22 @@ export class PrismOverviewCellComponent {
                 providers: component.meta.showcaseConfig.providers ?? [],
                 parent: this.injector
             });
-            const projectableNodes = activeContent ? parseContentToNodes(activeContent, reflectComponentType(component.type)?.ngContentSelectors ?? []) : undefined;
+            const composed = activeCase(component, index) !== null;
+            const type = renderTypeFor(component, index);
+            const projectableNodes = activeContent && !composed ? parseContentToNodes(activeContent, reflectComponentType(type)?.ngContentSelectors ?? []) : undefined;
 
-            const ref = this.outlet().createComponent(component.type, {
+            const ref = this.outlet().createComponent(type, {
                 injector,
                 projectableNodes
             });
 
-            const inputBindings = buildInputBindings(component);
+            if (composed) ref.setInput(PRISM_VARIANT_INPUT, index);
+            const inputBindings = buildInputBindings(component, index);
 
             for (const [key, value] of Object.entries(values)) {
                 const binding = inputBindings.get(key);
 
+                // None for an unknown input, and none for one the composition of the variant leaves unbound.
                 if (binding !== undefined) ref.setInput(binding, value);
             }
             ref.changeDetectorRef.detectChanges();

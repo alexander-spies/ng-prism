@@ -9,7 +9,7 @@ const ANGULAR_CORE = '@angular/core';
  * one of them next to `@Injectable` or `@Pipe` is a component with that
  * decorator, not a service or a pipe: showing it as one would drop the field.
  */
-const COMPONENT_ONLY_FIELDS = ['variants', 'states', 'providers', 'bg', 'canvasLayout', 'host', 'renderPage'] as const;
+const COMPONENT_ONLY_FIELDS = ['variants', 'states', 'providers', 'bg', 'canvasLayout', 'host', 'renderPage', 'imports'] as const;
 
 /** The values of `providedIn` that make Angular provide a service without anyone listing it. */
 const AUTO_PROVIDED_IN: readonly unknown[] = ['root', 'platform', 'any'];
