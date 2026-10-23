@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import type { ComponentStatus, ShowcaseConfig } from '../../decorator/showcase.types.js';
+import type { ComponentStatus, HostTemplate, ShowcaseConfig, ShowcaseImport } from '../../decorator/showcase.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { CANVAS_BGS, type CanvasBg } from '../../shared/canvas-bg.type.js';
 import { CANVAS_LAYOUTS, type CanvasLayout } from '../../shared/canvas-layout.type.js';
@@ -17,6 +17,7 @@ import {
     describeLegacyServiceComponent,
     describeSetupOnComponent,
     describeSetupOnLegacyComponent,
+    describeShowcaseIssue,
     describeUnevaluable,
     describeUnreadableApi,
     describeUnreadableBase
@@ -59,6 +60,21 @@ function isCanvasBg(value: unknown): value is CanvasBg {
 
 function isCanvasLayout(value: unknown): value is CanvasLayout {
     return typeof value === 'string' && (CANVAS_LAYOUTS as readonly string[]).includes(value);
+}
+
+function isShowcaseImport(value: unknown): value is ShowcaseImport {
+    const { name, from } = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
+
+    return typeof name === 'string' && name !== '' && typeof from === 'string' && from !== '';
+}
+
+function isHostTemplate(value: unknown): value is HostTemplate {
+    return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>)['template'] === 'string';
+}
+
+/** The position an element has in the source, given the positions before it that the evaluator dropped: the evaluated list is shorter by those. */
+function sourceIndex(index: number, dropped: ReadonlySet<number>): number {
+    return [...dropped].sort((a, b) => a - b).reduce((position, gap) => (gap <= position ? position + 1 : position), index);
 }
 
 type Report = (message: string) => void;
@@ -121,7 +137,7 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
         const className = classDecl.name?.text ?? 'Anonymous';
         const showcaseConfig = extractShowcaseConfig(showcaseDecorator, className, report, checker);
 
-        if (!showcaseConfig) continue;
+        if (!showcaseConfig || !showcaseArg) continue;
 
         // Not a diagnostic: the component still works, and strictShowcase must not fail the build over a notice about 23.0.0.
         if (classKind.kind === 'legacy-component') {
@@ -132,7 +148,7 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
             );
         }
 
-        const setup = showcaseArg && findSetupProperty(showcaseArg);
+        const setup = findSetupProperty(showcaseArg);
 
         if (setup)
             report(
@@ -140,6 +156,20 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
             );
 
         const componentMeta = extractComponentMeta(classDecl, checker);
+
+        // A string or an object host puts a directive on an element. A component has ignored it so far and keeps doing so, so that what a library renders stays as it is.
+        if (!componentMeta.isDirective && showcaseConfig.host !== undefined && !isHostTemplate(showcaseConfig.host)) {
+            report(
+                describeShowcaseIssue(
+                    className,
+                    showcaseArg,
+                    ['host'],
+                    'a string or object host has no effect on a component; use host: { template } to render it inside other markup. It was dropped.'
+                )
+            );
+            delete showcaseConfig.host;
+        }
+
         const hierarchy = getClassHierarchy(classDecl, checker);
         const inputs = extractInputs(classDecl, checker, hierarchy);
         const outputs = extractOutputs(classDecl, checker, hierarchy);
@@ -249,6 +279,8 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
     let providers: ts.Node | undefined;
     // A state the evaluator dropped whole leaves no element behind, so its position is noted to keep the later states where the source has them.
     const unevaluableStates = new Set<number>();
+    // The same for the elements of `imports` and `variants`, which are not put back but named by the position the source gives them.
+    const unevaluableElements = { imports: new Set<number>(), variants: new Set<number>() };
     const raw = evaluateStatic(arg, {
         checker,
         report: (issue) => {
@@ -258,6 +290,11 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
                 return;
             }
             if (issue.path[0] === 'states' && issue.path.length === 2 && typeof issue.path[1] === 'number') unevaluableStates.add(issue.path[1]);
+            const [field, index] = issue.path;
+            // A spread that fails inside an element leaves the element behind, and one in the list leaves no telling how many.
+            const isElement = issue.path.length === 2 && !ts.isSpreadAssignment(issue.node) && !ts.isSpreadElement(issue.node);
+
+            if (isElement && (field === 'imports' || field === 'variants') && typeof index === 'number') unevaluableElements[field].add(index);
             report(describeUnevaluable(className, arg, issue));
         }
     });
@@ -330,9 +367,17 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
         }
     }
 
+    if (obj['imports'] !== undefined) {
+        const imports = readShowcaseImports(obj['imports'], className, arg, report, unevaluableElements.imports);
+
+        if (imports.length > 0) config.imports = imports;
+    }
+
     if (Array.isArray(obj['variants'])) {
-        config.variants = (obj['variants'] as Array<Record<string, unknown>>).map((variant) => {
+        config.variants = (obj['variants'] as Array<Record<string, unknown>>).map((variant, index) => {
             const cleaned: Record<string, unknown> = { ...variant };
+            const reportVariant = (field: 'template' | 'host' | 'content', text: string) =>
+                report(describeShowcaseIssue(className, arg, ['variants', sourceIndex(index, unevaluableElements.variants), field], text));
 
             if (isCanvasBg(variant['bg'])) {
                 warnDeprecatedBg(variant['bg'], `${className} variant "${String(variant['name'])}"`);
@@ -362,11 +407,44 @@ export function extractShowcaseConfig(decorator: ts.Decorator, className: string
                 report(`${className} variant "${String(variant['name'])}" declares invalid states ${describeValue(variant['states'])}, expected false. Skipping.`);
                 delete cleaned['states'];
             }
+            if (variant['template'] !== undefined && typeof variant['template'] !== 'string') {
+                reportVariant('template', `expected a string, got ${describeValue(variant['template'])}; it was dropped`);
+                delete cleaned['template'];
+            }
+            if (cleaned['template'] !== undefined && variant['content'] !== undefined) {
+                reportVariant('content', 'set together with template; template wins and content was dropped');
+                delete cleaned['content'];
+            }
+            if (variant['host'] !== undefined && !isHostTemplate(variant['host'])) {
+                reportVariant('host', `expected { template: string }, got ${describeValue(variant['host'])}; it was dropped`);
+                delete cleaned['host'];
+            }
             return cleaned;
         }) as unknown as ShowcaseConfig['variants'];
     }
 
     return config;
+}
+
+/**
+ * `ShowcaseConfig.imports` as the scanner evaluated it, with every entry that is not a `{ name, from }` pair of
+ * non-empty strings reported and dropped. `unevaluable` holds the source positions the evaluator dropped, which keep
+ * the later entries named by the position they have in the source.
+ */
+function readShowcaseImports(value: unknown, className: string, config: ts.Expression, report: Report, unevaluable: ReadonlySet<number>): ShowcaseImport[] {
+    if (!Array.isArray(value)) {
+        report(describeShowcaseIssue(className, config, ['imports'], `expected a list of { name, from }, got ${describeValue(value)}; it was dropped`));
+        return [];
+    }
+
+    return value.flatMap((entry, index) => {
+        if (isShowcaseImport(entry)) return [{ name: entry.name, from: entry.from }];
+
+        const text = `expected { name, from } with a non-empty string each, got ${describeValue(entry)}; it was dropped`;
+
+        report(describeShowcaseIssue(className, config, ['imports', sourceIndex(index, unevaluable)], text));
+        return [];
+    });
 }
 
 function extractComponentMeta(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): ScannedComponent['componentMeta'] {

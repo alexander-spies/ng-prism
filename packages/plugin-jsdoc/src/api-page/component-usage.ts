@@ -15,8 +15,9 @@ const VOID_ELEMENTS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img'
  */
 export function generateComponentUsage(component: ScannedComponent): string {
     const { className, componentMeta, showcaseConfig } = component;
-    // A component renders itself; only a directive needs an element to sit on.
-    const host = componentMeta.isDirective ? showcaseConfig.host : undefined;
+    // A component renders itself; only a directive needs an element to sit on. A `{ template }` host is not shown yet.
+    const configured = componentMeta.isDirective ? showcaseConfig.host : undefined;
+    const host = typeof configured === 'object' && 'template' in configured ? undefined : configured;
     const hostImport = host && typeof host !== 'string' ? host.import : undefined;
 
     return joinUsageBlocks([
@@ -26,7 +27,7 @@ export function generateComponentUsage(component: ScannedComponent): string {
     ]);
 }
 
-function templateLine({ inputs, componentMeta }: ScannedComponent, host: ScannedComponent['showcaseConfig']['host']): string {
+function templateLine({ inputs, componentMeta }: ScannedComponent, host: Exclude<ScannedComponent['showcaseConfig']['host'], { template: string }>): string {
     const selector = parseSelector(componentMeta.selector);
     const hostElement = typeof host === 'string' ? parseHostString(host) : host && { element: host.selector, attributes: hostAttributes(host.inputs) };
     const element = hostElement?.element ?? selector.element ?? 'div';

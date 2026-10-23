@@ -1042,3 +1042,156 @@ describe('scanComponents when the API of a component cannot be read', () => {
         expect(diagnostics).toEqual([]);
     });
 });
+
+describe('scanComponents with composition fields', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'composition-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan() {
+        const diagnostics: string[] = [];
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
+        const config = (className: string) => components.find((c) => c.className === className)!.showcaseConfig;
+        const variant = (index: number) => config('FrameComponent').variants![index];
+
+        return { diagnostics, config, variant };
+    }
+
+    it('keeps template, variant host and imports', () => {
+        const { config, variant } = scan();
+
+        expect(config('FrameComponent').imports).toEqual([{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }]);
+        expect(variant(0).template).toBe('<input libInput />');
+        expect(variant(1).host).toEqual({ template: '<lib-frame><lib-thing /></lib-frame>' });
+    });
+
+    it('reports content and template in one variant and keeps template', () => {
+        const { diagnostics, variant } = scan();
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(/^FrameComponent › variants\[2\] "Both" › content — .*template wins.*\(.*composition-fields\.component\.ts:\d+:\d+\)$/)
+        );
+        expect(variant(2).content).toBeUndefined();
+        expect(variant(2).template).toBe('<input libInput />');
+    });
+
+    it('points a diagnostic at the property it is about', () => {
+        const message = scan().diagnostics.find((d) => d.includes('variants[2] "Both" › content'))!;
+
+        expect(message).toContain('(src/builder/scanner/__fixtures__/composition-fields.component.ts:17:25)');
+        expect(message).not.toContain(FIXTURES_DIR);
+    });
+
+    it('reports an import that is not { name, from } strings, and drops it', () => {
+        const { diagnostics, config } = scan();
+
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^FrameComponent › imports\[1\] — .*\(.*composition-fields\.component\.ts:13:\d+\)$/));
+        expect(diagnostics).toContainEqual(expect.stringContaining('FrameComponent › imports[2] — '));
+        expect(diagnostics).toContainEqual(expect.stringContaining('FrameComponent › imports[3] — '));
+        expect(config('FrameComponent').imports).toHaveLength(1);
+    });
+
+    it('reports a variant host that is not { template }, and drops it', () => {
+        const { diagnostics, variant } = scan();
+
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^FrameComponent › variants\[3\] "Bad host" › host — /));
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^FrameComponent › variants\[5\] "No template" › host — /));
+        expect(variant(3)).not.toHaveProperty('host');
+        expect(variant(5)).not.toHaveProperty('host');
+    });
+
+    it('reports a template that is not a string, and drops it but not the content', () => {
+        const { diagnostics, variant } = scan();
+
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^FrameComponent › variants\[4\] "Bad template" › template — /));
+        expect(variant(4)).not.toHaveProperty('template');
+        expect(variant(4).content).toBe('Kept');
+        expect(diagnostics.filter((d) => d.includes('"Bad template"'))).toHaveLength(1);
+    });
+
+    it('names an element by its position in the source when the evaluator dropped an earlier one', () => {
+        const { diagnostics, config } = scan();
+
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^GapComponent › variants\[1\] "After gap" › content — .*template wins/));
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^GapComponent › imports\[2\] — /));
+        expect(config('GapComponent').imports).toEqual([{ name: 'Listed', from: 'lib' }]);
+    });
+
+    it('reports exactly the invalid values and nothing about the valid ones', () => {
+        const where = scan().diagnostics.map((d) => d.split(' — ')[0]);
+
+        expect(where).toEqual([
+            'FrameComponent › imports[1]',
+            'FrameComponent › imports[2]',
+            'FrameComponent › imports[3]',
+            'FrameComponent › variants[2] "Both" › content',
+            'FrameComponent › variants[3] "Bad host" › host',
+            'FrameComponent › variants[4] "Bad template" › template',
+            'FrameComponent › variants[5] "No template" › host',
+            'GapComponent › imports[0]',
+            'GapComponent › variants[0]',
+            'GapComponent › imports[2]',
+            'GapComponent › variants[1] "After gap" › content',
+            'HostOnComponent › host',
+            'ObjectHostComponent › host'
+        ]);
+    });
+
+    it('reports a string or object host on a component as without effect, and drops it', () => {
+        const { diagnostics, config } = scan();
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(/^HostOnComponent › host — .*has no effect on a component.*host: \{ template \}.*\(.*host-on-component\.component\.ts:7:\d+\)$/)
+        );
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^ObjectHostComponent › host — .*has no effect on a component/));
+        expect(config('HostOnComponent')).not.toHaveProperty('host');
+        expect(config('ObjectHostComponent')).not.toHaveProperty('host');
+    });
+
+    it('keeps a host template on a component without a diagnostic', () => {
+        const { diagnostics, config } = scan();
+
+        expect(config('TemplateHostComponent').host).toEqual({ template: '<lib-frame><lib-template-host /></lib-frame>' });
+        expect(diagnostics.filter((d) => d.startsWith('TemplateHostComponent'))).toEqual([]);
+    });
+
+    it('prints a diagnostic once, however often the component is scanned', () => {
+        const diagnostics: string[] = [];
+
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
+        scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
+
+        expect(warnSpy.mock.calls.filter(([message]) => String(message).includes('HostOnComponent › host'))).toHaveLength(1);
+    });
+});
+
+describe('scanComponents with a string host on a directive', () => {
+    it('keeps it without a diagnostic', () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        const result = resolveEntryPointExports([{ entryFile: path.join(FIXTURES_DIR, 'public-api.ts'), importPath: 'fixture' }], compilerOptions);
+        const checker = result.program.getTypeChecker();
+        const diagnostics: string[] = [];
+        const components = scanComponents(findShowcasedClasses(result.entries[0].exports, checker), checker, { diagnostics });
+
+        expect(components.find((c) => c.className === 'HighlightDirective')!.showcaseConfig.host).toBe('<span class="demo-text">');
+        expect(diagnostics.filter((d) => d.includes('HighlightDirective'))).toEqual([]);
+
+        warnSpy.mockRestore();
+    });
+});

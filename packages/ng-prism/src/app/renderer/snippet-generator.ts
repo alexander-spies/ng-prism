@@ -1,8 +1,8 @@
-import type { DirectiveHost } from '../../decorator/showcase.types.js';
+import type { DirectiveHost, HostTemplate } from '../../decorator/showcase.types.js';
 import type { InputMeta } from '../../plugin/plugin.types.js';
 
 export interface SnippetDirectiveOptions {
-    host?: string | DirectiveHost;
+    host?: string | DirectiveHost | HostTemplate;
 }
 
 function escapeAttrValue(value: unknown): string {
@@ -31,8 +31,11 @@ export function generateSnippet(
     content?: string | Record<string, string>,
     directiveOptions?: SnippetDirectiveOptions
 ): string {
-    if (directiveOptions?.host) {
-        return generateDirectiveSnippet(selector, inputs, values, explicitKeys, content, directiveOptions.host);
+    const host = directiveOptions?.host;
+
+    // A `{ template }` host is not shown yet: the snippet is the directive's selector, as without a host.
+    if (host && !(typeof host === 'object' && 'template' in host)) {
+        return generateDirectiveSnippet(selector, inputs, values, explicitKeys, content, host);
     }
 
     const attributes: string[] = [];

@@ -1,4 +1,5 @@
 import type { Provider, Type } from '@angular/core';
+import type { ShowcaseImport } from '../decorator/showcase.types.js';
 import type { CanvasBg } from '../shared/canvas-bg.type.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import type { StyleguidePage } from './page.types.js';
@@ -205,8 +206,44 @@ export interface ScannedComponent {
      * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
      */
     api?: ComponentApi;
+    /**
+     * The compositions of the showcase: what its variants render, written as Angular templates. Absent when no variant
+     * declares a `template` or a host template, and when a plugin hook builds the component. Since 22.7.0.
+     */
+    composition?: ComponentComposition;
     /** Arbitrary plugin metadata */
     meta?: Record<string, unknown>;
+}
+
+/**
+ * One distinct composition of a showcase, the markup of one or more variants as the generated wrapper renders it in a
+ * `@case`. Since 22.7.0.
+ */
+export interface CompositionCase {
+    /**
+     * The markup as written, the subject element included, with `COMPOSITION_SUBJECT_SLOT` at the end of the start tag
+     * of the subject.
+     */
+    template: string;
+    /**
+     * The inputs of the subject that the wrapper does not bind in this case: `'template'` when the template sets the
+     * input itself, `'default'` when its default could not be read and no variant sets it. Controls show them as
+     * not editable. `name` is the member name.
+     */
+    unbound: { name: string; reason: 'template' | 'default' }[];
+    /** Where the case comes from, as `file:line` and the variants: for the comments and errors of the generated code. Build time only. */
+    origin: string;
+}
+
+/**
+ * The compositions of a showcase: the distinct ones, and which one each variant uses. Since 22.7.0.
+ */
+export interface ComponentComposition {
+    /** By variant index, the index into `cases`, or `-1` for a variant without a composition, which renders as it did before. */
+    variantCases: number[];
+    cases: CompositionCase[];
+    /** What the templates of the cases need beyond the library classes they name, from `ShowcaseConfig.imports`. Build time only. */
+    imports: ShowcaseImport[];
 }
 
 /**
@@ -238,6 +275,12 @@ export interface InputMeta {
     rawType?: string;
     values?: string[];
     defaultValue?: unknown;
+    /**
+     * The input starts out with a value the scan could not evaluate, such as the result of a function call: it has a
+     * default, but `defaultValue` cannot say which. Not set for `input<string>()`, which starts out `undefined`.
+     * Since 22.7.0.
+     */
+    defaultUnreadable?: true;
     required: boolean;
     doc?: string;
 }
@@ -264,6 +307,11 @@ export interface RuntimeManifest {
 export interface RuntimeComponent {
     meta: ScannedComponent;
     type: Type<unknown>;
+    /**
+     * The generated wrapper that renders the compositions of the showcase, for a component with
+     * {@link ScannedComponent.composition}. Since 22.7.0.
+     */
+    composition?: Type<unknown>;
 }
 
 // --- Discovery manifest (the `__PRISM_MANIFEST__` global) ---

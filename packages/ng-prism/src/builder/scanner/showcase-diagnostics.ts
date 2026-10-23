@@ -35,6 +35,17 @@ export function describeUnevaluable(className: string, config: ts.Expression, is
 }
 
 /**
+ * Describe a value of a `@Showcase` config that is valid to the evaluator but not to the scan: which component, where
+ * in the config, what is wrong and where. `path` is read as in {@link describeUnevaluable}, with array indices as
+ * written in the source. The location is the node at `path` when the literal has one, else the whole config.
+ *
+ * `FormFieldComponent › variants[2] "Both" › content — set together with template; template wins and content was dropped (src/form-field.component.ts:31:9)`
+ */
+export function describeShowcaseIssue(className: string, config: ts.Expression, path: EvaluationPath, text: string): string {
+    return `${className} › ${formatShowcasePath(path, config)} — ${text} (${location(nodeAtPath(config, path) ?? config)})`;
+}
+
+/**
  * `providers` never reached the manifest: classes, factories and instances
  * cannot be written into static data. One message for the field, not one per
  * provider, because none of them could have been kept. It points at the
@@ -188,6 +199,29 @@ function elementName(config: ts.Expression, key: 'variants' | 'states', index: n
     const value = name && evaluateExpression(name);
 
     return typeof value === 'string' ? value : undefined;
+}
+
+/** The property or element the literal has at `path`, or `undefined` as soon as the literal stops spelling the path out, as with a spread or a constant. */
+function nodeAtPath(config: ts.Expression, path: EvaluationPath): ts.Node | undefined {
+    let container: ts.Node = config;
+    let found: ts.Node | undefined;
+
+    for (const segment of path) {
+        const member: ts.Node | undefined =
+            typeof segment === 'number'
+                ? ts.isArrayLiteralExpression(container)
+                    ? container.elements[segment]
+                    : undefined
+                : ts.isObjectLiteralExpression(container)
+                  ? findProperty(container, segment)
+                  : undefined;
+
+        if (!member) return undefined;
+        found = member;
+        container = ts.isPropertyAssignment(member) ? member.initializer : member;
+    }
+
+    return found;
 }
 
 function findProperty(object: ts.ObjectLiteralExpression, key: string): ts.ObjectLiteralElementLike | undefined {

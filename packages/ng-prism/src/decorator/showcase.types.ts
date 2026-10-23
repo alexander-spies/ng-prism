@@ -11,6 +11,26 @@ export interface DirectiveHost {
     inputs?: Record<string, unknown>;
 }
 
+/**
+ * A class that the templates of a showcase use and ng-prism cannot find in the library on its own, listed in
+ * `ShowcaseConfig.imports`. Strings, not a class reference, so that `ng-prism-strip` leaves no import behind in the
+ * published library. Since 22.7.0.
+ */
+export interface ShowcaseImport {
+    /** Exported name, e.g. `'CdkTextareaAutosize'`. */
+    name: string;
+    /** Module specifier, e.g. `'@angular/cdk/text-field'`. */
+    from: string;
+}
+
+/**
+ * The markup the showcased component or directive renders in, compiled as an Angular template: the element that
+ * matches its selector is the subject. Since 22.7.0.
+ */
+export interface HostTemplate {
+    template: string;
+}
+
 // Angular's signal-input brand types are invariant in their type parameters,
 // so the filter has to use `any` to match `InputSignal<X>`, `ModelSignal<X>`
 // and `InputSignalWithTransform<X, Y>` for arbitrary X/Y. We unwrap to the
@@ -129,9 +149,20 @@ export interface ShowcaseConfig<T = unknown> {
     canvasLayout?: CanvasLayout;
     /**
      * Host element for directive showcases. String = HTML element (e.g. '<button class="btn">'), object = Angular component.
+     * A string or an object has no effect on a component: the scan drops it with a diagnostic.
+     * `{ template }` is an Angular template the subject renders in, for a component or a directive; the element that
+     * matches the subject's selector is the subject, and `prism-subject` names it where several match. A
+     * `Variant.host` overrides it for that variant. Since 22.7.0.
      * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
-    host?: string | DirectiveHost;
+    host?: string | DirectiveHost | HostTemplate;
+    /**
+     * What the templates of this showcase (`Variant.template`, `host: { template }`) use that ng-prism does not find
+     * in the library by itself: a class from a third-party package, a pipe or directive from Angular. Library classes
+     * that the template names are imported without being listed. Since 22.7.0.
+     * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
+     */
+    imports?: ShowcaseImport[];
     /**
      * Title of a registered ComponentPage to render instead of the component itself. Use for complex components that need template projections or mock data. The page component can inject PrismRendererService to react to control panel changes.
      * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
@@ -157,6 +188,15 @@ export interface Variant<T = unknown> {
      * - Record<string, string>: keys are slot selectors (e.g. '[card-header]'), 'default' is the unnamed slot
      */
     content?: string | Record<string, string>;
+    /**
+     * Angular template, compiled as the content of the showcased component or directive: a component gets it projected
+     * into its `<ng-content>` slots by Angular's own selector matching, a directive renders it inside its host element.
+     * The counterpart of `content`, which stays HTML. Set together with `content`, it wins and `content` is dropped
+     * with a diagnostic. Since 22.7.0.
+     */
+    template?: string;
+    /** The template the subject renders in for this variant. Overrides `ShowcaseConfig.host`. Since 22.7.0. */
+    host?: HostTemplate;
     /** Optional description for this variant */
     description?: string;
     /** Arbitrary metadata for plugins (e.g. { figma: 'https://...?node-id=12-34' }) */

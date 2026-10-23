@@ -92,7 +92,7 @@ function generateWrapperClass(comp: ScannedComponent, warn: Warn): string {
         hostTag = parsed?.tag ?? 'div';
         attrs = parsed?.attrs ? ` ${parsed.attrs}` : '';
         hostContentDefault = parsed?.content ?? '';
-    } else if (host && typeof host === 'object') {
+    } else if (host && typeof host === 'object' && !('template' in host)) {
         const hostImport = objectHostImport(host);
 
         if (hostImport) {
@@ -194,7 +194,7 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
 
         for (const comp of directives) {
             const host = comp.showcaseConfig.host;
-            const hostImport = host && typeof host === 'object' ? objectHostImport(host) : undefined;
+            const hostImport = host && typeof host === 'object' && !('template' in host) ? objectHostImport(host) : undefined;
 
             if (hostImport) {
                 const existing = groups.get(hostImport.from);

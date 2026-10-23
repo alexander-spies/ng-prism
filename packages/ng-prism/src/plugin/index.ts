@@ -1,6 +1,8 @@
 // Plugin API exports
 export type {
     ComponentApi,
+    ComponentComposition,
+    CompositionCase,
     ControlDefinition,
     DiscoveryComponent,
     DiscoveryManifest,
@@ -37,6 +39,10 @@ export type {
     ServiceApi,
     ServiceProvision
 } from './service.types.js';
+
+// What a showcase's compositions put into the manifest. Plugins that show the markup of a variant (a snippet, a usage
+// example) replace the slot, and the constants name what ng-prism puts into and takes out of a composition.
+export { COMPOSITION_SUBJECT_ATTR, COMPOSITION_SUBJECT_SLOT, PRISM_VARIANT_INPUT, SUBJECT_MARKER_ATTR } from '../shared/composition.js';
 
 // The canvas background a variant renders on. Part of the discovery contract
 // (`DiscoveryVariant.bg`), so external tooling and plugins can name the type
