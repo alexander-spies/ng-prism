@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseRelease, uiCamera } from './release.ts';
+import { apiTypingSeconds, parseRelease, uiCamera } from './release.ts';
 
 const shots = new Set(['look', 'service-page']);
 const clip = {
@@ -61,4 +61,10 @@ test('uiCamera moves onto the first mark after the caption and back to the whole
     ]);
     assert.deepEqual(uiCamera(info, undefined), []);
     assert.throws(() => uiCamera({ ...info, focus: [] }, 1.8), { message: 'The recording copy-link has no mark to zoom onto' });
+});
+
+test('apiTypingSeconds types a one-line decorator in 1.5 s and a longer one at the tour’s pace, 5 s at most', () => {
+    assert.equal(apiTypingSeconds(1), 1.5);
+    assert.ok(Math.abs(apiTypingSeconds(11) - 4.4) < 1e-9);
+    assert.equal(apiTypingSeconds(30), 5);
 });

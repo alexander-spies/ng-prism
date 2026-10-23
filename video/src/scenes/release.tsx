@@ -9,7 +9,7 @@ import { cue, typingCues } from '../components/sfx.tsx';
 import { SplitBeat } from '../components/SplitBeat.tsx';
 import { VersionCard } from '../components/VersionCard.tsx';
 import type { RecordingInfo } from '../lib/recording-info.ts';
-import { DEFAULT_API_ZOOM, uiCamera, type ReleaseClip } from '../lib/release.ts';
+import { apiTypingSeconds, DEFAULT_API_ZOOM, uiCamera, type ReleaseClip } from '../lib/release.ts';
 import { cutVariables } from './cut-variables.ts';
 import { recordingBeat } from './tour/beat.tsx';
 import { crossfade, until } from './tour/timing.ts';
@@ -17,7 +17,6 @@ import { crossfade, until } from './tour/timing.ts';
 Code.defaultHighlighter = tsHighlighter;
 
 const VERSION_HOLD = 2;
-const API_TYPING_SECONDS = 1.5;
 const END_HOLD = 4;
 
 /**
@@ -32,8 +31,9 @@ function* apiBeat(view: View2D, previous: Node, split: SplitBeat, info: Recordin
     yield* crossfade(previous, split, 0.5);
     spawn(text.show());
     yield* until(start + 1.6);
-    typingCues(view, useTime(), API_TYPING_SECONDS);
-    yield* split.type(API_TYPING_SECONDS);
+    const typing = apiTypingSeconds(split.addedLines);
+    typingCues(view, useTime(), typing);
+    yield* split.type(typing);
     yield* split.card.highlightLines(0, split.addedLines - 1, 0.4);
     yield* waitFor(0.6);
     cue(view, 'whoosh', useTime());

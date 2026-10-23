@@ -11,7 +11,7 @@ test('every shot has a unique id and a ready selector', () => {
 test('the tour and the 22.7 release shots are registered; the end card needs none', () => {
     assert.deepEqual(
         SHOTS.map((shot) => shot.id),
-        ['reveal', 'controls', 'quality', 'states', 'look', 'service-page']
+        ['reveal', 'controls', 'quality', 'states', 'look', 'service-page', 'composition']
     );
 });
 

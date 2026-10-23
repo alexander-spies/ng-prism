@@ -25,6 +25,11 @@ const MAX_ZOOM: Record<ReleaseBeat['kind'], number> = { ui: 2, api: 4 };
 /** The camera zoom of an `api` beat without its own. */
 export const DEFAULT_API_ZOOM = 1.3;
 
+/** How long an `api` beat types its decorator: 0.4 s a line, the tour's pace, but at least 1.5 s and at most 5 s. */
+export function apiTypingSeconds(addedLines: number): number {
+    return Math.min(5, Math.max(1.5, addedLines * 0.4));
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
