@@ -1,9 +1,11 @@
 import type { View2D } from '@revideo/2d';
-import { all, easeInOutCubic, spawn, type ThreadGenerator } from '@revideo/core';
+import { all, easeInOutCubic, spawn, useTime, type ThreadGenerator } from '@revideo/core';
 import { STATUS } from '../../brand.ts';
 import { Caption } from '../../components/Caption.tsx';
 import { CodeCard } from '../../components/CodeCard.tsx';
 import { FileTree } from '../../components/FileTree.tsx';
+import type { RecordingInfo } from '../../lib/recording-info.ts';
+import type { BeatPlan } from './beat.tsx';
 import { until } from './timing.ts';
 
 export const TREE = ['button/', 'button.component.ts', 'button.component.html', 'button.component.css', 'button.stories.ts'];
@@ -50,16 +52,33 @@ export function* treeSegment(view: View2D, card: CodeCard): ThreadGenerator {
     noStories.remove();
 }
 
-/** 0:09–0:20: @Showcase types itself onto the component, then stays highlighted long enough to read. */
+/**
+ * 0:09–0:20, and the start of the README loop: @Showcase types itself onto the component, then stays highlighted long
+ * enough to read. 10.3 s from wherever it starts.
+ */
 export function* codeSegment(view: View2D, card: CodeCard, codeAfter: string, showcaseLines: number): ThreadGenerator {
+    const start = useTime();
     const caption = new Caption({ text: 'Annotate the **component itself.**' });
     view.add(caption);
-    yield* until(9.5);
+    yield* until(start + 0.2);
     spawn(caption.show());
-    yield* until(10.6);
+    yield* until(start + 1.3);
     yield* card.typeTo(codeAfter, 6);
     yield* card.highlightLines(0, showcaseLines - 1, 0.5);
-    yield* until(19.3);
+    yield* until(start + 10);
     yield* caption.hide();
     caption.remove();
+}
+
+/** The code gives way to the styleguide it produces: the camera on the selected component, then on its variants. */
+export function revealPlan(info: RecordingInfo): BeatPlan {
+    return {
+        info,
+        caption: 'That’s the **styleguide.**',
+        camera: [
+            { at: 2.0, mark: 'sidebar-button', scale: 1.7, seconds: 1.3 },
+            { at: 5.6, mark: 'variant-tabs', scale: 1.9, seconds: 1.3 },
+            { at: 8.3, seconds: 1 }
+        ]
+    };
 }

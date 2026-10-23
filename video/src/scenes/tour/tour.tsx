@@ -6,7 +6,7 @@ import { EndCard } from '../../components/EndCard.tsx';
 import { ensureFonts } from '../../components/fonts.ts';
 import { tsHighlighter } from '../../components/highlighter.ts';
 import { clickAt, markAt, type RecordingInfo } from '../../lib/recording-info.ts';
-import { codeSegment, treeSegment } from './act1.tsx';
+import { codeSegment, revealPlan, treeSegment } from './act1.tsx';
 import { recordingBeat } from './beat.tsx';
 
 Code.defaultHighlighter = tsHighlighter;
@@ -32,16 +32,7 @@ export default makeScene2D('tour', function* (view) {
     const card = new CodeCard({ code: codeBefore, file: 'button.component.ts', fontSize: 22, y: -40 });
     yield* treeSegment(view, card);
     yield* codeSegment(view, card, codeAfter, showcaseLines);
-    // The code gives way to the styleguide it produces.
-    const reveal = recordingBeat(view, card, {
-        info: recordings['reveal'],
-        caption: 'That’s the **styleguide.**',
-        camera: [
-            { at: 2.0, mark: 'sidebar-button', scale: 1.7, seconds: 1.3 },
-            { at: 5.6, mark: 'variant-tabs', scale: 1.9, seconds: 1.3 },
-            { at: 8.3, seconds: 1 }
-        ]
-    });
+    const reveal = recordingBeat(view, card, revealPlan(recordings['reveal']));
     yield* all(card.scale(0.6, 0.6, easeInOutCubic), reveal.run());
 
     // Act 2: what you get.

@@ -17,6 +17,8 @@ export interface BeatPlan {
     info: RecordingInfo;
     caption: string;
     camera: CameraMove[];
+    /** How much of the recording the beat shows, in seconds; all of it by default. */
+    seconds?: number;
 }
 
 /**
@@ -28,7 +30,7 @@ export function recordingBeat(view: View2D, previous: Node, plan: BeatPlan): { r
     let recording: Recording | undefined;
     function* run(): ThreadGenerator {
         const start = useTime();
-        const end = start + plan.info.durationSec;
+        const end = start + (plan.seconds ?? plan.info.durationSec);
         // Created here, inside the thread: the video starts loading in its constructor.
         recording = new Recording({ info: plan.info, src: `/recordings/${plan.info.file}`, opacity: 0 });
         view.add(recording);

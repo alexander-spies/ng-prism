@@ -1,7 +1,8 @@
 // Renders one cut to a ProRes master in out/masters/.
 //
 //   node scripts/render.ts <sandbox|tour|readme-loop|release> [--length full|short] [--version 22.7]
-import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, renameSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -60,15 +61,27 @@ function buttonCode(): { codeBefore: string; codeAfter: string; showcaseLines: n
 }
 
 /** Everything a cut's scenes read from `useScene().variables`. They replace the project defaults, so it is complete. */
-export async function variablesFor(cut: Cut, _options: CutOptions = {}): Promise<Record<string, unknown>> {
+export async function variablesFor(cut: Cut, options: CutOptions = {}): Promise<Record<string, unknown>> {
     switch (cut) {
         case 'sandbox':
             return { recordings: byId(readManifest()) };
         case 'tour':
             return { ...buttonCode(), recordings: await freshRecordings(TOUR_SHOTS) };
+        case 'readme-loop':
+            return { length: options.length ?? 'full', ...buttonCode(), recordings: await freshRecordings(['reveal']) };
         default:
             throw new Error(`No variables for the cut "${cut}" yet`);
     }
+}
+
+/** Cuts without sound. */
+const SILENT_CUTS: ReadonlySet<Cut> = new Set(['readme-loop']);
+
+/** Revideo gives every master an audio track, a silent one when no scene plays sound; a silent cut drops it. */
+function dropAudio(file: string): void {
+    const withoutAudio = file.replace(/\.mov$/, '.video-only.mov');
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', file, '-map', '0:v', '-c', 'copy', withoutAudio]);
+    renameSync(withoutAudio, file);
 }
 
 /** Renders `src/projects/<cut>.ts` to `out/masters/<outFile>` (a .mov ProRes master) and returns its path. */
@@ -104,14 +117,17 @@ export async function render(cut: Cut, variables: Record<string, unknown>, outFi
                 }
             }
         });
+    let file: string;
     try {
-        return await run();
+        file = await run();
     } catch (error) {
         // Revideo #353: when Vite optimises dependencies on the first load it reloads the page under Puppeteer. The
         // second run finds them optimised.
         if (!String(error).includes('Navigating frame was detached')) throw error;
-        return await run();
+        file = await run();
     }
+    if (SILENT_CUTS.has(cut)) dropAudio(file);
+    return file;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
