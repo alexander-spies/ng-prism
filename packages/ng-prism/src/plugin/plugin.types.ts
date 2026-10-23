@@ -218,6 +218,8 @@ export interface ScannedComponent {
 /**
  * One distinct composition of a showcase, the markup of one or more variants as the generated wrapper renders it in a
  * `@case`. Since 22.7.0.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
  */
 export interface CompositionCase {
     /**
@@ -227,8 +229,8 @@ export interface CompositionCase {
     template: string;
     /**
      * The inputs of the subject that the wrapper does not bind in this case: `'template'` when the template sets the
-     * input itself, `'default'` when its default could not be read and no variant sets it. Controls show them as
-     * not editable. `name` is the member name.
+     * input itself, `'default'` when its default could not be read and the variant does not set it. Controls show
+     * them as not editable. `name` is the member name.
      */
     unbound: { name: string; reason: 'template' | 'default' }[];
     /**
@@ -240,6 +242,8 @@ export interface CompositionCase {
 
 /**
  * The compositions of a showcase: the distinct ones, and which one each variant uses. Since 22.7.0.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
  */
 export interface ComponentComposition {
     /**

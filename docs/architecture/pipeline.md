@@ -35,7 +35,7 @@ Write in place  (skip if unchanged)
 
 The scan returns the components, the services, the pipes and the diagnostics of one run. A `@Showcase` class with `@Injectable` or `@Service` is a service and one with `@Pipe` is a pipe: each goes into its own list, never into `components`, see [Services](architecture/scanner.md#services) and [Pipes](architecture/scanner.md#pipes).
 
-The scan also reads the [compositions](architecture/scanner.md#compositions) of every showcase that has a `template` or a host template, against an index of every component, directive and pipe the entry points export. What it finds wrong is a diagnostic, and the variant is then left out of the composition, so a template error does not stop the build, unless [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on.
+The scan also reads the [compositions](architecture/scanner.md#compositions) of every showcase that has a `template` or a host template, against an index of every component, directive and pipe the entry points export, which it builds only when a showcase composes. What it finds wrong is a diagnostic, and the variant is then left out of the composition, so a template error does not stop the build, unless [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on.
 
 Before scanning, the pipeline looks at the plugins of the loaded config and passes the scan [`ScanOptions`](architecture/scanner.md#entry) for what they use. Reading more costs time on every rebuild of `serve` and makes the manifest bigger:
 
@@ -135,7 +135,7 @@ class FormFieldComponent__PrismComposition {
 
 What the generator does with a composition:
 
-- The subject element carries `data-prism-subject`, every input is bound as `[alias]="this.member()"` and every output as `(alias)="this.member.emit($event)"`. The members are read with `this.`, so that a variable the author's markup declares, such as `@for (label of …)`, cannot shadow a binding. An input the template sets on the subject, and one whose default could not be read and no variant sets, is not bound in that case.
+- The subject element carries `data-prism-subject`, every input is bound as `[alias]="this.member()"` and every output as `(alias)="this.member.emit($event)"`. The members are read with `this.`, so that a variable the author's markup declares, such as `@for (label of …)`, cannot shadow a binding. An input the template sets on the subject, and one whose default could not be read and that the variant does not set, is not bound in that case.
 - Inputs are `input<any>(default)`, so that `strictTemplates` accepts any value, arrays and objects included, and `input.required<any>()` for a required one. The wrapper is declared once per showcase, so an input that no case binds is not declared at all.
 - The classes the templates use are imported from the entry point the scan found them in, from the showcase's `imports`, or from the module of a directive's object host. Two classes of one name from different modules are told apart with an alias, `Name__2`.
 - The host element of the wrapper is `display: block`. The wrapper of a directive without a composition, `__PrismHost`, stays inline.

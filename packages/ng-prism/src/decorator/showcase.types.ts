@@ -5,9 +5,16 @@ import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 
 export type ComponentStatus = 'stable' | 'beta' | 'wip' | 'deprecated';
 
+/**
+ * The object form of `ShowcaseConfig.host`: an Angular component whose element a directive renders on. Exported
+ * since 22.7.0.
+ */
 export interface DirectiveHost {
+    /** The component's element, e.g. `'lib-button'`. */
     selector: string;
+    /** The component's class, which the generated host imports: its exported name and its module. */
     import: { name: string; from: string };
+    /** Static inputs of the component, written as attributes on its element. */
     inputs?: Record<string, unknown>;
 }
 
@@ -209,7 +216,8 @@ export interface Variant<T = unknown> {
      * Pseudo states forced on while this variant renders, e.g.
      * `{ 'focus-visible': '.btn' }` or `{ hover: true }`.
      * - `true`: the state is forced on every element of the rendered component, the host included.
-     * - A selector, or a list of them: only on the matching elements, resolved against the host and everything inside it.
+     * - A selector, or a list of them: only on the matching elements, resolved against what is rendered: the host and
+     *   everything inside it, or the whole composition for a variant with a `template` or a host template.
      *
      * The component's own CSS applies: every selector using the pseudo-class is widened to also match a stand-in class on the targeted elements.
      */

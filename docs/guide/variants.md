@@ -436,7 +436,7 @@ Hover, active and focus states cannot be set through an input. Focusing an eleme
 The keys are the states: `hover`, `active`, `focus`, `focus-visible` and `focus-within`. Each one takes a target:
 
 - **`true`**: every element of what is rendered, the host included. Closest to what a pointer resting on the component does.
-- **A selector, or a list of them**: only the matching elements, matched against the host element and everything inside it. Use it for the element the state belongs to, such as the inner `<button>` of a host component or a visually hidden `<input>` whose sibling draws the box.
+- **A selector, or a list of them**: only the matching elements, matched against what is rendered: the host element and everything inside it. Use it for the element the state belongs to, such as the inner `<button>` of a host component or a visually hidden `<input>` whose sibling draws the box.
 
 What is rendered is the whole [composition](guide/content-projection.md#compiled-content-template) when a variant has a `template` or a host template, so both forms reach the elements of the frame and of the other parts as well: `{ hover: '.lib-form-field__box' }` hovers the box of the frame around the subject, and `true` is every element of the composition.
 

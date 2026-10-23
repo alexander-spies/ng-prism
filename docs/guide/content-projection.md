@@ -164,7 +164,7 @@ What only Angular finds, such as a binding to an input the subject does not have
 
 ### What the canvas shows
 
-- **Controls and `inputs` belong to the subject.** Values for other parts of the composition are written in the template, per variant. A control for an input that the template sets on the subject, or whose default ng-prism could not read and no variant sets, shows `Not editable` with the reason as its tooltip.
+- **Controls and `inputs` belong to the subject.** Values for other parts of the composition are written in the template, per variant. A control for an input that the template sets on the subject, or whose default ng-prism could not read and the variant does not set, shows `Not editable` with the reason as its tooltip.
 - **`states` and `pseudo` resolve against the whole composition.** `{ hover: '.lib-form-field__box' }` finds an element inside the frame and `{ 'focus-visible': '.lib-input' }` the input, and `true` means every element of the composition.
 - **a11y, Box Model, measuring, Figma and visual regression work on the whole composition,** since that is what the canvas renders. The a11y audit sees the label that belongs to the frame instead of an unlabelled input. The wrapper is a block element: in `fit` the canvas shrinks around its content, in `stretch` it fills the width.
 - **Perf measures the whole composition.** See [Perf](plugins/perf.md#metrics).

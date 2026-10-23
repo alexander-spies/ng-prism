@@ -74,14 +74,14 @@ interface ScannedComponent {
 | `importPath`                | Import path of the entry point that exports the component (e.g. `'my-lib'` or `'my-lib/atoms'`). The scanner sets it for every entry point it scans, the primary one included                                                                                                    |
 | `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest                                                                                                                                                                              |
 | `api`                       | What the API page needs beyond `inputs` and `outputs`, see [`ComponentApi`](#componentapi) (since `22.7.0`). Only read when a plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi), missing otherwise and when a plugin hook builds the component. **Experimental** |
-| `composition`               | What the variants render when they have a `template` or a host template, see [`ComponentComposition`](#componentcomposition) (since `22.7.0`). Missing when no variant is composed and when a plugin hook builds the component                                                   |
+| `composition`               | What the variants render when they have a `template` or a host template, see [`ComponentComposition`](#componentcomposition) (since `22.7.0`). Missing when no variant is composed and when a plugin hook builds the component. **Experimental**                                 |
 | `meta`                      | Plugin-injected metadata                                                                                                                                                                                                                                                         |
 
 The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them. `composition` is carried too, with its `imports` and without the `origin` of each case, which only the generated code uses.
 
 The scan reads `composition` before the plugin hooks run. A hook that changes `showcaseConfig.variants[].template`, a host template or `imports` afterwards does not change what renders.
 
-`className`, `filePath`, `showcaseConfig`, `inputs`, `outputs`, `componentMeta`, `importPath` and `meta` follow semver as they are. The shape of `api` does not, see below.
+`className`, `filePath`, `showcaseConfig`, `inputs`, `outputs`, `componentMeta`, `importPath` and `meta` follow semver as they are. The shape of `api` does not, see below, and neither does the shape of `composition`, see [`ComponentComposition`](#componentcomposition).
 
 ---
 
@@ -611,6 +611,8 @@ A class that the templates of a showcase use and ng-prism cannot find in the lib
 
 ## ComponentComposition
 
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `ComponentComposition`, which is `ScannedComponent.composition`, `CompositionCase` and the four constants below.
+
 What the variants of a showcase render when they have a `template` or a host template (since `22.7.0`): the distinct compositions, and which one each variant uses. It is `ScannedComponent.composition`, and the runtime manifest carries it next to the generated wrapper in [`RuntimeComponent.composition`](#runtimecomponent).
 
 ```typescript
@@ -633,11 +635,11 @@ interface CompositionCase {
 | `cases`        | One entry per distinct composition. Variants with the same markup and the same unbound inputs share one                                                                                                                                                                              |
 | `imports`      | Every class the generated wrapper imports besides the subject: the library classes the templates use, the showcase's `imports` and the class of a directive's object host. Set by the scan and carried in the runtime manifest, so that a usage example in the browser can name them |
 
-| `CompositionCase` field | Description                                                                                                                                                                                                                                    |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `template`              | The markup as written, the subject element included, with `COMPOSITION_SUBJECT_SLOT` at the end of the start tag of the subject. The code snippet replaces the slot with the current attributes, the generated wrapper with the bindings       |
-| `unbound`               | The inputs of the subject that the wrapper does not bind in this case, by member name. `'template'`: the template sets the input itself. `'default'`: its default could not be read and no variant sets it. Controls show them as not editable |
-| `origin`                | Where the case comes from, as the variants and `file:line`. Set at build time for the comments and errors of the generated code, not in the runtime manifest                                                                                   |
+| `CompositionCase` field | Description                                                                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `template`              | The markup as written, the subject element included, with `COMPOSITION_SUBJECT_SLOT` at the end of the start tag of the subject. The code snippet replaces the slot with the current attributes, the generated wrapper with the bindings                |
+| `unbound`               | The inputs of the subject that the wrapper does not bind in this case, by member name. `'template'`: the template sets the input itself. `'default'`: its default could not be read and the variant does not set it. Controls show them as not editable |
+| `origin`                | Where the case comes from, as the variants and `file:line`. Set at build time for the comments and errors of the generated code, not in the runtime manifest                                                                                            |
 
 A plugin that shows the markup of a variant, such as a snippet or a usage example, replaces the slot with the attributes of its choice. Four constants name what ng-prism puts into a composition and takes out of it, exported from `@ng-prism/core/plugin`:
 
