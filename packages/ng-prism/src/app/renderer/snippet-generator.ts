@@ -101,30 +101,55 @@ function hostContentValue(values: Record<string, unknown>): string | undefined {
     return typeof value === 'string' ? value : undefined;
 }
 
+/** One part of a selector list: its element, if it names one, and its attributes and classes as the markup writes them. */
+interface SelectorPart {
+    tag?: string;
+    attributes: string[];
+}
+
+/** The parts of a selector list. `:not()` is ignored. */
+function selectorParts(selector: string): SelectorPart[] {
+    return selector
+        .replace(/:not\([^)]*\)/g, '')
+        .split(',')
+        .map((part) => {
+            const text = part.trim();
+            const tag = text.match(/^[a-zA-Z][\w-]*/)?.[0];
+            const attributes: string[] = [];
+            const classNames: string[] = [];
+
+            for (const [, name, value, className] of text.slice(tag?.length ?? 0).matchAll(/\[([^\]=]+)(?:=["']?([^\]"']*)["']?)?\]|\.([\w-]+)/g)) {
+                if (className) {
+                    classNames.push(className);
+                } else {
+                    attributes.push(value ? `${name}="${escapeAttrValue(value)}"` : name);
+                }
+            }
+            if (classNames.length > 0) attributes.push(`class="${classNames.join(' ')}"`);
+
+            return { tag, attributes };
+        });
+}
+
 /**
  * The element and the attributes a component's selector asks for: `button[libBtn]` is `<button libBtn>`. Of a selector
- * list only the first part counts, `:not()` is ignored, and a selector without an element is a `div`, as when the
- * styleguide renders it.
+ * list only the first part counts, and a selector without an element is a `div`, as when the styleguide renders it.
  */
 function selectorToElement(selector: string): { tag: string; attributes: string[] } {
-    const part = selector
-        .split(',')[0]
-        .replace(/:not\([^)]*\)/g, '')
-        .trim();
-    const tag = part.match(/^[a-zA-Z][\w-]*/)?.[0];
-    const attributes: string[] = [];
-    const classNames: string[] = [];
+    const [first] = selectorParts(selector);
 
-    for (const [, name, value, className] of part.slice(tag?.length ?? 0).matchAll(/\[([^\]=]+)(?:=["']?([^\]"']*)["']?)?\]|\.([\w-]+)/g)) {
-        if (className) {
-            classNames.push(className);
-        } else {
-            attributes.push(value ? `${name}="${escapeAttrValue(value)}"` : name);
-        }
-    }
-    if (classNames.length > 0) attributes.push(`class="${classNames.join(' ')}"`);
+    return { tag: first.tag ?? 'div', attributes: first.attributes };
+}
 
-    return { tag: tag ?? 'div', attributes };
+/**
+ * The attributes of a directive's selector that put it on a host element `tag`: those of the first part of a selector
+ * list that names `tag` or no element, as the generated wrapper takes them. When no part fits, the first part's.
+ */
+function selectorAttributesOnHost(selector: string, tag: string): string[] {
+    const parts = selectorParts(selector);
+    const fitting = parts.find((part) => (part.tag ?? tag).toLowerCase() === tag.toLowerCase()) ?? parts[0];
+
+    return fitting.attributes;
 }
 
 /** The attributes of a selector that no written attribute sets yet: an input aliased to one of them gives it its value. */
@@ -164,12 +189,6 @@ function renderElement(tag: string, attributes: string[], contentHtml: string | 
     return `<${tag}\n${indented}>\n  ${content}\n${closeTag}`;
 }
 
-function directiveSelectorToAttr(selector: string): string {
-    const match = selector.match(/^\[([^\]]+)]$/);
-
-    return match ? match[1] : selector;
-}
-
 /**
  * The element a string host starts with, its attributes as written, and the content between its start and end tag
  * (`<button class="btn">Hover me</button>`): that content is what the host renders when a variant sets none.
@@ -192,8 +211,6 @@ function generateDirectiveSnippet(
     content: string | Record<string, string> | undefined,
     host: string | DirectiveHost
 ): string {
-    const directiveAttr = directiveSelectorToAttr(selector);
-
     let tag: string;
     let hostContent: string | undefined;
     const hostAttrs: string[] = [];
@@ -216,8 +233,8 @@ function generateDirectiveSnippet(
     const attributes = subjectAttributes(inputs, values, explicitKeys, HOST_CONTENT_KEYS);
     // The variant's content, else the content of the host: the generated host's `__prismContent__` defaults to it.
     const projectedContent = content ?? hostContentValue(values) ?? hostContent;
-    // An input aliased to the directive's own selector already puts the directive on the host.
-    const selectorAttrs = unwrittenSelectorAttributes([directiveAttr], attributes);
+    // An input aliased to an attribute of the directive's selector already puts the directive on the host.
+    const selectorAttrs = unwrittenSelectorAttributes(selectorAttributesOnHost(selector, tag), attributes);
 
     return renderElement(tag, [...hostAttrs, ...selectorAttrs, ...attributes], resolveContentHtml(projectedContent));
 }

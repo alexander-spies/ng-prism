@@ -214,7 +214,7 @@ describe('generateSnippet', () => {
 
         it('should render boolean false on a directive when the input defaults to true', () => {
             const inputs = [meta({ name: 'truncate', type: 'boolean', defaultValue: true })];
-            const result = generateSnippet('libTooltip', inputs, { truncate: false }, undefined, undefined, { host: 'div' });
+            const result = generateSnippet('[libTooltip]', inputs, { truncate: false }, undefined, undefined, { host: 'div' });
 
             expect(result).toBe('<div libTooltip [truncate]="false"></div>');
         });
@@ -260,6 +260,40 @@ describe('generateSnippet', () => {
             expect(result).toBe(
                 '<button\n  class="btn"\n  libTooltip\n  tooltipText="Some longer tooltip text"\n  tooltipPosition="bottom"\n  [tooltipDelay]="300"></button>'
             );
+        });
+
+        it('puts the attributes of the selector on the host, not the selector', () => {
+            expect(generateSnippet('input[libInput]', [], {}, undefined, undefined, { host: '<input type="text">' })).toBe('<input type="text" libInput />');
+            expect(generateSnippet('a[libLink]', [], {}, undefined, undefined, { host: '<a href="#">' })).toBe('<a href="#" libLink></a>');
+            expect(generateSnippet('[libA][libB]', [], {}, undefined, undefined, { host: '<span>' })).toBe('<span libA libB></span>');
+            expect(generateSnippet('[libTooltip][position=top].tip', [], {}, undefined, undefined, { host: '<span>' })).toBe(
+                '<span libTooltip position="top" class="tip"></span>'
+            );
+        });
+
+        it('takes the part of a selector list that fits the host', () => {
+            const selector = 'input[libInput], textarea[libInput]';
+
+            expect(generateSnippet(selector, [], {}, undefined, undefined, { host: '<textarea>' })).toBe('<textarea libInput></textarea>');
+            expect(generateSnippet(selector, [], {}, undefined, undefined, { host: '<input>' })).toBe('<input libInput />');
+            expect(generateSnippet('button[libA], [libB]', [], {}, undefined, undefined, { host: '<span>' })).toBe('<span libB></span>');
+        });
+
+        it('takes the first part of a selector list when none fits the host', () => {
+            expect(generateSnippet('button[libBtn], a[libBtn]', [], {}, undefined, undefined, { host: '<div>' })).toBe('<div libBtn></div>');
+        });
+
+        it('puts the attributes of the selector on an object host as well', () => {
+            const host = { selector: 'lib-badge', import: { name: 'LibBadge', from: 'lib' } };
+
+            expect(generateSnippet('lib-badge[libTooltip], [libTooltip]', [], {}, undefined, undefined, { host })).toBe('<lib-badge libTooltip />');
+            expect(generateSnippet('button[libTooltip], span[libTooltip]', [], {}, undefined, undefined, { host })).toBe('<lib-badge libTooltip />');
+        });
+
+        it('writes an attribute of a selector with element once when an input is aliased to it', () => {
+            const inputs = [meta({ name: 'text', alias: 'libTooltip' })];
+
+            expect(generateSnippet('span[libTooltip]', inputs, { text: 'Info' }, undefined, undefined, { host: '<span>' })).toBe('<span libTooltip="Info"></span>');
         });
 
         it('lets a custom element host close itself', () => {
