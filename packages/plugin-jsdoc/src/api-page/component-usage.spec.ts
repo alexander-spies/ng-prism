@@ -1,4 +1,4 @@
-import type { InputMeta, ScannedComponent } from '@ng-prism/core/plugin';
+import { COMPOSITION_SUBJECT_SLOT as SLOT, type CompositionCase, type InputMeta, type ScannedComponent } from '@ng-prism/core/plugin';
 import { generateComponentUsage } from './component-usage.js';
 
 function input(name: string, overrides: Partial<InputMeta> = {}): InputMeta {
@@ -199,6 +199,149 @@ describe('generateComponentUsage', () => {
             });
 
             expect(templateLine(component)).toBe('<lib-button />');
+        });
+
+        it('does not stumble over an empty host', () => {
+            const directive = makeDirective('input[libInput]', { showcaseConfig: { title: 'Input', host: null as never } });
+
+            expect(templateLine(directive)).toBe('<input libInput />');
+        });
+    });
+
+    describe('of a showcase with a host template', () => {
+        const FRAME = `<lib-form-field label="Name"><input libInput type="text"${SLOT} /></lib-form-field>`;
+
+        function composedCase(template: string, unbound: CompositionCase['unbound'] = []): CompositionCase {
+            return { template, unbound };
+        }
+
+        function inputInFrame(overrides: Partial<ScannedComponent> = {}): ScannedComponent {
+            return makeDirective('input[libInput]', {
+                className: 'InputDirective',
+                showcaseConfig: { title: 'Input', host: { template: '<lib-form-field label="Name"><input libInput type="text" /></lib-form-field>' } },
+                composition: {
+                    variantCases: [0],
+                    cases: [composedCase(FRAME)],
+                    imports: [{ name: 'FormFieldComponent', from: 'test-lib' }]
+                },
+                ...overrides
+            });
+        }
+
+        it('shows a directive inside its host template', () => {
+            expect(generateComponentUsage(inputInFrame())).toContain('<lib-form-field label="Name"><input libInput type="text" /></lib-form-field>');
+            expect(generateComponentUsage(inputInFrame())).toContain('imports: [InputDirective, FormFieldComponent]');
+        });
+
+        it('writes the whole snippet from the subject, the composition imports and the case', () => {
+            expect(generateComponentUsage(inputInFrame())).toBe(
+                [
+                    "import { InputDirective, FormFieldComponent } from 'test-lib';",
+                    '',
+                    '// in the component that uses it',
+                    '@Component({ imports: [InputDirective, FormFieldComponent], … })',
+                    '',
+                    '// in its template',
+                    '<lib-form-field label="Name"><input libInput type="text" /></lib-form-field>'
+                ].join('\n')
+            );
+        });
+
+        it('leaves nothing of the slot behind', () => {
+            expect(generateComponentUsage(inputInFrame())).not.toContain(SLOT);
+        });
+
+        it('writes one import line per entry point, the subject first', () => {
+            const component = inputInFrame({
+                composition: {
+                    variantCases: [0],
+                    cases: [composedCase(FRAME)],
+                    imports: [
+                        { name: 'FormFieldComponent', from: 'test-lib/form-field' },
+                        { name: 'LabelComponent', from: 'test-lib' }
+                    ]
+                }
+            });
+
+            expect(generateComponentUsage(component).split('\n').slice(0, 4)).toEqual([
+                "import { InputDirective, LabelComponent } from 'test-lib';",
+                "import { FormFieldComponent } from 'test-lib/form-field';",
+                '',
+                '// in the component that uses it'
+            ]);
+        });
+
+        it('imports only the subject when the composition has no imports', () => {
+            const component = inputInFrame({ composition: { variantCases: [0], cases: [composedCase(FRAME)] } });
+
+            expect(generateComponentUsage(component)).toContain('@Component({ imports: [InputDirective], … })');
+        });
+
+        it('puts the required inputs on the subject in place of the slot, bound by their public names', () => {
+            const component = inputInFrame({
+                inputs: [input('placeholderText', { alias: 'placeholder', required: true }), input('size'), input('label', { required: true })]
+            });
+
+            expect(templateLine(component)).toBe(
+                '<lib-form-field label="Name"><input libInput type="text" [placeholder]="placeholderText" [label]="label" /></lib-form-field>'
+            );
+        });
+
+        it('leaves out a required input that the template sets itself', () => {
+            const component = inputInFrame({
+                inputs: [input('label', { required: true }), input('size', { required: true })],
+                composition: {
+                    variantCases: [0],
+                    cases: [composedCase(`<lib-form-field label="Name"><input libInput [size]="3"${SLOT} /></lib-form-field>`, [{ name: 'size', reason: 'template' }])]
+                }
+            });
+
+            expect(templateLine(component)).toBe('<lib-form-field label="Name"><input libInput [size]="3" [label]="label" /></lib-form-field>');
+        });
+
+        it('takes the case of the first variant that has a composition', () => {
+            const component = inputInFrame({
+                composition: {
+                    variantCases: [-1, 1, 0],
+                    cases: [composedCase(`<p><input libInput${SLOT} /></p>`), composedCase(`<label><input libInput${SLOT} /></label>`)]
+                }
+            });
+
+            expect(templateLine(component)).toBe('<label><input libInput /></label>');
+        });
+
+        it('shows a component inside its host template as well', () => {
+            const component = makeComponent('lib-chip', {
+                className: 'ChipComponent',
+                inputs: [input('label', { required: true })],
+                showcaseConfig: { title: 'Chip', host: { template: '<lib-chip-list><lib-chip /></lib-chip-list>' } },
+                composition: {
+                    variantCases: [0],
+                    cases: [composedCase(`<lib-chip-list><lib-chip${SLOT} /></lib-chip-list>`)],
+                    imports: [{ name: 'ChipListComponent', from: 'test-lib' }]
+                }
+            });
+
+            expect(generateComponentUsage(component)).toBe(
+                [
+                    "import { ChipComponent, ChipListComponent } from 'test-lib';",
+                    '',
+                    '// in the component that uses it',
+                    '@Component({ imports: [ChipComponent, ChipListComponent], … })',
+                    '',
+                    '// in its template',
+                    '<lib-chip-list><lib-chip [label]="label" /></lib-chip-list>'
+                ].join('\n')
+            );
+        });
+
+        it('falls back to the element of the selector when no variant has a composition', () => {
+            const unscanned = inputInFrame({ composition: undefined });
+            const uncomposed = inputInFrame({ composition: { variantCases: [-1], cases: [], imports: [{ name: 'FormFieldComponent', from: 'test-lib' }] } });
+
+            expect(templateLine(unscanned)).toBe('<input libInput />');
+            expect(templateLine(uncomposed)).toBe('<input libInput />');
+            expect(generateComponentUsage(uncomposed)).toContain('@Component({ imports: [InputDirective], … })');
         });
     });
 });
