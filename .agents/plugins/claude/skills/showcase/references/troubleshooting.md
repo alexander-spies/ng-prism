@@ -82,9 +82,6 @@ These count for `strictShowcase: true`, which ends the build with
 Since 22.7.0. `<where>` is the field, such as `variants[2] "Disabled" › template` or `host`. A composition the builder
 finds a problem in is left out: that variant renders as it would without `template` and `host`, and the others stay.
 
-- **`<Class> › host — a string or object host has no effect on a component; use host: { template } to render it inside other markup. It was dropped.`**:
-  a component never rendered in a string or object `host`, and it still doesn't. Delete the field, or write the markup
-  around the component as `host: { template: '<div …><lib-x /></div>' }`.
 - **`<Class> › <where> — expected a string, got <value>; it was dropped`** (`template`),
   **`… expected { template: string }, got <value>; it was dropped`** (`host`, on the showcase or a variant),
   **`<Class> › imports — expected a list of { name, from }, got <value>; it was dropped`** and
@@ -160,6 +157,9 @@ out`): the scanner failed on the class and skipped it, so that the rest of the l
 - **`<Class>: could not read its API for the API page (<reason>); the page falls back to its inputs and outputs.`**:
   the same for a component or directive, which keeps its page: its API tab shows the inputs and outputs without type
   links, payloads or type cards.
+- **`<Class> › host — a string or object host has no effect on a component; use host: { template } to render it inside other markup. It was dropped.`**:
+  a component never rendered in a string or object `host`, and it still doesn't, so nothing is lost. Delete the field,
+  or write the markup around the component as `host: { template: '<div …><lib-x /></div>' }`.
 - **`<Class> › imports[<i>] — "<name>" from "<from>" is not a component, directive or pipe ng-prism can read; it is imported as written and Angular checks the template`**
   (also `host.import` of an object host): the entry resolved to something whose selector ng-prism can't read, an
   NgModule or a service for instance, or to no module at all. It is imported anyway. While one entry is unread, an

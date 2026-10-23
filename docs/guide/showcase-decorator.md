@@ -356,7 +356,7 @@ export class RippleDirective { ... }
 export class InputDirective { ... }
 ```
 
-A string or an object `host` on a component has no effect, and the build reports it. See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
+A string or an object `host` on a component has no effect, and the build warns about it. See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
 
 ### `imports`
 

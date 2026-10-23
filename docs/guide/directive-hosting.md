@@ -209,7 +209,7 @@ export class TooltipDirective { ... }
 
 ### A String or Object Host on a Component
 
-A string or object `host` has no effect on a component. It never had, and a component keeps rendering as it did. Since `22.7.0` the build reports it and points to the host template, which does what a wrapper was probably meant to do:
+A string or object `host` has no effect on a component. It never had, and a component keeps rendering as it did. Since `22.7.0` the build warns about it, without failing a [`strictShowcase`](api/ng-prism-config.md#strictshowcase) build, and points to the host template, which does what a wrapper was probably meant to do:
 
 ```
 ⚠ ng-prism: DataFieldComponent › host — a string or object host has no effect on a component; use host: { template } to render it inside other markup. It was dropped. (src/lib/data-field.component.ts:6:11)

@@ -149,7 +149,7 @@ export interface ShowcaseConfig<T = unknown> {
     canvasLayout?: CanvasLayout;
     /**
      * Host element for directive showcases. String = HTML element (e.g. '<button class="btn">'), object = Angular component.
-     * A string or an object has no effect on a component: the scan drops it with a diagnostic.
+     * A string or an object has no effect on a component: the scan drops it with a warning.
      * `{ template }` is an Angular template the subject renders in, for a component or a directive; the element that
      * matches the subject's selector is the subject, and `prism-subject` names it where several match. A
      * `Variant.host` overrides it for that variant. Since 22.7.0.

@@ -1068,11 +1068,12 @@ describe('scanComponents with composition fields', () => {
 
     function scan() {
         const diagnostics: string[] = [];
-        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
+        const notices = new Set<string>();
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices });
         const config = (className: string) => components.find((c) => c.className === className)!.showcaseConfig;
         const variant = (index: number) => config('FrameComponent').variants![index];
 
-        return { diagnostics, config, variant };
+        return { diagnostics, notices, config, variant };
     }
 
     it('keeps template, variant host and imports', () => {
@@ -1151,12 +1152,10 @@ describe('scanComponents with composition fields', () => {
             'GapComponent › imports[2]',
             'GapComponent › variants[1] "After gap" › content',
             'HostImportDirective › host.import',
-            'HostOnComponent › host',
             'ImportNamesComponent › imports[0]',
             'ImportNamesComponent › imports[1]',
             'ImportNamesComponent › imports[2]',
-            'NoStringHostDirective › host',
-            'ObjectHostComponent › host'
+            'NoStringHostDirective › host'
         ]);
     });
 
@@ -1208,13 +1207,15 @@ describe('scanComponents with composition fields', () => {
         expect([...notices]).toContainEqual(expect.stringMatching(/^GapComponent › imports\[1\] — "Listed" from "lib" is not a component, directive or pipe/));
     });
 
-    it('reports a string or object host on a component as without effect, and drops it', () => {
-        const { diagnostics, config } = scan();
+    // A notice: a component has always ignored it, so it loses nothing, and strictShowcase must not start failing over it.
+    it('warns that a string or object host has no effect on a component, and drops it', () => {
+        const { diagnostics, notices, config } = scan();
 
-        expect(diagnostics).toContainEqual(
+        expect([...notices]).toContainEqual(
             expect.stringMatching(/^HostOnComponent › host — .*has no effect on a component.*host: \{ template \}.*\(.*host-on-component\.component\.ts:7:\d+\)$/)
         );
-        expect(diagnostics).toContainEqual(expect.stringMatching(/^ObjectHostComponent › host — .*has no effect on a component/));
+        expect([...notices]).toContainEqual(expect.stringMatching(/^ObjectHostComponent › host — .*has no effect on a component/));
+        expect(diagnostics.filter((d) => d.includes('has no effect on a component'))).toEqual([]);
         expect(config('HostOnComponent')).not.toHaveProperty('host');
         expect(config('ObjectHostComponent')).not.toHaveProperty('host');
     });
@@ -1232,7 +1233,7 @@ describe('scanComponents with composition fields', () => {
         scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
         scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics });
 
-        expect(warnSpy.mock.calls.filter(([message]) => String(message).includes('HostOnComponent › host'))).toHaveLength(1);
+        expect(warnSpy.mock.calls.filter(([message]) => String(message).includes('FrameComponent › imports[1]'))).toHaveLength(1);
     });
 });
 

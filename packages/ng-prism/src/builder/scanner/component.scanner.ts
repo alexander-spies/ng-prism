@@ -172,8 +172,9 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
         const componentMeta = extractComponentMeta(classDecl, checker);
 
         // A string or an object host puts a directive on an element. A component has ignored it so far and keeps doing so, so that what a library renders stays as it is.
+        // Not a diagnostic: nothing is lost, and strictShowcase must not start failing a build over it.
         if (!componentMeta.isDirective && showcaseConfig.host !== undefined && !isHostTemplate(showcaseConfig.host)) {
-            report(
+            notify(
                 describeShowcaseIssue(
                     className,
                     showcaseArg,
