@@ -21,10 +21,10 @@ const MANIFEST = join(VIDEO_ROOT, 'out/recordings/manifest.json');
 
 /**
  * Revideo looks up media for its ffmpeg side at `<outDir>/../public/<src>`, so with outDir out/masters the public
- * directory is out/public; it is Vite's publicDir too. Scenes refer to `/recordings/<file>`.
+ * directory is out/public; it is Vite's publicDir too. Scenes refer to `/recordings/<file>` and `/sfx/<file>`.
  */
 const PUBLIC_DIR = join(VIDEO_ROOT, 'out/public');
-const PUBLIC_LINKS: Record<string, string> = { recordings: '../recordings' };
+const PUBLIC_LINKS: Record<string, string> = { recordings: '../recordings', sfx: '../../assets/sfx' };
 
 function preparePublicDir(): void {
     mkdirSync(PUBLIC_DIR, { recursive: true });

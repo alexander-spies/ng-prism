@@ -1,10 +1,11 @@
 import { Code, makeScene2D } from '@revideo/2d';
-import { all, easeInOutCubic, useScene, waitFor } from '@revideo/core';
+import { all, easeInOutCubic, useScene, useTime, waitFor } from '@revideo/core';
 import { BrandBackground } from '../../components/BrandBackground.tsx';
 import { CodeCard } from '../../components/CodeCard.tsx';
 import { EndCard } from '../../components/EndCard.tsx';
 import { ensureFonts } from '../../components/fonts.ts';
 import { tsHighlighter } from '../../components/highlighter.ts';
+import { cue } from '../../components/sfx.tsx';
 import { clickAt, markAt, type RecordingInfo } from '../../lib/recording-info.ts';
 import { codeSegment, revealPlan, treeSegment } from './act1.tsx';
 import { recordingBeat } from './beat.tsx';
@@ -31,8 +32,9 @@ export default makeScene2D('tour', function* (view) {
     // Act 1: the problem and the answer.
     const card = new CodeCard({ code: codeBefore, file: 'button.component.ts', fontSize: 22, y: -40 });
     yield* treeSegment(view, card);
-    yield* codeSegment(view, card, codeAfter, showcaseLines);
+    yield* codeSegment(view, card, codeAfter, showcaseLines, { sound: true });
     const reveal = recordingBeat(view, card, revealPlan(recordings['reveal']));
+    cue(view, 'whoosh', useTime());
     yield* all(card.scale(0.6, 0.6, easeInOutCubic), reveal.run());
 
     // Act 2: what you get.

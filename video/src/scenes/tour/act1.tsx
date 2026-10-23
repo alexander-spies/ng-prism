@@ -4,12 +4,14 @@ import { STATUS } from '../../brand.ts';
 import { Caption } from '../../components/Caption.tsx';
 import { CodeCard } from '../../components/CodeCard.tsx';
 import { FileTree } from '../../components/FileTree.tsx';
+import { cue } from '../../components/sfx.tsx';
 import type { RecordingInfo } from '../../lib/recording-info.ts';
 import type { BeatPlan } from './beat.tsx';
 import { until } from './timing.ts';
 
 export const TREE = ['button/', 'button.component.ts', 'button.component.html', 'button.component.css', 'button.stories.ts'];
 const STORIES = 'button.stories.ts';
+const TYPING_SECONDS = 6;
 
 /** 0:00–0:09: a component with its stories file, the stories file goes, the camera moves into the component. */
 export function* treeSegment(view: View2D, card: CodeCard): ThreadGenerator {
@@ -54,16 +56,21 @@ export function* treeSegment(view: View2D, card: CodeCard): ThreadGenerator {
 
 /**
  * 0:09–0:20, and the start of the README loop: @Showcase types itself onto the component, then stays highlighted long
- * enough to read. 10.3 s from wherever it starts.
+ * enough to read. 10.3 s from wherever it starts. With `sound`, soft key ticks accompany the typing.
  */
-export function* codeSegment(view: View2D, card: CodeCard, codeAfter: string, showcaseLines: number): ThreadGenerator {
+export function* codeSegment(view: View2D, card: CodeCard, codeAfter: string, showcaseLines: number, { sound = false }: { sound?: boolean } = {}): ThreadGenerator {
     const start = useTime();
     const caption = new Caption({ text: 'Annotate the **component itself.**' });
     view.add(caption);
     yield* until(start + 0.2);
     spawn(caption.show());
     yield* until(start + 1.3);
-    yield* card.typeTo(codeAfter, 6);
+    if (sound) {
+        // A tick about every 120 ms, not one per character; the uneven step keeps it from sounding like a metronome.
+        const steps = [0.11, 0.11, 0.14];
+        for (let at = 0, n = 0; at < TYPING_SECONDS; at += steps[n++ % steps.length]) cue(view, 'type', start + 1.3 + at);
+    }
+    yield* card.typeTo(codeAfter, TYPING_SECONDS);
     yield* card.highlightLines(0, showcaseLines - 1, 0.5);
     yield* until(start + 10);
     yield* caption.hide();

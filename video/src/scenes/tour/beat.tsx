@@ -2,6 +2,7 @@ import type { Node, View2D } from '@revideo/2d';
 import { spawn, useTime, type ThreadGenerator } from '@revideo/core';
 import { Caption } from '../../components/Caption.tsx';
 import { Recording } from '../../components/Recording.tsx';
+import { cue } from '../../components/sfx.tsx';
 import type { RecordingInfo } from '../../lib/recording-info.ts';
 import { crossfade, until } from './timing.ts';
 
@@ -23,14 +24,16 @@ export interface BeatPlan {
 
 /**
  * One recorded beat: the recording crossfades in over `previous` when `run` starts, its caption comes and goes, the
- * camera follows the plan. `run` returns shortly before the recording ends, with the recording still on screen for
+ * camera follows the plan, and every click of the recording clicks audibly. `run` returns shortly before the recording ends, with the recording still on screen for
  * the next beat.
  */
 export function recordingBeat(view: View2D, previous: Node, plan: BeatPlan): { readonly recording: Recording; run: () => ThreadGenerator } {
     let recording: Recording | undefined;
     function* run(): ThreadGenerator {
         const start = useTime();
-        const end = start + (plan.seconds ?? plan.info.durationSec);
+        const shown = plan.seconds ?? plan.info.durationSec;
+        const end = start + shown;
+        for (const at of plan.info.clicks) if (at < shown) cue(view, 'click', start + at);
         // Created here, inside the thread: the video starts loading in its constructor.
         recording = new Recording({ info: plan.info, src: `/recordings/${plan.info.file}`, opacity: 0 });
         view.add(recording);
