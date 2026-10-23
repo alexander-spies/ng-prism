@@ -250,8 +250,8 @@ export interface ComponentComposition {
     cases: CompositionCase[];
     /**
      * Every class the generated wrapper imports besides the subject: the library classes the templates use, matched
-     * by selector, the showcase's `imports`, and the class of a directive's object host. Set by the scan at build
-     * time, absent in the runtime manifest.
+     * by selector, the showcase's `imports`, and the class of a directive's object host. Set by the scan, and in the
+     * runtime manifest as well, so that a usage example in the browser can name them.
      */
     imports?: ShowcaseImport[];
 }

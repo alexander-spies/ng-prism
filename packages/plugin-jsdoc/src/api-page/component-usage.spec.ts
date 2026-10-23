@@ -247,6 +247,34 @@ describe('generateComponentUsage', () => {
             );
         });
 
+        it('names the composition imports for a component shaped like the runtime manifest', () => {
+            // What the generated manifest carries of a composition: the cases without their `origin`, and the imports.
+            const runtime: ScannedComponent = JSON.parse(
+                JSON.stringify(
+                    inputInFrame({
+                        composition: {
+                            variantCases: [0, 0],
+                            cases: [{ template: FRAME, unbound: [{ name: 'required', reason: 'template' }] }],
+                            imports: [
+                                { name: 'FormFieldComponent', from: 'test-lib/form-field' },
+                                { name: 'IconComponent', from: 'test-lib/icon' }
+                            ]
+                        }
+                    })
+                )
+            );
+
+            expect(runtime.composition!.cases[0]).not.toHaveProperty('origin');
+            expect(generateComponentUsage(runtime).split('\n').slice(0, 5)).toEqual([
+                "import { InputDirective } from 'test-lib';",
+                "import { FormFieldComponent } from 'test-lib/form-field';",
+                "import { IconComponent } from 'test-lib/icon';",
+                '',
+                '// in the component that uses it'
+            ]);
+            expect(generateComponentUsage(runtime)).toContain('@Component({ imports: [InputDirective, FormFieldComponent, IconComponent], … })');
+        });
+
         it('leaves nothing of the slot behind', () => {
             expect(generateComponentUsage(inputInFrame())).not.toContain(SLOT);
         });

@@ -1015,14 +1015,22 @@ describe('compositions', () => {
         expect(source).toContain("import { input as input__2 } from 'other-lib';");
     });
 
-    it('writes composition data without imports and origin', () => {
+    it('writes composition data with its imports and without the origin of a case', () => {
         const meta = manifestMeta(manifest([FRAME]));
 
         expect(meta.composition).toEqual({
             variantCases: [0, 1, 2, 0],
-            cases: FRAME.composition!.cases.map(({ template }) => ({ template, unbound: [] }))
+            cases: FRAME.composition!.cases.map(({ template }) => ({ template, unbound: [] })),
+            imports: FRAME.composition!.imports
         });
+        expect(meta.composition!.cases[0]).not.toHaveProperty('origin');
         expect(meta.composition!.cases[0].template).toContain(SLOT);
+    });
+
+    it('writes no imports for a composition that has none', () => {
+        const subject: ScannedComponent = { ...FRAME, composition: { ...FRAME.composition!, imports: undefined } };
+
+        expect(manifestMeta(manifest([subject])).composition).not.toHaveProperty('imports');
     });
 
     it('writes the unbound inputs of a case', () => {

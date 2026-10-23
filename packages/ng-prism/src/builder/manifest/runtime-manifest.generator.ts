@@ -322,9 +322,9 @@ function formatMeta(comp: ScannedComponent, baseIndent: number): string {
     }
 
     if (comp.composition) {
-        // Without `imports`, which the wrapper has compiled in, and `origin`, which only the comments of the generated code use.
-        const { variantCases, cases } = comp.composition;
-        const data = { variantCases, cases: cases.map(({ template, unbound }) => ({ template, unbound })) };
+        // Without `origin`, which only the comments of the generated code use. `imports` stays: a plugin's usage example names them.
+        const { variantCases, cases, imports } = comp.composition;
+        const data = { variantCases, cases: cases.map(({ template, unbound }) => ({ template, unbound })), imports };
 
         lines.push(`${indent(inner)}composition: ${formatObject(data, inner)},`);
     }
