@@ -1,5 +1,6 @@
 import type { InputMeta } from '../../plugin/plugin.types.js';
-import { generateSnippet } from './snippet-generator.js';
+import { COMPOSITION_SUBJECT_SLOT as SLOT } from '../../shared/composition.js';
+import { generateCompositionSnippet, generateSnippet, subjectAttributes } from './snippet-generator.js';
 
 function meta(overrides: Partial<InputMeta> & Pick<InputMeta, 'name'>): InputMeta {
     return { type: 'string', required: false, ...overrides };
@@ -218,6 +219,31 @@ describe('generateSnippet', () => {
             expect(result).toBe('<div libTooltip [truncate]="false" />');
         });
 
+        it('keeps the tag of a string host with content', () => {
+            const result = generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: '<button>Hover me</button>' });
+
+            expect(result).toMatch(/^<button libTooltip/);
+        });
+
+        it('keeps the attributes of a string host with content', () => {
+            const result = generateSnippet('[libTooltip]', [], {}, undefined, undefined, { host: '<button class="btn">Hover me</button>' });
+
+            expect(result).toBe('<button class="btn" libTooltip />');
+        });
+
+        it('closes a void host without content', () => {
+            const inputs = [meta({ name: 'size' })];
+            const result = generateSnippet('[libInput]', inputs, { size: 'lg', __prismContent__: 'ignored' }, undefined, 'ignored', { host: '<input type="text">' });
+
+            expect(result).toBe('<input type="text" libInput size="lg" />');
+        });
+
+        it('closes a void host without content when it has none either', () => {
+            const result = generateSnippet('[libInput]', [], {}, undefined, undefined, { host: '<input type="text">' });
+
+            expect(result).toBe('<input type="text" libInput />');
+        });
+
         it('should fall back to normal snippet when no host is provided', () => {
             const result = generateSnippet('lib-button', [], {}, undefined, 'Click');
 
@@ -326,5 +352,89 @@ describe('generateSnippet', () => {
 
             expect(result).toBe('<lib-button label="A &amp; B" />');
         });
+    });
+});
+
+describe('subjectAttributes', () => {
+    it('writes the attributes generateSnippet writes', () => {
+        const inputs = [meta({ name: 'label' }), meta({ name: 'count', type: 'number' }), meta({ name: 'disabled', type: 'boolean' })];
+
+        expect(subjectAttributes(inputs, { label: 'Save', count: 2, disabled: true })).toEqual(['label="Save"', '[count]="2"', '[disabled]="true"']);
+    });
+
+    it('leaves out a value that equals its default unless the variant sets it', () => {
+        const inputs = [meta({ name: 'variant', defaultValue: 'primary' })];
+
+        expect(subjectAttributes(inputs, { variant: 'primary' })).toEqual([]);
+        expect(subjectAttributes(inputs, { variant: 'primary' }, new Set(['variant']))).toEqual(['variant="primary"']);
+    });
+
+    it('writes a boolean false only where the input defaults to true', () => {
+        expect(subjectAttributes([meta({ name: 'truncate', type: 'boolean' })], { truncate: false })).toEqual([]);
+        expect(subjectAttributes([meta({ name: 'truncate', type: 'boolean', defaultValue: true })], { truncate: false })).toEqual(['[truncate]="false"']);
+    });
+
+    it('writes an aliased input under its alias', () => {
+        expect(subjectAttributes([meta({ name: 'size', alias: 'buttonSize' })], { size: 'lg' })).toEqual(['buttonSize="lg"']);
+    });
+
+    it('writes values that no input declares', () => {
+        expect(subjectAttributes([], { 'aria-label': 'Close', hidden: false })).toEqual(['aria-label="Close"']);
+    });
+
+    it('leaves out the members it is told to skip', () => {
+        const inputs = [meta({ name: 'label' }), meta({ name: 'required', type: 'boolean' })];
+
+        expect(subjectAttributes(inputs, { label: 'E-Mail', required: true }, undefined, new Set(['required']))).toEqual(['label="E-Mail"']);
+        expect(subjectAttributes(inputs, { label: 'E-Mail', extra: 'x' }, undefined, new Set(['extra']))).toEqual(['label="E-Mail"']);
+    });
+
+    it('skips by member name, not by alias', () => {
+        const inputs = [meta({ name: 'size', alias: 'buttonSize' })];
+
+        expect(subjectAttributes(inputs, { size: 'lg' }, undefined, new Set(['size']))).toEqual([]);
+        expect(subjectAttributes(inputs, { size: 'lg' }, undefined, new Set(['buttonSize']))).toEqual(['buttonSize="lg"']);
+    });
+});
+
+describe('generateCompositionSnippet', () => {
+    it('shows the composition with the current values of the subject', () => {
+        expect(generateCompositionSnippet(`<lib-form-field${SLOT}><input libInput /></lib-form-field>`, ['label="E-Mail"'])).toBe(
+            '<lib-form-field label="E-Mail"><input libInput /></lib-form-field>'
+        );
+    });
+
+    it('leaves out inputs the case does not bind', () => {
+        const inputs = [meta({ name: 'label' }), meta({ name: 'required', type: 'boolean' })];
+        const attributes = subjectAttributes(inputs, { label: 'E-Mail', required: true }, undefined, new Set(['required']));
+
+        expect(generateCompositionSnippet(`<lib-form-field required${SLOT}><input libInput /></lib-form-field>`, attributes)).toBe(
+            '<lib-form-field required label="E-Mail"><input libInput /></lib-form-field>'
+        );
+    });
+
+    it('closes the subject without a stray space when it has no attributes', () => {
+        expect(generateCompositionSnippet(`<lib-form-field${SLOT}><input libInput /></lib-form-field>`, [])).toBe('<lib-form-field><input libInput /></lib-form-field>');
+        expect(generateCompositionSnippet(`<input libInput${SLOT} />`, [])).toBe('<input libInput />');
+    });
+
+    it('puts the attributes after the last attribute of the subject', () => {
+        expect(generateCompositionSnippet(`<input class="field" libInput${SLOT} />`, ['size="lg"', '[disabled]="true"'])).toBe(
+            '<input class="field" libInput size="lg" [disabled]="true" />'
+        );
+    });
+
+    it('keeps the markup around the subject as written', () => {
+        const template = `<label>\n  Name\n  <input libInput${SLOT} />\n</label>`;
+
+        expect(generateCompositionSnippet(template, ['placeholder="Name"'])).toBe('<label>\n  Name\n  <input libInput placeholder="Name" />\n</label>');
+    });
+
+    it('writes a value with a replacement pattern as it is', () => {
+        expect(generateCompositionSnippet(`<input libInput${SLOT} />`, ['placeholder="$& $1 $$"'])).toBe('<input libInput placeholder="$& $1 $$" />');
+    });
+
+    it('shows a template without a slot as written', () => {
+        expect(generateCompositionSnippet('<input libInput />', ['size="lg"'])).toBe('<input libInput />');
     });
 });

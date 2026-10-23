@@ -1,5 +1,11 @@
 import type { DirectiveHost, HostTemplate } from '../../decorator/showcase.types.js';
 import type { InputMeta } from '../../plugin/plugin.types.js';
+import { COMPOSITION_SUBJECT_SLOT } from '../../shared/composition.js';
+import { VOID_ELEMENTS } from '../../shared/void-elements.js';
+import { PRISM_CONTENT_INPUT } from './input-bindings.js';
+
+/** The value a directive's host renders its text content through: the snippet writes it as content, never as an attribute. */
+const HOST_CONTENT_KEYS: ReadonlySet<string> = new Set([PRISM_CONTENT_INPUT]);
 
 export interface SnippetDirectiveOptions {
     host?: string | DirectiveHost | HostTemplate;
@@ -23,26 +29,18 @@ function pushAttribute(attributes: string[], name: string, value: unknown): void
     }
 }
 
-export function generateSnippet(
-    selector: string,
-    inputs: InputMeta[],
-    values: Record<string, unknown>,
-    explicitKeys?: ReadonlySet<string>,
-    content?: string | Record<string, string>,
-    directiveOptions?: SnippetDirectiveOptions
-): string {
-    const host = directiveOptions?.host;
-
-    // A `{ template }` host is not shown yet: the snippet is the directive's selector, as without a host.
-    if (host && !(typeof host === 'object' && 'template' in host)) {
-        return generateDirectiveSnippet(selector, inputs, values, explicitKeys, content, host);
-    }
-
+/**
+ * The attributes that put the current values on the subject element. A value that equals its default is left out unless
+ * the variant sets it (`explicitKeys`); `skip` holds the member names of inputs that are not written at all, such as
+ * the ones a composition does not bind.
+ */
+export function subjectAttributes(inputs: InputMeta[], values: Record<string, unknown>, explicitKeys?: ReadonlySet<string>, skip?: ReadonlySet<string>): string[] {
     const attributes: string[] = [];
-    const processed = new Set<string>();
+    const processed = new Set<string>(skip);
 
     for (const input of inputs) {
         processed.add(input.name);
+        if (skip?.has(input.name)) continue;
         const value = values[input.name];
 
         if (value === undefined) continue;
@@ -61,6 +59,35 @@ export function generateSnippet(
         pushAttribute(attributes, name, value);
     }
 
+    return attributes;
+}
+
+/**
+ * The composition of a case as its author wrote it, with `attributes` on the subject element in place of the slot
+ * ng-prism leaves in `CompositionCase.template`. Nothing else is rewritten.
+ */
+export function generateCompositionSnippet(caseTemplate: string, attributes: string[]): string {
+    const written = attributes.length > 0 ? ` ${attributes.join(' ')}` : '';
+
+    return caseTemplate.split(COMPOSITION_SUBJECT_SLOT).join(written);
+}
+
+export function generateSnippet(
+    selector: string,
+    inputs: InputMeta[],
+    values: Record<string, unknown>,
+    explicitKeys?: ReadonlySet<string>,
+    content?: string | Record<string, string>,
+    directiveOptions?: SnippetDirectiveOptions
+): string {
+    const host = directiveOptions?.host;
+
+    // A `{ template }` host is not shown yet: the snippet is the directive's selector, as without a host.
+    if (host && !(typeof host === 'object' && 'template' in host)) {
+        return generateDirectiveSnippet(selector, inputs, values, explicitKeys, content, host);
+    }
+
+    const attributes = subjectAttributes(inputs, values, explicitKeys);
     const contentHtml = resolveContentHtml(content);
 
     if (!contentHtml) {
@@ -101,8 +128,13 @@ function directiveSelectorToAttr(selector: string): string {
     return match ? match[1] : selector;
 }
 
+/**
+ * The element a string host starts with and its attributes as written. A host may carry content and an end tag
+ * (`<button class="btn">Hover me</button>`): the showcase renders all of it, the snippet only needs the element to put
+ * the directive on.
+ */
 function parseHostStringSimple(host: string): { tag: string; attrs: string } {
-    const match = host.trim().match(/^<\s*([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^>]*?)?)\s*\/?\s*>$/);
+    const match = host.match(/^\s*<\s*([a-zA-Z][\w-]*)([^>]*?)\s*\/?\s*>/);
 
     if (!match) return { tag: 'div', attrs: '' };
     return { tag: match[1], attrs: match[2].trim() };
@@ -135,34 +167,13 @@ function generateDirectiveSnippet(
         }
     }
 
-    const attributes: string[] = [];
-    const processed = new Set<string>(['__prismContent__']);
-
-    for (const input of inputs) {
-        processed.add(input.name);
-        const value = values[input.name];
-
-        if (value === undefined) continue;
-        if (input.defaultValue !== undefined && value === input.defaultValue && !explicitKeys?.has(input.name)) continue;
-        // Only a guess, and only sound when no default is known: a boolean input
-        // that defaults to `true` has to show its explicit `false`.
-        if (input.defaultValue === undefined && typeof value === 'boolean' && !value) continue;
-
-        pushAttribute(attributes, input.alias ?? input.name, value);
-    }
-
-    for (const [name, value] of Object.entries(values)) {
-        if (processed.has(name)) continue;
-        if (value === undefined) continue;
-        if (typeof value === 'boolean' && !value) continue;
-        pushAttribute(attributes, name, value);
-    }
-
-    const projectedContent = content ?? (typeof values['__prismContent__'] === 'string' ? (values['__prismContent__'] as string) : undefined);
+    const attributes = subjectAttributes(inputs, values, explicitKeys, HOST_CONTENT_KEYS);
+    const projectedContent = content ?? (typeof values[PRISM_CONTENT_INPUT] === 'string' ? (values[PRISM_CONTENT_INPUT] as string) : undefined);
     // An input aliased to the directive's own selector already puts the directive on the host.
     const selectorAttrs = attributes.some((a) => a.startsWith(`${directiveAttr}=`) || a.startsWith(`[${directiveAttr}]=`)) ? [] : [directiveAttr];
     const allAttrs = [...hostAttrs, ...selectorAttrs, ...attributes].join(' ');
-    const contentHtml = resolveContentHtml(projectedContent);
+    // A void element takes no content and no end tag: `<input>` and `<input />` are valid, `<input>text</input>` is not.
+    const contentHtml = VOID_ELEMENTS.has(tag.toLowerCase()) ? undefined : resolveContentHtml(projectedContent);
 
     if (!contentHtml) {
         if (!allAttrs) return `<${tag} />`;

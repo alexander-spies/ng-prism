@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
-import { generateSnippet } from '../renderer/snippet-generator.js';
+import { activeCase } from '../renderer/composition.js';
+import { unboundInputs } from '../renderer/input-bindings.js';
+import { generateCompositionSnippet, generateSnippet, subjectAttributes } from '../renderer/snippet-generator.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 
@@ -9,7 +11,7 @@ function esc(s: string): string {
 }
 
 function tokenizeXml(code: string): string {
-    const re = /(\/\/[^\n]*)|(<\/?[\w-]+)|(\[[\w.]+\]|[\w-]+)=|"([^"]*)"|(\/>|>)|(\n)|([^<["\n/>=]+|[/=])/g;
+    const re = /(\/\/[^\n]*)|(<\/?[\w-]+)|(\[[\w.]+\]|[\w-]+)=|"([^"]*)"|(\/>|>)|(\n)|([^<["\n/>=]+|[\s\S])/g;
     let out = '';
     let m: RegExpExecArray | null;
 
@@ -52,18 +54,19 @@ export class PrismTemplatePopoverComponent {
         const comp = this.navigationService.activeComponent();
 
         if (!comp) return '';
-        const variant = comp.meta.showcaseConfig.variants?.[this.rendererService.activeVariantIndex()];
+        const variantIndex = this.rendererService.activeVariantIndex();
+        const variant = comp.meta.showcaseConfig.variants?.[variantIndex];
         const explicitKeys = variant?.inputs ? new Set(Object.keys(variant.inputs)) : undefined;
+        const values = this.rendererService.inputValues();
+        const composed = activeCase(comp, variantIndex);
+
+        // A composed variant shows the composition as written, with the subject's current values where it stands.
+        if (composed) {
+            return generateCompositionSnippet(composed.template, subjectAttributes(comp.meta.inputs, values, explicitKeys, unboundInputs(comp, variantIndex)));
+        }
         const directiveOptions = comp.meta.componentMeta.isDirective ? { host: comp.meta.showcaseConfig.host } : undefined;
 
-        return generateSnippet(
-            comp.meta.componentMeta.selector,
-            comp.meta.inputs,
-            this.rendererService.inputValues(),
-            explicitKeys,
-            this.rendererService.activeContent(),
-            directiveOptions
-        );
+        return generateSnippet(comp.meta.componentMeta.selector, comp.meta.inputs, values, explicitKeys, this.rendererService.activeContent(), directiveOptions);
     });
 
     protected readonly highlighted = computed(() => {
