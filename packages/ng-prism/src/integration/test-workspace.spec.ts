@@ -132,7 +132,7 @@ describe('test-workspace integration', () => {
 
         const content = readFileSync(join(tmp, 'ng-prism-cache', 'test-lib-prism', 'prism-manifest.ts'), 'utf-8');
 
-        expect(content).toContain("from 'test-lib'");
+        expect(content).toContain('from "test-lib"');
         expect(content).toContain('ButtonComponent');
     });
 
