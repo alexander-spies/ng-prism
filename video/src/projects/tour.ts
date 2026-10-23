@@ -4,7 +4,7 @@ import tour from '../scenes/tour/tour.tsx';
 
 export default makeProject({
     scenes: [tour],
-    variables: { codeBefore: '', codeAfter: '', showcaseLines: 0, recordings: {} },
+    variables: { payload: '' },
     settings: {
         shared: { size: { x: 1920, y: 1080 }, background: '#080d19' },
         rendering: { fps: 60 }

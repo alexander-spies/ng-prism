@@ -1,0 +1,12 @@
+{
+    "version": "22.7",
+    "beats": [
+        { "kind": "ui", "shot": "look", "caption": "A new look. **Dark and light.**" },
+        {
+            "kind": "api",
+            "shot": "service-page",
+            "source": "lib/notification/notification.service.ts",
+            "caption": "Services and pipes get **their own pages.**"
+        }
+    ]
+}

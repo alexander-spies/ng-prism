@@ -7,7 +7,10 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { assertFresh, hashSources, REPO_ROOT, SOURCE_PATHS, type RecordingInfo, type RecordingsManifest } from '../src/lib/recordings.ts';
+import { SHOTS } from '../record/shots/index.ts';
+import { parseRelease } from '../src/lib/release.ts';
 import { codeExcerpt, stripShowcase } from '../src/lib/source.ts';
+import { encodeVariables } from '../src/lib/variables.ts';
 
 export type Cut = 'sandbox' | 'tour' | 'readme-loop' | 'release';
 export interface CutOptions {
@@ -60,7 +63,26 @@ function buttonCode(): { codeBefore: string; codeAfter: string; showcaseLines: n
     return { codeBefore: codeExcerpt(stripShowcase(source)), codeAfter, showcaseLines: codeAfter.split('\n').findIndex((line) => line.startsWith('@Component')) };
 }
 
-/** Everything a cut's scenes read from `useScene().variables`. They replace the project defaults, so it is complete. */
+const RELEASES_DIR = join(VIDEO_ROOT, 'releases');
+const VIDEO_LIB_SRC = join(REPO_ROOT, 'test-workspace/projects/video-lib/src');
+
+/** A release clip's description (releases/<version>.json), the code of its API beats before and after, its recordings. */
+async function releaseVariables(version: string | undefined): Promise<Record<string, unknown>> {
+    if (!version) throw new Error('A release clip needs --version, e.g. --version 22.7');
+    const file = join(RELEASES_DIR, `${version}.json`);
+    if (!existsSync(file)) throw new Error(`No release description ${file}`);
+    const clip = parseRelease(JSON.parse(readFileSync(file, 'utf8')), new Set(SHOTS.map((shot) => shot.id)));
+    const code = Object.fromEntries(
+        clip.beats.flatMap((beat) => {
+            if (beat.kind !== 'api') return [];
+            const source = readFileSync(join(VIDEO_LIB_SRC, beat.source), 'utf8');
+            return [[beat.source, { before: codeExcerpt(stripShowcase(source)), after: codeExcerpt(source) }]];
+        })
+    );
+    return { clip, code, recordings: await freshRecordings(clip.beats.map((beat) => beat.shot)) };
+}
+
+/** Everything a cut's scenes read through `cutVariables()`; render() hands it over encoded (see lib/variables.ts). */
 export async function variablesFor(cut: Cut, options: CutOptions = {}): Promise<Record<string, unknown>> {
     switch (cut) {
         case 'sandbox':
@@ -69,6 +91,8 @@ export async function variablesFor(cut: Cut, options: CutOptions = {}): Promise<
             return { ...buttonCode(), recordings: await freshRecordings(TOUR_SHOTS) };
         case 'readme-loop':
             return { length: options.length ?? 'full', ...buttonCode(), recordings: await freshRecordings(['reveal']) };
+        case 'release':
+            return releaseVariables(options.version);
         default:
             throw new Error(`No variables for the cut "${cut}" yet`);
     }
@@ -94,7 +118,7 @@ export async function render(cut: Cut, variables: Record<string, unknown>, outFi
     const run = () =>
         renderVideo({
             projectFile: `./src/projects/${cut}.ts`,
-            variables,
+            variables: encodeVariables(variables),
             settings: {
                 outFile: outFile as `${string}.mov`,
                 outDir: './out/masters',

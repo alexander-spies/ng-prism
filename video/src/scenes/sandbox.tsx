@@ -1,5 +1,5 @@
 import { Code, makeScene2D } from '@revideo/2d';
-import { all, useScene, waitFor } from '@revideo/core';
+import { all, waitFor } from '@revideo/core';
 import { STATUS } from '../brand.ts';
 import { BrandBackground } from '../components/BrandBackground.tsx';
 import { Caption } from '../components/Caption.tsx';
@@ -12,13 +12,14 @@ import { Lockup } from '../components/Lockup.tsx';
 import { Recording } from '../components/Recording.tsx';
 import { VersionCard } from '../components/VersionCard.tsx';
 import type { RecordingInfo } from '../lib/recording-info.ts';
+import { cutVariables } from './cut-variables.ts';
 
 Code.defaultHighlighter = tsHighlighter;
 
 /** Every building block for about two seconds, to check them against the brand without a full cut. */
 export default makeScene2D('sandbox', function* (view) {
     yield* ensureFonts();
-    const recordings = useScene().variables.get<Record<string, RecordingInfo>>('recordings', {})();
+    const { recordings } = cutVariables<{ recordings: Record<string, RecordingInfo> }>();
     view.add(<BrandBackground />);
 
     const lockup = <Lockup height={180} />;

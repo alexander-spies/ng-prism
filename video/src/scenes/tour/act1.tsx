@@ -4,7 +4,7 @@ import { STATUS } from '../../brand.ts';
 import { Caption } from '../../components/Caption.tsx';
 import { CodeCard } from '../../components/CodeCard.tsx';
 import { FileTree } from '../../components/FileTree.tsx';
-import { cue } from '../../components/sfx.tsx';
+import { typingCues } from '../../components/sfx.tsx';
 import type { RecordingInfo } from '../../lib/recording-info.ts';
 import type { BeatPlan } from './beat.tsx';
 import { until } from './timing.ts';
@@ -65,11 +65,7 @@ export function* codeSegment(view: View2D, card: CodeCard, codeAfter: string, sh
     yield* until(start + 0.2);
     spawn(caption.show());
     yield* until(start + 1.3);
-    if (sound) {
-        // A tick about every 120 ms, not one per character; the uneven step keeps it from sounding like a metronome.
-        const steps = [0.11, 0.11, 0.14];
-        for (let at = 0, n = 0; at < TYPING_SECONDS; at += steps[n++ % steps.length]) cue(view, 'type', start + 1.3 + at);
-    }
+    if (sound) typingCues(view, start + 1.3, TYPING_SECONDS);
     yield* card.typeTo(codeAfter, TYPING_SECONDS);
     yield* card.highlightLines(0, showcaseLines - 1, 0.5);
     yield* until(start + 10);

@@ -1,10 +1,11 @@
 import { Code, makeScene2D } from '@revideo/2d';
-import { all, easeInOutCubic, useScene, waitFor } from '@revideo/core';
+import { all, easeInOutCubic, waitFor } from '@revideo/core';
 import { BrandBackground } from '../components/BrandBackground.tsx';
 import { CodeCard } from '../components/CodeCard.tsx';
 import { ensureFonts } from '../components/fonts.ts';
 import { tsHighlighter } from '../components/highlighter.ts';
 import type { RecordingInfo } from '../lib/recording-info.ts';
+import { cutVariables } from './cut-variables.ts';
 import { codeSegment, revealPlan } from './tour/act1.tsx';
 import { recordingBeat } from './tour/beat.tsx';
 import { crossfade } from './tour/timing.ts';
@@ -21,12 +22,13 @@ const SHORT_REVEAL = 3.5;
  */
 export default makeScene2D('loop', function* (view) {
     yield* ensureFonts();
-    const variables = useScene().variables;
-    const length = variables.get<'full' | 'short'>('length', 'full')();
-    const codeBefore = variables.get('codeBefore', '')();
-    const codeAfter = variables.get('codeAfter', '')();
-    const showcaseLines = variables.get('showcaseLines', 0)();
-    const recordings = variables.get<Record<string, RecordingInfo>>('recordings', {})();
+    const { length, codeBefore, codeAfter, showcaseLines, recordings } = cutVariables<{
+        length: 'full' | 'short';
+        codeBefore: string;
+        codeAfter: string;
+        showcaseLines: number;
+        recordings: Record<string, RecordingInfo>;
+    }>();
     const codeCard = () => new CodeCard({ code: codeBefore, file: 'button.component.ts', fontSize: 22, y: -40 });
     view.add(<BrandBackground />);
     const first = codeCard();

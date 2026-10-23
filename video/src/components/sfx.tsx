@@ -31,3 +31,10 @@ export function cue(view: View2D, name: SfxName, atSec: number, volume = VOLUME[
         audio.remove();
     });
 }
+
+/** Soft key ticks while code types itself from `atSec` for `seconds`: about every 120 ms, not one per character. */
+export function typingCues(view: View2D, atSec: number, seconds: number): void {
+    // The uneven step keeps it from sounding like a metronome.
+    const steps = [0.11, 0.11, 0.14];
+    for (let at = 0, n = 0; at < seconds; at += steps[n++ % steps.length]) cue(view, 'type', atSec + at);
+}
