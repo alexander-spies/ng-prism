@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, DOCUMENT, type ElementRef, inject, input, viewChild, ViewEncapsulation } from '@angular/core';
+import { Showcase } from '@ng-prism/core';
 import { LIB_RADIO_GROUP } from './radio.tokens.js';
 
 /**
@@ -17,6 +18,22 @@ import { LIB_RADIO_GROUP } from './radio.tokens.js';
  * </lib-radio-group>
  * ```
  */
+@Showcase<RadioComponent>({
+    title: 'Radio',
+    category: 'Forms',
+    description: 'One option of a `lib-radio-group`, shown among the other options of its group. It is checked while its `value` is the value of the group.',
+    bg: 'light',
+    // The radio between its siblings: prism-subject marks the one the variants and the controls set.
+    host: {
+        template:
+            '<lib-radio-group name="size" value="m"><lib-radio value="s">Small</lib-radio><lib-radio prism-subject>Medium</lib-radio><lib-radio value="l">Large</lib-radio></lib-radio-group>'
+    },
+    variants: [
+        { name: 'Checked', inputs: { value: 'm' } },
+        { name: 'Unchecked', inputs: { value: 'xl' }, template: 'Extra large' }
+    ],
+    tags: ['form', 'radio', 'choice']
+})
 @Component({
     selector: 'lib-radio',
     standalone: true,

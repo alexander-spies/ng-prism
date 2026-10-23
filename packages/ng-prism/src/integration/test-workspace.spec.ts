@@ -112,7 +112,7 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(18);
+        expect(result.componentCount).toBe(19);
     });
 
     it('should write prism-manifest.ts into prism project', async () => {
@@ -179,13 +179,13 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(18);
+        expect(result.componentCount).toBe(19);
         expect(ctx.reportStatus).toHaveBeenCalledWith('Loading ng-prism config...');
         expect(ctx.reportStatus).toHaveBeenCalledWith('Running plugin hooks...');
-        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 18 component(s)'));
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 19 component(s)'));
     });
 
-    it('should compile the compositions of the form field, input and radio group showcases', async () => {
+    it('should compile the compositions of the form field, input, radio group and radio showcases', async () => {
         tmp = createTempWorkspace();
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
@@ -198,6 +198,9 @@ describe('test-workspace integration', () => {
             expect(content).toContain('class FormFieldComponent__PrismComposition {');
             expect(content).toContain('class InputDirective__PrismComposition {');
             expect(content).toContain('class RadioGroupComponent__PrismComposition {');
+            // A component subject that prism-subject marks among its siblings in a host template.
+            expect(content).toContain('class RadioComponent__PrismComposition {');
+            expect(content).toContain('<lib-radio data-prism-subject [value]="this.value()">Medium</lib-radio>');
             expect(content).toContain('import { CdkTextareaAutosize } from "@angular/cdk/text-field";');
             expect(content).toMatch(/imports: \[FormFieldComponent, [^\]]*\bIconComponent\b[^\]]*\]/);
             expect(warnings.filter((message) => COMPOSITION_CLASSES.some((name) => message.includes(name)))).toEqual([]);
