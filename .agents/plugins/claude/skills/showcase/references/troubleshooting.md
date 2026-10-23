@@ -88,11 +88,17 @@ finds a problem in is left out: that variant renders as it would without `templa
   **`<Class> › imports[<i>] — expected { name, from } with a non-empty string each, got <value>; it was dropped`**: the
   field has the wrong shape. `template` is a string, `host` is `{ template: '…' }`, `imports` is a list of
   `{ name: 'X', from: 'pkg' }` literals.
+- **`<Class> › imports[<i>] — expected the name a class is exported under, got "<name>"; it was dropped`** (also
+  `host.import` of a directive's object host): the generated manifest imports the class by `name`, so it has to be an
+  identifier. Usually `name` and `from` are swapped, or `name` is dotted (`Cdk.TextareaAutosize`). A default export
+  (`"default"`) cannot be imported by name: export the class by its name.
 - **`… › content — set together with template; template wins and content was dropped`**: a variant has both. Keep
   `template` and delete `content`.
 - **`… › template — <Angular's message> (<file>:<line>:<col>)`**, for example `Unexpected closing tag "div"`: a syntax
   error in the template or the host template, as Angular's parser words it. Fix the markup. The same for
   **`… › host — <Angular's message>`**.
+- **`… › host — <tag> is not closed`** (or `› template`): an element is opened and never closed. Angular would close it
+  at the end of a template of its own, but not inside the `@case` the generated wrapper puts it in. Close it.
 - **`… — <element> matches no imported component`** and **`… — pipe "<name>" matches no imported pipe`**: the element
   is no standard HTML, or the pipe is a pipe nobody declares, and no class the template can see declares it. A typo
   (`<lib-icn>`) is the usual cause. Otherwise the class isn't exported by an entry point the `prism` target scans
@@ -120,6 +126,12 @@ finds a problem in is left out: that variant renders as it would without `templa
   and **`<Class> › host — an object host needs a selector and an import { name, from } for a variant template to render in, …`**:
   a directive with a string or object `host` has a variant `template`, and the host can't hold one. Write the host as
   one element, or give the object host `selector` and `import`.
+- **`<Class> › <where> — <Class> is not standalone, which the wrapper that renders a composition needs; no variant of this showcase renders a template or a host template`**:
+  the showcased class is declared in an NgModule (`standalone: false`), and the generated wrapper can only import a
+  standalone class. Make the class standalone, or show it without `template` and host templates.
+- **`ng-prism could not read the library's components, directives and pipes (<reason>), so no variant renders a template or a host template.`**:
+  the index the compositions are checked against failed to build, so no showcase of the library has a composition.
+  Nothing in a `@Showcase` is wrong; tell the user, with the reason, so it can be reported to ng-prism.
 - **`<Class> › <where> — @angular/compiler failed on it (<reason>); no variant of this showcase renders a template or a host template`**:
   one of the compiler's APIs threw, so every composition of the showcase is left out. The reason names it, for example
   a selector of the showcased class that Angular's selector parser rejects. Tell the user, with the reason and the class.
@@ -170,6 +182,10 @@ out`): the scanner failed on the class and skipped it, so that the rest of the l
   a library directive whose selector names the element only by standard attributes (`input[type=email]`) is not applied
   to `<input type="email">`, as a user of the library wouldn't get it without importing it. If the variant should have
   it, add `{ name: '<Class2>', from: '<entry point>' }` to `imports`; otherwise ignore the notice.
+- **`<Class> › imports — <Class2> is not standalone, so a composition cannot import it; add the NgModule that declares it here`**
+  (or `<Class2> and <Class3> are not standalone, …`): a template uses a library class declared in an NgModule, and
+  Angular takes only standalone classes in `imports`. Add its NgModule: `{ name: 'LegacyModule', from: '<entry point>' }`.
+  Until then, an element only that class declares is also reported as unknown.
 - **`<Class> from "<from>" has the selector "<selector>", which Angular cannot parse (<reason>); no composition imports it.`**:
   a library class with a selector Angular's parser rejects (a nested `:not`, say) is never imported into a composition.
   Only a problem if a template needs that class.

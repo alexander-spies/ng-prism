@@ -28,7 +28,7 @@ Formatting, lint, types, tests and builds are `npm run check`'s job (it is what 
 
 The consumer plugin's skills (`.agents/plugins/claude/skills/`) describe the same surface for agents in projects that use ng-prism, and a change they describe updates them in the same PR:
 - `showcase.types.ts`, static evaluation or component discovery in the scanner → `showcase/SKILL.md`
-- a warning text in `src/builder/scanner/` (`showcase-diagnostics.ts`, `component.scanner.ts`, `pseudo-states.ts`, `entry-point.scanner.ts`, `scanner.ts`), `src/builder/manifest/host-parser.ts`, `src/builder/plugin-runner/plugin-runner.ts`, or a `[ng-prism]` console message in `src/app/` about variants, inputs or pseudo states → `showcase/references/troubleshooting.md`
+- a warning text in `src/builder/scanner/` (`showcase-diagnostics.ts`, `component.scanner.ts`, `pseudo-states.ts`, `entry-point.scanner.ts`, `scanner.ts`, `composition/*.ts`), `src/builder/manifest/host-parser.ts`, `src/builder/manifest/runtime-manifest.generator.ts`, `src/builder/manifest/composition-wrapper.generator.ts`, `src/builder/plugin-runner/plugin-runner.ts`, or a `[ng-prism]` console message in `src/app/` about variants, inputs or pseudo states → `showcase/references/troubleshooting.md`
 - `NgPrismConfig`, `ng add`, the builder options, an official plugin's factory, options or `meta` key → `setup/SKILL.md`
 - `plugin.types.ts`, hook behaviour, the services a plugin component injects → `write-plugin/SKILL.md`
 

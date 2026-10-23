@@ -427,6 +427,7 @@ Tests use **Jest 30** with **SWC** for fast TypeScript transformation.
 
 - Test files are colocated with source: `foo.spec.ts` next to `foo.ts`
 - Test fixtures go in `__fixtures__/` directories
+- Helpers that several specs share go in `__test-utils__/` directories. Both are left out of the library build and of the declared-dependencies check (`npm run check:deps`), so a fixture or helper may import a package that only the root `package.json` declares, as a devDependency
 - Test environment is `node` (not `jsdom`) unless specifically required
 
 ### Running Tests

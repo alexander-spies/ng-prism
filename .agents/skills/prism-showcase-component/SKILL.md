@@ -82,7 +82,10 @@ interface ShowcaseConfig<T = unknown> {
     // provide* functions and InjectionTokens, read statically, never called
     bg?: CanvasBg; // Recommended canvas background
     canvasLayout?: CanvasLayout; // Canvas layout for this component
-    host?: string | DirectiveHost; // Host element for directives
+    host?: string | DirectiveHost | HostTemplate; // Host element for directives, or
+    // { template } (since 22.7.0): markup the component or directive renders in
+    imports?: ShowcaseImport[]; // { name, from } of classes the templates use that the
+    // library does not export (since 22.7.0)
     renderPage?: string; // Render a styleguide page instead
     status?: ComponentStatus; // 'stable' | 'beta' | 'wip' | 'deprecated'
 }
@@ -92,10 +95,21 @@ interface ShowcaseState {
     pseudo: ForcedPseudoStates; // Same shape as Variant.pseudo
 }
 
+interface HostTemplate {
+    template: string; // The element the selector matches is the subject; prism-subject marks one of several
+}
+
+interface ShowcaseImport {
+    name: string; // Exported class name, an identifier: 'CdkTextareaAutosize'
+    from: string; // Module specifier: '@angular/cdk/text-field'
+}
+
 interface Variant<T = unknown> {
     name: string; // Tab label
     inputs?: Partial<InputsOf<T>>; // input() signal values, type-checked
     content?: string | Record<string, string>; // Projected content (ng-content)
+    template?: string; // Compiled Angular template as the content (since 22.7.0)
+    host?: HostTemplate; // Overrides ShowcaseConfig.host for this variant (since 22.7.0)
     description?: string; // Variant description
     meta?: Record<string, unknown>; // Arbitrary plugin metadata
     bg?: CanvasBg; // Overrides the component's bg
@@ -114,6 +128,10 @@ interface Variant<T = unknown> {
   `defineConfig({ appProviders })`, or for one component in a component page
   (`renderPage`)
 - `variants.inputs` keys must match the component's `input()` member names
+- A string or object `host` is for a directive. On a component it has no effect: the build drops it with a warning.
+  To show a component inside other markup, or with the parts it works with, write a composition: `template` on a
+  variant, or `host: { template }` on a variant or the showcase, with `prism-subject` on the subject where several
+  elements match, and `imports` for what the library does not export
 - A hover, pressed or focus condition that applies to several variants is a `states` entry, not a variant per
   variant. A picture that belongs to one variant (its own inputs plus a forced state) stays `Variant.pseudo`, which
   is not deprecated and has no fit rule. A state is forced only where its targets are reachable: when they are not,
