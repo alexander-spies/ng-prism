@@ -18,6 +18,7 @@ import {
 } from '@angular/core';
 import type { ComponentPage } from '../../plugin/page.types.js';
 import type { PanelDefinition, RuntimeComponent } from '../../plugin/plugin.types.js';
+import { PRISM_VARIANT_INPUT } from '../../shared/composition.js';
 import { VIEWPORT_MAX, VIEWPORT_MIN } from '../../shared/viewport.type.js';
 import { CANVAS_BG_STYLES } from '../canvas/canvas-bg.styles.js';
 import { PrismCanvasBgPillComponent } from '../canvas/prism-canvas-bg-pill.component.js';
@@ -38,7 +39,8 @@ import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 import { PRISM_RENDERER_HOOKS } from '../tokens/prism-tokens.js';
-import { buildInputBindings } from './input-bindings.js';
+import { activeCase, type RenderSignature, renderSignature, renderTypeFor, sameRender } from './composition.js';
+import { buildInputBindings, unboundInputs } from './input-bindings.js';
 import { resolveOverlay } from './overlay-resolver.js';
 import { parseContentToNodes } from './projectable-content.js';
 import { resolveExcludedReason, resolveRenderedKey } from './rendered-key.js';
@@ -108,7 +110,8 @@ export class PrismRendererComponent {
     });
     private componentRef: ComponentRef<unknown> | null = null;
     private outputSubscriptions: Array<{ unsubscribe(): void }> = [];
-    private lastProjectedContent: string | Record<string, string> | undefined = undefined;
+    /** What the instance on the canvas renders, `null` without one: a variant switch to another render creates a new instance. */
+    private lastRender: RenderSignature | null = null;
     private isRenderPage = false;
 
     private readonly overlayCache = new Map<string, Type<unknown>>();
@@ -179,6 +182,7 @@ export class PrismRendererComponent {
         effect(() => {
             const inputs = this.rendererService.inputValues();
             const content = this.rendererService.activeContent();
+            const variantIndex = this.rendererService.activeVariantIndex();
             const ref = this.componentRef;
 
             if (!ref) return;
@@ -192,23 +196,13 @@ export class PrismRendererComponent {
 
             if (!comp) return;
 
-            if (content !== this.lastProjectedContent) {
+            if (!sameRender(this.lastRender, renderSignature(comp, variantIndex, content))) {
                 untracked(() => this.createComponent(comp));
                 return;
             }
 
             performance.mark('prism:rerender:start');
-            const inputBindings = buildInputBindings(comp);
-
-            for (const [key, value] of Object.entries(inputs)) {
-                const binding = inputBindings.get(key);
-
-                if (binding === undefined) {
-                    console.warn(`[ng-prism] Unknown input "${key}" on <${comp.meta.componentMeta.selector}>, skipping. Remove it from @Showcase variants.`);
-                    continue;
-                }
-                ref.setInput(binding, value);
-            }
+            this.setInputs(ref, comp, variantIndex, inputs);
             ref.changeDetectorRef.detectChanges();
             performance.mark('prism:rerender:end');
             performance.measure('prism:rerender', 'prism:rerender:start', 'prism:rerender:end');
@@ -298,15 +292,20 @@ export class PrismRendererComponent {
         });
 
         const content = this.rendererService.activeContent();
+        const variantIndex = this.rendererService.activeVariantIndex();
+        const composed = activeCase(comp, variantIndex) !== null;
+        const type = renderTypeFor(comp, variantIndex);
 
-        this.lastProjectedContent = content;
-        const projectableNodes = content
-            ? parseContentToNodes(content, reflectComponentType(comp.type)?.ngContentSelectors ?? [], (key) =>
-                  console.warn(`[ng-prism] Variant content "${key}" matches no <ng-content> of ${comp.meta.className}, skipping it.`)
-              )
-            : undefined;
+        this.lastRender = renderSignature(comp, variantIndex, content);
+        // A composed variant has its content in the template of its case.
+        const projectableNodes =
+            content && !composed
+                ? parseContentToNodes(content, reflectComponentType(type)?.ngContentSelectors ?? [], (key) =>
+                      console.warn(`[ng-prism] Variant content "${key}" matches no <ng-content> of ${comp.meta.className}, skipping it.`)
+                  )
+                : undefined;
 
-        this.componentRef = this.outlet().createComponent(comp.type, {
+        this.componentRef = this.outlet().createComponent(type, {
             injector,
             projectableNodes
         });
@@ -325,17 +324,8 @@ export class PrismRendererComponent {
             }
         }
 
-        const inputBindings = buildInputBindings(comp);
-
-        for (const [key, value] of Object.entries(this.rendererService.inputValues())) {
-            const binding = inputBindings.get(key);
-
-            if (binding === undefined) {
-                console.warn(`[ng-prism] Unknown input "${key}" on <${selector}>, skipping. Remove it from @Showcase variants.`);
-                continue;
-            }
-            this.componentRef.setInput(binding, value);
-        }
+        if (composed) this.componentRef.setInput(PRISM_VARIANT_INPUT, variantIndex);
+        this.setInputs(this.componentRef, comp, variantIndex, this.rendererService.inputValues());
         this.componentRef.changeDetectorRef.detectChanges();
 
         performance.mark('prism:render:end', detail);
@@ -343,6 +333,26 @@ export class PrismRendererComponent {
 
         this.rendererService.renderedElement.set(this.componentRef.location.nativeElement);
         this.rendererHooks?.onAfterCreate?.(selector);
+    }
+
+    /**
+     * Sets `values` on the instance by the bindings of the variant. A key that
+     * names no input gets a warning, an input the composition of the variant
+     * leaves unbound is skipped without one.
+     */
+    private setInputs(ref: ComponentRef<unknown>, comp: RuntimeComponent, variantIndex: number, values: Record<string, unknown>): void {
+        const bindings = buildInputBindings(comp, variantIndex);
+        const unbound = unboundInputs(comp, variantIndex);
+
+        for (const [key, value] of Object.entries(values)) {
+            const binding = bindings.get(key);
+
+            if (binding !== undefined) {
+                ref.setInput(binding, value);
+            } else if (!unbound.has(key)) {
+                console.warn(`[ng-prism] Unknown input "${key}" on <${comp.meta.componentMeta.selector}>, skipping. Remove it from @Showcase variants.`);
+            }
+        }
     }
 
     private cleanup(): void {
@@ -355,7 +365,7 @@ export class PrismRendererComponent {
         this.outputSubscriptions = [];
         this.outlet().clear();
         this.componentRef = null;
-        this.lastProjectedContent = undefined;
+        this.lastRender = null;
         if (hadComponent) {
             this.rendererHooks?.onAfterDestroy?.('');
         }
