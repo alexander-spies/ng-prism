@@ -66,6 +66,23 @@ export function examplePlugin(options: ExamplePluginOptions = {}): NgPrismPlugin
 }
 ```
 
+### Compositions in a hook
+
+`ScannedComponent.composition` (`ComponentComposition`, since 22.7.0, `@experimental` until 23.0.0) is what the scan read
+from a showcase whose variants render as compiled compositions (a `template` or `host: { template }`). It is set before
+`onComponentScanned` runs, and it is absent when no variant has one and on a component a hook builds from scratch.
+
+- `variantCases`: one entry per variant, the index into `cases`, or `-1` for a variant without a composition (it renders
+  as it did before).
+- `cases`: `{ template, unbound }[]`. `template` is the markup as written and contains `COMPOSITION_SUBJECT_SLOT`
+  (exported from `@ng-prism/core/plugin`) at the end of the subject's start tag, where the subject's bindings go: a
+  plugin that shows the markup replaces it with the attributes it wants. `unbound` lists the inputs the case does not
+  bind.
+- `imports`: the classes the wrapper imports besides the subject (`{ name, from }`).
+- The runtime manifest carries `composition` too, without the build-time `origin` of each case.
+- A hook that adds, removes or rebuilds variants must keep `variantCases` aligned with them, or drop `composition`.
+  Editing `template` or `host` in a hook changes nothing that renders: the scan has read them already.
+
 ## Plugin Registration
 
 ```typescript
@@ -127,6 +144,15 @@ interface PanelDefinition {
 }
 ```
 
+### Measuring what is rendered
+
+A panel or an overlay reads the canvas through `PrismRendererService` (`@ng-prism/core`):
+
+- `renderedElement` is the root of everything the canvas renders. For a composed variant that is the whole composition,
+  frame included. Measure, audit or capture this one.
+- `subjectElement` (since 22.7.0, `Element | null`) is the showcased element itself: `[data-prism-subject]` inside a
+  composition, else the root. Read the subject's own role, label or attributes from it.
+
 ## Plugin with Custom Controls
 
 ```typescript
@@ -187,7 +213,9 @@ Prism app ships.
 - [ ] Unique `name` property
 - [ ] Build-time hooks return modified object or void
 - [ ] `componentApi: true` in the Node entry if a hook or panel reads `ScannedComponent.api`
+- [ ] A hook that reads `composition` copes with a missing one and with `-1` in `variantCases`, and keeps it aligned when it changes variants
 - [ ] Runtime components are standalone Angular components
+- [ ] A panel measures or captures `renderedElement`, and reads the subject's own attributes from `subjectElement`
 - [ ] Exported from package index
 - [ ] Tests for hook behavior
 - [ ] Registered via `defineConfig({ plugins: [...] })`
