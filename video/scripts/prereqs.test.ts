@@ -8,14 +8,13 @@ test('parseEncoders reads encoder names from `ffmpeg -encoders`', () => {
 });
 
 test('missingPrereqs names every gap', () => {
-    assert.deepEqual(missingPrereqs({ nodeVersion: '22.12.0', encoders: new Set(['libx264']), hasImg2webp: false }), [
-        'Node >= 22.18.0 (found 22.12.0)',
-        'ffmpeg encoder libvpx-vp9',
-        'ffmpeg encoder prores_ks',
-        'img2webp (brew install webp)'
-    ]);
+    assert.deepEqual(missingPrereqs({ nodeVersion: '22.12.0', encoders: new Set(['libx264']) }), ['Node >= 22.18.0 (found 22.12.0)', 'ffmpeg encoder prores_ks']);
+});
+
+test('the pipeline needs H.264 for the deliveries and ProRes for the masters, nothing else', () => {
+    assert.deepEqual([...REQUIRED_ENCODERS], ['libx264', 'prores_ks']);
 });
 
 test('missingPrereqs is empty when all is there', () => {
-    assert.deepEqual(missingPrereqs({ nodeVersion: '22.22.3', encoders: new Set(REQUIRED_ENCODERS), hasImg2webp: true }), []);
+    assert.deepEqual(missingPrereqs({ nodeVersion: '22.22.3', encoders: new Set(REQUIRED_ENCODERS) }), []);
 });

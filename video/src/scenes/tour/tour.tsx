@@ -34,7 +34,7 @@ export default makeScene2D('tour', function* (view) {
     // Act 1: the problem and the answer.
     const card = new CodeCard({ code: codeBefore, file: 'button.component.ts', fontSize: 22, y: -40 });
     yield* treeSegment(view, card);
-    yield* codeSegment(view, card, codeAfter, showcaseLines, { sound: true });
+    yield* codeSegment(view, card, codeAfter, showcaseLines);
     const reveal = recordingBeat(view, card, revealPlan(recordings['reveal']));
     cue(view, 'whoosh', useTime());
     yield* all(card.scale(0.6, 0.6, easeInOutCubic), reveal.run());

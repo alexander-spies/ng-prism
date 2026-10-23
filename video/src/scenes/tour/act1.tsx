@@ -55,17 +55,17 @@ export function* treeSegment(view: View2D, card: CodeCard): ThreadGenerator {
 }
 
 /**
- * 0:09–0:20, and the start of the README loop: @Showcase types itself onto the component, then stays highlighted long
- * enough to read. 10.3 s from wherever it starts. With `sound`, soft key ticks accompany the typing.
+ * 0:09–0:20: @Showcase types itself onto the component to soft key ticks, then stays highlighted long enough to read.
+ * 10.3 s from wherever it starts.
  */
-export function* codeSegment(view: View2D, card: CodeCard, codeAfter: string, showcaseLines: number, { sound = false }: { sound?: boolean } = {}): ThreadGenerator {
+export function* codeSegment(view: View2D, card: CodeCard, codeAfter: string, showcaseLines: number): ThreadGenerator {
     const start = useTime();
     const caption = new Caption({ text: 'Annotate the **component itself.**' });
     view.add(caption);
     yield* until(start + 0.2);
     spawn(caption.show());
     yield* until(start + 1.3);
-    if (sound) typingCues(view, start + 1.3, TYPING_SECONDS);
+    typingCues(view, start + 1.3, TYPING_SECONDS);
     yield* card.typeTo(codeAfter, TYPING_SECONDS);
     yield* card.highlightLines(0, showcaseLines - 1, 0.5);
     yield* until(start + 10);

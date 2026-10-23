@@ -1,8 +1,7 @@
 // Renders one cut to a ProRes master in out/masters/.
 //
-//   node scripts/render.ts <sandbox|tour|readme-loop|release> [--length full|short] [--version 22.7]
-import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, renameSync, symlinkSync } from 'node:fs';
+//   node scripts/render.ts <sandbox|tour|release> [--version 22.7]
+import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -12,9 +11,8 @@ import { parseRelease } from '../src/lib/release.ts';
 import { codeExcerpt, stripShowcase } from '../src/lib/source.ts';
 import { encodeVariables } from '../src/lib/variables.ts';
 
-export type Cut = 'sandbox' | 'tour' | 'readme-loop' | 'release';
+export type Cut = 'sandbox' | 'tour' | 'release';
 export interface CutOptions {
-    length?: 'full' | 'short';
     version?: string;
 }
 
@@ -89,23 +87,11 @@ export async function variablesFor(cut: Cut, options: CutOptions = {}): Promise<
             return { recordings: byId(readManifest()) };
         case 'tour':
             return { ...buttonCode(), recordings: await freshRecordings(TOUR_SHOTS) };
-        case 'readme-loop':
-            return { length: options.length ?? 'full', ...buttonCode(), recordings: await freshRecordings(['reveal']) };
         case 'release':
             return releaseVariables(options.version);
         default:
             throw new Error(`No variables for the cut "${cut}" yet`);
     }
-}
-
-/** Cuts without sound. */
-const SILENT_CUTS: ReadonlySet<Cut> = new Set(['readme-loop']);
-
-/** Revideo gives every master an audio track, a silent one when no scene plays sound; a silent cut drops it. */
-function dropAudio(file: string): void {
-    const withoutAudio = file.replace(/\.mov$/, '.video-only.mov');
-    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', file, '-map', '0:v', '-c', 'copy', withoutAudio]);
-    renameSync(withoutAudio, file);
 }
 
 /** Renders `src/projects/<cut>.ts` to `out/masters/<outFile>` (a .mov ProRes master) and returns its path. */
@@ -141,24 +127,21 @@ export async function render(cut: Cut, variables: Record<string, unknown>, outFi
                 }
             }
         });
-    let file: string;
     try {
-        file = await run();
+        return await run();
     } catch (error) {
         // Revideo #353: when Vite optimises dependencies on the first load it reloads the page under Puppeteer. The
         // second run finds them optimised.
         if (!String(error).includes('Navigating frame was detached')) throw error;
-        file = await run();
+        return await run();
     }
-    if (SILENT_CUTS.has(cut)) dropAudio(file);
-    return file;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-    const { positionals, values } = parseArgs({ allowPositionals: true, options: { length: { type: 'string' }, version: { type: 'string' } } });
+    const { positionals, values } = parseArgs({ allowPositionals: true, options: { version: { type: 'string' } } });
     const cut = positionals[0] as Cut;
-    const options: CutOptions = { length: values.length as CutOptions['length'], version: values.version };
-    const name = cut === 'release' ? `release-${options.version}` : cut === 'readme-loop' ? `readme-loop-${options.length ?? 'full'}` : cut;
+    const options: CutOptions = { version: values.version };
+    const name = cut === 'release' ? `release-${options.version}` : cut;
     const file = await render(cut, await variablesFor(cut, options), `${name}.mov`);
     console.log(file);
     process.exit(0);

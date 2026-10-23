@@ -18,22 +18,19 @@ export interface BeatPlan {
     info: RecordingInfo;
     caption: string;
     camera: CameraMove[];
-    /** How much of the recording the beat shows, in seconds; all of it by default. */
-    seconds?: number;
 }
 
 /**
  * One recorded beat: the recording crossfades in over `previous` when `run` starts, its caption comes and goes, the
- * camera follows the plan, and every click of the recording clicks audibly. `run` returns shortly before the recording ends, with the recording still on screen for
- * the next beat.
+ * camera follows the plan, and every click of the recording clicks audibly. `run` returns shortly before the
+ * recording ends, with the recording still on screen for the next beat.
  */
 export function recordingBeat(view: View2D, previous: Node, plan: BeatPlan): { readonly recording: Recording; run: () => ThreadGenerator } {
     let recording: Recording | undefined;
     function* run(): ThreadGenerator {
         const start = useTime();
-        const shown = plan.seconds ?? plan.info.durationSec;
-        const end = start + shown;
-        for (const at of plan.info.clicks) if (at < shown) cue(view, 'click', start + at);
+        const end = start + plan.info.durationSec;
+        for (const at of plan.info.clicks) cue(view, 'click', start + at);
         // Created here, inside the thread: the video starts loading in its constructor.
         recording = new Recording({ info: plan.info, src: `/recordings/${plan.info.file}`, opacity: 0 });
         view.add(recording);

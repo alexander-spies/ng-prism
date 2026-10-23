@@ -1,101 +1,47 @@
-// Turns the masters into what gets published.
+// Turns a master into what gets published.
 //
-//   node scripts/export.ts tour | release-<version>   out/deliver/<cut>.mp4
-//   node scripts/export.ts readme-loop                docs/assets/video/: readme-loop.webp (the first step of the ladder
-//                                                     within budget), docs-loop.mp4, docs-loop.webm, poster.png
+//   node scripts/export.ts tour                out/deliver/tour.mp4, and for the docs start page
+//                                              docs/assets/video/tour.mp4 with tour-poster.png (the end card)
+//   node scripts/export.ts release-<version>   out/deliver/release-<version>.mp4
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-    framesArgs,
-    frameDurationsMs,
-    img2webpArgs,
-    mp4Args,
-    pickReadmeAttempt,
-    posterArgs,
-    README_LADDER,
-    README_LOOP_BUDGET_BYTES,
-    webmArgs,
-    type LoopLength,
-    type ReadmeAttempt
-} from './export-plan.ts';
-import { MASTERS_DIR, render, variablesFor } from './render.ts';
 import { REPO_ROOT } from '../src/lib/recordings.ts';
+import { mp4Args, posterArgs } from './export-plan.ts';
+import { MASTERS_DIR } from './render.ts';
 
-const OUT_DIR = join(REPO_ROOT, 'video/out');
-const DELIVER_DIR = join(OUT_DIR, 'deliver');
-const README_WORK_DIR = join(OUT_DIR, 'readme');
+const DELIVER_DIR = join(REPO_ROOT, 'video/out/deliver');
 const DOCS_VIDEO_DIR = join(REPO_ROOT, 'docs/assets/video');
 
 function ffmpeg(args: string[]): void {
     execFileSync('ffmpeg', args, { stdio: 'inherit' });
 }
 
-/** The README loop's master of `length`, rendered when it is not there yet. */
-async function loopMaster(length: LoopLength): Promise<string> {
-    const file = join(MASTERS_DIR, `readme-loop-${length}.mov`);
-    if (!existsSync(file)) {
-        console.log(`Rendering readme-loop-${length} …`);
-        await render('readme-loop', await variablesFor('readme-loop', { length }), `readme-loop-${length}.mov`);
-    }
+function master(cut: string): string {
+    const file = join(MASTERS_DIR, `${cut}.mov`);
+    if (!existsSync(file)) throw new Error(`No master ${file}: render the cut first (npm run render -- ${cut.replace(/^release-/, 'release --version ')})`);
     return file;
 }
 
-/** One step of the ladder: the master as frames at `fps`, then an animated WebP. Returns the WebP and its size. */
-async function buildWebp(step: ReadmeAttempt): Promise<{ file: string; bytes: number }> {
-    const name = `${step.length}-${step.fps}`;
-    const framesDir = join(README_WORK_DIR, `${name}.frames`);
-    rmSync(framesDir, { recursive: true, force: true });
-    mkdirSync(framesDir, { recursive: true });
-    ffmpeg(framesArgs(await loopMaster(step.length), framesDir, step.fps));
-    const frames = readdirSync(framesDir)
-        .filter((file) => file.endsWith('.png'))
-        .sort();
-    const file = join(README_WORK_DIR, `${name}.webp`);
-    // Frame names relative to the frames directory keep the command line short: a 20 s loop has 1 200 frames.
-    execFileSync('img2webp', img2webpArgs(frames, frameDurationsMs(step.fps, frames.length), file), { cwd: framesDir, stdio: ['ignore', 'ignore', 'inherit'] });
-    return { file, bytes: statSync(file).size };
-}
-
-async function exportReadmeLoop(): Promise<void> {
-    mkdirSync(README_WORK_DIR, { recursive: true });
-    mkdirSync(DOCS_VIDEO_DIR, { recursive: true });
-    const results: Array<ReadmeAttempt & { bytes: number; file: string }> = [];
-    for (const step of README_LADDER) {
-        console.log(`README loop: trying ${step.length} at ${step.fps} fps …`);
-        const webp = await buildWebp(step);
-        console.log(`  ${(webp.bytes / 1e6).toFixed(2)} MB (budget ${(README_LOOP_BUDGET_BYTES / 1e6).toFixed(2)} MB)`);
-        results.push({ ...step, ...webp });
-        if (pickReadmeAttempt(results, README_LOOP_BUDGET_BYTES)) break;
-    }
-    const picked = pickReadmeAttempt(results, README_LOOP_BUDGET_BYTES);
-    const chosen = picked && results.find((result) => result.length === picked.length && result.fps === picked.fps);
-    if (!chosen) {
-        console.error(`README loop exceeds ${README_LOOP_BUDGET_BYTES} bytes even at short/30 fps. Ask the user, do not change the format.`);
-        process.exit(1);
-    }
-    copyFileSync(chosen.file, join(DOCS_VIDEO_DIR, 'readme-loop.webp'));
-    console.log(`README loop: ${chosen.length} at ${chosen.fps} fps → docs/assets/video/readme-loop.webp`);
-
-    // The docs page plays the full loop as a real video; its last frame, the code without @Showcase, is the poster.
-    const full = await loopMaster('full');
-    ffmpeg(mp4Args(full, join(DOCS_VIDEO_DIR, 'docs-loop.mp4')));
-    ffmpeg(webmArgs(full, join(DOCS_VIDEO_DIR, 'docs-loop.webm')));
-    ffmpeg(posterArgs(full, join(DOCS_VIDEO_DIR, 'poster.png')));
-    console.log('Docs loop: docs/assets/video/docs-loop.{mp4,webm}, poster.png');
-}
-
-function exportSocial(cut: string): void {
-    const master = join(MASTERS_DIR, `${cut}.mov`);
-    if (!existsSync(master)) throw new Error(`No master ${master}: run \`npm run render -- ${cut.replace(/^release-/, 'release --version ')}\` first`);
+/** The master as an MP4 for social posts and release notes. */
+function deliver(cut: string): string {
     mkdirSync(DELIVER_DIR, { recursive: true });
     const output = join(DELIVER_DIR, `${cut}.mp4`);
-    ffmpeg(mp4Args(master, output));
+    ffmpeg(mp4Args(master(cut), output));
     console.log(output);
+    return output;
+}
+
+/** The tour also plays on the docs start page; its poster is the last frame, the end card with the logo. */
+function exportTour(): void {
+    const mp4 = deliver('tour');
+    mkdirSync(DOCS_VIDEO_DIR, { recursive: true });
+    copyFileSync(mp4, join(DOCS_VIDEO_DIR, 'tour.mp4'));
+    ffmpeg(posterArgs(master('tour'), join(DOCS_VIDEO_DIR, 'tour-poster.png')));
+    console.log('docs/assets/video/tour.mp4, tour-poster.png');
 }
 
 const cut = process.argv[2];
-if (cut === 'readme-loop') await exportReadmeLoop();
-else if (cut === 'tour' || cut?.startsWith('release-')) exportSocial(cut);
-else throw new Error(`Usage: node scripts/export.ts <tour|release-<version>|readme-loop>, not "${cut}"`);
-process.exit(0);
+if (cut === 'tour') exportTour();
+else if (cut?.startsWith('release-')) deliver(cut);
+else throw new Error(`Usage: node scripts/export.ts <tour|release-<version>>, not "${cut}"`);

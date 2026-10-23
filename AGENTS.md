@@ -37,8 +37,8 @@ This repo is an Nx monorepo on npm workspaces:
   packages. Its `test-lib` is the demo styleguide and the scanner's real-world
   input (skill `prism-test-workspace`).
 - `video/` is a standalone npm project, outside the npm workspaces and Nx, that
-  builds the product videos (README loop, tour, release clips) from scripted
-  recordings of `test-workspace`'s `video-lib` and Revideo scenes.
+  builds the product videos (the tour on the docs start page, release clips) from
+  scripted recordings of `test-workspace`'s `video-lib` and Revideo scenes.
 - `docs/` is the published docsify site, `scripts/` holds the release and
   lint-fix scripts and `render-brand-assets.mjs`, which renders the README cover
   and the docs logo from `docs/assets/brand/cover.html`.
