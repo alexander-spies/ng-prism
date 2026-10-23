@@ -3,9 +3,10 @@ import {
     CssSelector,
     parseTemplate,
     SelectorMatcher,
-    type TmplAstElement,
+    TmplAstElement,
     type TmplAstNode,
     TmplAstRecursiveVisitor,
+    TmplAstTemplate,
     tmplAstVisitAll
 } from '@angular/compiler';
 import { COMPOSITION_SUBJECT_SLOT, SUBJECT_MARKER_ATTR } from '../../../shared/composition.js';
@@ -112,8 +113,7 @@ function composeInHost(input: ComposeInput, hostTemplate: string): Composed {
 
     if (!isVoid && input.content !== undefined) {
         if (!element.isSelfClosing) {
-            // An element whose end tag the parser implies holds everything up to the end of its span.
-            const childrenEnd = element.endSourceSpan?.start.offset ?? element.sourceSpan.end.offset;
+            const childrenEnd = element.endSourceSpan?.start.offset ?? endOffset(element);
 
             edits.push({ from: startTagEnd, to: childrenEnd, text: input.content });
         } else if (input.content) {
@@ -221,6 +221,21 @@ function writtenTag(element: TmplAstElement, source: string): string {
     const start = element.startSourceSpan.start.offset;
 
     return /^<([^\s/>]+)/.exec(source.slice(start, element.startSourceSpan.end.offset))?.[1] ?? localName(element.name);
+}
+
+/**
+ * Where a node ends in the source. The span of an element or `<ng-template>` whose end tag the parser implies (`<li>`
+ * before the next `<li>`, anything open at the end of the template) covers only its start tag, so it ends with its
+ * last descendant.
+ */
+function endOffset(node: TmplAstNode): number {
+    const end = node.sourceSpan.end.offset;
+
+    if (!(node instanceof TmplAstElement || node instanceof TmplAstTemplate) || node.endSourceSpan) return end;
+
+    const last = node.children.at(-1);
+
+    return last ? Math.max(end, endOffset(last)) : end;
 }
 
 /** Where the slot goes in a start tag ending at `startTagEnd`: before its `>` or `/>` and the whitespace in front of it. */

@@ -118,6 +118,17 @@ describe('composeTemplate', () => {
         ).toBe(`<lib-select${SLOT}></lib-select>`);
     });
 
+    it('replaces what a subject holds whose end tag the parser implies', () => {
+        const item = { selector: '[libItem]', isDirective: true, inputNames: new Map() };
+        const select = { selector: 'lib-select', isDirective: false, inputNames: new Map() };
+
+        expect(ok(composeTemplate({ ...item, hostTemplate: '<ul><li libItem>old <b>x</b> more<li>b</ul>', content: 'new' })).template).toBe(
+            `<ul><li libItem${SLOT}>new<li>b</ul>`
+        );
+        expect(ok(composeTemplate({ ...select, hostTemplate: '<lib-select><x-a></x-a>', content: '<x-b></x-b>' })).template).toBe(`<lib-select${SLOT}><x-b></x-b>`);
+        expect(ok(composeTemplate({ ...select, hostTemplate: '<lib-select><p *ngIf="on">old', content: 'new' })).template).toBe(`<lib-select${SLOT}>new`);
+    });
+
     it('reports inputs the template sets on the subject itself', () => {
         expect(ok(composeTemplate({ ...input, hostTemplate: '<input libInput required [libDatepicker]="picker" /><lib-datepicker #picker />' })).ownedInputs).toEqual([
             'required',
