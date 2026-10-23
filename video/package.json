@@ -13,7 +13,8 @@
         "format": "node ../node_modules/prettier/bin/prettier.cjs --write \"{src,scripts,record}/**/*.{ts,tsx}\" \"*.json\"",
         "prereqs": "node scripts/prereqs.ts",
         "record": "node record/record.ts",
-        "render": "node scripts/render.ts"
+        "render": "node scripts/render.ts",
+        "export": "node scripts/export.ts"
     },
     "dependencies": {
         "@codemirror/language": "^6.13.1",
