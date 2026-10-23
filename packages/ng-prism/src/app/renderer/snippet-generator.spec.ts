@@ -530,6 +530,19 @@ describe('generateCompositionSnippet', () => {
         expect(generateCompositionSnippet(`<input libInput${SLOT} />`, [])).toBe('<input libInput />');
     });
 
+    // `<button libTooltip>` leaves the input to ng-prism: its value takes the place of the bare attribute, as without a composition.
+    it('writes an attribute that sets the input of a bare selector attribute in its place', () => {
+        expect(generateCompositionSnippet(`<p><button libTooltip${SLOT}>Save</button></p>`, ['libTooltip="Saved"'])).toBe(
+            '<p><button libTooltip="Saved">Save</button></p>'
+        );
+        expect(generateCompositionSnippet(`<button libTooltip class="btn"${SLOT}>Save</button>`, ['[libTooltip]="true"'])).toBe(
+            '<button class="btn" [libTooltip]="true">Save</button>'
+        );
+        expect(generateCompositionSnippet(`<button libTooltip libTooltipWide${SLOT}></button>`, ['libTooltip="Saved"'])).toBe(
+            '<button libTooltipWide libTooltip="Saved"></button>'
+        );
+    });
+
     it('puts the attributes after the last attribute of the subject', () => {
         expect(generateCompositionSnippet(`<input class="field" libInput${SLOT} />`, ['size="lg"', '[disabled]="true"'])).toBe(
             '<input class="field" libInput size="lg" [disabled]="true" />'

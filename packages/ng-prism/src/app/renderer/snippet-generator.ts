@@ -64,12 +64,27 @@ export function subjectAttributes(inputs: InputMeta[], values: Record<string, un
 
 /**
  * The composition of a case as its author wrote it, with `attributes` on the subject element in place of the slot
- * ng-prism leaves in `CompositionCase.template`. Nothing else is rewritten.
+ * ng-prism leaves in `CompositionCase.template`. Only a bare attribute of the subject that one of them gives a value
+ * (`libTooltip`, which the selector asks for) is left out, as `attributes` writes it again.
  */
 export function generateCompositionSnippet(caseTemplate: string, attributes: string[]): string {
     const written = attributes.length > 0 ? ` ${attributes.join(' ')}` : '';
+    const names = attributes.map((attribute) => attribute.split('=')[0].replace(/^\[(.*)\]$/, '$1'));
+    const parts = caseTemplate.split(COMPOSITION_SUBJECT_SLOT);
 
-    return caseTemplate.split(COMPOSITION_SUBJECT_SLOT).join(written);
+    // The slot ends the subject's start tag, so each part but the last ends with one.
+    return parts.map((part, index) => (index < parts.length - 1 ? withoutBareAttributes(part, names) : part)).join(written);
+}
+
+/** `text` without the bare attributes `names` in the start tag it ends with. */
+function withoutBareAttributes(text: string, names: readonly string[]): string {
+    const start = text.lastIndexOf('<');
+
+    if (start < 0) return text;
+
+    const startTag = names.reduce((tag, name) => tag.replace(new RegExp(`\\s+${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`), ''), text.slice(start));
+
+    return text.slice(0, start) + startTag;
 }
 
 export function generateSnippet(
