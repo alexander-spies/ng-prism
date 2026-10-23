@@ -20,7 +20,10 @@ const SUBJECTS = {
     unresolved: 'FormFieldComponent',
     throws: 'OddComponent',
     bare: 'InputDirective',
-    email: 'EmailDirective'
+    email: 'EmailDirective',
+    'string-host': 'TooltipDirective',
+    'void-host': 'MaskDirective',
+    'object-host': 'PrefixDirective'
 } as const;
 
 const compilerOptions: ts.CompilerOptions = {
@@ -214,5 +217,48 @@ describe('readComposition', () => {
             expect.stringMatching(/^OddComponent from "fixture-lib" has the selector "lib-odd:not\(\.a:not\(\.b\)\)", which Angular cannot parse/)
         );
         expect(scanFixture('composition/throws.showcase.ts', 'CalmComponent').composition?.imports).toEqual([{ name: 'IconComponent', from: 'fixture-lib' }]);
+    });
+
+    describe('of a directive with a string or object host', () => {
+        it('composes a variant template inside a string host and leaves the variants without one as they are', () => {
+            const { variantCases, cases, imports } = composition('string-host');
+
+            expect(variantCases).toEqual([-1, 0]);
+            expect(cases[0].template).toBe(`<button class="btn" libTooltip${SLOT}><lib-icon /> Save</button>`);
+            expect(imports).toEqual([{ name: 'IconComponent', from: 'fixture-lib' }]);
+        });
+
+        it('reports a template for a void string host', () => {
+            expectDiagnostic(
+                /^MaskDirective › variants\[0\] "Masked" › template — <input> is a void element and takes no content \(.*void-host\.showcase\.ts:\d+:\d+\)$/
+            );
+            expect(scanFixture('composition/void-host.showcase.ts', 'MaskDirective')).not.toHaveProperty('composition');
+        });
+
+        it('reports a string host it cannot parse against the host', () => {
+            expectDiagnostic(/^BrokenHostDirective › host — "<div><span>" is not one element .*\(.*void-host\.showcase\.ts:\d+:\d+\)$/);
+            expect(scanFixture('composition/void-host.showcase.ts', 'BrokenHostDirective')).not.toHaveProperty('composition');
+        });
+
+        it('composes inside an object host with its inputs as attributes, and imports its class', () => {
+            const { cases, imports } = composition('object-host');
+
+            expect(cases[0].template).toBe(`<x-frame label="Say &quot;hi&quot; &amp; go" size="2" libPrefix${SLOT}><lib-icon /></x-frame>`);
+            expect(imports).toHaveLength(2);
+            expect(imports).toEqual(
+                expect.arrayContaining([
+                    { name: 'XFrame', from: 'x-frame' },
+                    { name: 'IconComponent', from: 'fixture-lib' }
+                ])
+            );
+            expect(noticesAbout('object-host.showcase.ts')).toContainEqual(
+                expect.stringMatching(/^PrefixDirective › host\.import — "XFrame" from "x-frame" is not a component, directive or pipe ng-prism can read/)
+            );
+        });
+
+        it('takes the class of an object host from the library when the library exports it', () => {
+            expectDiagnostic(/^SuffixDirective › variants\[0\] "Default" › template — <lib-icn> matches no imported component/);
+            expect(noticesAbout('object-host.showcase.ts').filter((notice) => notice.startsWith('SuffixDirective'))).toEqual([]);
+        });
     });
 });

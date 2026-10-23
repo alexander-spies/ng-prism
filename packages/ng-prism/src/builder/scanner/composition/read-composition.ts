@@ -1,7 +1,10 @@
 import { CssSelector } from '@angular/compiler';
 import type ts from 'typescript';
-import type { HostTemplate, ShowcaseConfig, ShowcaseImport, Variant } from '../../../decorator/showcase.types.js';
+import type { DirectiveHost, HostTemplate, ShowcaseConfig, ShowcaseImport, Variant } from '../../../decorator/showcase.types.js';
 import type { ComponentComposition, CompositionCase, InputMeta } from '../../../plugin/plugin.types.js';
+import { SUBJECT_MARKER_ATTR } from '../../../shared/composition.js';
+import { VOID_ELEMENTS } from '../../../shared/void-elements.js';
+import { matchHostString } from '../../manifest/host-parser.js';
 import type { EvaluationPath } from '../ast-utils.js';
 import { describeShowcaseIssue, describeShowcaseOrigin } from '../showcase-diagnostics.js';
 import { composeTemplate } from './compose-template.js';
@@ -41,6 +44,9 @@ const TEXT_ENTITIES: Readonly<Record<string, string>> = { '&': '&amp;', '<': '&l
 /** The one variant the styleguide renders a showcase without variants as. */
 const IMPLICIT_VARIANT: Variant = { name: 'Default' };
 
+/** A directive's string or object host as the host template of a variant template, or why it cannot be one. */
+type ElementHost = (HostTemplate & { import?: ShowcaseImport }) | { problem: string };
+
 /**
  * The context of one scan: the library's declarables, without those whose selector Angular cannot parse, each named
  * once in a notice, so that one of them cannot fail every composition; and the lookup of a showcase's `imports` with
@@ -64,9 +70,10 @@ export function createCompositionContext(declarables: readonly Declarable[], com
 
 /**
  * Read the compositions of a showcase. A variant is composed when it has a `template` or a host template, its own
- * `host` or else the showcase's; a showcase without variants is one variant. Each composed variant gets its template
- * from {@link composeTemplate}, checked with Angular's parser against the library and the showcase's `imports`, and
- * variants with the same template and the same unbound inputs share a case.
+ * `host` or else the showcase's; a showcase without variants is one variant. A directive's `template` without a host
+ * template renders inside the element of its string or object host, if it has one. Each composed variant gets its
+ * template from {@link composeTemplate}, checked with Angular's parser against the library and the showcase's
+ * `imports`, and variants with the same template and the same unbound inputs share a case.
  *
  * Each problem is reported against the field it comes from, with the showcase's file, line and variant, and leaves
  * that variant out: it renders as it would without `template` and `host`. Only what Angular may still accept is a
@@ -86,9 +93,11 @@ export function readComposition(
 ): ComponentComposition | undefined {
     const { className, config, configNode } = subject;
     const sharedHost = isHostTemplate(config.host) ? config.host : undefined;
+    const elementHost = subject.isDirective && !sharedHost ? readElementHost(config.host) : undefined;
     const declared = config.variants ?? [];
     const variants = declared.length > 0 ? declared : [IMPLICIT_VARIANT];
-    const hosts = variants.map((variant) => variant.host ?? sharedHost);
+    // Without a template, a variant keeps rendering in a string or object host as it did before.
+    const hosts = variants.map((variant) => variant.host ?? sharedHost ?? (variant.template !== undefined ? elementHost : undefined));
 
     if (!variants.some((variant, index) => variant.template !== undefined || hosts[index] !== undefined)) return undefined;
 
@@ -101,7 +110,8 @@ export function readComposition(
     let current: EvaluationPath = ['imports'];
 
     try {
-        const { resolved, unresolved } = readImports(subject, context, (path, text) => notify(at(path, text)));
+        const hostImport = elementHost && 'import' in elementHost && hosts.includes(elementHost) ? elementHost.import : undefined;
+        const { resolved, unresolved } = readImports(subject, hostImport, context, (path, text) => notify(at(path, text)));
         const inputNames = new Map(subject.inputs.map((input) => [input.alias ?? input.name, input.name]));
         const cases: { template: string; unbound: CompositionCase['unbound']; paths: EvaluationPath[] }[] = [];
         const caseIndex = new Map<string, number>();
@@ -112,6 +122,10 @@ export function readComposition(
             const host = hosts[index];
 
             if (variant.template === undefined && host === undefined) return -1;
+            if (host && 'problem' in host) {
+                report(at(['host'], host.problem));
+                return -1;
+            }
 
             const path: EvaluationPath = declared.length > 0 ? ['variants', subject.sources?.variants?.[index] ?? index] : ['host'];
             const hostPath: EvaluationPath = variant.host ? [...path, 'host'] : ['host'];
@@ -216,31 +230,74 @@ export function readComposition(
 }
 
 /**
- * The showcase's `imports`, looked up: what ng-prism can read is matched like a library class, the rest is imported
- * as written, with a notice. That includes an import whose selector Angular cannot parse.
+ * The showcase's `imports`, and the class of an object host a variant template renders in, looked up: a class of the
+ * library as it is indexed, anything else through {@link CompositionContext.resolveImports}. What ng-prism can read is
+ * matched like a library class, the rest is imported as written, with a notice. That includes an import whose
+ * selector Angular cannot parse.
  */
 function readImports(
     { config, filePath, sources }: CompositionSubject,
+    hostImport: ShowcaseImport | undefined,
     context: CompositionContext,
     notice: (path: EvaluationPath, text: string) => void
 ): { resolved: Declarable[]; unresolved: ShowcaseImport[] } {
-    const declared = config.imports ?? [];
+    const listed = (config.imports ?? []).map((entry, index): { entry: ShowcaseImport; path: EvaluationPath } => ({
+        entry,
+        path: ['imports', sources?.imports?.[index] ?? index]
+    }));
 
-    if (declared.length === 0) return { resolved: [], unresolved: [] };
+    if (hostImport) listed.push({ entry: hostImport, path: ['host', 'import'] });
 
-    const lookup = context.resolveImports(declared, filePath);
-    const resolved = lookup.resolved.filter((declarable) => !selectorProblem(declarable));
-    const unresolved = declared.filter((entry) => !resolved.some((declarable) => declarable.name === entry.name && declarable.from === entry.from));
+    const isEntry = (entry: ShowcaseImport) => (declarable: Declarable) => declarable.name === entry.name && declarable.from === entry.from;
+    const fromLibrary = listed.flatMap(({ entry }) => context.declarables.filter(isEntry(entry)));
+    const elsewhere = listed.filter(({ entry }) => !fromLibrary.some(isEntry(entry))).map(({ entry }) => entry);
+    const looked = elsewhere.length > 0 ? context.resolveImports(elsewhere, filePath).resolved : [];
+    const resolved = [...fromLibrary, ...looked.filter((declarable) => !selectorProblem(declarable))];
+    const unresolved = listed.filter(({ entry }) => !resolved.some(isEntry(entry)));
 
-    for (const entry of unresolved) {
-        const index = declared.indexOf(entry);
-
+    for (const { entry, path } of unresolved) {
         notice(
-            ['imports', sources?.imports?.[index] ?? index],
+            path,
             `"${entry.name}" from "${entry.from}" is not a component, directive or pipe ng-prism can read; it is imported as written and Angular checks the template`
         );
     }
-    return { resolved, unresolved };
+    return { resolved, unresolved: unresolved.map(({ entry }) => entry) };
+}
+
+/**
+ * A directive's string or object host as the host template of a variant template: the one element the host names,
+ * marked as the subject, with the static inputs of an object host as attributes and its class to import. The text a
+ * string host holds is left out, as the template replaces it. `undefined` for no host or an empty string.
+ */
+function readElementHost(host: ShowcaseConfig['host']): ElementHost | undefined {
+    const consequence = 'so the variants render without their template';
+
+    if (typeof host === 'string') {
+        if (host.trim() === '') return undefined;
+
+        const parsed = matchHostString(host);
+
+        return parsed
+            ? { template: markedElement(parsed.tag, parsed.attrs) }
+            : { problem: `${JSON.stringify(host)} is not one element ("<tag attrs>" or "<tag>text</tag>") for a variant template to render in, ${consequence}` };
+    }
+    if (typeof host !== 'object' || host === null) return undefined;
+
+    const { selector, import: hostImport, inputs } = host as Partial<DirectiveHost>;
+
+    if (typeof selector !== 'string' || selector === '' || !hostImport?.name || !hostImport.from) {
+        return { problem: `an object host needs a selector and an import { name, from } for a variant template to render in, ${consequence}` };
+    }
+
+    const attributes = Object.entries(inputs ?? {}).map(([name, value]) => `${name}="${String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"`);
+
+    return { template: markedElement(selector, attributes.join(' ')), import: { name: hostImport.name, from: hostImport.from } };
+}
+
+function markedElement(tag: string, attributes: string): string {
+    const opening = `<${tag}${attributes ? ` ${attributes}` : ''} ${SUBJECT_MARKER_ATTR}`;
+
+    return VOID_ELEMENTS.has(tag.toLowerCase()) ? `${opening} />` : `${opening}></${tag}>`;
 }
 
 /**
