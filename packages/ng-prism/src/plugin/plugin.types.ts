@@ -242,12 +242,16 @@ export interface CompositionCase {
  * The compositions of a showcase: the distinct ones, and which one each variant uses. Since 22.7.0.
  */
 export interface ComponentComposition {
-    /** By variant index, the index into `cases`, or `-1` for a variant without a composition, which renders as it did before. */
+    /**
+     * One entry per variant, or one for a showcase without variants, which renders as one implicit variant. Each is
+     * the index into `cases`, or `-1` for a variant without a composition, which renders as it did before.
+     */
     variantCases: number[];
     cases: CompositionCase[];
     /**
-     * What the templates of the cases need beyond the library classes they name, from `ShowcaseConfig.imports`.
-     * Set by the scan at build time, absent in the runtime manifest.
+     * Every class the generated wrapper imports besides the subject: the library classes the templates use, matched
+     * by selector, the showcase's `imports`, and the class of a directive's object host. Set by the scan at build
+     * time, absent in the runtime manifest.
      */
     imports?: ShowcaseImport[];
 }
@@ -315,7 +319,8 @@ export interface RuntimeComponent {
     type: Type<unknown>;
     /**
      * The generated wrapper that renders the compositions of the showcase, for a component with
-     * {@link ScannedComponent.composition}. Since 22.7.0.
+     * {@link ScannedComponent.composition}. It is set to the index of the variant through its `__prismVariant__` input.
+     * When every variant is composed, `type` is this wrapper too. Since 22.7.0.
      */
     composition?: Type<unknown>;
 }
