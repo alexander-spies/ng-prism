@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseRelease } from './release.ts';
+import { parseRelease, uiCamera } from './release.ts';
 
 const shots = new Set(['look', 'service-page']);
 const clip = {
@@ -37,4 +37,28 @@ test('parseRelease wants a source for an api beat', () => {
 test('parseRelease wants a known kind and a caption', () => {
     assert.throws(() => parseRelease({ ...clip, beats: [{ ...clip.beats[0], kind: 'video' }] }, shots), { message: 'Beat 1 has the unknown kind "video" (ui or api)' });
     assert.throws(() => parseRelease({ ...clip, beats: [{ kind: 'ui', shot: 'look' }] }, shots), { message: 'Beat 1 needs a caption' });
+});
+
+test('parseRelease rejects a caption with unbalanced ** before anything renders', () => {
+    const beats = [clip.beats[0], { ...clip.beats[1], caption: 'Services get **their own pages.' }];
+    assert.throws(() => parseRelease({ ...clip, beats }, shots), { message: 'Beat 2: Unbalanced ** in "Services get **their own pages."' });
+});
+
+test('parseRelease takes a zoom up to 2 for a ui beat and up to 4 for the half-size recording of an api beat', () => {
+    const zoomed = (index: number, zoom: unknown) => ({ ...clip, beats: clip.beats.map((beat, i) => (i === index ? { ...beat, zoom } : beat)) });
+    assert.doesNotThrow(() => parseRelease(zoomed(0, 2), shots));
+    assert.doesNotThrow(() => parseRelease(zoomed(1, 3.5), shots));
+    assert.throws(() => parseRelease(zoomed(0, 2.5), shots), { message: 'Beat 1 (ui) has the zoom 2.5: above 1, at most 2' });
+    assert.throws(() => parseRelease(zoomed(1, 1), shots), { message: 'Beat 2 (api) has the zoom 1: above 1, at most 4' });
+    assert.throws(() => parseRelease(zoomed(0, '2'), shots), { message: 'Beat 1 (ui) has the zoom 2: above 1, at most 2' });
+});
+
+test('uiCamera moves onto the first mark after the caption and back to the whole frame before the beat ends', () => {
+    const info = { id: 'copy-link', durationSec: 7, focus: [{ name: 'variant-tabs', at: 0, rect: { x: 0, y: 0, width: 10, height: 10 } }] };
+    assert.deepEqual(uiCamera(info, 1.8), [
+        { at: 0.6, mark: 'variant-tabs', scale: 1.8, seconds: 1 },
+        { at: 5.6, seconds: 0.9 }
+    ]);
+    assert.deepEqual(uiCamera(info, undefined), []);
+    assert.throws(() => uiCamera({ ...info, focus: [] }, 1.8), { message: 'The recording copy-link has no mark to zoom onto' });
 });

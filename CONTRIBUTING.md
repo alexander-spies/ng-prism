@@ -198,7 +198,7 @@ A run stops at the first failing step with its message. The single steps are scr
 
 #### A release clip
 
-A release clip is described in `video/releases/<version>.json`: one to three beats, each a `ui` beat (a recording with a caption) or an `api` beat (the decorator types itself into a `video-lib` source on the left while the recording plays on the right). A beat's recording is a shot under `video/record/shots/`, registered in `index.ts`; a shot drives the page through its `ShotContext`, with every wait in video time.
+A release clip is described in `video/releases/<version>.json`: one to three beats, each a `ui` beat (a recording with a caption) or an `api` beat (the decorator types itself into a `video-lib` source on the left while the recording plays on the right). A beat's recording is a shot under `video/record/shots/`, registered in `index.ts`; a shot drives the page through its `ShotContext`, with every wait in video time. A beat's `zoom` moves the camera onto the first element its shot marked (a `ui` beat up to 2, an `api` beat up to 4). The render checks the description first, captions included.
 
 #### What gets committed
 

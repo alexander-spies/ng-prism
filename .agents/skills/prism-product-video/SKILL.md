@@ -28,12 +28,12 @@ These are decided. Don't trade them for something else; ask when one can't be me
 ## Making a release clip
 
 1. **The features must be merged and built** into `packages/*/dist`. The recordings' hash covers those and video-lib, and a render refuses stale recordings. Build with `npm run build:all`, never `npm run test:workspace:update` while the maintainer's styleguide runs on :4400 (it kills it and clears `.angular/cache`) — ask.
-2. **Pick 1–3 beats.** A UI feature is a `ui` beat (its recording with a caption). New `@Showcase` API is an `api` beat (the decorator types itself into a video-lib source on the left, the recording plays on the right). A `ui` beat shows the whole frame without a camera, so a feature only a few pixels big stays unreadable: the kit has no camera for `ui` beats yet; propose one to the maintainer rather than shipping a clip nobody can read.
+2. **Pick 1–3 beats.** A UI feature is a `ui` beat (its recording with a caption). New `@Showcase` API is an `api` beat (the decorator types itself into a video-lib source on the left, the recording plays on the right). A feature only a few pixels big needs `"zoom"` on its beat: the camera moves onto the shot's **first** mark (a `ui` beat up to 2, an `api` beat up to 4; without it a `ui` beat shows the whole frame and an `api` beat zooms by 1.3).
 3. **video-lib.** Leave `button/` alone: it is the tour's on-screen code. An `api` source has to fit the code card: from `@Showcase` on at most 80 characters wide and ~24 lines, so template and styles in files (`templateUrl`), not inline. Check first that a feature is really new (`git log -S`) before a caption calls it new.
 4. **Write the shot** (`record/shots/<id>.ts`, registered in `index.ts` and `index.test.ts`):
     - every duration is video time; the recorder slows the page 10× and stretches it back;
     - act only through `ctx.click`, `ctx.move`, `ctx.type`: a raw `page.click` gets no click sound and no click time for the camera;
-    - `mark()` the element the camera should go to, as tight as possible: a full-width element centres the zoom on empty space;
+    - `mark()` the element the camera should go to first and as tight as possible: a full-width element centres the zoom on empty space;
     - throw early when the page is not in the expected state (`look` checks dark mode).
 5. **Check the selectors in the built styleguide** before recording: serve `test-workspace/dist/video-lib-prism` with `serveStatic` from `record/serve.ts` on a free port and look at it with Playwright. Recording a guessed selector costs minutes.
 6. **Write `releases/<v>.json`**, then:

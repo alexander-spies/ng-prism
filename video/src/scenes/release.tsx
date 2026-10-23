@@ -9,7 +9,7 @@ import { cue, typingCues } from '../components/sfx.tsx';
 import { SplitBeat } from '../components/SplitBeat.tsx';
 import { VersionCard } from '../components/VersionCard.tsx';
 import type { RecordingInfo } from '../lib/recording-info.ts';
-import type { ReleaseClip } from '../lib/release.ts';
+import { DEFAULT_API_ZOOM, uiCamera, type ReleaseClip } from '../lib/release.ts';
 import { cutVariables } from './cut-variables.ts';
 import { recordingBeat } from './tour/beat.tsx';
 import { crossfade, until } from './tour/timing.ts';
@@ -22,9 +22,9 @@ const END_HOLD = 4;
 
 /**
  * An API beat: the caption first, then the new lines type themselves into the source, and the recording next to it
- * shows what they bring, the camera on the first element the shot marked.
+ * shows what they bring, the camera `zoom` times closer on the first element the shot marked.
  */
-function* apiBeat(view: View2D, previous: Node, split: SplitBeat, info: RecordingInfo, caption: string): ThreadGenerator {
+function* apiBeat(view: View2D, previous: Node, split: SplitBeat, info: RecordingInfo, caption: string, zoom: number): ThreadGenerator {
     const start = useTime();
     view.add(split);
     const text = new Caption({ text: caption });
@@ -41,7 +41,7 @@ function* apiBeat(view: View2D, previous: Node, split: SplitBeat, info: Recordin
     for (const at of info.clicks) cue(view, 'click', shown + at);
     yield* split.showRecording(0.5);
     const firstMark = info.focus[0];
-    if (firstMark) yield* split.recording.zoomTo(firstMark.name, 1.3, 1);
+    if (firstMark) yield* split.recording.zoomTo(firstMark.name, zoom, 1);
     yield* until(shown + info.durationSec - 0.7);
     yield* text.hide();
     text.remove();
@@ -70,13 +70,13 @@ export default makeScene2D('release', function* (view) {
     for (const beat of clip.beats) {
         const info = recordings[beat.shot];
         if (beat.kind === 'ui') {
-            const ui = recordingBeat(view, previous, { info, caption: beat.caption, camera: [] });
+            const ui = recordingBeat(view, previous, { info, caption: beat.caption, camera: uiCamera(info, beat.zoom) });
             yield* ui.run();
             previous = ui.recording;
         } else {
             const { before, after } = code[beat.source];
             const split = new SplitBeat({ info, file: beat.source.split('/').at(-1) ?? beat.source, before, after });
-            yield* apiBeat(view, previous, split, info, beat.caption);
+            yield* apiBeat(view, previous, split, info, beat.caption, beat.zoom ?? DEFAULT_API_ZOOM);
             previous = split;
         }
     }
