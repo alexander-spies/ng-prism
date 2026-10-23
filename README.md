@@ -178,7 +178,7 @@ export default defineConfig({
 
 ## Directives
 
-A directive needs a host element. You configure it with `host`:
+A directive renders on the element its selector names. To put it on another element or component, or inside other markup, such as an input in its form field, configure `host`:
 
 ```typescript
 @Showcase({

@@ -136,7 +136,7 @@ A pipe is only listed when you mark it. Two things about the pipe itself decide 
 
 ## Which `@Showcase` fields apply
 
-The same ones as for a service: `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta`, `status` and [`setup`](guide/showcasing-services.md#setup), which works exactly as it does there. `section` defaults to `'Pipes'`, whose default `sectionOrder` is `30`, after Components, Directives and Services. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` and `renderPage` do not apply, since a pipe has no canvas, with a consequence until 23.0.0, see [Compatibility until 23.0.0](#compatibility-until-2300).
+The same ones as for a service: `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta`, `status` and [`setup`](guide/showcasing-services.md#setup), which works exactly as it does there. `section` defaults to `'Pipes'`, whose default `sectionOrder` is `30`, after Components, Directives and Services. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` do not apply, since a pipe has no canvas, with a consequence until 23.0.0, see [Compatibility until 23.0.0](#compatibility-until-2300).
 
 ## What the page shows
 
@@ -182,7 +182,7 @@ It is a notice, not a warning, so [`strictShowcase`](api/ng-prism-config.md#stri
 
 > **Deprecated since 22.7.0, removed in 23.0.0.** Until then a `@Pipe` class with a component-only field stays a component. See [Deprecation: injectables and pipes with component-only fields](guide/migration-v22.md#deprecation-injectables-and-pipes-with-component-only-fields).
 
-A class with `@Showcase` and `@Pipe` was shown as a component before pipes had a page, and with `renderPage` it had a working one. To keep that working in 22.x, a `@Pipe` class that declares one of the fields only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) stays a component, as before. The build prints a notice:
+A class with `@Showcase` and `@Pipe` was shown as a component before pipes had a page, and with `renderPage` it had a working one. To keep that working in 22.x, a `@Pipe` class that declares one of the fields only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage`) stays a component, as before. The build prints a notice:
 
 ```
 ⚠ ng-prism: LegacyPagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.

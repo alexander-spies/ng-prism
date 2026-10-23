@@ -25,6 +25,12 @@ runtime manifest:
 - `@Showcase` decorator metadata, including:
     - `variants[].inputs`: input values for a variant
     - `variants[].content`: HTML snippets projected into the rendered component
+    - `variants[].template`: an Angular template, compiled as the content of the
+      rendered component
+    - `host.template` and `variants[].host.template`: an Angular template the
+      rendered component or directive sits in
+    - `imports`: `{ name, from }` pairs naming classes, and the modules they are
+      imported from
     - `providers`, `meta`, `canvasLayout`, etc.
 - `NgPrismConfig` (from `ng-prism.config.ts`): theme, plugins, custom pages,
   thresholds, etc.
@@ -75,6 +81,42 @@ wrote, not content received from end users at runtime.
 If you have a use case that requires rendering untrusted HTML through
 ng-prism, please open an issue first so we can discuss a sanitized rendering
 path.
+
+## Note on compiled templates
+
+`variants[].template` and `host.template` (`variants[].host.template` as well)
+are Angular templates, and a compiled template is code. ng-prism writes each
+one into the generated `prism-manifest.ts`, which the Angular compiler builds
+into the styleguide app as it does any component of the app. Bindings,
+event handlers and pipe calls in a template run in the styleguide, in the page
+that shows it, with the same access as the rest of the app.
+
+In the threat model described above this is safe:
+
+- A template originates exclusively from a developer-authored `@Showcase`
+  decorator and is read from the source at build time, like `variants[].content`.
+  There is no code path through which an external actor can supply one. The
+  scanner does not run anything in it: it parses it with Angular's own parser
+  to check it.
+- A template is compiled with the app by Angular, not parsed from a string in
+  the browser, so it is held to what Angular's template compiler allows.
+- The text of a template reaches the generated file through an escaped template
+  literal (backslash, backtick and `${` are escaped), so that no template can
+  end the literal and put code of its own into the file.
+- `imports` entries become `import` statements in the generated manifest. The
+  module a `from` names is loaded into the styleguide bundle like any other
+  dependency of the app, and the entry comes from the developer's own
+  `@Showcase`.
+
+The URL state and the control panel edits stay what they are above: they never
+reach a template. A control value is set on an input of the rendered component
+with `setInput`, the way it is for every component.
+
+### Consumer responsibility for templates
+
+Library authors MUST NOT build `template`, `host.template` or `imports` from
+untrusted, end-user input. They are meant for markup and classes the developer
+wrote, and the styleguide runs them with the privileges of the page.
 
 ## Notes on supply-chain scanner findings
 

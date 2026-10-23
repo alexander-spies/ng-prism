@@ -53,6 +53,13 @@ export function notesPlugin(): NgPrismPlugin {
   `api`, in a hook or a panel, sets it. `jsDocPlugin()` does, but don't rely on another plugin. It is also absent when
   the scan cannot read it, on a component a hook builds from scratch and in the manifest of an older core, so check for
   it. `inputs`, `outputs` and the other fields of `ScannedComponent` are stable.
+- **`component.composition` (`ComponentComposition`, since 22.7.0)** holds what the scan read from a showcase's
+  `template` and `host: { template }`: `variantCases` (per variant, an index into `cases` or `-1`) and `cases`, each with
+  the markup as written, `template`, and `unbound`, the inputs of the subject the case does not bind. The markup has
+  `COMPOSITION_SUBJECT_SLOT` (from `@ng-prism/core/plugin`) at the end of the subject's start tag: a plugin that shows
+  the markup of a variant replaces it with the attributes it wants there, as the usage example of `jsDocPlugin()` does.
+  It is read before the hooks run, so a hook that edits `template` or `host` afterwards changes nothing that renders,
+  and it is absent when no variant has one and on a component a hook builds from scratch.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the
   whole library goes into `manifest.meta`, read in the browser with `inject(PRISM_MANIFEST).meta`.
 - The manifest that carries these results to the browser is generated source code: only JSON-like data survives. In
@@ -111,8 +118,13 @@ export function notesPlugin(): NgPrismPlugin {
   there to decide whether any plugin shows services or pipes. The panel reads the API at `activeService()?.meta.api`
   or `activePipe()?.meta.api`.
 - The selected variant and its inputs: inject `PrismRendererService` from `@ng-prism/core` (`activeVariantIndex()`,
-  `inputValues()`, `renderedElement()`, `selectVariant()`, `updateInput()`). `PrismNavigationService.activeComponent`
-  is the selection. `PRISM_MANIFEST`, `PRISM_CONFIG` and `ICON_NAMES` (the valid `icon` values) come from
+  `inputValues()`, `renderedElement()`, `subjectElement()`, `selectVariant()`, `updateInput()`).
+  `renderedElement()` is the root of everything the canvas renders: for a variant with a `template` or a `host: { template }`
+  (a composition, since 22.7.0) that is the whole composition, frame and other parts included, so measuring, auditing
+  or capturing the picture reads it. `subjectElement()` (since 22.7.0, `Element | null`) is the showcased component or
+  directive inside it, the element the generated wrapper marks with `data-prism-subject`, and the root itself outside
+  a composition: read it when you mean that element, for its role, label or attributes.
+  `PrismNavigationService.activeComponent` is the selection. `PRISM_MANIFEST`, `PRISM_CONFIG` and `ICON_NAMES` (the valid `icon` values) come from
   `@ng-prism/core/plugin`.
 - `isVisible`, `badge` and a decoration's `badge` run during change detection: keep them pure and cheap, and decide
   verdicts in `onComponentScanned`.
@@ -204,5 +216,5 @@ doesn't reload it.
 ## Guides
 
 - `plugins/writing-plugins.md`, `architecture/plugin-hooks.md`, `api/ng-prism-plugin.md`, `api/services.md`,
-  `api/types.md` (`ScannedComponent`, `ComponentApi`, `ScannedService`, `ServiceApi`, `ScannedPipe`, `PipeApi`),
+  `api/types.md` (`ScannedComponent`, `ComponentApi`, `ComponentComposition`, `ScannedService`, `ServiceApi`, `ScannedPipe`, `PipeApi`),
   `guide/showcasing-services.md`, `guide/showcasing-pipes.md`

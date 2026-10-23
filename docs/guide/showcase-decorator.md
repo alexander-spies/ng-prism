@@ -185,7 +185,7 @@ Controls the order of this _section_ in the sidebar. Lower numbers appear first.
 
 ### `variants`
 
-Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content`, a `description`, plugin `meta`, its own `bg` and `canvasLayout`, and forced `pseudo` states such as `:focus-visible`. A state that should apply to many variants is a component-level [`states`](#states) entry instead.
+Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content` (HTML) or `template` (compiled, see [Content Projection](guide/content-projection.md#compiled-content-template)), a `host` template, a `description`, plugin `meta`, its own `bg` and `canvasLayout`, and forced `pseudo` states such as `:focus-visible`. A state that should apply to many variants is a component-level [`states`](#states) entry instead.
 
 ```typescript
 @Showcase({
@@ -314,7 +314,7 @@ Variants can override this with their own `canvasLayout`. See [Variants: Per-Var
 
 ### `host`
 
-Targets directives that cannot render on their own. Tells ng-prism what element or component to host the directive on.
+Tells ng-prism what to render a directive on, or what to render a component or directive inside. A directive without a `host` renders on the element its selector names, see [Directive Hosting](guide/directive-hosting.md#without-a-host).
 
 **String host** (an HTML element string):
 
@@ -345,7 +345,32 @@ export class TooltipDirective { ... }
 export class RippleDirective { ... }
 ```
 
-See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
+**Host template** (`{ template }`, since 22.7.0), an Angular template the subject renders in. It works for directives and components:
+
+```typescript
+@Showcase<InputDirective>({
+  title: 'Input',
+  host: { template: '<lib-form-field label="Name"><input libInput /></lib-form-field>' },
+})
+@Directive({ selector: 'input[libInput]' })
+export class InputDirective { ... }
+```
+
+A string or an object `host` on a component has no effect, and the build reports it. See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
+
+### `imports`
+
+What the templates of this showcase use and ng-prism does not find in your library by itself (since 22.7.0): classes from another package, and Angular's pipes and directives. A list of `{ name, from }` pairs, strings and not class references:
+
+```typescript
+@Showcase<FormFieldComponent>({
+  title: 'Form Field',
+  imports: [{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }],
+  variants: [{ name: 'Note', template: '<textarea libInput cdkTextareaAutosize></textarea>' }],
+})
+```
+
+Library classes that a template names are imported without being listed. See [Content Projection: Imports](guide/content-projection.md#imports) for the rule. `imports` is for components and directives only; on a service or a pipe it counts as a [component-only field](guide/showcasing-services.md#compatibility-until-2300).
 
 ### `status`
 
@@ -376,7 +401,7 @@ Use this to communicate migration state while moving components from a legacy li
 
 ### `renderPage`
 
-Title of a registered `ComponentPage` to render instead of the default component canvas. Use for complex components that need elaborate template projections or mock data that cannot be expressed with simple `content` strings.
+Title of a registered `ComponentPage` to render instead of the default component canvas. Use for complex components that need mock data or providers of their own, or a demo that is more than one subject. Components that only need other library parts in their content, or a frame around them, are better served by a variant [`template`](guide/content-projection.md#compiled-content-template) or a [host template](guide/directive-hosting.md#host-template), which keep the Overview, `states` and the Events panel that a page gives up.
 
 The page component can inject `PrismRendererService` to react to variant and controls panel changes. A component with `renderPage` cannot declare [`states`](#states).
 

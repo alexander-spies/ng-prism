@@ -21,7 +21,8 @@ interface ShowcaseConfig<T = unknown> {
     setup?: () => readonly ShowcaseSetupRef[];
     bg?: CanvasBg;
     canvasLayout?: CanvasLayout;
-    host?: string | DirectiveHost;
+    host?: string | DirectiveHost | HostTemplate;
+    imports?: ShowcaseImport[];
     renderPage?: string;
     status?: ComponentStatus;
 }
@@ -36,7 +37,7 @@ interface ShowcaseState {
 }
 ```
 
-`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md), and on a class with `@Pipe`, which makes it a [pipe](guide/showcasing-pipes.md) (both since `22.7.0`): a page with its API and no canvas. For a service or a pipe, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only they take. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `renderPage`) need a canvas, see [Services](#services) and [Pipes](#pipes) below.
+`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md), and on a class with `@Pipe`, which makes it a [pipe](guide/showcasing-pipes.md) (both since `22.7.0`): a page with its API and no canvas. For a service or a pipe, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only they take. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage`) need a canvas, see [Services](#services) and [Pipes](#pipes) below.
 
 The optional generic parameter `T` is the component class. When set via `@Showcase<MyComponent>({...})`, variant `inputs` are checked against `Partial<InputsOf<MyComponent>>`, giving you autocomplete on input names and type-checking on values. When omitted, `T` defaults to `unknown` and `inputs` accepts any `Record<string, unknown>`, so existing call sites keep working unchanged. See [Variants: Type-safe inputs](guide/variants.md#type-safe-inputs) for usage and [`InputsOf<T>`](api/types.md#inputsof) for the type mapping rules.
 
@@ -295,7 +296,7 @@ See also: [Variants: Per-Variant Canvas Layout](guide/variants.md#per-variant-ca
 
 ### `host`
 
-Optional. Tells ng-prism how to render a directive that cannot render on its own.
+Optional. Tells ng-prism what to render a directive on, or what to render a component or directive inside. A directive without `host` renders on the element its selector names, see [Without a Host](guide/directive-hosting.md#without-a-host).
 
 **String form**, an HTML element string:
 
@@ -316,7 +317,41 @@ Optional. Tells ng-prism how to render a directive that cannot render on its own
 })
 ```
 
+**Template form** (`HostTemplate`, since `22.7.0`), an Angular template the subject renders in. The element that the subject's selector matches is the subject, and `prism-subject` marks it when several match:
+
+```typescript
+@Showcase<InputDirective>({
+  title: 'Input',
+  host: { template: '<lib-form-field label="Name"><input libInput /></lib-form-field>' },
+})
+```
+
+The template form works for components and directives. The string and the object form only apply to directives: on a component they have no effect, and the build reports that and drops them. `Variant.host` takes the template form and overrides this field for that variant.
+
 See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
+
+---
+
+### `imports`
+
+Optional, since `22.7.0`. What the [templates](guide/content-projection.md#compiled-content-template) of the showcase (`Variant.template`, `host: { template }`) use and ng-prism does not find in your library by itself: a class from another package such as `CdkTextareaAutosize`, or one of Angular's pipes and directives such as `DatePipe`. A list of `ShowcaseImport` objects:
+
+```typescript
+@Showcase({
+  title: 'Form Field',
+  imports: [
+    { name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' },
+    { name: 'DatePipe', from: '@angular/common' },
+  ],
+})
+```
+
+| Field  | Description                                               |
+| ------ | --------------------------------------------------------- |
+| `name` | The exported class name                                   |
+| `from` | The module specifier to import it from, as in an `import` |
+
+The entries are strings so that [`ng-prism-strip`](guide/library-publishing.md) leaves no import behind in the published library. Components, directives and pipes that your library's entry points export do not need an entry: a template that names them imports them, see [the rule](guide/content-projection.md#imports). ng-prism reads each entry from the declarations of its module to know its selector or name. An entry it cannot read is imported as written, with a notice. The field applies to components and directives, not to services or pipes.
 
 ---
 
@@ -331,7 +366,7 @@ Optional title of a registered `ComponentPage`. When set, the matching page comp
 })
 ```
 
-The page component can inject `PrismRendererService` to react to variant and controls changes. See [Component Pages](guide/component-pages.md). A component with `renderPage` cannot declare [`states`](#states).
+The page component can inject `PrismRendererService` to react to variant and controls changes. See [Component Pages](guide/component-pages.md). A component with `renderPage` cannot declare [`states`](#states), has no Overview and no Events panel entries. For a subject that only needs other library parts around it or in it, a variant [`template`](guide/content-projection.md#compiled-content-template) or a [`host` template](#host) keeps all of that.
 
 ---
 
@@ -367,7 +402,7 @@ The badge is a soft-tinted [`prism-badge`](api/ng-prism-plugin.md#ui-primitives)
 
 ## Services
 
-A class with `@Injectable` or `@Service` from `@angular/core` is a [service](guide/showcasing-services.md), unless it also has `@Component` or `@Directive`. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` and `renderPage` do nothing there, since a service page has no canvas.
+A class with `@Injectable` or `@Service` from `@angular/core` is a [service](guide/showcasing-services.md), unless it also has `@Component` or `@Directive`. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` do nothing there, since a service page has no canvas.
 
 **Until 23.0.0 they decide what the class is** (deprecated since 22.7.0, removed in 23.0.0). A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. A class with `@Injectable` or `@Service` that declares one of those fields stays a component, as before, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)):
 
@@ -381,7 +416,7 @@ Remove the fields and move the demo to a [component page](guide/component-pages.
 
 ## Pipes
 
-A class with `@Pipe` from `@angular/core` is a [pipe](guide/showcasing-pipes.md), unless it also has `@Component` or `@Directive`; one with `@Pipe` and `@Injectable` is a pipe. The same fields as for a service apply, and `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` and `renderPage` do nothing there.
+A class with `@Pipe` from `@angular/core` is a [pipe](guide/showcasing-pipes.md), unless it also has `@Component` or `@Directive`; one with `@Pipe` and `@Injectable` is a pipe. The same fields as for a service apply, and `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` do nothing there.
 
 **Until 23.0.0 they decide what the class is** (deprecated since 22.7.0, removed in 23.0.0), as for services: a `@Pipe` class that declares one of those fields stays a component, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)):
 
@@ -406,6 +441,24 @@ interface DirectiveHost {
     };
     /** Static inputs passed to the host component */
     inputs?: Record<string, unknown>;
+}
+```
+
+## HostTemplate and ShowcaseImport Interfaces
+
+Since `22.7.0`, both exported from `@ng-prism/core`. See [Type Reference](api/types.md#hosttemplate).
+
+```typescript
+interface HostTemplate {
+    /** The markup the subject renders in, compiled as an Angular template */
+    template: string;
+}
+
+interface ShowcaseImport {
+    /** Exported name, e.g. 'CdkTextareaAutosize' */
+    name: string;
+    /** Module specifier, e.g. '@angular/cdk/text-field' */
+    from: string;
 }
 ```
 

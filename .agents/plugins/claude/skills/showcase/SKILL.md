@@ -1,6 +1,6 @@
 ---
 name: showcase
-description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and pipes with @Pipe, with their setup), when a build prints a "⚠ ng-prism:" warning, when a component, service or pipe is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
+description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, compiled templates with host templates and imports for components that work together such as a form field with its input, directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and pipes with @Pipe, with their setup), when a build prints a "⚠ ng-prism:" warning, when a component, service or pipe is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
 ---
 
 # Writing and checking @Showcase configs
@@ -47,12 +47,19 @@ package is right:
 6. **No `providers`.** `@Showcase({ providers })` is deprecated since 22.4.0, removed in 23.0.0, and the build drops
    it: the manifest is static and can't hold providers. Put them into `defineConfig({ appProviders })` in
    `ng-prism.config.ts`, or use a component page.
-7. **Directives need a `host`**: an HTML string such as `host: '<button class="btn">Save</button>'` (forms: `<tag>`,
-   `<tag attrs>`, `<tag />`, `<tag>text</tag>`; anything else falls back to a `<div>` with a warning), or
-   `{ selector, import: { name, from }, inputs? }` to put the directive on another component.
+7. **A directive renders on the element its selector names, and `host` changes that.** Without a `host`,
+   `input[libInput]` renders as `<input libInput>` and `[libTooltip]` as `<div libTooltip>` (up to 22.6.0 always a
+   `div`, and a selector with an element never matched). `host` is an HTML string such as
+   `host: '<button class="btn">Save</button>'` (forms: `<tag>`, `<tag attrs>`, `<tag />`, `<tag>text</tag>`; anything
+   else falls back to a `<div>` with a warning), `{ selector, import: { name, from }, inputs? }` to put the directive
+   on another component, or `{ template }` for markup around it (rule 13). A void element (`<input>`, `<img>`) works
+   as a host from 22.7.0 and takes no `content`; up to 22.6.0 it broke the styleguide build. A string or object
+   `host` on a **component** has no effect, and from 22.7.0 the build reports it and points to `host: { template }`.
 8. **Projected content is set per variant.** `content: 'Save'` fills the default `<ng-content>`; an object fills named
    slots by their `select`, written exactly as in the template, with `default` for the unnamed one:
    `content: { '[card-header]': '<h3>Title</h3>', default: '<p>Body</p>' }`. There is no component-level `content`.
+   `content` is HTML parsed in the browser, not compiled: components and directives in it stay plain elements, and
+   there are no bindings. For those use rule 13.
    Up to 22.5.0 an object fills the slots by position instead (`default` first, then the keys in the order written),
    so a named slot before the unnamed one gets swapped content there: don't change the component's template for it,
    use a component page or tell the user.
@@ -82,7 +89,9 @@ package is right:
     `providePrism(manifest, config, { componentPages })` in the styleguide app's `main.ts`, linked with
     `@Showcase({ renderPage: '<exact page title>' })`. The variant tabs and controls stay, but their values reach the
     page only if it injects `PrismRendererService` from `@ng-prism/core` and reads `inputValues()` and
-    `activeVariantIndex()`.
+    `activeVariantIndex()`. A page replaces the canvas and gives up the Overview, `states` (dropped with a warning),
+    the Events panel and the perf render marks, and its code snippet shows the subject's selector, not the page. When
+    every part of the demo is a class of the library, use rule 13 instead and keep all of that.
 
 11. **A service is showcased on its class and gets a page without a canvas.** `@Showcase` on a class with `@Injectable`
     or `@Service`, both from `@angular/core` (an aliased or namespace import counts) and with no `@Component` or `@Directive`
@@ -95,11 +104,42 @@ package is right:
     every signature of `transform()`, the `setup` entries, the types and a generated usage snippet. Only standalone
     pipes with a readable `name`. It needs the same installed version as a service (`showcase.types.d.ts` has
     `setup`): both came in one release. Read `references/services-and-pipes.md` before writing one.
+13. **Parts that find each other through Angular are a composition, not `content` and not a component page** (since
+    22.7.0; the typings have `template` and `imports`). A form field reads its input with `contentChild`, a radio group
+    its radios with `contentChildren`, a control injects its field: write that markup as an Angular template that
+    ng-prism compiles with the library.
+    - **`variants[].template`** is the content of the subject. Angular picks the slot, so there is no record by slot:
+      `{ name: 'With icon', inputs: { label: 'Search' }, template: '<lib-icon libPrefix name="search" /><input libInput />' }`.
+      It wins over `content`, and a directive gets it as the content of its host element.
+    - **`host: { template }`** (on the showcase, or `variants[].host` for one variant) is the markup the subject sits
+      in, for a directive in its frame or one radio in a group:
+      `host: { template: '<lib-form-field label="Name"><input libInput /></lib-form-field>' }`. The subject is the element
+      the subject's selector matches, written as a user of the library writes it (selector lists included).
+      `prism-subject` marks it when several match: `<lib-radio prism-subject value="m">`. No match, or several without
+      the mark, is a warning.
+    - **What the template writes on the subject element itself** (`required`, `value="m"`, `[libDatepicker]="picker"`)
+      belongs to the template: that input is not bound in the variant, its control reads `Not editable`, and a value for
+      it in `inputs` is dropped with a warning. A value-less attribute that the subject's own selector names
+      (`<lib-button libTooltip>`) does not count. `inputs` and the controls are the subject's, so values for other parts
+      go into the template, per variant.
+    - **Expressions have no context:** literals and template reference variables (`#picker`, `[for]="picker"`) only,
+      no members of the component class.
+    - **`imports: [{ name, from }]`** on the showcase, strings and not classes, for what ng-prism can't find in the
+      library: another package (`{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }`) and Angular's own
+      pipes and directives (`date` needs `{ name: 'DatePipe', from: '@angular/common' }`). A library class that the
+      entry points export needs no entry when the template names it by a custom element (`lib-icon`) or an attribute
+      Angular's DOM schema doesn't know (`libInput`). `type`, `required` and `tabindex` don't count, so a library
+      directive that matches an element only by those is not imported: a notice names it, and `imports` applies it.
+    - **A composition keeps everything a showcase has:** Overview, `states` (targets resolve against the whole
+      composition, `true` is every element of it), Controls and Events for the subject, the Code popover with the
+      markup as written, a11y, perf and VRT. It doesn't cover overlays rendered into `<body>` (a select's panel, a
+      datepicker popup) and has no live control for any part but the subject.
+    - Don't use `renderPage` for it (rule 10). Don't write `host: '<div>…'` on a component: it has no effect.
 
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
-deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`). A variant
-can set its own `description`, `bg`, `canvasLayout`, `meta` and `pseudo`.
+deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13). A variant
+can set its own `description`, `bg`, `canvasLayout`, `meta`, `pseudo`, `template` and `host` (rule 13).
 
 ## Example
 
@@ -138,6 +178,33 @@ export class ButtonComponent {
 }
 ```
 
+A composition, with a frame as the subject and a directive that sits in it (rule 13):
+
+```ts
+@Showcase<FormFieldComponent>({
+    title: 'Form Field',
+    imports: [{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }],
+    variants: [
+        { name: 'Default', inputs: { label: 'E-Mail' }, template: '<input libInput type="email" />' },
+        { name: 'Note', inputs: { label: 'Note' }, template: '<textarea libInput cdkTextareaAutosize></textarea>' }
+    ]
+})
+@Component({ selector: 'lib-form-field' /* … */ })
+export class FormFieldComponent {
+    readonly label = input('');
+}
+
+@Showcase<InputDirective>({
+    title: 'Input',
+    host: { template: '<lib-form-field label="Name"><input libInput /></lib-form-field>' },
+    variants: [{ name: 'Default' }, { name: 'Required', inputs: { required: true } }]
+})
+@Directive({ selector: 'input[libInput], textarea[libInput]' })
+export class InputDirective {
+    readonly required = input(false);
+}
+```
+
 ## JSDoc on a component or directive
 
 With `jsDocPlugin()` (skill setup) the API tab of a component or directive is the same page as the one of a service
@@ -161,19 +228,22 @@ from the code and the JSDoc, so write JSDoc for what the types can't say:
   `@param name text` under each parameter. One without is left out, as are `private` and `protected` members, `_x`
   names, lifecycle hooks, statics and `@internal`. Document the methods a user is meant to call from outside.
 - **Nothing to write for Usage.** The snippet is generated from the selector, the required inputs and, for a directive,
-  the `host` of its `@Showcase`: another reason to declare one (rule 7). `@version` gives a Version chip next to
+  the `host` of its `@Showcase`: another reason to declare one (rule 7). A showcase-level `host: { template }` (rule 13)
+  shows the subject inside that markup, with the classes the template uses. `@version` gives a Version chip next to
   `@since`; `@example` (a fenced block) goes under Examples.
 
 ## Workflow
 
 1. Read the component: its `input()` / `model()` members and their types, its `<ng-content>` slots, whether it is a
-   directive.
+   directive, and whether it works only with other parts (`contentChild`, `contentChildren`, an injected parent), which
+   makes the variants a composition (rule 13).
 2. Write the showcase: one variant per combination of inputs worth seeing, named for what it shows. A hover, pressed or
    focus condition is a `states` entry, not another variant. Variant and state indexes are 0-based, in this order.
 3. Run the styleguide as a background process: `ng run <lib>:prism` (Nx: `npx nx run <lib>:prism`). It is ready when
    `http://localhost:4400/` answers (the target's `port` option may say otherwise) and rescans on every change.
 4. Read the build log. Each `⚠ ng-prism:` line is a dropped value or a deprecated option;
-   `references/troubleshooting.md` has the cause and the fix for each. The line
+   `references/troubleshooting.md` has the cause and the fix for each. A composed variant with a problem in its
+   template is named there with the variant and the position, and renders without its template until it is fixed. The line
    `ng-prism: Generated manifest with N component(s)` (or `Verified (unchanged)`) tells you whether the component was
    found. A service shows as `with N component(s), M service(s)` and a pipe as `, K pipe(s)`; when that part is missing and
    the "no plugin shows services" or "no plugin shows pipes" hint is in the log, they were left out. If the styleguide runs in a process you didn't start and

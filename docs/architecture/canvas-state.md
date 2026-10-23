@@ -63,6 +63,18 @@ The renderer has one marker for the canvas. An effect applies the two layers to 
 
 Each Overview cell creates its own marker and applies the variant's declared states, and a matrix cell also its column's state as the state layer, so a state never leaks into a neighbouring cell. A matrix cell reports the marker's fit to the matrix (`fitChange`), which counts it in the column header. When the state does not fit, the cell clears the marker and the component and shows a dashed placeholder in its place, with the reason as its tooltip and in its label, since a picture of the plain variant would sit under a label that says something else. The tools menu's toggle does not reach the Overview.
 
+## Composed Variants: Root and Subject
+
+A variant with a `template` or a host template is rendered through the generated composition wrapper, see [Build Pipeline](architecture/pipeline.md#_6-runtime-manifest-generation). `PrismRendererService.renderedElement` is the host element of that wrapper, the root of the whole composition, the same way it is the host of a directive's wrapper. Everything that works from the rendered element therefore sees the composition and not only the showcased element:
+
+- the pseudo-state marker resolves its targets against the root, so a selector in `pseudo` or in a state finds elements of the frame and of the other parts, and `true` is every element of the composition (the rule "resolved against the host and everything inside it", read with the host being what is rendered);
+- `data-prism-rendered`, the `.demo-wrap` box, the box model, measuring, Figma and the a11y audit work on the root. A label that belongs to the frame is part of the audited tree;
+- the Overview cell of a composed variant renders the same wrapper with the variant's index.
+
+`PrismRendererService.subjectElement` (since 22.7.0) is the one place that needs the showcased element itself. It is computed from `renderedElement`: the element with `data-prism-subject`, which the wrapper puts on the subject (the root itself when it matches), and otherwise the root. The a11y overlay reads the role it labels from it. Outside a composition no element is marked, so it is the root.
+
+A switch to or from a composed variant creates the component again, since the type to render changes, and so does a switch between two composed variants, because each runs its own instances of the frame and the parts in it. The renderer keeps the type, the variant index and the content of the last render for that: only a variant of the same type and content takes the inputs through `setInput` on the instance it has.
+
 ## Viewport Width
 
 `viewportWidth` narrows `.demo-wrap` so a layout can be checked at a given width without resizing

@@ -77,13 +77,63 @@ These count for `strictShowcase: true`, which ends the build with
   `@Pipe({ name })` isn't a string literal or a `const` the builder can read (a `let`, a call). Write it as a literal;
   without the name a template has nothing to call the pipe by.
 
+### Compositions (`template`, `host: { template }`, `imports`)
+
+Since 22.7.0. `<where>` is the field, such as `variants[2] "Disabled" › template` or `host`. A composition the builder
+finds a problem in is left out: that variant renders as it would without `template` and `host`, and the others stay.
+
+- **`<Class> › host — a string or object host has no effect on a component; use host: { template } to render it inside other markup. It was dropped.`**:
+  a component never rendered in a string or object `host`, and it still doesn't. Delete the field, or write the markup
+  around the component as `host: { template: '<div …><lib-x /></div>' }`.
+- **`<Class> › <where> — expected a string, got <value>; it was dropped`** (`template`),
+  **`… expected { template: string }, got <value>; it was dropped`** (`host`, on the showcase or a variant),
+  **`<Class> › imports — expected a list of { name, from }, got <value>; it was dropped`** and
+  **`<Class> › imports[<i>] — expected { name, from } with a non-empty string each, got <value>; it was dropped`**: the
+  field has the wrong shape. `template` is a string, `host` is `{ template: '…' }`, `imports` is a list of
+  `{ name: 'X', from: 'pkg' }` literals.
+- **`… › content — set together with template; template wins and content was dropped`**: a variant has both. Keep
+  `template` and delete `content`.
+- **`… › template — <Angular's message> (<file>:<line>:<col>)`**, for example `Unexpected closing tag "div"`: a syntax
+  error in the template or the host template, as Angular's parser words it. Fix the markup. The same for
+  **`… › host — <Angular's message>`**.
+- **`… — <element> matches no imported component`** and **`… — pipe "<name>" matches no imported pipe`**: the element
+  is no standard HTML, or the pipe is a pipe nobody declares, and no class the template can see declares it. A typo
+  (`<lib-icn>`) is the usual cause. Otherwise the class isn't exported by an entry point the `prism` target scans
+  (export it), or it comes from another package, or it is one of Angular's own pipes or directives: add
+  `imports: [{ name: 'DatePipe', from: '@angular/common' }]`.
+- **`… — <element> matches A and B, and Angular allows one component per element (NG0300)`**: two library components
+  have selectors that match the element. Change the element or one of the selectors.
+- **`… › host — the selector "<selector>" matches no element of the host template`**: the host template doesn't contain
+  the subject. Write its element the way a user of the library writes it (`<input libInput>`), or put `prism-subject`
+  on the element that is meant.
+- **`… › host — the selector "<selector>" matches <n> elements of the host template; mark one with prism-subject`** and
+  **`… › host — prism-subject marks <n> elements of the host template; mark one`**: put `prism-subject` on exactly one
+  element.
+- **`… › host — prism-subject marks <tag>, which the selector "<selector>" does not match`** (a component) and
+  **`… but no part of the selector "<selector>" fits a <tag>`** (a directive): the marked element is not one the subject
+  can sit on. Mark another element, or fix the host template.
+- **`… — <tag> is a void element and takes no content`**: a variant `template` on a directive that renders on
+  `<input>`, `<img>` or another void element. Delete the template, or host the directive on a non-void element.
+- **`… › content — HTML content cannot be projected into a host template; use template`**: a component variant that
+  renders in a host template has HTML `content`. Move it into `template`.
+- **`… › inputs.<name> — set by the template on the subject; the variant value was dropped`**: the template writes that
+  input on the subject element (`required`, `[x]="ref"`), which makes it the template's. Delete the value from `inputs`,
+  or the attribute from the template.
+- **`<Class> › host — "<host string>" is not one element ("<tag attrs>" or "<tag>text</tag>") for a variant template to render in, so the variants render without their template`**
+  and **`<Class> › host — an object host needs a selector and an import { name, from } for a variant template to render in, …`**:
+  a directive with a string or object `host` has a variant `template`, and the host can't hold one. Write the host as
+  one element, or give the object host `selector` and `import`.
+- **`<Class> › <where> — @angular/compiler failed on it (<reason>); no variant of this showcase renders a template or a host template`**:
+  one of the compiler's APIs threw, so every composition of the showcase is left out. The reason names it, for example
+  a selector of the showcased class that Angular's selector parser rejects. Tell the user, with the reason and the class.
+
 ## Notices
 
 Same prefix, but they don't count for `strictShowcase`.
 
 - **`<Class> is an @Injectable/@Service with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`**:
-  the class has a field only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host` or
-  `renderPage`), so it stays a component until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0). To make it a service now, remove the fields and move the demo to
+  the class has a field only a component can use (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`,
+  `imports` or `renderPage`), so it stays a component until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0). To make it a service now, remove the fields and move the demo to
   a component page; otherwise leave it, nothing is lost.
 - **`<Class> is a @Pipe with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.`**:
   the same rule for a `@Pipe` class (deprecated since 22.7.0, removed in 23.0.0): it has a component-only field, so it
@@ -110,6 +160,25 @@ out`): the scanner failed on the class and skipped it, so that the rest of the l
 - **`<Class>: could not read its API for the API page (<reason>); the page falls back to its inputs and outputs.`**:
   the same for a component or directive, which keeps its page: its API tab shows the inputs and outputs without type
   links, payloads or type cards.
+- **`<Class> › imports[<i>] — "<name>" from "<from>" is not a component, directive or pipe ng-prism can read; it is imported as written and Angular checks the template`**
+  (also `host.import` of an object host): the entry resolved to something whose selector ng-prism can't read, an
+  NgModule or a service for instance, or to no module at all. It is imported anyway. While one entry is unread, an
+  unknown element or pipe is only a notice too (**`… — <element> matches no imported component; an import ng-prism cannot read may declare it, so Angular checks it`**),
+  and Angular decides. Check `name` and `from` if you expected it to be read. If the styleguide build then fails with
+  `NG8001` or `NG8002`, see "The styleguide build fails inside a composition".
+- **`<Class> › imports — <Class2> on <element> matches only by standard attributes and is not imported; add it here to apply it`**:
+  a library directive whose selector names the element only by standard attributes (`input[type=email]`) is not applied
+  to `<input type="email">`, as a user of the library wouldn't get it without importing it. If the variant should have
+  it, add `{ name: '<Class2>', from: '<entry point>' }` to `imports`; otherwise ignore the notice.
+- **`<Class> from "<from>" has the selector "<selector>", which Angular cannot parse (<reason>); no composition imports it.`**:
+  a library class with a selector Angular's parser rejects (a nested `:not`, say) is never imported into a composition.
+  Only a problem if a template needs that class.
+- **`<Class>: <input> is a void element and takes no content, so the content of the host and of the variants is not rendered.`**
+  (printed while the manifest is written): `content` on a directive that renders on a void element. Delete the content.
+- **`<Class>: the host names no class to import (host.import), so it renders as <div>.`**: the object host has no
+  `import: { name, from }`. Add it.
+- **`<Class>: no part of the selector "<selector>" fits the host <tag>, so only its first attribute is set.`**: the host
+  element isn't one the directive's selector names, so the directive may not match. Use a host that fits the selector.
 
 - **`<Class> declares bg "checker", which is deprecated and will be removed in 23.0.0; use 'transparent' for the same look with a capture that keeps its alpha, or 'light'/'dark' for an absolute colour.`**
 - **`<Class> uses @Input() decorators which are not fully supported. …`** or
@@ -294,12 +363,47 @@ What is specific to a pipe:
 `alias`, and the generated host binds the member name, which the directive doesn't accept. There the only ways out are
 to drop the alias or the `@Showcase`; ask the user which. Later versions bind the alias.
 
+## A variant renders without its template or host template
+
+Look in the build log for a `⚠ ng-prism:` line that names the variant (`variants[<i>] "<name>"`) or `host`, and read
+"Compositions" above: each such variant is left out of the composition and renders as it would without `template` and
+`host`, for example a frame without its input. Also check:
+
+1. Is the installed `@ng-prism/core` 22.7.0 or newer? Its `showcase.types.d.ts` has `template` and `imports`. Older
+   versions don't know the fields: they ignore `template` and `imports` without a warning, and a `host: { template }`
+   on a directive makes their manifest generation throw.
+2. Is the `template` or `host` written in the `@Showcase({ … })` object, as a string, a template literal of constants or
+   a `const`? A call or a `let` is dropped with a warning, like any other value.
+3. For a `host: { template }`: does the selector of the showcased class match an element of it, once?
+
+## The styleguide build fails inside a composition
+
+An error such as `NG8001: 'lib-x' is not a known element` or `NG8002: Can't bind to 'size' since it isn't a known property of 'lib-x'`
+in `ng-prism-cache/<lib>-prism/prism-manifest.ts` is something only Angular finds, so ng-prism couldn't report it
+beforehand. The error points at a line in the generated wrapper `<Class>__PrismComposition`. Above each `@case` of
+its template is a comment with the variants and the position in the source, and above the class one with the
+showcase's file:
+
+```
+<!-- variants[2] "Disabled" (projects/my-lib/src/lib/form-field/form-field.component.ts:47:9) -->
+```
+
+Find the comment above the reported line, open that file and fix the template of that variant. Typical causes are
+a binding to an input the element doesn't have, an element or pipe from an import ng-prism couldn't read that the
+import doesn't declare (see the notice about it), and a name that isn't a template reference variable in an expression.
+Expressions in a template have no component class behind them. Never edit the generated file: the next scan
+overwrites it. In `serve` the error goes away with the next save.
+
 ## An input has no effect
 
 - The key isn't the member name: look for the browser console messages above.
 - Up to 22.5.0: the input has an `alias`, which a variant can't set there.
 - The value was dropped: look for a `⚠ ng-prism:` line that names `inputs.<key>`.
 - The input is an `@Input()`: migrate it to `input()`.
+- In a composition (`template` or `host: { template }`), the control reads `Not editable` and the value does nothing:
+  the tooltip says why. `Set by the template of this variant`: the template writes that input on the subject element, so
+  change it there. `Its default is unknown to ng-prism`: the default isn't a literal the builder can read, so the input
+  stays unbound until the variant sets a value for it in `inputs`.
 
 ## Projected content lands in the wrong slot
 
@@ -309,3 +413,6 @@ to drop the alias or the `@Showcase`; ask the user which. Later versions bind th
   slot of the template, the other keys into the following ones in the order written. A component whose template puts
   a named slot before the unnamed one shows the contents swapped there, and reordering the keys can't fix it. Leave
   the component's template as it is; use a component page or tell the user.
+- `content` is HTML parsed in the browser, not compiled by Angular. A component or directive selector in it is a plain
+  element that nothing instantiates, so it has no behaviour, and no `contentChild`, `contentChildren` or injected parent
+  reaches it. From 22.7.0 write the content as a variant `template` (rule 13 of the skill).
