@@ -45,19 +45,35 @@ const TEMPLATE_URL = 'prism-composition.html';
  *
  * What fails is reported against the field it comes from: `host` for the host template and finding the subject in
  * it, `template` for the content and, when there is content, for what Angular's parser rejects in the composed
- * template.
+ * template. Both are parsed as the generated wrapper holds them, inside a `@case`, where an element left open fails.
  */
 export function composeTemplate(input: ComposeInput): ComposeResult {
     const composed = input.hostTemplate === undefined ? composeWithoutHost(input) : composeInHost(input, input.hostTemplate);
 
     if (!composed.ok) return composed;
 
-    const parsed = parseTemplate(composed.template.replace(COMPOSITION_SUBJECT_SLOT, ''), TEMPLATE_URL);
-    const error = parsed.errors?.[0];
+    const template = composed.template.replace(COMPOSITION_SUBJECT_SLOT, '');
+    const parsed = parseTemplate(template, TEMPLATE_URL);
+    const problem = parsed.errors?.[0]?.msg ?? problemInCase(template);
 
     // Without content the host template alone was parsed, so a remaining error is still its own.
-    if (error) return fail(input.content === undefined ? 'host' : 'template', error.msg);
+    if (problem) return fail(input.content === undefined ? 'host' : 'template', problem);
     return { ...composed, nodes: parsed.nodes };
+}
+
+/**
+ * What Angular rejects in `template` inside the `@case` of the generated wrapper, beyond what it rejects at the top
+ * level: there it closes an element left open at the end of the template, in a block it fails on the block's `}`.
+ */
+function problemInCase(template: string): string | undefined {
+    const error = parseTemplate(`@switch (0) {\n@case (0) {\n${template}\n}\n}`, TEMPLATE_URL).errors?.[0];
+
+    if (!error) return undefined;
+
+    // The message is about the `}` ng-prism wrote, and names the element only in passing.
+    const unclosed = /Did you forget to close the (<[^>]+>) element\?/.exec(error.msg);
+
+    return unclosed ? `${unclosed[1]} is not closed` : error.msg;
 }
 
 function composeWithoutHost({ selector, content }: ComposeInput): Composed {
@@ -76,9 +92,9 @@ function composeWithoutHost({ selector, content }: ComposeInput): Composed {
 
 function composeInHost(input: ComposeInput, hostTemplate: string): Composed {
     const parsed = parseTemplate(hostTemplate, TEMPLATE_URL, { preserveWhitespaces: true });
-    const error = parsed.errors?.[0];
+    const problem = parsed.errors?.[0]?.msg ?? problemInCase(hostTemplate);
 
-    if (error) return fail('host', error.msg);
+    if (problem) return fail('host', problem);
 
     const subject = findSubject(parsed.nodes, input.selector);
 

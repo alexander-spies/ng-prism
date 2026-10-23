@@ -120,13 +120,38 @@ describe('composeTemplate', () => {
 
     it('replaces what a subject holds whose end tag the parser implies', () => {
         const item = { selector: '[libItem]', isDirective: true, inputNames: new Map() };
-        const select = { selector: 'lib-select', isDirective: false, inputNames: new Map() };
 
         expect(ok(composeTemplate({ ...item, hostTemplate: '<ul><li libItem>old <b>x</b> more<li>b</ul>', content: 'new' })).template).toBe(
             `<ul><li libItem${SLOT}>new<li>b</ul>`
         );
-        expect(ok(composeTemplate({ ...select, hostTemplate: '<lib-select><x-a></x-a>', content: '<x-b></x-b>' })).template).toBe(`<lib-select${SLOT}><x-b></x-b>`);
-        expect(ok(composeTemplate({ ...select, hostTemplate: '<lib-select><p *ngIf="on">old', content: 'new' })).template).toBe(`<lib-select${SLOT}>new`);
+        expect(ok(composeTemplate({ ...item, hostTemplate: '<div><p libItem>old <b>x</b></div>', content: 'new' })).template).toBe(`<div><p libItem${SLOT}>new</div>`);
+        expect(ok(composeTemplate({ ...item, hostTemplate: '<ul><li libItem><p *ngIf="on">old</ul>', content: 'new' })).template).toBe(`<ul><li libItem${SLOT}>new</ul>`);
+    });
+
+    // At the top level Angular closes what is open at the end; inside the `@case` of the generated wrapper it fails.
+    it('rejects a host template that leaves an element open', () => {
+        const select = { selector: 'lib-select', isDirective: false, inputNames: new Map() };
+
+        expect(composeTemplate({ ...input, hostTemplate: '<lib-form-field label="x"><input libInput /></lib-form-field><div>' })).toEqual({
+            ok: false,
+            at: 'host',
+            problem: '<div> is not closed'
+        });
+        expect(composeTemplate({ ...input, hostTemplate: '<div><lib-form-field label="x"><input libInput /></lib-form-field>' })).toEqual({
+            ok: false,
+            at: 'host',
+            problem: '<div> is not closed'
+        });
+        expect(composeTemplate({ ...input, hostTemplate: '<lib-form-field label="x"><input libInput>' })).toEqual({
+            ok: false,
+            at: 'host',
+            problem: '<lib-form-field> is not closed'
+        });
+        expect(composeTemplate({ ...select, hostTemplate: '<lib-form-field><lib-select>', content: '<lib-option>a</lib-option>' })).toEqual({
+            ok: false,
+            at: 'host',
+            problem: '<lib-select> is not closed'
+        });
     });
 
     it('reports inputs the template sets on the subject itself', () => {
