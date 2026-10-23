@@ -3,7 +3,7 @@
  * tag, in `CompositionCase.template`. Snippets replace it with the current values, the generated wrapper with the
  * bindings. A private-use character, so that it cannot occur in the markup an author wrote. Since 22.7.0.
  */
-export const COMPOSITION_SUBJECT_SLOT = '';
+export const COMPOSITION_SUBJECT_SLOT = '\uE000';
 
 /** Attribute the generated wrapper puts on the subject element, which is how the styleguide finds it in the rendered composition. Since 22.7.0. */
 export const COMPOSITION_SUBJECT_ATTR = 'data-prism-subject';

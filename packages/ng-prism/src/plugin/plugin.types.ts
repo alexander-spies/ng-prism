@@ -231,8 +231,11 @@ export interface CompositionCase {
      * not editable. `name` is the member name.
      */
     unbound: { name: string; reason: 'template' | 'default' }[];
-    /** Where the case comes from, as `file:line` and the variants: for the comments and errors of the generated code. Build time only. */
-    origin: string;
+    /**
+     * Where the case comes from, as `file:line` and the variants: for the comments and errors of the generated code.
+     * Set by the scan at build time, absent in the runtime manifest.
+     */
+    origin?: string;
 }
 
 /**
@@ -242,8 +245,11 @@ export interface ComponentComposition {
     /** By variant index, the index into `cases`, or `-1` for a variant without a composition, which renders as it did before. */
     variantCases: number[];
     cases: CompositionCase[];
-    /** What the templates of the cases need beyond the library classes they name, from `ShowcaseConfig.imports`. Build time only. */
-    imports: ShowcaseImport[];
+    /**
+     * What the templates of the cases need beyond the library classes they name, from `ShowcaseConfig.imports`.
+     * Set by the scan at build time, absent in the runtime manifest.
+     */
+    imports?: ShowcaseImport[];
 }
 
 /**
