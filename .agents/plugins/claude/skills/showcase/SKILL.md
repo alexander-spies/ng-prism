@@ -130,6 +130,9 @@ package is right:
       entry points export needs no entry when the template names it by a custom element (`lib-icon`) or an attribute
       Angular's DOM schema doesn't know (`libInput`). `type`, `required` and `tabindex` don't count, so a library
       directive that matches an element only by those is not imported: a notice names it, and `imports` applies it.
+      `name` is the name the class is exported under (an identifier, not `default`), `from` the module. A library class
+      declared in an NgModule (`standalone: false`) is never imported: list its NgModule here. The subject itself has
+      to be standalone, or none of its variants is composed.
     - **A composition keeps everything a showcase has:** Overview, `states` (targets resolve against the whole
       composition, `true` is every element of it), Controls and Events for the subject, the Code popover with the
       markup as written, a11y, perf and VRT. It doesn't cover overlays rendered into `<body>` (a select's panel, a
