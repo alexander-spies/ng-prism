@@ -320,7 +320,7 @@ None of this affects `ShowcaseConfig`, the manifest format, or any plugin's publ
 
 ## Breaking changes and deprecations in 22.7.0
 
-`22.7.0` adds [services](guide/showcasing-services.md) and [pipes](guide/showcasing-pipes.md) to the styleguide. Everything else is additive: for components and directives, `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. The exception is a class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe`, which used to be scanned as a component and now leaves `components`, as described below. Its Playground never rendered it, so nothing that worked is lost; a tool that enumerated `components` simply no longer sees it. The one breaking change in application code is a type-level one. The deprecations below change nothing in 22.x. The release also brings [compiled compositions](#new-compiled-compositions-and-a-warning-for-a-host-on-a-component) and the [new look](#new-look-palette-header-and-panels).
+`22.7.0` adds [services](guide/showcasing-services.md) and [pipes](guide/showcasing-pipes.md) to the styleguide. Everything else is additive: for components and directives, `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. The exception is a class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe`, which used to be scanned as a component and now leaves `components`, as described below. Its Playground never rendered it, so nothing that worked is lost; a tool that enumerated `components` simply no longer sees it. The breaking changes in application code are type-level ones, in [`NavigationItem`](#breaking-change-navigationitem-has-two-new-kinds) and [`ShowcaseConfig.host`](#breaking-change-showcaseconfighost-is-a-wider-union). The deprecations below change nothing in 22.x. The release also brings [compiled compositions](#new-compiled-compositions-and-a-warning-for-a-host-on-a-component) and the [new look](#new-look-palette-header-and-panels).
 
 Before 22.7.0 every class with `@Showcase` was a component, so a class with `@Showcase` and `@Pipe` was in `components` (with the selector `''`), in `__PRISM_MANIFEST__` and in `onComponentScanned`, and its Playground never rendered it. In 22.7.0 it depends on the pipe:
 
@@ -355,6 +355,25 @@ function label(item: NavigationItem): string {
 
 The same goes for a `switch` that ends in `never` and for a lookup typed on the union. At runtime nothing changes until your styleguide actually contains a service or a pipe. The members `PrismNavigationService.activeService`, `selectService()`, `activePipe` and `selectPipe()` and the `service` and `pipe` URL parameters are new and change nothing for existing code. See [`NavigationItem`](api/types.md#navigationitem).
 
+### Breaking change: `ShowcaseConfig.host` is a wider union
+
+`ShowcaseConfig.host` was `string | DirectiveHost` and is `string | DirectiveHost | HostTemplate` now, for the [host template](guide/directive-hosting.md#host-template). It only affects code of your own that reads `host`, for example a plugin that reads `showcaseConfig.host` of a scanned or runtime component. Code that takes every host that is no string for a `DirectiveHost` now fails to compile, because the other branch is `DirectiveHost | HostTemplate`. Tell them apart with `'template' in host`:
+
+```typescript
+// before 22.7.0
+function hostTag(host: ShowcaseConfig['host']): string | undefined {
+    return typeof host === 'string' ? host : host?.selector;
+}
+
+// from 22.7.0
+function hostTag(host: ShowcaseConfig['host']): string | undefined {
+    if (typeof host === 'string') return host;
+    return host && !('template' in host) ? host.selector : undefined;
+}
+```
+
+At runtime nothing changes until a showcase uses a host template: a string or object host keeps its shape. `DirectiveHost` and `HostTemplate` are exported from `@ng-prism/core`, see [`DirectiveHost`](api/types.md#directivehost) and [`HostTemplate`](api/types.md#hosttemplate).
+
 ### Deprecation: injectables and pipes with component-only fields
 
 **Deprecated since 22.7.0, removed in 23.0.0. Nothing changes in 22.x.** Before services and pipes had a page, a class with `@Showcase` and `@Injectable` or `@Pipe` landed in `components`, and with `renderPage` it had a working page. It keeps that page in 22.x: a class with `@Injectable`, `@Service` or `@Pipe` that declares `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` or `renderPage` stays a component, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)). From 23.0.0 it is shown as a service or a pipe and those fields are dropped. To switch now, remove the fields, or move the page to a [component page](guide/component-pages.md) and keep the service or pipe on its own. See [Showcasing Services: Compatibility until 23.0.0](guide/showcasing-services.md#compatibility-until-2300) and [Showcasing Pipes: Compatibility until 23.0.0](guide/showcasing-pipes.md#compatibility-until-2300).
@@ -363,10 +382,10 @@ A `@Pipe` declared in an NgModule (`standalone: false`) goes one step further. n
 
 ### New: compiled compositions, and a warning for a `host` on a component
 
-`22.7.0` adds `template` and `host: { template }` on a variant and on the showcase, and `imports` on the showcase. They render the subject with other library parts as a compiled Angular template, see [Content Projection](guide/content-projection.md#compiled-content-template) and [Directive Hosting](guide/directive-hosting.md#host-template). Every existing `content`, string `host` and object `host` renders as before. Three things change for existing showcases:
+`22.7.0` adds `template` on a variant, `host: { template }` on a variant and on the showcase, and `imports` on the showcase. They render the subject with other library parts as a compiled Angular template, see [Content Projection](guide/content-projection.md#compiled-content-template) and [Directive Hosting](guide/directive-hosting.md#host-template). Every existing `content`, string `host` and object `host` renders as before. Three things change for existing showcases:
 
 - **A string or object `host` on a component gets a warning.** It has never had an effect on a component, and it still has none, so what renders stays the same. The scan now prints a `⚠ ng-prism:` warning and drops the field; the warning does not fail a [`strictShowcase`](api/ng-prism-config.md#strictshowcase) build. Delete the field, or switch to `host: { template }` to get the wrapper it was meant to give, and check the visual regression baselines of that component, since the output changes.
-- **A directive renders on the element its selector names.** Without a `host`, `input[libInput]` renders as `<input libInput>`, where it used to render on a `div` that the directive never matched. A directive with `host: '<input>'` or another void element used to fail the styleguide build and now renders, see [Directive Hosting](guide/directive-hosting.md#void-elements).
+- **A directive renders on the element its selector names.** Without a `host`, `input[libInput]` renders as `<input libInput>`, where it used to render on a `div` that the directive never matched. A directive with `host: '<input>'` or another void element used to fail the styleguide build and now renders, see [Directive Hosting](guide/directive-hosting.md#void-elements). Check the visual regression baselines of such a directive, since the output changes.
 - **`imports` joins the component-only fields.** A class with `@Injectable`, `@Service` or `@Pipe` that declares it stays a component until 23.0.0, like one that declares `variants`, see [the deprecation above](#deprecation-injectables-and-pipes-with-component-only-fields).
 
 A plugin that reads `ScannedComponent` sees one more optional field, `composition`, and `InputMeta` one more, `defaultUnreadable`, see [Type Reference](api/types.md#componentcomposition).

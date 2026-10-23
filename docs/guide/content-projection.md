@@ -152,13 +152,14 @@ ng-prism checks each composed template with Angular's own parser before it write
 
 These are warnings that [`strictShowcase`](api/ng-prism-config.md#strictshowcase) turns into build errors:
 
-- Syntax errors: unclosed tags, an end tag on a void element, broken bindings.
+- Syntax errors: unclosed tags, an end tag on a void element, broken bindings. An element left open at the end of a template or host template counts too: Angular closes it on its own at the top of a template, but not inside the generated wrapper.
 - An element that is neither standard HTML nor matched by an imported component or directive, and a pipe nothing declares.
 - Two library components on one element.
 - A value in `inputs` for an input that the template sets on the subject itself, see [Host template](guide/directive-hosting.md#host-template).
-- A `template` or `host` that is not a string or `{ template }`, and an `imports` entry that is not `{ name, from }`.
+- A `template` or `host` that is not a string or `{ template }`, and an `imports` entry that is not `{ name, from }` or whose `name` is not the name a class is exported under (`default` included).
+- A showcased component or directive that is not standalone: the generated wrapper can only import a standalone class, so none of its variants is composed.
 
-Where an import that ng-prism cannot read may declare what is missing, an unknown element or pipe is only a notice, and Angular decides. Notices do not count for `strictShowcase`.
+Where an import that ng-prism cannot read may declare what is missing, an unknown element or pipe is only a notice, and Angular decides. Notices do not count for `strictShowcase`. A library class that is not standalone gets one too: Angular takes only standalone classes in `imports`, so ng-prism does not import it, and you add the NgModule that declares it to `imports`.
 
 What only Angular finds, such as a binding to an input the subject does not have, fails the styleguide build with an error in `ng-prism-cache/<lib>-prism/prism-manifest.ts`. The wrapper there has a comment above each case that names the showcase file, the line and the variants it renders, so look for the comment above the line Angular reports. In `serve`, the error overlay goes away with the next save.
 

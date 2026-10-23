@@ -70,7 +70,7 @@ onComponentScanned(component) {
 
 `component.api` (since `22.7.0`) is experimental until 23.0.0: its shape may change in a 22.x minor release. The scan only reads it when a plugin in the config sets [`componentApi`](api/ng-prism-plugin.md#componentapi), so a plugin that reads it sets the flag, and a component that another hook built from scratch has none. `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Add your own data to `component.meta`, and read `component.api` knowing it can change.
 
-`component.composition` (since `22.7.0`) is what the scan read from the `template` and host template fields, see [`ComponentComposition`](api/types.md#componentcomposition). It is read before the hooks run, so a hook that changes those fields afterwards does not change what renders, and a component a hook builds from scratch has none. A plugin that shows the markup of a variant can read each case and replace `COMPOSITION_SUBJECT_SLOT` with the attributes it wants on the subject, as the JSDoc plugin does for its usage example.
+`component.composition` (since `22.7.0`) is what the scan read from the `template` and host template fields, see [`ComponentComposition`](api/types.md#componentcomposition). Like `component.api`, its shape is experimental until 23.0.0. It is read before the hooks run, so a hook that changes those fields afterwards does not change what renders, and a component a hook builds from scratch has none. A plugin that shows the markup of a variant can read each case and replace `COMPOSITION_SUBJECT_SLOT` with the attributes it wants on the subject, as the JSDoc plugin does for its usage example.
 
 **Typical uses:**
 

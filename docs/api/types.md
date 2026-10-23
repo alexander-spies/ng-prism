@@ -578,7 +578,7 @@ interface DirectiveHost {
 }
 ```
 
-Used in `ShowcaseConfig.host` for directive showcases that require an Angular component as the host element. See [Directive Hosting](guide/directive-hosting.md).
+Used in `ShowcaseConfig.host` for directive showcases that require an Angular component as the host element. Exported from `@ng-prism/core` since `22.7.0`. See [Directive Hosting](guide/directive-hosting.md).
 
 ---
 
