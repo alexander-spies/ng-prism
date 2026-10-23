@@ -7,7 +7,7 @@ import { classifyShowcaseClass, type ShowcaseClassKind } from './api/angular-dec
 import { extractComponentApi } from './api/component-api.extractor.js';
 import type { ExportIndex } from './api/export-index.js';
 import { findSetupProperty } from './api/setup.reader.js';
-import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, UNEVALUABLE } from './ast-utils.js';
+import { evaluateStatic, findDecorator, getDecoratorArgument, readDecoratorField, UNEVALUABLE } from './ast-utils.js';
 import { getClassHierarchy } from './class-hierarchy.js';
 import { extractInputs, extractOutputs } from './input.extractor.js';
 import { describeValue, readPseudoStates } from './pseudo-states.js';
@@ -462,23 +462,4 @@ function extractComponentMeta(classDecl: ts.ClassDeclaration, checker: ts.TypeCh
         standalone: readDecoratorField(arg, 'standalone', checker) !== false,
         isDirective
     };
-}
-
-/**
- * One field of `@Component`/`@Directive` metadata, read from its own
- * property where the literal has one, so that `imports`, `providers` and the
- * rest are not resolved only to be thrown away. A spread or a shorthand could
- * supply the field from elsewhere, so then the whole argument is evaluated.
- */
-function readDecoratorField(arg: ts.Expression, key: string, checker: ts.TypeChecker): unknown {
-    if (ts.isObjectLiteralExpression(arg) && !arg.properties.some(ts.isSpreadAssignment)) {
-        const prop = arg.properties.find((p) => p.name !== undefined && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === key);
-
-        if (!prop) return undefined;
-        if (ts.isPropertyAssignment(prop)) return evaluateExpression(prop.initializer, checker);
-    }
-
-    const raw = evaluateExpression(arg, checker);
-
-    return typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>)[key] : undefined;
 }

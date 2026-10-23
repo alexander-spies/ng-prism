@@ -517,6 +517,26 @@ export function getDecoratorArgument(decorator: ts.Decorator): ts.Expression | u
 }
 
 /**
+ * One field of `@Component`/`@Directive`/`@Pipe` metadata, read from its own
+ * property where the literal has one, so that `imports`, `providers` and the
+ * rest are not resolved only to be thrown away. A spread or a shorthand could
+ * supply the field from elsewhere, so then the whole argument is evaluated.
+ * Without a `checker`, only what the literal itself says can be read.
+ */
+export function readDecoratorField(arg: ts.Expression, key: string, checker?: ts.TypeChecker): unknown {
+    if (ts.isObjectLiteralExpression(arg) && !arg.properties.some(ts.isSpreadAssignment)) {
+        const prop = arg.properties.find((p) => p.name !== undefined && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === key);
+
+        if (!prop) return undefined;
+        if (ts.isPropertyAssignment(prop)) return evaluateExpression(prop.initializer, checker);
+    }
+
+    const raw = evaluateExpression(arg, checker);
+
+    return typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>)[key] : undefined;
+}
+
+/**
  * Get the JSDoc comment for a node.
  */
 export function getJsDocComment(node: ts.Node, checker: ts.TypeChecker): string | undefined {
