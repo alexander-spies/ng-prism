@@ -33,11 +33,11 @@ describe('buildDeclarableIndex', () => {
     it('indexes components, directives and pipes with and without @Showcase', () => {
         expect(index).toEqual(
             expect.arrayContaining([
-                { name: 'FormFieldComponent', from: 'fixture-lib', kind: 'component', selector: 'lib-form-field' },
-                { name: 'IconComponent', from: 'fixture-lib', kind: 'component', selector: 'lib-icon' },
-                { name: 'InputDirective', from: 'fixture-lib', kind: 'directive', selector: 'input[libInput], textarea[libInput]' },
-                { name: 'EmailDirective', from: 'fixture-lib', kind: 'directive', selector: 'input[type=email]' },
-                { name: 'UpperPipe', from: 'fixture-lib', kind: 'pipe', pipeName: 'upper' }
+                { name: 'FormFieldComponent', from: 'fixture-lib', kind: 'component', selector: 'lib-form-field', standalone: true },
+                { name: 'IconComponent', from: 'fixture-lib', kind: 'component', selector: 'lib-icon', standalone: true },
+                { name: 'InputDirective', from: 'fixture-lib', kind: 'directive', selector: 'input[libInput], textarea[libInput]', standalone: true },
+                { name: 'EmailDirective', from: 'fixture-lib', kind: 'directive', selector: 'input[type=email]', standalone: true },
+                { name: 'UpperPipe', from: 'fixture-lib', kind: 'pipe', pipeName: 'upper', standalone: true }
             ])
         );
         expect(index).toHaveLength(7);
@@ -83,8 +83,8 @@ describe('buildDeclarableIndex', () => {
         const thirdParty = indexOf([{ entryFile: path.join(FIXTURES_DIR, 'third-party-api.ts'), importPath: 'fixture-lib' }]);
 
         expect(thirdParty).toEqual([
-            { name: 'DatePipe', from: 'fixture-lib', kind: 'pipe', pipeName: 'date' },
-            { name: 'CdkTextareaAutosize', from: 'fixture-lib', kind: 'directive', selector: 'textarea[cdkTextareaAutosize]' }
+            { name: 'DatePipe', from: 'fixture-lib', kind: 'pipe', pipeName: 'date', standalone: true },
+            { name: 'CdkTextareaAutosize', from: 'fixture-lib', kind: 'directive', selector: 'textarea[cdkTextareaAutosize]', standalone: true }
         ]);
     });
 });
@@ -94,14 +94,16 @@ describe('resolveShowcaseImports', () => {
         const { resolved, unresolved } = resolveShowcaseImports([{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }], fixtureFile, {});
 
         expect(unresolved).toEqual([]);
-        expect(resolved).toEqual([{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field', kind: 'directive', selector: 'textarea[cdkTextareaAutosize]' }]);
+        expect(resolved).toEqual([
+            { name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field', kind: 'directive', selector: 'textarea[cdkTextareaAutosize]', standalone: true }
+        ]);
     });
 
     it('resolves an Angular pipe, which the package re-exports from a chunk', () => {
         const { resolved, unresolved } = resolveShowcaseImports([{ name: 'DatePipe', from: '@angular/common' }], fixtureFile, {});
 
         expect(unresolved).toEqual([]);
-        expect(resolved).toEqual([{ name: 'DatePipe', from: '@angular/common', kind: 'pipe', pipeName: 'date' }]);
+        expect(resolved).toEqual([{ name: 'DatePipe', from: '@angular/common', kind: 'pipe', pipeName: 'date', standalone: true }]);
     });
 
     it('reads a class from its source where the module resolves to one', () => {
@@ -117,9 +119,9 @@ describe('resolveShowcaseImports', () => {
 
         expect(unresolved).toEqual([]);
         expect(resolved).toEqual([
-            { name: 'InputDirective', from: './public-api', kind: 'directive', selector: 'input[libInput], textarea[libInput]' },
-            { name: 'UpperPipe', from: './public-api', kind: 'pipe', pipeName: 'upper' },
-            { name: 'IconComponent', from: './public-api', kind: 'component', selector: 'lib-icon' }
+            { name: 'InputDirective', from: './public-api', kind: 'directive', selector: 'input[libInput], textarea[libInput]', standalone: true },
+            { name: 'UpperPipe', from: './public-api', kind: 'pipe', pipeName: 'upper', standalone: true },
+            { name: 'IconComponent', from: './public-api', kind: 'component', selector: 'lib-icon', standalone: true }
         ]);
     });
 
@@ -129,7 +131,7 @@ describe('resolveShowcaseImports', () => {
         });
 
         expect(unresolved).toEqual([]);
-        expect(resolved).toEqual([{ name: 'FormFieldComponent', from: 'fixture-lib', kind: 'component', selector: 'lib-form-field' }]);
+        expect(resolved).toEqual([{ name: 'FormFieldComponent', from: 'fixture-lib', kind: 'component', selector: 'lib-form-field', standalone: true }]);
     });
 
     it('follows `export *` and renamed re-exports to the declaration', () => {
@@ -144,8 +146,8 @@ describe('resolveShowcaseImports', () => {
 
         expect(unresolved).toEqual([]);
         expect(resolved).toEqual([
-            { name: 'EmailDirective', from: './barrel', kind: 'directive', selector: 'input[type=email]' },
-            { name: 'ShoutPipe', from: './barrel', kind: 'pipe', pipeName: 'upper' }
+            { name: 'EmailDirective', from: './barrel', kind: 'directive', selector: 'input[type=email]', standalone: true },
+            { name: 'ShoutPipe', from: './barrel', kind: 'pipe', pipeName: 'upper', standalone: true }
         ]);
     });
 
@@ -174,7 +176,7 @@ describe('resolveShowcaseImports', () => {
             const first = chain(5);
 
             expect(resolveShowcaseImports([{ name: 'LinkDirective', from: first }], fixtureFile, {}).resolved).toEqual([
-                { name: 'LinkDirective', from: first, kind: 'directive', selector: '[libLink]' }
+                { name: 'LinkDirective', from: first, kind: 'directive', selector: '[libLink]', standalone: true }
             ]);
         });
 
@@ -183,6 +185,62 @@ describe('resolveShowcaseImports', () => {
 
             expect(resolveShowcaseImports([entry], fixtureFile, {})).toEqual({ resolved: [], unresolved: [entry] });
         });
+    });
+
+    it('reads whether a class is standalone, from its decorator or its .d.ts', () => {
+        const dir = mkdtempSync(path.join(tmpdir(), 'ng-prism-declarables-'));
+        const source = path.join(dir, 'source.ts');
+        const declarations = path.join(dir, 'declarations.d.ts');
+
+        writeFileSync(
+            source,
+            [
+                `import { Component, Directive } from '@angular/core';`,
+                `@Component({ selector: 'lib-legacy', standalone: false, template: '' })`,
+                `export class LegacyComponent {}`,
+                `@Directive({ selector: '[libModern]' })`,
+                `export class ModernDirective {}`
+            ].join('\n')
+        );
+        writeFileSync(
+            declarations,
+            [
+                `import * as i0 from '@angular/core';`,
+                `export declare class LegacyDirective {`,
+                `    static ɵdir: i0.ɵɵDirectiveDeclaration<LegacyDirective, "[libLegacy]", never, {}, {}, never, never, false, never>;`,
+                `}`,
+                `export declare class LegacyPipe {`,
+                `    static ɵpipe: i0.ɵɵPipeDeclaration<LegacyPipe, "legacy", false>;`,
+                `}`,
+                `export declare class ModernPipe {`,
+                `    static ɵpipe: i0.ɵɵPipeDeclaration<ModernPipe, "modern", true>;`,
+                `}`
+            ].join('\n')
+        );
+
+        try {
+            const { resolved } = resolveShowcaseImports(
+                [
+                    { name: 'LegacyComponent', from: './source' },
+                    { name: 'ModernDirective', from: './source' },
+                    { name: 'LegacyDirective', from: './declarations' },
+                    { name: 'LegacyPipe', from: './declarations' },
+                    { name: 'ModernPipe', from: './declarations' }
+                ],
+                path.join(dir, 'showcase.ts'),
+                {}
+            );
+
+            expect(resolved.map(({ name, standalone }) => [name, standalone])).toEqual([
+                ['LegacyComponent', false],
+                ['ModernDirective', true],
+                ['LegacyDirective', false],
+                ['LegacyPipe', false],
+                ['ModernPipe', true]
+            ]);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it('returns a name that only re-exports itself in circles as unresolved', () => {

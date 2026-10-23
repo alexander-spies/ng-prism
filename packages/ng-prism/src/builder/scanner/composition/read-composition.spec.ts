@@ -23,7 +23,9 @@ const SUBJECTS = {
     email: 'EmailDirective',
     'string-host': 'TooltipDirective',
     'void-host': 'MaskDirective',
-    'object-host': 'PrefixDirective'
+    'object-host': 'PrefixDirective',
+    legacy: 'FormFieldComponent',
+    'legacy-subject': 'LegacyCardComponent'
 } as const;
 
 const compilerOptions: ts.CompilerOptions = {
@@ -217,6 +219,28 @@ describe('readComposition', () => {
             expect.stringMatching(/^OddComponent from "fixture-lib" has the selector "lib-odd:not\(\.a:not\(\.b\)\)", which Angular cannot parse/)
         );
         expect(scanFixture('composition/throws.showcase.ts', 'CalmComponent').composition?.imports).toEqual([{ name: 'IconComponent', from: 'fixture-lib' }]);
+    });
+
+    it('imports no library class that is not standalone, and names them once in a notice', () => {
+        const { variantCases, imports } = composition('legacy');
+
+        expect(variantCases).toEqual([-1, 0]);
+        expect(imports).toEqual([{ name: 'InputDirective', from: 'fixture-lib' }]);
+        expect(noticesAbout('legacy.showcase.ts')).toEqual([
+            expect.stringMatching(
+                /^FormFieldComponent › imports — LegacyBadgeComponent and LegacyMaskDirective are not standalone, so a composition cannot import them; add the NgModules that declare them here \(.*legacy\.showcase\.ts:\d+:\d+\)$/
+            )
+        ]);
+        expectDiagnostic(/^FormFieldComponent › variants\[0\] "Badge" › template — <lib-legacy-badge> matches no imported component/);
+    });
+
+    it('reads no composition for a subject that is not standalone, with one diagnostic', () => {
+        expect(scanFixture('composition/legacy-subject.showcase.ts', 'LegacyCardComponent')).not.toHaveProperty('composition');
+        expect(diagnostics.filter((d) => d.startsWith('LegacyCardComponent'))).toEqual([
+            expect.stringMatching(
+                /^LegacyCardComponent › variants\[1\] "With icon" › template — LegacyCardComponent is not standalone, which the wrapper that renders a composition needs; no variant of this showcase renders a template or a host template \(.*legacy-subject\.showcase\.ts:\d+:\d+\)$/
+            )
+        ]);
     });
 
     describe('of a directive with a string or object host', () => {

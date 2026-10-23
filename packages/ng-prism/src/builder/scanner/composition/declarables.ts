@@ -13,10 +13,12 @@ export interface Declarable {
     selector?: string;
     /** Of a pipe: the name a template calls it by. */
     pipeName?: string;
+    /** `false` for a class an NgModule declares, which only that module can bring into a template. */
+    standalone: boolean;
 }
 
 /** What {@link readDeclarable} finds in a class: a {@link Declarable} before it is given a name and a module. */
-export type DeclarableShape = Pick<Declarable, 'kind' | 'selector' | 'pipeName'>;
+export type DeclarableShape = Pick<Declarable, 'kind' | 'selector' | 'pipeName' | 'standalone'>;
 
 /** How many modules a lookup follows from the one the import names: `export … from` and a re-exported import each count one. */
 const MAX_REEXPORT_DEPTH = 5;
@@ -33,6 +35,9 @@ const COMPILED_MEMBERS: ReadonlyMap<string, DeclarableShape['kind']> = new Map([
     ['ɵdir', 'directive'],
     ['ɵpipe', 'pipe']
 ]);
+
+/** The position of `IsStandalone` among the type arguments of `ɵɵComponentDeclaration`, `ɵɵDirectiveDeclaration` and `ɵɵPipeDeclaration`. */
+const STANDALONE_ARGUMENT: Readonly<Record<DeclarableShape['kind'], number>> = { component: 7, directive: 7, pipe: 2 };
 
 /** Where the declaration of a class can be read from: TypeScript source and its declaration files. */
 const READABLE_EXTENSIONS: ReadonlySet<string> = new Set([
@@ -112,6 +117,9 @@ export function resolveShowcaseImports(
  * What a class declares for templates: from `@Component`, `@Directive` or `@Pipe` in source, from the `ɵcmp`, `ɵdir`
  * or `ɵpipe` that the compiler left in a `.d.ts`. `undefined` for a class that is neither, or has no selector or name.
  * The `checker` evaluates a selector given as a constant; without one only a literal is read.
+ *
+ * A class is standalone unless it says otherwise, as in Angular since 19: with `standalone: false` in its decorator,
+ * or `false` as the `IsStandalone` type argument in a `.d.ts`.
  */
 export function readDeclarable(classDecl: ts.ClassDeclaration, checker?: ts.TypeChecker): DeclarableShape | undefined {
     for (const { decorator, kind } of DECORATED) {
@@ -121,7 +129,11 @@ export function readDeclarable(classDecl: ts.ClassDeclaration, checker?: ts.Type
 
         const arg = getDecoratorArgument(found);
 
-        return shape(kind, arg && readDecoratorField(arg, kind === 'pipe' ? 'name' : 'selector', checker));
+        return shape(
+            kind,
+            arg && readDecoratorField(arg, kind === 'pipe' ? 'name' : 'selector', checker),
+            arg && readDecoratorField(arg, 'standalone', checker) === false
+        );
     }
 
     for (const member of classDecl.members) {
@@ -130,17 +142,21 @@ export function readDeclarable(classDecl: ts.ClassDeclaration, checker?: ts.Type
         if (!kind || !ts.isPropertyDeclaration(member) || !member.type || !ts.isTypeReferenceNode(member.type)) continue;
 
         const literal = member.type.typeArguments?.[1];
+        const isStandalone = member.type.typeArguments?.[STANDALONE_ARGUMENT[kind]];
+        const notStandalone = isStandalone !== undefined && ts.isLiteralTypeNode(isStandalone) && isStandalone.literal.kind === ts.SyntaxKind.FalseKeyword;
 
-        return shape(kind, literal && ts.isLiteralTypeNode(literal) && ts.isStringLiteral(literal.literal) ? literal.literal.text : undefined);
+        return shape(kind, literal && ts.isLiteralTypeNode(literal) && ts.isStringLiteral(literal.literal) ? literal.literal.text : undefined, notStandalone);
     }
 
     return undefined;
 }
 
-function shape(kind: DeclarableShape['kind'], value: unknown): DeclarableShape | undefined {
+function shape(kind: DeclarableShape['kind'], value: unknown, notStandalone: boolean | undefined): DeclarableShape | undefined {
     if (typeof value !== 'string' || value === '') return undefined;
 
-    return kind === 'pipe' ? { kind, pipeName: value } : { kind, selector: value };
+    const standalone = !notStandalone;
+
+    return kind === 'pipe' ? { kind, pipeName: value, standalone } : { kind, selector: value, standalone };
 }
 
 interface Lookup {

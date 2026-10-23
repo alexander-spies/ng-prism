@@ -27,6 +27,8 @@ export interface CompositionSubject {
     filePath: string;
     selector: string;
     isDirective: boolean;
+    /** A wrapper can only import a standalone subject. */
+    standalone: boolean;
     inputs: InputMeta[];
     config: ShowcaseConfig;
     /** The argument of `@Showcase`, which the messages point into. */
@@ -77,8 +79,9 @@ export function createCompositionContext(declarables: readonly Declarable[], com
  *
  * Each problem is reported against the field it comes from, with the showcase's file, line and variant, and leaves
  * that variant out: it renders as it would without `template` and `host`. Only what Angular may still accept is a
- * notice: an import ng-prism cannot read, an element or a pipe nothing declares while there is one, and a library
- * class that matches only by standard attributes.
+ * notice: an import ng-prism cannot read, an element or a pipe nothing declares while there is one, a library class
+ * that matches only by standard attributes, and one that is not standalone, which only its NgModule can bring in. A
+ * subject that is not standalone has no composition at all.
  *
  * Mutates `config`: a composed variant loses the HTML `content` of a component inside a host template, and the
  * inputs that the template sets on the subject, each with a diagnostic.
@@ -98,10 +101,32 @@ export function readComposition(
     const variants = declared.length > 0 ? declared : [IMPLICIT_VARIANT];
     // Without a template, a variant keeps rendering in a string or object host as it did before.
     const hosts = variants.map((variant) => variant.host ?? sharedHost ?? (variant.template !== undefined ? elementHost : undefined));
+    const firstComposed = variants.findIndex((variant, index) => variant.template !== undefined || hosts[index] !== undefined);
 
-    if (!variants.some((variant, index) => variant.template !== undefined || hosts[index] !== undefined)) return undefined;
+    if (firstComposed < 0) return undefined;
 
     const at = (path: EvaluationPath, text: string) => describeShowcaseIssue(className, configNode, path, text);
+    // Where a variant's composition is written: the variant, its template and the host template it renders in.
+    const pathsOf = (variant: Variant, index: number) => {
+        const path: EvaluationPath = declared.length > 0 ? ['variants', subject.sources?.variants?.[index] ?? index] : ['host'];
+
+        const hostPath: EvaluationPath = variant.host ? [...path, 'host'] : ['host'];
+
+        return { path, hostPath, templatePath: [...path, 'template'] };
+    };
+
+    if (!subject.standalone) {
+        const { hostPath, templatePath } = pathsOf(variants[firstComposed], firstComposed);
+
+        reporters.report(
+            at(
+                variants[firstComposed].template !== undefined ? templatePath : hostPath,
+                `${className} is not standalone, which the wrapper that renders a composition needs; no variant of this showcase renders a template or a host template`
+            )
+        );
+        return undefined;
+    }
+
     // Messages and mutations wait for the end, so that a compiler failure leaves nothing behind but its own diagnostic.
     const pending: Array<() => void> = [];
     const report = (message: string) => pending.push(() => reporters.report(message));
@@ -117,6 +142,7 @@ export function readComposition(
         const caseIndex = new Map<string, number>();
         const imports = new Map<string, ShowcaseImport>();
         const skipped = new Set<string>();
+        const notStandalone = new Set<string>();
 
         const variantCases = variants.map((variant, index) => {
             const host = hosts[index];
@@ -127,9 +153,7 @@ export function readComposition(
                 return -1;
             }
 
-            const path: EvaluationPath = declared.length > 0 ? ['variants', subject.sources?.variants?.[index] ?? index] : ['host'];
-            const hostPath: EvaluationPath = variant.host ? [...path, 'host'] : ['host'];
-            const templatePath: EvaluationPath = [...path, 'template'];
+            const { path, hostPath, templatePath } = pathsOf(variant, index);
             const { content, dropsContent } = subjectContent(variant, subject.isDirective);
 
             current = variant.template !== undefined ? templatePath : hostPath;
@@ -142,6 +166,9 @@ export function readComposition(
             }
 
             const match = matchDeclarables(composed.nodes, context.declarables, resolved);
+
+            // Before the problems, which one of them may explain: the element it declares is unknown without its NgModule.
+            match.notStandalone.forEach((name) => notStandalone.add(name));
             // A message names the field that writes what it is about: the template when it does, else the host template.
             const fieldOf = (written: (template: string) => boolean) =>
                 variant.template !== undefined && (!host || written(variant.template)) ? templatePath : hostPath;
@@ -201,6 +228,11 @@ export function readComposition(
             return caseAt;
         });
 
+        if (notStandalone.size > 0) {
+            const [verb, pronoun, modules] = notStandalone.size === 1 ? ['is', 'it', 'the NgModule that declares'] : ['are', 'them', 'the NgModules that declare'];
+
+            notify(at(['imports'], `${andList([...notStandalone])} ${verb} not standalone, so a composition cannot import ${pronoun}; add ${modules} ${pronoun} here`));
+        }
         if (skipped.size > 0) {
             const [verb, pronoun] = skipped.size === 1 ? ['matches', 'it'] : ['match', 'them'];
 

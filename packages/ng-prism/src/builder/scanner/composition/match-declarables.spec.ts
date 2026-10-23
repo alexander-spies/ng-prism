@@ -6,13 +6,13 @@ const FROM = 'fixture-lib';
 
 /** The classes of the fixture library under `__fixtures__/composition/`, as `buildDeclarableIndex` reads them. */
 const library: Declarable[] = [
-    { name: 'FormFieldComponent', from: FROM, kind: 'component', selector: 'lib-form-field' },
-    { name: 'InputDirective', from: FROM, kind: 'directive', selector: 'input[libInput], textarea[libInput]' },
-    { name: 'IconComponent', from: FROM, kind: 'component', selector: 'lib-icon' },
-    { name: 'EmailDirective', from: FROM, kind: 'directive', selector: 'input[type=email]' },
-    { name: 'TwinAComponent', from: FROM, kind: 'component', selector: 'lib-twin' },
-    { name: 'TwinBComponent', from: FROM, kind: 'component', selector: 'lib-twin' },
-    { name: 'UpperPipe', from: FROM, kind: 'pipe', pipeName: 'upper' }
+    { name: 'FormFieldComponent', from: FROM, kind: 'component', selector: 'lib-form-field', standalone: true },
+    { name: 'InputDirective', from: FROM, kind: 'directive', selector: 'input[libInput], textarea[libInput]', standalone: true },
+    { name: 'IconComponent', from: FROM, kind: 'component', selector: 'lib-icon', standalone: true },
+    { name: 'EmailDirective', from: FROM, kind: 'directive', selector: 'input[type=email]', standalone: true },
+    { name: 'TwinAComponent', from: FROM, kind: 'component', selector: 'lib-twin', standalone: true },
+    { name: 'TwinBComponent', from: FROM, kind: 'component', selector: 'lib-twin', standalone: true },
+    { name: 'UpperPipe', from: FROM, kind: 'pipe', pipeName: 'upper', standalone: true }
 ];
 
 const email = library.find((declarable) => declarable.name === 'EmailDirective')!;
@@ -60,7 +60,7 @@ describe('matchDeclarables', () => {
     });
 
     it('accepts an element a resolved third-party import declares', () => {
-        const m = match('<lib-x />', [{ name: 'XComponent', from: 'x-lib', kind: 'component', selector: 'lib-x' }]);
+        const m = match('<lib-x />', [{ name: 'XComponent', from: 'x-lib', kind: 'component', selector: 'lib-x', standalone: true }]);
 
         expect(m.unknownElements).toEqual([]);
         expect(names(m.imports)).toEqual(['XComponent']);
@@ -72,8 +72,8 @@ describe('matchDeclarables', () => {
 
     it('counts only imported components as ambiguous', () => {
         const buttons: Declarable[] = [
-            { name: 'ButtonComponent', from: FROM, kind: 'component', selector: 'button[libButton]' },
-            { name: 'FancyButtonComponent', from: FROM, kind: 'component', selector: 'button.lib-fancy' }
+            { name: 'ButtonComponent', from: FROM, kind: 'component', selector: 'button[libButton]', standalone: true },
+            { name: 'FancyButtonComponent', from: FROM, kind: 'component', selector: 'button.lib-fancy', standalone: true }
         ];
         const m = match('<button libButton class="lib-fancy"></button>', [], buttons);
 
@@ -102,7 +102,7 @@ describe('matchDeclarables', () => {
     });
 
     it('accepts an element that a directive declares, as Angular does', () => {
-        const m = match('<lib-outlet />', [], [{ name: 'OutletDirective', from: FROM, kind: 'directive', selector: 'lib-outlet' }]);
+        const m = match('<lib-outlet />', [], [{ name: 'OutletDirective', from: FROM, kind: 'directive', selector: 'lib-outlet', standalone: true }]);
 
         expect(m.unknownElements).toEqual([]);
         expect(names(m.imports)).toEqual(['OutletDirective']);
@@ -110,8 +110,8 @@ describe('matchDeclarables', () => {
 
     it('imports a structural directive and one on an ng-template', () => {
         const structural: Declarable[] = [
-            { name: 'IfDirective', from: FROM, kind: 'directive', selector: '[libIf]' },
-            { name: 'OutletDirective', from: FROM, kind: 'directive', selector: 'ng-template[libOutlet]' }
+            { name: 'IfDirective', from: FROM, kind: 'directive', selector: '[libIf]', standalone: true },
+            { name: 'OutletDirective', from: FROM, kind: 'directive', selector: 'ng-template[libOutlet]', standalone: true }
         ];
 
         expect(names(match('<div *libIf="x"></div><ng-template libOutlet></ng-template>', [], structural).imports)).toEqual(['IfDirective', 'OutletDirective']);
@@ -119,14 +119,45 @@ describe('matchDeclarables', () => {
 
     it('counts neither a class nor an attribute that names a DOM property as written', () => {
         const broad: Declarable[] = [
-            { name: 'ButtonDirective', from: FROM, kind: 'directive', selector: 'button.lib-button' },
-            { name: 'FocusDirective', from: FROM, kind: 'directive', selector: '[tabindex]' }
+            { name: 'ButtonDirective', from: FROM, kind: 'directive', selector: 'button.lib-button', standalone: true },
+            { name: 'FocusDirective', from: FROM, kind: 'directive', selector: '[tabindex]', standalone: true }
         ];
 
         expect(match('<button class="lib-button" tabindex="0"></button>', [], broad).skipped).toEqual([
             { element: 'button', className: 'ButtonDirective' },
             { element: 'button', className: 'FocusDirective' }
         ]);
+    });
+
+    // Angular accepts only standalone classes in `imports`: one declared in an NgModule comes with its module.
+    describe('with library classes that are not standalone', () => {
+        const legacy: Declarable[] = [
+            { name: 'LegacyBadgeComponent', from: FROM, kind: 'component', selector: 'lib-legacy-badge', standalone: false },
+            { name: 'LegacyMaskDirective', from: FROM, kind: 'directive', selector: '[libLegacyMask]', standalone: false },
+            { name: 'LegacyPipe', from: FROM, kind: 'pipe', pipeName: 'legacy', standalone: false }
+        ];
+
+        it('imports none of them, and names each once', () => {
+            const m = match('<lib-legacy-badge /><lib-legacy-badge /><input libInput libLegacyMask /> {{ "a" | legacy }}', [], legacy);
+
+            expect(names(m.imports)).toEqual(['InputDirective']);
+            expect(m.notStandalone).toEqual(['LegacyBadgeComponent', 'LegacyMaskDirective', 'LegacyPipe']);
+        });
+
+        it('counts what only they declare as unknown, as Angular will without their module', () => {
+            const m = match('<lib-legacy-badge /> {{ "a" | legacy }}', [], legacy);
+
+            expect(m.unknownElements).toEqual(['lib-legacy-badge']);
+            expect(m.unknownPipes).toEqual(['legacy']);
+        });
+
+        it('imports one the showcase names explicitly', () => {
+            const m = match('<lib-legacy-badge />', [legacy[0]], legacy);
+
+            expect(names(m.imports)).toEqual(['LegacyBadgeComponent']);
+            expect(m.notStandalone).toEqual([]);
+            expect(m.unknownElements).toEqual([]);
+        });
     });
 
     it('imports each class once and reports each finding once', () => {

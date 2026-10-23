@@ -237,6 +237,7 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
                     filePath,
                     selector: componentMeta.selector,
                     isDirective: componentMeta.isDirective,
+                    standalone: componentMeta.standalone,
                     inputs,
                     config: showcaseConfig,
                     configNode: showcaseArg,

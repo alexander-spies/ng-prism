@@ -26,6 +26,8 @@ export interface DeclarableMatch {
     ambiguous: { element: string; classes: string[] }[];
     /** Library matches left out by the written-name rule, for a notice. */
     skipped: { element: string; className: string }[];
+    /** The library classes the template uses that are not standalone, which no wrapper can import: their NgModule has to. */
+    notStandalone: string[];
 }
 
 /** Elements that Angular renders itself, which the DOM schema does not list. */
@@ -52,6 +54,9 @@ interface Hit {
  * library directive for `input[type=email]`, which a consumer of the library would not get without importing it
  * either. A library pipe is imported when the template calls it by name. The `explicit` declarables, the resolved
  * `imports` of the showcase, are always imported, and they declare elements and pipes like the library does.
+ *
+ * A library class that is not standalone is never imported, and declares nothing: only its NgModule, as an explicit
+ * import, brings it into a template.
  *
  * Throws what `@angular/compiler` throws, for a selector it cannot parse, say.
  */
@@ -82,12 +87,18 @@ export function matchDeclarables(nodes: readonly TmplAstNode[], library: readonl
         if (!imports.has(key(declarable))) imports.set(key(declarable), declarable);
     };
 
+    const notStandalone = new Map<string, Declarable>();
+    const use = (declarable: Declarable, isExplicit: boolean) => {
+        if (isExplicit || declarable.standalone) add(declarable);
+        else notStandalone.set(key(declarable), declarable);
+    };
+
     explicit.forEach(add);
     for (const { hits } of matches) {
-        for (const hit of hits) if (hit.written) add(hit.declarable);
+        for (const hit of hits) if (hit.written) use(hit.declarable, hit.explicit);
     }
     for (const declarable of library) {
-        if (declarable.pipeName !== undefined && walker.pipes.has(declarable.pipeName)) add(declarable);
+        if (declarable.pipeName !== undefined && walker.pipes.has(declarable.pipeName)) use(declarable, false);
     }
 
     const isImported = (declarable: Declarable) => imports.has(key(declarable));
@@ -107,22 +118,23 @@ export function matchDeclarables(nodes: readonly TmplAstNode[], library: readonl
 
             ambiguous.set(`${element} ${classes.join(' ')}`, { element, classes });
         }
-        for (const { declarable } of libraryHits) {
-            if (!isImported(declarable)) skipped.set(`${element} ${declarable.name}`, { element, className: declarable.name });
+        for (const { declarable, written } of libraryHits) {
+            if (!written && declarable.standalone && !isImported(declarable)) skipped.set(`${element} ${declarable.name}`, { element, className: declarable.name });
         }
         if (node instanceof TmplAstElement && !ANGULAR_ELEMENTS.has(element) && !schema.hasElement(node.name, []) && !hits.some((hit) => isImported(hit.declarable))) {
             unknownElements.add(element);
         }
     }
 
-    const declaredPipes = new Set([...library, ...explicit].map((declarable) => declarable.pipeName));
+    const declaredPipes = new Set([...library.filter((declarable) => declarable.standalone), ...explicit].map((declarable) => declarable.pipeName));
 
     return {
         imports: [...imports.values()],
         unknownElements: [...unknownElements],
         unknownPipes: [...walker.pipes].filter((pipe) => !declaredPipes.has(pipe)),
         ambiguous: [...ambiguous.values()],
-        skipped: [...skipped.values()]
+        skipped: [...skipped.values()],
+        notStandalone: [...notStandalone.values()].filter((declarable) => !isImported(declarable)).map((declarable) => declarable.name)
     };
 }
 
