@@ -73,7 +73,7 @@ function problemInCase(template: string): string | undefined {
     // The message is about the `}` ng-prism wrote, and names the element only in passing.
     const unclosed = /Did you forget to close the (<[^>]+>) element\?/.exec(error.msg);
 
-    return unclosed ? `${unclosed[1]} is not closed` : error.msg;
+    return unclosed ? `${unclosed[1]} is not closed` : `${error.msg}, in the @case that the generated wrapper puts the template in; an unclosed {{ or block can cause it`;
 }
 
 function composeWithoutHost({ selector, content }: ComposeInput): Composed {

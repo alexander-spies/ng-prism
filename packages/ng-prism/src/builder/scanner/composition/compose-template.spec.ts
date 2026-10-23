@@ -154,6 +154,14 @@ describe('composeTemplate', () => {
         });
     });
 
+    it('says where a problem comes from that only the @case around the template shows', () => {
+        expect(composeTemplate({ ...input, hostTemplate: '<lib-form-field><input libInput /></lib-form-field>{{ 1 +' })).toEqual({
+            ok: false,
+            at: 'host',
+            problem: 'Unclosed block "switch", in the @case that the generated wrapper puts the template in; an unclosed {{ or block can cause it'
+        });
+    });
+
     it('reports inputs the template sets on the subject itself', () => {
         expect(ok(composeTemplate({ ...input, hostTemplate: '<input libInput required [libDatepicker]="picker" /><lib-datepicker #picker />' })).ownedInputs).toEqual([
             'required',

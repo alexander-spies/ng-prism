@@ -99,6 +99,9 @@ finds a problem in is left out: that variant renders as it would without `templa
   **`… › host — <Angular's message>`**.
 - **`… › host — <tag> is not closed`** (or `› template`): an element is opened and never closed. Angular would close it
   at the end of a template of its own, but not inside the `@case` the generated wrapper puts it in. Close it.
+- **`… — <Angular's message>, in the @case that the generated wrapper puts the template in; an unclosed {{ or block can cause it`**:
+  the markup parses on its own but not inside the wrapper, typically an interpolation `{{` or a block `@if (…) {`
+  without its end, which swallows the wrapper's `}`. Close it.
 - **`… — <element> matches no imported component`** and **`… — pipe "<name>" matches no imported pipe`**: the element
   is no standard HTML, or the pipe is a pipe nobody declares, and no class the template can see declares it. A typo
   (`<lib-icn>`) is the usual cause. Otherwise the class isn't exported by an entry point the `prism` target scans
