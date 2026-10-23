@@ -55,9 +55,11 @@ export function notesPlugin(): NgPrismPlugin {
   it. `inputs`, `outputs` and the other fields of `ScannedComponent` are stable.
 - **`component.composition` (`ComponentComposition`, since 22.7.0)** holds what the scan read from a showcase's
   `template` and `host: { template }`: `variantCases` (per variant, an index into `cases` or `-1`) and `cases`, each with
-  the markup as written, `template`, and `unbound`, the inputs of the subject the case does not bind. The markup has
-  `COMPOSITION_SUBJECT_SLOT` (from `@ng-prism/core/plugin`) at the end of the subject's start tag: a plugin that shows
-  the markup of a variant replaces it with the attributes it wants there, as the usage example of `jsDocPlugin()` does.
+  the markup as written, `template`, and `unbound`, the inputs of the subject the case does not bind. `imports` lists
+  the classes the wrapper imports besides the subject (`{ name, from }`), which a usage example names too. The markup
+  has `COMPOSITION_SUBJECT_SLOT` (from `@ng-prism/core/plugin`) at the end of the subject's start tag: a plugin that
+  shows the markup of a variant replaces it with the attributes it wants there, as the usage example of `jsDocPlugin()`
+  does.
   It is read before the hooks run, so a hook that edits `template` or `host` afterwards changes nothing that renders,
   and it is absent when no variant has one and on a component a hook builds from scratch.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the

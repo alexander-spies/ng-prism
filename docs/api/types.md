@@ -77,7 +77,7 @@ interface ScannedComponent {
 | `composition`               | What the variants render when they have a `template` or a host template, see [`ComponentComposition`](#componentcomposition) (since `22.7.0`). Missing when no variant is composed and when a plugin hook builds the component                                                   |
 | `meta`                      | Plugin-injected metadata                                                                                                                                                                                                                                                         |
 
-The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them. `composition` is carried too, without its `imports` and the `origin` of each case, which only the generated code uses.
+The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them. `composition` is carried too, with its `imports` and without the `origin` of each case, which only the generated code uses.
 
 The scan reads `composition` before the plugin hooks run. A hook that changes `showcaseConfig.variants[].template`, a host template or `imports` afterwards does not change what renders.
 
@@ -627,11 +627,11 @@ interface CompositionCase {
 }
 ```
 
-| Field          | Description                                                                                                                                                                                                                           |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `variantCases` | One entry per variant, or one for a showcase without variants, which renders as one implicit variant. Each is the index into `cases`, or `-1` for a variant without a composition, which renders as it did before                     |
-| `cases`        | One entry per distinct composition. Variants with the same markup and the same unbound inputs share one                                                                                                                               |
-| `imports`      | Every class the generated wrapper imports besides the subject: the library classes the templates use, the showcase's `imports` and the class of a directive's object host. Set by the scan at build time, not in the runtime manifest |
+| Field          | Description                                                                                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `variantCases` | One entry per variant, or one for a showcase without variants, which renders as one implicit variant. Each is the index into `cases`, or `-1` for a variant without a composition, which renders as it did before                                                                    |
+| `cases`        | One entry per distinct composition. Variants with the same markup and the same unbound inputs share one                                                                                                                                                                              |
+| `imports`      | Every class the generated wrapper imports besides the subject: the library classes the templates use, the showcase's `imports` and the class of a directive's object host. Set by the scan and carried in the runtime manifest, so that a usage example in the browser can name them |
 
 | `CompositionCase` field | Description                                                                                                                                                                                                                                    |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

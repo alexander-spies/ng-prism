@@ -142,12 +142,12 @@ What the generator does with a composition:
 - Every template goes into the generated file as a template literal with backslash, backtick and `${` escaped, so that no template can break the file.
 - Errors point back to the showcase. A TypeScript comment above each wrapper names the showcase file, and an HTML comment before each `@case` names the variants and the position in the source (`--` in a variant name becomes two Unicode hyphens, since `-->` would end the comment). What Angular still finds in the generated file, such as a binding to an input the subject does not have, is reported at a line in `prism-manifest.ts` right under such a comment. Angular drops the comments from the compiled template, so they cost nothing at runtime.
 
-The manifest also carries the data a composition needs in the browser: `meta.composition` has `variantCases` and each case's `template` (the markup as written, for the code snippet) and `unbound` list. It has neither the `imports` nor the `origin`, which only the generated code uses.
+The manifest also carries the data a composition needs in the browser: `meta.composition` has `variantCases` and each case's `template` (the markup as written, for the code snippet) and `unbound` list, and the `imports` of the wrapper, which a plugin's usage example names. It does not have the `origin` of a case, which only the comments of the generated code use.
 
 Services are written as data, in a `services` list next to `components`, and the service class is **not imported**. A service page is documentation, so an import would only add bundle size and possible side effects:
 
 ```typescript
-export default {
+export const PRISM_RUNTIME_MANIFEST: RuntimeManifest = {
     components: [/* ... */],
     services: [{ meta: { className: 'NotificationService', provision: 'auto', api: {/* ... */} } }]
 };
