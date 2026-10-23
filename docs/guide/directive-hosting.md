@@ -223,7 +223,7 @@ A string or object `host` has no effect on a component. It never had, and a comp
 @Showcase({ title: 'Data Field', host: { template: '<div style="width: 180px;"><lib-data-field /></div>' } })
 ```
 
-The report is a diagnostic, so [`strictShowcase`](api/ng-prism-config.md#strictshowcase) fails the build over it. Switching to a host template changes what renders, so check the visual regression baselines of that component.
+Switching to a host template changes what renders, so check the visual regression baselines of that component.
 
 ## Content in Directive Variants
 

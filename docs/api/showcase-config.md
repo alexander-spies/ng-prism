@@ -326,7 +326,7 @@ Optional. Tells ng-prism what to render a directive on, or what to render a comp
 })
 ```
 
-The template form works for components and directives. The string and the object form only apply to directives: on a component they have no effect, and the build reports that and drops them. `Variant.host` takes the template form and overrides this field for that variant.
+The template form works for components and directives. The string and the object form only apply to directives: on a component they have no effect, and the build warns about that and drops them. `Variant.host` takes the template form and overrides this field for that variant.
 
 See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
 
