@@ -1054,7 +1054,7 @@ describe('compositions', () => {
         expect(source).not.toContain('__PrismHost');
         expect(templateErrors(extractTemplate(source)!)).toEqual([]);
         expect(extractTemplate(source)).toContain(
-            '<span appHighlight data-prism-subject [highlightColor]="highlightColor()" (highlighted)="highlighted.emit($event)">Hover</span>'
+            '<span appHighlight data-prism-subject [highlightColor]="this.highlightColor()" (highlighted)="this.highlighted.emit($event)">Hover</span>'
         );
     });
 

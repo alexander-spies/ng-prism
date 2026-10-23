@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import ts from 'typescript';
 import type { ComponentComposition, ScannedComponent } from '../../plugin/plugin.types.js';
 import { COMPOSITION_SUBJECT_ATTR, COMPOSITION_SUBJECT_SLOT } from '../../shared/composition.js';
@@ -36,8 +37,12 @@ describe('generateCompositionClass', () => {
         const code = generate(FRAME);
         const text = template(code);
 
-        expect(text).toContain('<lib-form-field data-prism-subject [label]="label()" (cleared)="cleared.emit($event)"><input libInput type="email" /></lib-form-field>');
-        expect(text).toContain('<lib-form-field data-prism-subject [label]="label()" (cleared)="cleared.emit($event)"><textarea libInput></textarea></lib-form-field>');
+        expect(text).toContain(
+            '<lib-form-field data-prism-subject [label]="this.label()" (cleared)="this.cleared.emit($event)"><input libInput type="email" /></lib-form-field>'
+        );
+        expect(text).toContain(
+            '<lib-form-field data-prism-subject [label]="this.label()" (cleared)="this.cleared.emit($event)"><textarea libInput></textarea></lib-form-field>'
+        );
         expect(text.match(new RegExp(COMPOSITION_SUBJECT_ATTR, 'g'))).toHaveLength(3);
         expect(text).not.toContain(SLOT);
         expect(code).toContain('label = input<any>("")');
@@ -105,8 +110,10 @@ describe('generateCompositionClass', () => {
         const code = generate(subject);
         const text = template(code);
 
-        expect(text).toContain('@case (0) {\n<lib-form-field data-prism-subject [label]="label()" (cleared)="cleared.emit($event)" />');
-        expect(text).toContain('@case (1) {\n<lib-form-field data-prism-subject [label]="label()" [required]="required()" (cleared)="cleared.emit($event)" required />');
+        expect(text).toContain('@case (0) {\n<lib-form-field data-prism-subject [label]="this.label()" (cleared)="this.cleared.emit($event)" />');
+        expect(text).toContain(
+            '@case (1) {\n<lib-form-field data-prism-subject [label]="this.label()" [required]="this.required()" (cleared)="this.cleared.emit($event)" required />'
+        );
         // Bound in the second case, so the wrapper declares it.
         expect(code).toContain('required = input<any>(false)');
     });
@@ -140,7 +147,7 @@ describe('generateCompositionClass', () => {
         const text = template(generate(subject));
 
         expect(text).toContain('@case (0) {\n<lib-form-field data-prism-subject />');
-        expect(text).toContain('@case (1) {\n<lib-form-field data-prism-subject [items]="items()" />');
+        expect(text).toContain('@case (1) {\n<lib-form-field data-prism-subject [items]="this.items()" />');
     });
 
     it('declares an input without a default as undefined and a required one as required', () => {
@@ -175,13 +182,13 @@ describe('generateCompositionClass', () => {
 
         expect(code).toContain('labelText = input<any>("")');
         expect(code).toContain('clearedEvent = output<any>()');
-        expect(template(code)).toContain('<lib-form-field data-prism-subject [label]="labelText()" (cleared)="clearedEvent.emit($event)">');
+        expect(template(code)).toContain('<lib-form-field data-prism-subject [label]="this.labelText()" (cleared)="this.clearedEvent.emit($event)">');
     });
 
     it('does not read the bindings as replacement patterns', () => {
         const subject = frame({}, { inputs: [{ name: '$input', alias: '$&', type: 'string', defaultValue: '', required: false }], outputs: [] });
 
-        expect(extractTemplate(generate(subject))).toContain('data-prism-subject [$&]="$input()"');
+        expect(extractTemplate(generate(subject))).toContain('data-prism-subject [$&]="this.$input()"');
     });
 
     it('generates the one case of a showcase without variants', () => {
@@ -246,5 +253,26 @@ describe('generateCompositionClass', () => {
         const code = generate(frame({}, { filePath: 'src/lib/a\nb.ts' }));
 
         expect(code.split('\n')[0]).toBe('// FormFieldComponent · src/lib/a b.ts');
+    });
+
+    it('names the file in the header relative to the working directory, where the scan holds it absolute', () => {
+        const code = generate(frame({}, { filePath: join(process.cwd(), 'src', 'lib', 'form-field', 'form-field.component.ts') }));
+
+        expect(code.split('\n')[0]).toBe(`// FormFieldComponent · ${join('src', 'lib', 'form-field', 'form-field.component.ts')}`);
+        expect(code).not.toContain(process.cwd());
+    });
+
+    // A variable the author declares around the subject must not take the place of the wrapper's member of that name.
+    it.each([
+        ['@for', `@for (label of ['a', 'b']; track label) {<lib-form-field${SLOT}>{{ label }}</lib-form-field>}`],
+        ['@let', `@let label = 'a';<lib-form-field${SLOT}>{{ label }}</lib-form-field>`],
+        ['a template reference', `<p #label>x</p><lib-form-field${SLOT}>{{ label.textContent }}</lib-form-field>`]
+    ])('binds the members through this. when the markup declares a variable of the same name with %s', (_name, markup) => {
+        const subject = frame({ cases: [{ template: markup, unbound: [] }], variantCases: [0] });
+        const text = template(generate(subject));
+
+        expect(text).toContain('<lib-form-field data-prism-subject [label]="this.label()" (cleared)="this.cleared.emit($event)">');
+        expect(text).not.toMatch(/[^.]\blabel\(\)/);
+        expect(text).not.toMatch(/[^.]\bcleared\.emit/);
     });
 });

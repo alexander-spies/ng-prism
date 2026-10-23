@@ -1,3 +1,4 @@
+import { relative } from 'node:path';
 import type { ComponentComposition, CompositionCase, InputMeta, ScannedComponent } from '../../plugin/plugin.types.js';
 import { COMPOSITION_SUBJECT_ATTR, COMPOSITION_SUBJECT_SLOT, PRISM_VARIANT_INPUT } from '../../shared/composition.js';
 import { localName } from './manifest-imports.js';
@@ -16,10 +17,14 @@ function formatInputDeclaration(input: InputMeta): string {
     return input.required ? 'input.required<any>()' : `input<any>(${JSON.stringify(input.defaultValue)})`;
 }
 
-/** What goes where {@link COMPOSITION_SUBJECT_SLOT} stands: the marker of the subject, its inputs this case binds, and every output. */
+/**
+ * What goes where {@link COMPOSITION_SUBJECT_SLOT} stands: the marker of the subject, its inputs this case binds, and
+ * every output. The members are read with `this.`, so that a variable the author's markup declares around the subject
+ * (`@for (label of …)`, `@let label`, `#label`) cannot take the place of the wrapper's own `label`.
+ */
 function subjectBindings(comp: ScannedComponent, unbound: ReadonlySet<string>): string {
-    const inputs = comp.inputs.filter((input) => !unbound.has(input.name)).map((input) => ` [${input.alias ?? input.name}]="${input.name}()"`);
-    const outputs = comp.outputs.map((output) => ` (${output.alias ?? output.name})="${output.name}.emit($event)"`);
+    const inputs = comp.inputs.filter((input) => !unbound.has(input.name)).map((input) => ` [${input.alias ?? input.name}]="this.${input.name}()"`);
+    const outputs = comp.outputs.map((output) => ` (${output.alias ?? output.name})="this.${output.name}.emit($event)"`);
 
     return ` ${COMPOSITION_SUBJECT_ATTR}${inputs.join('')}${outputs.join('')}`;
 }
@@ -55,8 +60,8 @@ export function generateCompositionClass(comp: ScannedComponent, composition: Co
         `  protected ${CASE_MEMBER} = computed(() => [${variantCases.join(', ')}][this.${PRISM_VARIANT_INPUT}()]);`
     ];
 
-    // One line, whatever the path holds.
-    const header = `${comp.className} · ${comp.filePath}`.replace(/\s+/g, ' ');
+    // The scan holds the absolute path: the comment names it relative to the working directory, and in one line whatever the path holds.
+    const header = `${comp.className} · ${relative(process.cwd(), comp.filePath)}`.replace(/\s+/g, ' ');
 
     return [
         `// ${header}`,
