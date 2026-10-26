@@ -1,9 +1,20 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
+import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
 import { type PrismTabItem, PrismTabsComponent } from '../shared/prism-tabs.component.js';
+
+/** The active state as the ribbon shows it, a chip that clears it. */
+interface RibbonStateChip {
+    name: string;
+    /** The accessible name: what a click does. */
+    label: string;
+    /** The label, and why the state is not applied while the canvas finds no target for it. */
+    title: string;
+    fits: boolean;
+}
 
 @Component({
     selector: 'prism-variant-ribbon',
@@ -16,6 +27,7 @@ import { type PrismTabItem, PrismTabsComponent } from '../shared/prism-tabs.comp
 export class PrismVariantRibbonComponent {
     private readonly navigationService = inject(PrismNavigationService);
     protected readonly rendererService = inject(PrismRendererService);
+    private readonly pseudoState = inject(PrismPseudoStateService);
 
     protected readonly variants = computed(() => {
         const comp = this.navigationService.activeComponent();
@@ -25,6 +37,23 @@ export class PrismVariantRibbonComponent {
 
     /** One tab per variant, keyed by index: names need not be unique. */
     protected readonly tabItems = computed<PrismTabItem[]>(() => this.variants().map((v, i) => ({ id: String(i), label: v.name })));
+
+    /**
+     * The active state next to the tabs, so it never sits on the canvas unseen.
+     * None on a variant with `states: false`: the Playground names the state as
+     * not applicable there, and a chip would claim it is shown.
+     */
+    protected readonly stateChip = computed<RibbonStateChip | null>(() => {
+        const state = this.pseudoState.activeState();
+
+        if (!state || this.pseudoState.stateExclusion() !== null) return null;
+        const fit = this.pseudoState.canvasFit();
+        const label = `Clear state ${state.name}`;
+
+        return fit?.fits === false
+            ? { name: state.name, label, title: `${label} (not applied: ${fit.reason})`, fits: false }
+            : { name: state.name, label, title: label, fits: true };
+    });
 
     protected select(id: string | null): void {
         if (id !== null) this.rendererService.selectVariant(Number(id));
@@ -40,5 +69,9 @@ export class PrismVariantRibbonComponent {
         const idx = this.rendererService.activeVariantIndex();
 
         if (idx < this.variants().length - 1) this.rendererService.selectVariant(idx + 1);
+    }
+
+    protected clearState(): void {
+        this.rendererService.selectState(null);
     }
 }

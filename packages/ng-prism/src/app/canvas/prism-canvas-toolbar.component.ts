@@ -11,7 +11,7 @@ import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
 import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
-import { railToggleTitle, zoomTitle } from './canvas-overlay-tokens.js';
+import { railToggleTitle, TOOLS_LABEL, toolsTitle, zoomTitle } from './canvas-overlay-tokens.js';
 import { buildStateChips, chipFits, type PseudoSource, type StateChip, toggleTitle } from './state-chips.js';
 
 /**
@@ -108,6 +108,19 @@ export class PrismCanvasToolbarComponent {
     protected pickState(chip: StateChip): void {
         this.renderer.selectState(chip.active ? null : chip.index);
     }
+
+    protected readonly toolsLabel = TOOLS_LABEL;
+
+    private readonly toggled = computed(() => Object.keys(this.pseudoState.override()).length > 0);
+
+    /**
+     * Whether the menu holds something on top of the variant: an active state,
+     * or a pseudo state toggled on or off. Marked on the trigger, so it shows
+     * with the menu closed; both go with the next variant.
+     */
+    protected readonly toolsSet = computed(() => this.pseudoState.activeState() !== null || this.toggled());
+
+    protected readonly toolsTitle = computed(() => toolsTitle(this.pseudoState.activeState()?.name ?? null, this.toggled()));
 
     /** Angular templates resolve names against the component, not the global scope. */
     protected readonly Math = Math;

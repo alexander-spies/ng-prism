@@ -1,5 +1,5 @@
 import type { CanvasBg } from '../../shared/canvas-bg.type.js';
-import { canvasOverlayTokens, railToggleTitle, zoomTitle } from './canvas-overlay-tokens.js';
+import { canvasOverlayTokens, railToggleTitle, toolsTitle, zoomTitle } from './canvas-overlay-tokens.js';
 
 const rgb = (hex: string): [number, number, number] => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
 const lin = (c: number) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
@@ -77,5 +77,17 @@ describe('railToggleTitle', () => {
     it('names the tool and its state', () => {
         expect(railToggleTitle('Guides', true)).toBe('Guides: on');
         expect(railToggleTitle('Rulers', false)).toBe('Rulers: off');
+    });
+});
+
+describe('toolsTitle', () => {
+    it('names the menu alone while nothing is set in it', () => {
+        expect(toolsTitle(null, false)).toBe('Canvas, state, zoom and width');
+    });
+
+    it('adds the active state and the toggles', () => {
+        expect(toolsTitle('Focus visible', false)).toBe('Canvas, state, zoom and width (Focus visible active)');
+        expect(toolsTitle(null, true)).toBe('Canvas, state, zoom and width (pseudo states toggled)');
+        expect(toolsTitle('Hover', true)).toBe('Canvas, state, zoom and width (Hover active, pseudo states toggled)');
     });
 });

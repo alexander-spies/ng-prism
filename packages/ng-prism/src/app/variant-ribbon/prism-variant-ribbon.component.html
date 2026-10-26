@@ -1,39 +1,58 @@
-@if (variants().length > 0) {
+<!-- Without variants the ribbon shows only for a state chip. -->
+@if (variants().length > 0 || stateChip()) {
     <nav
         class="variant-ribbon"
         aria-label="Variants">
-        <prism-tabs
-            class="variant-ribbon-tabs"
-            ariaLabel="Variants"
-            [items]="tabItems()"
-            [active]="'' + rendererService.activeVariantIndex()"
-            (activeChange)="select($event)" />
-        <div class="variant-ribbon-right">
+        @if (variants().length > 0) {
+            <prism-tabs
+                class="variant-ribbon-tabs"
+                ariaLabel="Variants"
+                [items]="tabItems()"
+                [active]="'' + rendererService.activeVariantIndex()"
+                (activeChange)="select($event)" />
+        }
+        @if (stateChip(); as chip) {
             <button
-                prismIconButton
-                size="xs"
-                title="Previous variant"
-                aria-label="Previous variant"
-                [disabled]="rendererService.activeVariantIndex() === 0"
-                [attr.aria-disabled]="rendererService.activeVariantIndex() === 0"
-                (click)="prev()">
+                type="button"
+                class="variant-ribbon-state"
+                [class.is-na]="!chip.fits"
+                [attr.title]="chip.title"
+                [attr.aria-label]="chip.label"
+                (click)="clearState()">
+                <span class="variant-ribbon-state-name">{{ chip.name }}</span>
                 <prism-icon
-                    name="chevron-right"
-                    [size]="14"
-                    style="transform: rotate(180deg)" />
+                    name="x"
+                    [size]="12" />
             </button>
-            <button
-                prismIconButton
-                size="xs"
-                title="Next variant"
-                aria-label="Next variant"
-                [disabled]="rendererService.activeVariantIndex() >= variants().length - 1"
-                [attr.aria-disabled]="rendererService.activeVariantIndex() >= variants().length - 1"
-                (click)="next()">
-                <prism-icon
-                    name="chevron-right"
-                    [size]="14" />
-            </button>
-        </div>
+        }
+        @if (variants().length > 0) {
+            <div class="variant-ribbon-right">
+                <button
+                    prismIconButton
+                    size="xs"
+                    title="Previous variant"
+                    aria-label="Previous variant"
+                    [disabled]="rendererService.activeVariantIndex() === 0"
+                    [attr.aria-disabled]="rendererService.activeVariantIndex() === 0"
+                    (click)="prev()">
+                    <prism-icon
+                        name="chevron-right"
+                        [size]="14"
+                        style="transform: rotate(180deg)" />
+                </button>
+                <button
+                    prismIconButton
+                    size="xs"
+                    title="Next variant"
+                    aria-label="Next variant"
+                    [disabled]="rendererService.activeVariantIndex() >= variants().length - 1"
+                    [attr.aria-disabled]="rendererService.activeVariantIndex() >= variants().length - 1"
+                    (click)="next()">
+                    <prism-icon
+                        name="chevron-right"
+                        [size]="14" />
+                </button>
+            </div>
+        }
     </nav>
 }

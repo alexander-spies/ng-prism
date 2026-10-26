@@ -59,15 +59,22 @@
             [size]="14" />
     </button>
 
+    <!-- Not a toggle, so no [pressed]: it opens the menu. The dot says the
+         menu holds a state or a toggle while it is closed. -->
     <button
         prismIconButton
         size="xs"
         popovertarget="prism-tools"
-        title="Canvas, state, zoom and width"
-        aria-label="Canvas, state, zoom and width">
+        [title]="toolsTitle()"
+        [attr.aria-label]="toolsTitle()">
         <prism-icon
             name="sliders-horizontal"
             [size]="14" />
+        @if (toolsSet()) {
+            <span
+                class="prism-toolrail__dot"
+                aria-hidden="true"></span>
+        }
     </button>
 
     <span class="prism-toolrail__sep"></span>
@@ -94,7 +101,7 @@
     id="prism-tools"
     class="prism-toolmenu"
     role="dialog"
-    aria-label="Canvas, state, zoom and width">
+    [attr.aria-label]="toolsLabel">
     <span class="prism-toolmenu__lbl">Canvas</span>
     <div class="prism-toolmenu__row">
         @for (bg of bgs; track bg) {

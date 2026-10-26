@@ -19,6 +19,48 @@
     margin-left: -8px;
 }
 
+/* The active state: a pill in the tint of a pressed chip in the tools menu, so
+   it reads as set rather than as one more tab. The whole pill clears it. */
+.variant-ribbon-state {
+    display: inline-flex;
+    flex: none;
+    gap: 4px;
+    align-items: center;
+    max-width: 220px;
+    height: 22px;
+    padding: 0 6px 0 10px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--prism-primary);
+    white-space: nowrap;
+    cursor: pointer;
+    background: var(--prism-primary-bg);
+    border: 1px solid color-mix(in srgb, var(--prism-primary) 55%, transparent);
+    border-radius: 999px;
+    transition: background var(--dur-fast) var(--ease-default);
+}
+
+.variant-ribbon-tabs + .variant-ribbon-state {
+    margin-left: 12px;
+}
+
+.variant-ribbon-state:hover {
+    background: color-mix(in srgb, var(--prism-primary) 22%, transparent);
+}
+
+/* Selected but forcing nothing: the dashed edge of such a chip in the tools menu. */
+.variant-ribbon-state.is-na {
+    border-style: dashed;
+}
+
+.variant-ribbon-state-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .variant-ribbon-right {
     display: flex;
     flex-shrink: 0;

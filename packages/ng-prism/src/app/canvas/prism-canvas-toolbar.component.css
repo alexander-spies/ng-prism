@@ -60,6 +60,24 @@
     box-shadow: inset 0 -1.5px 0 0 var(--prism-canvas-overlay-primary);
 }
 
+/* The menu's trigger is no toggle and gets no tint. A state or a toggle set in
+   the menu shows as a dot instead, so it does not hide behind the closed menu. */
+.prism-toolrail [popovertarget='prism-tools'] {
+    position: relative;
+}
+
+.prism-toolrail__dot {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
+    pointer-events: none;
+    background: var(--prism-canvas-overlay-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.5px var(--prism-canvas-overlay-bg);
+}
+
 .prism-toolrail__sep {
     width: 14px;
     height: 1px;

@@ -383,7 +383,7 @@ The variant has a single cell in the Overview, spanning every column, and no sta
 
 ### Showing a state while browsing
 
-The **State** group in the tools menu (the sliders button on the floating canvas rail) starts with a row of chips, one per declared state, in declaration order. A chip carries the tinted border of a declared value. Pick one to show the variant you are looking at in that state, pick it again to turn it off. At most one is active, and the variant ribbon keeps listing variants only.
+The **State** group in the tools menu (the sliders button on the floating canvas rail) starts with a row of chips, one per declared state, in declaration order. A chip carries the tinted border of a declared value. Pick one to show the variant you are looking at in that state, pick it again to turn it off. At most one is active. While it is, the variant ribbon shows it as a chip next to the tabs, for example `Focus visible ✕`, and a click on the chip clears the state. A variant with `states: false` shows no chip, see [Opting a variant out](#opting-a-variant-out). The sliders button carries a dot while the menu holds a state or a toggle, so you see it with the menu closed (since `22.7.0`).
 
 The active state is part of the address of what you see, next to the variant, and like a background override it belongs to the variant you picked it for:
 
@@ -474,7 +474,7 @@ The scanner reads `pseudo` from the source like any other variant value. An unkn
 
 ### Forcing a state while browsing
 
-Below the chips for the component's [states](#showing-a-state-while-browsing), the **State** group in the tools menu has one toggle per pseudo-class. It forces that state on whatever variant is shown, on the whole component. Several can be on at once. The states the variant declares carry a tinted border, like the recommended background in the **Canvas** group, and can be switched off there too. Like a background override, the toggle is transient: switching variants, states or components resets it, and capture mode ignores it.
+Below the chips for the component's [states](#showing-a-state-while-browsing), the **State** group in the tools menu has one toggle per pseudo-class. It forces that state on whatever variant is shown, on the whole component. Several can be on at once. The states the variant declares carry a tinted border, like the recommended background in the **Canvas** group, and can be switched off there too. Like a background override, the toggle is transient: switching variants, states or components resets it, and capture mode ignores it. While a toggle is set, the sliders button carries a dot.
 
 ### Under visual regression
 
