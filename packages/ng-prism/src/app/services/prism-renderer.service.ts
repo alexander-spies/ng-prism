@@ -99,7 +99,8 @@ export class PrismRendererService {
     /**
      * Position in `ShowcaseConfig.states` of the component-level state on the
      * canvas, `null` for none. Part of the addressed cell next to the variant:
-     * it survives a variant change and goes with the component.
+     * {@link selectVariant} clears it, like the toggles and the background of
+     * the tools menu, and it goes with the component.
      */
     readonly activeStateIndex = signal<number | null>(null);
     readonly inputValues = signal<Record<string, unknown>>({});
@@ -217,8 +218,15 @@ export class PrismRendererService {
         this.activeContent.set(projectedContent(comp, preservedIndex));
     }
 
+    /**
+     * Shows variant `index` with its own inputs and without a state: a state
+     * belongs to the cell it was picked for, so it never follows the user to
+     * another variant unnoticed. A caller that addresses a whole cell selects
+     * the state after the variant.
+     */
     selectVariant(index: number): void {
         this.activeVariantIndex.set(index);
+        this.activeStateIndex.set(null);
         const comp = this.navigationService.activeComponent();
 
         if (comp) this.applyVariant(index, comp);

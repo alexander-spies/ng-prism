@@ -14,6 +14,7 @@ export function openInPlayground(
     variantIndex: number,
     stateIndex: number | null
 ): void {
+    // In this order: `selectVariant()` clears the state, so selecting it first would drop the cell's.
     renderer.selectVariant(variantIndex);
     renderer.selectState(stateIndex);
     panels.activeViewId.set('renderer');

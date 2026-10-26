@@ -559,6 +559,27 @@ describe('PrismUrlStateService', () => {
             expect(window.location.search).toBe('?component=Foo&variant=1&state=1');
         });
 
+        it('should drop the state from the URL when the variant changes', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+
+            setUrl('?component=Foo&variant=1&state=1');
+            const { url, renderer } = setup({ components: [comp] });
+
+            url.init();
+            flush();
+            expect(window.location.search).toBe('?component=Foo&variant=1&state=1');
+
+            renderer.selectVariant(2);
+            flush();
+
+            expect(renderer.activeStateIndex()).toBeNull();
+            expect(window.location.search).toBe('?component=Foo&variant=2');
+        });
+
         it('should use replaceState when only the state changes', () => {
             const comp = createComponent({ className: 'Foo', states: STATES });
             const pushSpy = jest.spyOn(window.history, 'pushState');
@@ -839,6 +860,47 @@ describe('PrismUrlStateService', () => {
 
             expect(nav.activeComponent()).toBe(comp);
             expect(renderer.activeVariantIndex()).toBe(2);
+        });
+
+        // A screenshot runner addresses every cell this way; the variant change must not take the state with it.
+        it('should restore the variant and the state alongside the capture flag', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+
+            setUrl('?capture=1&component=Foo&variant=2&state=1');
+            const { url, renderer } = setup({ components: [comp] });
+
+            mirrorRendererComponent();
+            url.init();
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(1);
+        });
+
+        it('should move a runner from cell to cell of one component on popstate', () => {
+            const comp = createComponent({
+                className: 'Foo',
+                variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
+                states: STATES
+            });
+
+            setUrl('?capture=1&component=Foo&variant=1&state=0');
+            const { url, renderer } = setup({ components: [comp] });
+
+            mirrorRendererComponent();
+            url.init();
+            flush();
+
+            setUrl('?capture=1&component=Foo&variant=2&state=1');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(2);
+            expect(renderer.activeStateIndex()).toBe(1);
         });
 
         it('should not reintroduce the capture flag on popstate', () => {

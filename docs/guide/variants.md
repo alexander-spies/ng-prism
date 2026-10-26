@@ -385,9 +385,9 @@ The variant has a single cell in the Overview, spanning every column, and no sta
 
 The **State** group in the tools menu (the sliders button on the floating canvas rail) starts with a row of chips, one per declared state, in declaration order. A chip carries the tinted border of a declared value. Pick one to show the variant you are looking at in that state, pick it again to turn it off. At most one is active, and the variant ribbon keeps listing variants only.
 
-The active state is part of the address of what you see, next to the variant, not a browse toggle like a background override:
+The active state is part of the address of what you see, next to the variant, and like a background override it belongs to the variant you picked it for:
 
-- It stays active when you pick another variant, so you can step through the variants in one state. It goes when you switch to another component.
+- It goes when you pick another variant or switch to another component (since `22.7.0`; before, it stayed on every variant). A cell in the Overview opens its variant in its state, and the next variant you pick starts without one. To compare one state across the variants, read its column in the Overview, or pick the state again after the switch.
 - It is in the URL as `state`, see [State Preservation](guide/url-state.md), and it applies in capture mode.
 - The Controls stay usable. Change an input while a state is on and you see the component with that input in that state.
 

@@ -237,7 +237,7 @@ describe('PrismRendererService', () => {
             expect(renderer.activeStateIndex()).toBeNull();
         });
 
-        it('keeps the active state when the variant changes', () => {
+        it('clears the active state when the variant changes', () => {
             const comp = createComponent({ variants: [{ name: 'A' }, { name: 'B' }], states: STATES });
             const { renderer, navigation } = setup({ components: [comp] });
 
@@ -245,6 +245,20 @@ describe('PrismRendererService', () => {
             renderer.resetForComponent(comp);
             renderer.selectState(1);
             renderer.selectVariant(1);
+
+            expect(renderer.activeVariantIndex()).toBe(1);
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
+
+        it('keeps a state selected after the variant', () => {
+            const comp = createComponent({ variants: [{ name: 'A' }, { name: 'B' }], states: STATES });
+            const { renderer, navigation } = setup({ components: [comp] });
+
+            navigation.select(comp);
+            renderer.resetForComponent(comp);
+            renderer.selectVariant(1);
+            renderer.selectState(1);
+            flush();
 
             expect(renderer.activeVariantIndex()).toBe(1);
             expect(renderer.activeStateIndex()).toBe(1);

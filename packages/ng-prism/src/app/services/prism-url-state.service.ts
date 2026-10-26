@@ -143,6 +143,7 @@ export class PrismUrlStateService {
                 }
             }
 
+            // After the variant, which clears the state: a screenshot runner addresses each cell this way.
             this.rendererService.selectState(stateIndex);
 
             if (viewId) {
