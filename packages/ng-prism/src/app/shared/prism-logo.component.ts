@@ -1,16 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { BRAND_MARK_FACETS, BRAND_MARK_GRADIENTS, BRAND_MARK_VIEWBOX, type BrandMarkFacet } from './brand-mark.js';
+import { BRAND_IMAGE_DATA_URI, BRAND_IMAGE_HEIGHT, BRAND_IMAGE_WIDTH } from './brand-image.js';
 
-let nextInstance = 0;
-
-const [, , VIEW_W, VIEW_H] = BRAND_MARK_VIEWBOX.split(' ').map(Number);
+/** A CSS `url()` of the symbol. The data URI is percent-encoded, so it holds no double quote. */
+const BRAND_IMAGE_URL = `url("${BRAND_IMAGE_DATA_URI}")`;
 
 /**
- * The ng-prism symbol, drawn inline.
+ * The ng-prism symbol.
  *
- * Inline rather than an `<img>` so it needs no asset path in a consuming app,
- * and with its gradient ids prefixed per instance: SVG ids are document-global,
- * and the header and the sidebar footer show the mark at the same time.
+ * Drawn as a background image from a data URI, so it needs no asset path in a
+ * consuming app. A background rather than an `<img>`, because Angular sanitizes
+ * an SVG data URI in `src` away, while style bindings are not sanitized.
  */
 @Component({
     selector: 'prism-logo',
@@ -20,18 +19,11 @@ const [, , VIEW_W, VIEW_H] = BRAND_MARK_VIEWBOX.split(' ').map(Number);
     styleUrl: './prism-logo.component.css'
 })
 export class PrismLogoComponent {
-    /** Rendered height in px; the width follows the mark's proportions. */
+    /** Rendered height in px; the width follows the symbol's proportions. */
     readonly size = input(24);
-    /** Decorative by default; otherwise the mark is announced as "ng-prism". */
+    /** Decorative by default; otherwise the symbol is announced as "ng-prism". */
     readonly decorative = input(true);
 
-    protected readonly uid = `ngp-logo-${nextInstance++}-`;
-    protected readonly viewBox = BRAND_MARK_VIEWBOX;
-    protected readonly gradients = BRAND_MARK_GRADIENTS;
-    protected readonly facets = BRAND_MARK_FACETS;
-    protected readonly width = computed(() => (this.size() * VIEW_W) / VIEW_H);
-
-    protected fill(facet: BrandMarkFacet): string {
-        return facet.gradient ? `url(#${this.uid}${facet.gradient})` : (facet.colour ?? 'currentColor');
-    }
+    protected readonly image = BRAND_IMAGE_URL;
+    protected readonly width = computed(() => (this.size() * BRAND_IMAGE_WIDTH) / BRAND_IMAGE_HEIGHT);
 }
