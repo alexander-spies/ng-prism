@@ -9,6 +9,7 @@
 - Renders descriptions and examples as **Markdown** (since `21.13.0`)
 - Draws the API tab of a [component or directive](#components-and-directives) as the same page as the one of a service or a pipe: a generated usage snippet, inputs with linked types, outputs with their payload, documented methods and the types they reach (since `22.7.0`)
 - Draws the page of every [service](guide/showcasing-services.md) and [pipe](guide/showcasing-pipes.md) with `@Showcase`: its API, a generated usage snippet and the types it reaches (since `22.7.0`)
+- Shows the full API of a component's [parts](#parts) in a block each on the component's API tab (since `22.7.0`)
 - Turns `@see X` and `{@link X}` into a jump to the card of `X`, on all four kinds of page (since `22.7.0`), see [Links to Types](#links-to-types)
 - Works purely at build time, with no runtime parsing of TypeScript source
 
@@ -169,6 +170,18 @@ The page is made of the sections Usage, Setup, Examples, Transform and Types, in
 
 > The data behind the page (`ScannedPipe.api`) is experimental until 23.0.0, see [`ScannedPipe`](api/types.md#scannedpipe).
 
+## Parts
+
+A [part](guide/showcase-decorator.md#partof) (`@Showcase({ partOf })`, since `22.7.0`) has no page of its own, so the API tab of its parent documents it. After the parent's own sections comes **Parts**, with one block per part, in the order of their titles:
+
+- **The head of a block** names the part by its title and its selector, for example `Option <lib-option>`.
+- **The block is the part's own API page,** read by the same rules as the one of a [component](#components-and-directives): the description and chips, a usage snippet with the import of the part, Examples, Inputs, Outputs, Methods and Types. Its section headings are a level below the title of the part.
+- **"On this page" gets a group Parts:** the title of each part and, under it, the sections of its block. The Types section of a part and its cards stay out of the list to keep it short. They are still in the block, and the signatures and JSDoc of the part link to them.
+- **Links stay in their block.** A type in a part's signatures, a `@see` and a `{@link}` in its JSDoc jump to the card in the part's own block, never to a card of the parent or of another part, even when those have a type of the same name. See [Links to Types](#links-to-types).
+- **A jump to a part** scrolls to its block and lights it up. **Full API →** on the card of a part in the [component head](guide/showcase-decorator.md#partof) does that, and so does a URL with `part`: `?component=SelectComponent&view=jsdoc&part=OptionComponent`. A link to the part itself, `?component=OptionComponent&view=jsdoc`, is [rewritten](guide/url-state.md#parts) to that URL.
+
+The API panel sets [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts) for this, which is also what makes the core show **Full API →** at all. Services and pipes have no parts.
+
 ## Links to Types
 
 A reference in your JSDoc jumps to the card of a type on the same page (since `22.7.0`), on the page of a component, a directive, a service and a pipe alike:
@@ -176,7 +189,7 @@ A reference in your JSDoc jumps to the card of a type on the same page (since `2
 - **`@see X`** is a `See:` chip on the class or on a type card, and `X` is a button that scrolls to the card of `X` and lights it up. A `@see` that names no card, a URL included, stays plain text.
 - **`{@link X}` and `{@link X | text}`** in any description the page renders: the class, inputs, outputs, methods and parameters, `setup` entries, the type cards and the message of a `@deprecated`. The text after the target, behind a bar or a space, is what the button says. `{@linkcode X}` and `{@linkplain X}` work the same way.
 
-`X` has a card when it is one of the types of the page's Types section: a type that the signatures of the page reach and that an entry point exports, see [Components and Directives](#components-and-directives). A type that exists but is not reached by anything on the page has no card. `X.member` and `X#member` jump to the card of `X`, since members have no anchor of their own. When two reachable types share a name, the second one's id is `name@importPath`. Only `@see Item@my-lib/atoms` can name it: TypeScript reads `{@link Item@my-lib/atoms}` as the target `Item` followed by the text `@my-lib/atoms`, so that link jumps to the first `Item`.
+`X` has a card when it is one of the types of the page's Types section (in the JSDoc of a [part](#parts), of the Types section in the part's block): a type that the signatures of the page reach and that an entry point exports, see [Components and Directives](#components-and-directives). A type that exists but is not reached by anything on the page has no card. `X.member` and `X#member` jump to the card of `X`, since members have no anchor of their own. When two reachable types share a name, the second one's id is `name@importPath`. Only `@see Item@my-lib/atoms` can name it: TypeScript reads `{@link Item@my-lib/atoms}` as the target `Item` followed by the text `@my-lib/atoms`, so that link jumps to the first `Item`.
 
 What a `{@link}` becomes when there is no card:
 

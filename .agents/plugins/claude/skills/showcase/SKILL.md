@@ -255,6 +255,8 @@ from the code and the JSDoc, so write JSDoc for what the types can't say:
   the `host` of its `@Showcase`: another reason to declare one (rule 7). A showcase-level `host: { template }` (rule 13)
   shows the subject inside that markup, with the classes the template uses. `@version` gives a Version chip next to
   `@since`; `@example` (a fenced block) goes under Examples.
+- **A part's API is a block on its parent's tab** (rule 14). Its whole page, usage to types, follows the parent's
+  under "Parts", and its links lead to the cards in its own block, so document a part as you would a component.
 
 ## Workflow
 
@@ -341,7 +343,9 @@ Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome D
 `http://localhost:4400/?service=<ClassName>&view=jsdoc` and wait for `[data-prism-service-rendered="<ClassName>"]`; for
 a pipe open `?pipe=<ClassName>&view=jsdoc` and wait for `[data-prism-pipe-rendered="<ClassName>"]`; for the API tab of
 a component or directive open `?component=<ClassName>&view=jsdoc` and wait for
-`[data-prism-component-rendered="<ClassName>"]`. Otherwise give the user that URL. This is ng-prism's public External
+`[data-prism-component-rendered="<ClassName>"]`. A part has its block on the parent's API tab:
+`?component=<Parent>&view=jsdoc&part=<PartClass>` scrolls there, and the marker names `<Parent>`. Otherwise give the
+user that URL. This is ng-prism's public External
 Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states, and under a component its
 `parts` (`@Showcase({ partOf })`, never as components of their own), but no services or pipes.
 

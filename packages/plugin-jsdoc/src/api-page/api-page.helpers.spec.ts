@@ -7,6 +7,7 @@ import {
     documentsParams,
     isTypeAnchor,
     paramSegments,
+    partAnchor,
     partScope,
     scopedAnchor,
     setupSignature,
@@ -215,6 +216,31 @@ describe('buildPartsToc', () => {
 
     it('is empty without parts', () => {
         expect(buildPartsToc([])).toEqual([]);
+    });
+});
+
+describe('partAnchor', () => {
+    const parts = partPages([
+        {
+            meta: makeComponent(
+                {},
+                {
+                    className: 'OptionComponent',
+                    componentMeta: { selector: 'lib-option', standalone: true, isDirective: false },
+                    showcaseConfig: { title: 'Option', partOf: 'lib-select' }
+                }
+            )
+        }
+    ]);
+
+    it('names the block of the part by its class name', () => {
+        expect(partAnchor(parts, 'OptionComponent')).toBe('part-OptionComponent');
+    });
+
+    it('is null for no part, and for a class that is not a part of the page', () => {
+        expect(partAnchor(parts, null)).toBeNull();
+        expect(partAnchor(parts, 'OptionGroupComponent')).toBeNull();
+        expect(partAnchor([], 'OptionComponent')).toBeNull();
     });
 });
 

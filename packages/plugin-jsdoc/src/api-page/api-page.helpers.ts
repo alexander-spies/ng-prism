@@ -32,6 +32,11 @@ export function partScope(className: string): string {
     return `part-${className}`;
 }
 
+/** The TOC id of the block of the part a class name names, `null` when the page has no such part. */
+export function partAnchor(parts: readonly ApiPagePart[], className: string | null): string | null {
+    return parts.find((part) => part.className === className)?.scope ?? null;
+}
+
 /** The TOC id of a documented type's card, in the scope of the page that shows it. */
 export function typeAnchor(typeId: string, scope = ''): string {
     return scopedAnchor(scope, `type-${typeId}`);
