@@ -1,4 +1,4 @@
-import { Component, Injectable, input, output } from '@angular/core';
+import { Component, Directive, Injectable, input, output } from '@angular/core';
 
 function Showcase(config: unknown): ClassDecorator {
     return () => {};
@@ -56,3 +56,13 @@ export class PartServiceStub {}
 @Showcase({ title: 'Providers part', partOf: 'lib-select', providers: [], setup: () => [] })
 @Component({ selector: 'lib-providers-part', standalone: true, template: '' })
 export class ProvidersPartComponent {}
+
+// Not in parts-api.ts either: parts with a host. A directive's host element is what its usage line is written on; a
+// host template renders a showcase. A test picks them per entry point.
+@Showcase({ title: 'Trigger', partOf: 'lib-select', host: '<button type="button">' })
+@Directive({ selector: '[libSelectTrigger]', standalone: true })
+export class SelectTriggerDirective {}
+
+@Showcase({ title: 'Hint', partOf: 'lib-select', host: { template: '<lib-select><lib-select-hint /></lib-select>' } })
+@Component({ selector: 'lib-select-hint', standalone: true, template: '' })
+export class SelectHintComponent {}

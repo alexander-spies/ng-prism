@@ -144,6 +144,19 @@ describe('resolveParts with exports picked per entry point', () => {
         expect(messages.filter((message) => message.includes('has no effect on a part'))).toEqual([]);
     });
 
+    it('keeps the host element of a directive part and drops a host template, with a notice', () => {
+        const { components, diagnostics } = createScanner({ entryPoints: [entry('part', 'SelectComponent', 'SelectTriggerDirective', 'SelectHintComponent')] }).scan();
+        const notices = warn.mock.calls.map(([message]) => String(message)).filter((message) => message.includes('has no effect on a part'));
+        const byName = (className: string): ScannedComponent => components.find((c) => c.className === className)!;
+
+        expect(byName('SelectTriggerDirective').parentClassName).toBe('SelectComponent');
+        expect(byName('SelectTriggerDirective').showcaseConfig.host).toBe('<button type="button">');
+        expect(byName('SelectHintComponent').parentClassName).toBe('SelectComponent');
+        expect(byName('SelectHintComponent').showcaseConfig).not.toHaveProperty('host');
+        expect(notices).toEqual([expect.stringMatching(/^⚠ ng-prism: SelectHintComponent › host — has no effect on a part/)]);
+        expect(diagnostics).toEqual([]);
+    });
+
     it('does not take a class that two entry points export for its own twin', () => {
         const { components, diagnostics } = createScanner({
             entryPoints: [entry('a', 'SelectComponent', 'OptionComponent'), entry('b', 'SelectComponent', 'OptionComponent')]
@@ -228,6 +241,32 @@ describe('resolveParts', () => {
             'PartComponent › sectionOrder',
             'PartComponent › host'
         ]);
+    });
+
+    /** The jsdoc usage line of a directive is written on its host element: `<button libTrigger>`, not `<div libTrigger>`. */
+    it.each([
+        ['a string', '<button type="button">'],
+        ['an object', { selector: 'lib-frame', import: { name: 'FrameComponent', from: 'lib' } }]
+    ])('keeps %s host on a directive part, without a notice', (_kind, host) => {
+        const parent = component('ParentComponent', 'lib-parent');
+        const part = component('TriggerDirective', '[libTrigger]', { partOf: 'lib-parent', host: host as ScannedComponent['showcaseConfig']['host'] });
+
+        part.componentMeta.isDirective = true;
+        const { notices } = run([parent, part], [part]);
+
+        expect(part.showcaseConfig.host).toEqual(host);
+        expect(notices).toEqual([]);
+    });
+
+    it('drops a host template from a directive part, with a notice', () => {
+        const parent = component('ParentComponent', 'lib-parent');
+        const part = component('TriggerDirective', '[libTrigger]', { partOf: 'lib-parent', host: { template: '<lib-parent><button libTrigger></button></lib-parent>' } });
+
+        part.componentMeta.isDirective = true;
+        const { notices } = run([parent, part], [part]);
+
+        expect(part.showcaseConfig).not.toHaveProperty('host');
+        expect(notices).toEqual([expect.stringMatching(/^TriggerDirective › host — has no effect on a part/)]);
     });
 
     it('matches a directive as a parent too', () => {

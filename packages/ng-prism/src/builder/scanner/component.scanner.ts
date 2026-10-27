@@ -78,7 +78,8 @@ function importProblem(entry: ShowcaseImport): string | undefined {
     return isImportableName(entry.name) ? undefined : `expected the name a class is exported under, got ${JSON.stringify(entry.name)}; it was dropped`;
 }
 
-function isHostTemplate(value: unknown): value is HostTemplate {
+/** Whether a `host` is a host template, `{ template }`, rather than the string or object host of a directive. */
+export function isHostTemplate(value: unknown): value is HostTemplate {
     return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>)['template'] === 'string';
 }
 

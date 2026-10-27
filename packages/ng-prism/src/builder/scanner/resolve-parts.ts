@@ -1,13 +1,17 @@
 import type ts from 'typescript';
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
-import type { Report } from './component.scanner.js';
+import { isHostTemplate, type Report } from './component.scanner.js';
 import { describeShowcaseIssue } from './showcase-diagnostics.js';
 
 /**
  * The fields of a `@Showcase` config that do nothing on a part, which has no page of its own: the variants, states,
  * placement in the navigation and canvas settings belong to a page, and what the templates of a showcase need is
  * only read for its variants.
+ *
+ * `host` only as a host template, `{ template }`, which renders a showcase. The string or object host of a directive
+ * stays: it names the element the directive sits on, which the usage line of a plugin such as jsdoc writes it on. A
+ * component keeps no other host anyway, the scan drops it before (see {@link isHostTemplate}).
  *
  * Only what reaches a component's `showcaseConfig` is listed. `providers` and `setup` never do: the scan reports them
  * on any component, a part included (`describeDeprecatedProviders`, `describeSetupOnComponent`), and that stays so.
@@ -51,7 +55,8 @@ export function selectorList(selector: string): string[] {
  * points are scanned, so that the parent can be in another one, and changes `components` in place.
  *
  * A resolved part gets {@link ScannedComponent.parentClassName}. What it has set that only a page uses is dropped,
- * each field with a notice, and so is its composition, since nothing renders its variants. The notices never fail
+ * each field with a notice, and so is its composition, since nothing renders its variants. A directive part keeps a
+ * string or object `host`, see {@link PART_IGNORED_FIELDS}. The notices never fail
  * `strictShowcase`, but the scan has read the class before it knows that it is a part: a malformed value or an error in
  * the template of one of its variants is a diagnostic all the same.
  *
@@ -80,7 +85,9 @@ export function resolveParts(components: ScannedComponent[], { report, notify, o
         part.parentClassName = resolved.className;
 
         for (const field of PART_IGNORED_FIELDS) {
-            if (part.showcaseConfig[field] === undefined) continue;
+            const value = part.showcaseConfig[field];
+
+            if (value === undefined || (field === 'host' && !isHostTemplate(value))) continue;
 
             notify(describeShowcaseIssue(part.className, origin, [field], IGNORED_ON_A_PART));
             delete part.showcaseConfig[field];
