@@ -21,6 +21,7 @@ export type {
     PrismManifest,
     RuntimeComponent,
     RuntimeManifest,
+    RuntimePart,
     ScannedComponent
 } from './plugin.types.js';
 export type { ComponentPage, CustomPage, StyleguidePage } from './page.types.js';
