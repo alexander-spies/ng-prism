@@ -1,6 +1,6 @@
 {
     "name": "@ng-prism/plugin-visual-regression",
-    "version": "22.7.0-beta.2",
+    "version": "22.7.0-beta.3",
     "description": "Visual regression report panel for ng-prism.",
     "ng-add": {
         "save": "devDependencies"
