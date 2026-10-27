@@ -2,7 +2,7 @@ import { ApplicationRef, effect, untracked } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { ShowcaseState } from '../../decorator/showcase.types.js';
 import type { RuntimePipe } from '../../plugin/pipe.types.js';
-import type { NgPrismConfig, RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { NgPrismConfig, PanelDefinition, RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { CAPTURE_PARAM } from './prism-capture.service.js';
@@ -18,6 +18,8 @@ function createComponent(
         variants: { name: string; states?: false }[];
         states: ShowcaseState[];
         inputs: RuntimeComponent['meta']['inputs'];
+        /** Class names of the parts the component has. */
+        parts: string[];
     }> = {}
 ): RuntimeComponent {
     return {
@@ -33,7 +35,8 @@ function createComponent(
             inputs: overrides.inputs ?? [],
             outputs: [],
             componentMeta: { selector: 'test', standalone: true, isDirective: false }
-        }
+        },
+        ...(overrides.parts ? { parts: overrides.parts.map((className) => ({ meta: createComponent({ className }).meta })) } : {})
     };
 }
 
@@ -1178,6 +1181,260 @@ describe('PrismUrlStateService', () => {
             window.dispatchEvent(new PopStateEvent('popstate'));
 
             expect(nav.activePipe()).toBe(truncate);
+        });
+    });
+
+    describe('part param', () => {
+        const SELECT_PARTS = ['OptionComponent', 'GroupComponent'];
+        const jsdocPanel: PanelDefinition = { id: 'jsdoc', label: 'API', placement: 'view', listsParts: true };
+
+        /** A plugin whose view panel lists the parts, the way the jsdoc plugin's API panel does. */
+        function withPartsPanel(panel: PanelDefinition = jsdocPanel): NgPrismConfig {
+            return { plugins: [{ name: 'parts-lister', panels: [panel] }] };
+        }
+
+        function createSelect(): RuntimeComponent {
+            return createComponent({ className: 'SelectComponent', variants: [{ name: 'V1' }, { name: 'V2' }], states: STATES, parts: SELECT_PARTS });
+        }
+
+        it('opens the parent for the URL of a part, on the part in the requested view', () => {
+            setUrl('?component=OptionComponent&view=jsdoc');
+            const { url, nav, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(nav.activeComponent()?.meta.className).toBe('SelectComponent');
+            expect(panel.activePart()).toBe('OptionComponent');
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+        });
+
+        it('opens the parent without a part when the URL names no view', () => {
+            setUrl('?component=OptionComponent');
+            const { url, nav, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(nav.activeComponent()?.meta.className).toBe('SelectComponent');
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).toBe('?component=SelectComponent');
+        });
+
+        it('opens the parent on the default variant and state, which the URL of a part cannot address', () => {
+            setUrl('?component=OptionComponent&variant=1&state=1');
+            const { url, renderer } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(renderer.activeVariantIndex()).toBe(0);
+            expect(renderer.activeStateIndex()).toBeNull();
+            expect(window.location.search).toBe('?component=SelectComponent');
+        });
+
+        it('rewrites the URL of a part in place, so back does not return to it', () => {
+            setUrl('?component=OptionComponent&view=jsdoc');
+            const pushSpy = jest.spyOn(window.history, 'pushState');
+            const { url } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(pushSpy).not.toHaveBeenCalled();
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+        });
+
+        it('restores part from its own param', () => {
+            setUrl('?component=SelectComponent&view=jsdoc&part=GroupComponent');
+            const { url, nav, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(nav.activeComponent()?.meta.className).toBe('SelectComponent');
+            expect(panel.activeViewId()).toBe('jsdoc');
+            expect(panel.activePart()).toBe('GroupComponent');
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc&part=GroupComponent');
+        });
+
+        it('keeps the variant and the state next to the part', () => {
+            setUrl('?component=SelectComponent&variant=1&state=0&view=jsdoc&part=OptionComponent');
+            const { url } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(window.location.search).toBe('?component=SelectComponent&variant=1&state=0&view=jsdoc&part=OptionComponent');
+        });
+
+        it('drops the part when the requested view is not there', () => {
+            setUrl('?component=OptionComponent&view=jsdoc');
+            const { url, nav, panel } = setup({ components: [createSelect()] });
+
+            url.init();
+            flush();
+
+            expect(nav.activeComponent()?.meta.className).toBe('SelectComponent');
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).not.toContain('part=');
+        });
+
+        it('drops the part when the panel that lists parts is not visible for the component', () => {
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel({ ...jsdocPanel, isVisible: () => false }));
+
+            url.init();
+            flush();
+
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).not.toContain('part=');
+        });
+
+        it('drops the part when the view is not the one that lists parts', () => {
+            setUrl('?component=SelectComponent&view=other&part=OptionComponent');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(panel.activeViewId()).toBe('other');
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).not.toContain('part=');
+        });
+
+        it('drops a part the component does not have', () => {
+            setUrl('?component=SelectComponent&view=jsdoc&part=Unknown');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc');
+        });
+
+        it('drops a part next to a page, which has none', () => {
+            const page = { type: 'component' as const, title: 'Patterns', category: 'Docs', component: class {} as any };
+
+            setUrl('?page=Patterns&view=jsdoc&part=OptionComponent');
+            const { url, panel } = setup({ components: [createSelect()], pages: [page] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).not.toContain('part=');
+        });
+
+        it('writes the part a panel shows, next to the view', () => {
+            const select = createSelect();
+            const { url, nav, panel } = setup({ components: [select] }, withPartsPanel());
+
+            url.init();
+            nav.select(select);
+            flush();
+            panel.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+        });
+
+        it('replaces history when a part is shown', () => {
+            const select = createSelect();
+            const pushSpy = jest.spyOn(window.history, 'pushState');
+            const replaceSpy = jest.spyOn(window.history, 'replaceState');
+            const { url, nav, panel } = setup({ components: [select] }, withPartsPanel());
+
+            url.init();
+            nav.select(select);
+            flush();
+            pushSpy.mockClear();
+            replaceSpy.mockClear();
+
+            panel.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            expect(pushSpy).not.toHaveBeenCalled();
+            expect(replaceSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('drops part when the component changes', () => {
+            const select = createSelect();
+            const other = createComponent({ className: 'ButtonComponent' });
+
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+            const { url, nav, panel } = setup({ components: [select, other] }, withPartsPanel());
+
+            url.init();
+            flush();
+            expect(window.location.search).toContain('part=OptionComponent');
+
+            nav.select(other);
+            flush();
+
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).not.toContain('part=');
+
+            nav.select(select);
+            flush();
+
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).not.toContain('part=');
+        });
+
+        it('drops part when the view changes', () => {
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+
+            panel.activeViewId.set('renderer');
+            flush();
+
+            expect(window.location.search).toBe('?component=SelectComponent');
+        });
+
+        it('shows the part after a popstate to its URL', () => {
+            setUrl('?component=SelectComponent&view=jsdoc');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+            expect(panel.activePart()).toBeNull();
+
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            flush();
+
+            expect(panel.activePart()).toBe('OptionComponent');
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+        });
+
+        it('forgets the part on a popstate to the URL of its view without one', () => {
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+            expect(panel.activePart()).toBe('OptionComponent');
+
+            setUrl('?component=SelectComponent&view=jsdoc');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            flush();
+
+            expect(panel.activePart()).toBeNull();
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc');
+        });
+
+        it('does not redirect a class name that is neither a component nor a part', () => {
+            setUrl('?component=Unknown&view=jsdoc');
+            const { url, nav } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+
+            expect(nav.activeComponent()).toBeNull();
         });
     });
 });

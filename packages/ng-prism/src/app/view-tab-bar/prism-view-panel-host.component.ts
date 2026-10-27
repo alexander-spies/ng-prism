@@ -21,7 +21,9 @@ export class PrismViewPanelHostComponent implements OnDestroy {
     protected readonly resolvedComponent = signal<Type<unknown> | null>(null);
     private readonly activePanel = computed(() => activeViewPanel(this.allViewPanels(), this.panelService.activeViewId(), this.nav.activeTarget() ?? 'component'));
 
-    protected readonly panelInputs = computed(() => panelInputsFor(this.activePanel(), this.nav.activeComponent(), this.nav.activeService(), this.nav.activePipe()));
+    protected readonly panelInputs = computed(() =>
+        panelInputsFor(this.activePanel(), this.nav.activeComponent(), this.nav.activeService(), this.nav.activePipe(), this.panelService.activePart())
+    );
 
     private readonly lazyCache = new Map<string, Type<unknown>>();
     private readonly injectorCache = new Map<string, EnvironmentInjector>();

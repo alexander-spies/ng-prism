@@ -126,10 +126,14 @@ The built-in renderer calls `log()` automatically for all `output()` signals. Us
 
 Controls which addon panel and view tab are active.
 
-| Member          | Type                     | Description                                              |
-| --------------- | ------------------------ | -------------------------------------------------------- |
-| `activePanelId` | `WritableSignal<string>` | ID of the active addon panel tab (default: `'controls'`) |
-| `activeViewId`  | `WritableSignal<string>` | ID of the active view tab (default: `'renderer'`)        |
+| Member                             | Type                              | Description                                                                                                                                                    |
+| ---------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `activePanelId`                    | `WritableSignal<string>`          | ID of the active addon panel tab (default: `'controls'`)                                                                                                       |
+| `activeViewId`                     | `WritableSignal<string>`          | ID of the active view tab (default: `'renderer'`)                                                                                                              |
+| `partsPanel`                       | `Signal<PanelDefinition \| null>` | The first visible view panel with [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), `null` when there is none (since 22.7.0)                      |
+| `activePart`                       | `Signal<string \| null>`          | Class name of the part the active view is asked to show. Set by `showPart()`, and `null` as soon as the active component or view is another one (since 22.7.0) |
+| `showPart(partClassName, panelId)` | `void`                            | Opens the view panel `panelId` on a part of the active component, which the panel reads as its `activePart` input (since 22.7.0)                               |
+| `clearPart()`                      | `void`                            | Forgets the part without leaving the view (since 22.7.0)                                                                                                       |
 
 ---
 

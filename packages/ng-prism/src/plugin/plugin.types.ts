@@ -135,6 +135,15 @@ export interface PanelDefinition {
      * pages alone, and only when it applies to `'component'`. Since 22.7.0.
      */
     appliesTo?: readonly PanelTarget[];
+    /**
+     * The panel shows the parts of the active component (a view panel for `'component'`). It gets the input
+     * `activePart` (`string | null`), the class name of the part to show, and a part's popover in the component head
+     * links to it. Without this flag the panel gets no `activePart`, so it need not declare the input. When several
+     * panels set it, the link goes to the first in registration order. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    listsParts?: boolean;
     /** Providers injected into a child EnvironmentInjector scoped to this panel */
     providers?: Provider[];
     /** When provided, the panel tab is only shown if this returns true for the active component */
@@ -412,8 +421,8 @@ export interface DiscoveryComponent {
 
 /**
  * A part of a component or directive in `__PRISM_MANIFEST__`: what a tool needs to list it and to know the surface of
- * the class the variants of the parent render. Not something to visit, capture or address with `?component=`.
- * Since 22.7.0.
+ * the class the variants of the parent render. Not something to visit or capture: a part has no page of its own, and
+ * `?component=` with its class name opens its parent. Since 22.7.0.
  *
  * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
  */

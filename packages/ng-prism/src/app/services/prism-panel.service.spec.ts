@@ -1,4 +1,5 @@
-import { EnvironmentInjector, Injector, runInInjectionContext, signal, type Type } from '@angular/core';
+import { ApplicationRef, computed, signal, type Type, type WritableSignal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { PanelDefinition, RuntimeComponent } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
@@ -54,6 +55,8 @@ function createService(
         builtins?: PanelDefinition[];
         pluginViewPanels?: PanelDefinition[];
         activeComponent?: RuntimeComponent | null;
+        /** A signal to drive the active component from the spec; `activeComponent` is its start value. */
+        activeComponentSignal?: WritableSignal<RuntimeComponent | null>;
         activeService?: RuntimeService | null;
         activePipe?: RuntimePipe | null;
     } = {}
@@ -62,29 +65,38 @@ function createService(
         panels: signal([]).asReadonly(),
         viewPanels: signal(options.pluginViewPanels ?? []).asReadonly()
     } as unknown as PrismPluginService;
+    const activeComponent = options.activeComponentSignal ?? signal(options.activeComponent ?? null);
     // The real `activeTarget` is derived from the three re-linked signals the
     // same way: at most one of them is non-null.
-    const target = options.activeComponent ? 'component' : options.activeService ? 'service' : options.activePipe ? 'pipe' : null;
+    const activeService = signal(options.activeService ?? null);
+    const activePipe = signal(options.activePipe ?? null);
     const navigationStub = {
-        activeComponent: signal(options.activeComponent ?? null).asReadonly(),
-        activeService: signal(options.activeService ?? null).asReadonly(),
-        activePipe: signal(options.activePipe ?? null).asReadonly(),
-        activeTarget: signal(target).asReadonly()
+        activeComponent: activeComponent.asReadonly(),
+        activeService: activeService.asReadonly(),
+        activePipe: activePipe.asReadonly(),
+        activeTarget: computed(() => (activeComponent() ? 'component' : activeService() ? 'service' : activePipe() ? 'pipe' : null))
     } as unknown as PrismNavigationService;
 
-    const injector = Injector.create({
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
         providers: [
             { provide: PrismPluginService, useValue: pluginStub },
             { provide: PrismNavigationService, useValue: navigationStub },
-            { provide: PRISM_BUILTIN_PANELS, useValue: options.builtins ?? [] },
-            { provide: EnvironmentInjector, useValue: {} }
+            { provide: PRISM_BUILTIN_PANELS, useValue: options.builtins ?? [] }
         ]
     });
+    return TestBed.inject(PrismPanelService);
+}
 
-    return runInInjectionContext(injector, () => new PrismPanelService());
+function flush(): void {
+    TestBed.inject(ApplicationRef).tick();
 }
 
 describe('PrismPanelService', () => {
+    afterEach(() => {
+        TestBed.resetTestingModule();
+    });
+
     it('defaults activePanelId to "controls"', () => {
         expect(createService().activePanelId()).toBe('controls');
     });
@@ -252,6 +264,114 @@ describe('PrismPanelService', () => {
 
             expect(service.visibleViewPanels().map((p) => p.id)).toEqual(['docs']);
             expect(isVisible).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('partsPanel', () => {
+        const jsdoc: PanelDefinition = { id: 'jsdoc', label: 'API', placement: 'view', listsParts: true };
+
+        it('names the first visible view panel that lists parts', () => {
+            const service = createService({
+                builtins: [{ id: 'overview', label: 'Overview', placement: 'view' }],
+                pluginViewPanels: [jsdoc, { id: 'reference', label: 'Reference', placement: 'view', listsParts: true }],
+                activeComponent: makeComponent()
+            });
+
+            expect(service.partsPanel()?.id).toBe('jsdoc');
+        });
+
+        it('skips a panel that lists parts but is not visible for the component', () => {
+            const service = createService({
+                pluginViewPanels: [
+                    { ...jsdoc, isVisible: () => false },
+                    { id: 'reference', label: 'Reference', placement: 'view', listsParts: true }
+                ],
+                activeComponent: makeComponent()
+            });
+
+            expect(service.partsPanel()?.id).toBe('reference');
+        });
+
+        it('is null when no visible view panel lists parts', () => {
+            const service = createService({
+                builtins: [{ id: 'overview', label: 'Overview', placement: 'view' }],
+                pluginViewPanels: [{ id: 'docs', label: 'Docs', placement: 'view' }],
+                activeComponent: makeComponent()
+            });
+
+            expect(service.partsPanel()).toBeNull();
+        });
+
+        it('is null without an active component', () => {
+            expect(createService({ pluginViewPanels: [jsdoc] }).partsPanel()).toBeNull();
+        });
+    });
+
+    describe('showPart', () => {
+        const jsdoc: PanelDefinition = { id: 'jsdoc', label: 'API', placement: 'view', listsParts: true };
+
+        it('has no active part before one is shown', () => {
+            expect(createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') }).activePart()).toBeNull();
+        });
+
+        it('opens the panel on the part', () => {
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') });
+
+            service.showPart('OptionComponent', 'jsdoc');
+
+            expect(service.activeViewId()).toBe('jsdoc');
+            expect(service.activePart()).toBe('OptionComponent');
+        });
+
+        it('shows a part until the component or the view changes', () => {
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') });
+
+            service.showPart('OptionComponent', 'jsdoc');
+            flush();
+            expect(service.activePart()).toBe('OptionComponent');
+
+            service.activeViewId.set('renderer');
+            flush();
+            expect(service.activePart()).toBeNull();
+
+            service.activeViewId.set('jsdoc');
+            flush();
+            expect(service.activePart()).toBeNull();
+        });
+
+        it('forgets the part once the component changes, even if the view and the component come back', () => {
+            const activeComponentSignal = signal<RuntimeComponent | null>(makeComponent('SelectComponent'));
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponentSignal });
+
+            service.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            activeComponentSignal.set(makeComponent('ButtonComponent'));
+            flush();
+            expect(service.activePart()).toBeNull();
+
+            activeComponentSignal.set(makeComponent('SelectComponent'));
+            flush();
+            expect(service.activePart()).toBeNull();
+        });
+
+        it('forgets the part on clearPart', () => {
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') });
+
+            service.showPart('OptionComponent', 'jsdoc');
+            service.clearPart();
+
+            expect(service.activePart()).toBeNull();
+            expect(service.activeViewId()).toBe('jsdoc');
+        });
+
+        it('shows the part that was shown last', () => {
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') });
+
+            service.showPart('OptionComponent', 'jsdoc');
+            service.showPart('GroupComponent', 'jsdoc');
+
+            expect(service.activePart()).toBe('GroupComponent');
         });
     });
 });
