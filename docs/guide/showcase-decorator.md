@@ -420,7 +420,7 @@ A `partOf` that does not resolve never makes a component disappear. The scan rep
 
 Each message ends with the file, line and column of the `partOf` or the field, as other `@Showcase` messages do.
 
-**When a part, when a showcase of its own.** Use `partOf` for a class that only works inside one parent and whose page would repeat what the parent's variants show: `lib-option` and `lib-optgroup` in `lib-select`. Keep a showcase of its own when the class has a life apart from one parent. `sguiInput` stays its own entry: a form field and a search input both use it, `partOf` takes exactly one parent, and it has states of its own that only a page of its own can show.
+**When a part, when a showcase of its own.** Use `partOf` for a class that only works inside one parent and whose page would repeat what the parent's variants show: `lib-option` and `lib-optgroup` in `lib-select`. Keep a showcase of its own when the class has a life apart from one parent. `libInput` stays its own entry: a form field and a search input both use it, `partOf` takes exactly one parent, and it has states of its own that only a page of its own can show.
 
 ### `status`
 

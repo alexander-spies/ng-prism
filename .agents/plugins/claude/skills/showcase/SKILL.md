@@ -158,7 +158,7 @@ package is right:
       parts; on a service or a pipe `partOf` is a warning.
     - **When a part, when a showcase of its own:** a part when the class only works inside that one parent and its page
       would repeat the parent's variants (`lib-option`, `lib-optgroup` in `lib-select`). A showcase of its own when
-      several components use it or it has a look worth its own variants and states: `sguiInput`, used by a form field and
+      several components use it or it has a look worth its own variants and states: `libInput`, used by a form field and
       a search input, stays its own entry. `partOf` takes one parent only.
 
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`

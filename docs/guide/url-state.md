@@ -51,7 +51,7 @@ A [part](guide/showcase-decorator.md#partof) (`@Showcase({ partOf })`, since 22.
     `variant` and `state` of such a link are dropped, since they would name the part's, and the parent opens on its defaults. The rewrite replaces the history entry instead of adding one, so back does not return to the link that was rewritten.
 
 - **`part` is applied only where it can be shown.** The view must be the first visible view panel that sets [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), and the component must have that part. Without both the part is dropped and the component opens as usual, with the requested view. That is also what happens with a link to a part when no plugin lists parts.
-- **Switching the component or the view removes `part`.** It marks where the reader was sent to, not a setting that follows them. Coming back to the same component and view does not scroll to the part again.
+- **Switching the component or the view removes `part`.** It marks where the reader was sent to, not a setting that follows them. Coming back to the same component and view inside the app does not scroll to the part again. The browser's back and forward buttons restore a history entry as it was, `part` included, so going back to an entry with a part scrolls to it.
 - **`part` is not persisted.** Like the other navigation parameters it lives in the URL only, not in `sessionStorage`.
 
 ## Deep-Linking
