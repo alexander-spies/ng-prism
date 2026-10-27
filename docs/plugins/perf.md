@@ -63,6 +63,8 @@ Shows timing for the last N renders as metric cards and a trace. The initial ren
 
 For a variant with a [`template` or a host template](guide/content-projection.md#compiled-content-template), the render marks wrap the creation of the whole composition: the frame and every other part in it count, not only the showcased component. Compare such a variant with another composed variant, not with a plain one.
 
+A [part](guide/showcase-decorator.md#partof) is skipped entirely; its parent's variants render and cover it.
+
 ### Bundle Panel
 
 Analyzes the component's static import graph at build time. Source size and gzip estimate are graded against the bundle budget (warning above 20 kb, critical above 50 kb); the size breakdown draws both against the 20 kb budget ("8.4 / 20 kb").

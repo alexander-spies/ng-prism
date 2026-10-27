@@ -9,6 +9,8 @@ export function perfPlugin(options?: PerfPluginOptions): NgPrismPlugin {
         name: '@ng-prism/plugin-perf',
 
         async onComponentScanned(component) {
+            if (component.parentClassName) return;
+
             const bundle = scanBundle(component.filePath, options?.bundle?.maxTreeDepth ?? 5);
 
             return {
