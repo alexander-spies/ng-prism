@@ -70,7 +70,9 @@ function stub(): unknown {
 }
 
 /** The manifest module run with its imports stubbed: `PRISM_RUNTIME_MANIFEST`, as the styleguide reads it. */
-export function evaluateManifest(code: string): { components: { type: unknown; composition?: unknown; meta: ScannedComponent }[] } {
+export function evaluateManifest(code: string): {
+    components: { type: unknown; composition?: unknown; meta: ScannedComponent; parts?: { meta: ScannedComponent }[] }[];
+} {
     const { outputText } = ts.transpileModule(code, {
         compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, experimentalDecorators: true }
     });

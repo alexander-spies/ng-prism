@@ -224,8 +224,27 @@ describe('runPrismPipeline integration', () => {
         try {
             const result = await runPrismPipeline({ ...defaultOptions, entryPoint: 'lib/part-api.ts' }, createMockContext(tmp), createPipelineState());
 
-            expect(result.componentCount).toBe(2);
+            // The part is nested on its parent, so only the parent counts.
+            expect(result.componentCount).toBe(1);
             expect(warn).toHaveBeenCalledWith(expect.stringContaining('OptionComponent › variants — has no effect on a part'));
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('writes a part on its parent in the runtime manifest, not as a component of its own', async () => {
+        tmp = createTempWorkspace();
+        writeFileSync(join(tmp, 'lib', 'part-api.ts'), "export { OptionComponent, SelectComponent } from './parts-select.component.js';\n", 'utf-8');
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            await runPrismPipeline({ ...defaultOptions, entryPoint: 'lib/part-api.ts' }, createMockContext(tmp), createPipelineState());
+
+            const source = readManifest(tmp);
+
+            expect(source.match(/^ {6}type: .*$/gm)).toEqual(['      type: SelectComponent,']);
+            expect(source).toMatch(/ {6}parts: \[\s*\{\s*meta: \{\s*className: "OptionComponent"/);
+            expect(source).not.toMatch(/import \{[^}]*\bOptionComponent\b/);
         } finally {
             warn.mockRestore();
         }

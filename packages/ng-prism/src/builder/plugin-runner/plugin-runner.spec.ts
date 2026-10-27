@@ -245,3 +245,68 @@ describe('runPluginHooks', () => {
         expect('pipes' in result).toBe(false);
     });
 });
+
+describe('runPluginHooks with parts', () => {
+    const SELECT = createComponent({
+        className: 'SelectComponent',
+        showcaseConfig: { title: 'Select' },
+        componentMeta: { selector: 'lib-select', standalone: true, isDirective: false }
+    });
+    const OPTION = createComponent({
+        className: 'OptionComponent',
+        showcaseConfig: { title: 'Option', partOf: 'lib-select' },
+        componentMeta: { selector: 'lib-option', standalone: true, isDirective: false },
+        parentClassName: 'SelectComponent'
+    });
+
+    it('runs onComponentScanned on parts and hands onManifestReady the nested manifest', async () => {
+        const seen: string[] = [];
+        let ready: PrismManifest | undefined;
+        const plugin: NgPrismPlugin = {
+            name: 'p',
+            onComponentScanned: (c) => void seen.push(c.className),
+            onManifestReady: (m) => void (ready = m)
+        };
+
+        await runPluginHooks({ components: [SELECT, OPTION] }, [plugin]);
+
+        expect(seen).toEqual(['SelectComponent', 'OptionComponent']);
+        expect(ready!.components.map((c) => c.className)).toEqual(['SelectComponent']);
+        expect(ready!.components[0].parts!.map((p) => p.className)).toEqual(['OptionComponent']);
+    });
+
+    it('nests the part as onComponentScanned returned it', async () => {
+        const plugin: NgPrismPlugin = {
+            name: 'p',
+            onComponentScanned: (c) => ({ ...c, meta: { ...c.meta, seen: c.className } })
+        };
+
+        const result = await runPluginHooks({ components: [SELECT, OPTION] }, [plugin]);
+
+        expect(result.components).toHaveLength(1);
+        expect(result.components[0].meta).toEqual({ seen: 'SelectComponent' });
+        expect(result.components[0].parts![0].meta).toEqual({ seen: 'OptionComponent' });
+    });
+
+    it('returns the nested manifest when no plugin changes it', async () => {
+        const result = await runPluginHooks({ components: [SELECT, OPTION] }, []);
+
+        expect(result.components.map((c) => c.className)).toEqual(['SelectComponent']);
+        expect(result.components[0].parts!.map((p) => p.className)).toEqual(['OptionComponent']);
+    });
+
+    it('does not change the manifest it was given', async () => {
+        const manifest: PrismManifest = { components: [SELECT, OPTION] };
+
+        await runPluginHooks(manifest, []);
+
+        expect(manifest.components).toEqual([SELECT, OPTION]);
+        expect(SELECT).not.toHaveProperty('parts');
+    });
+
+    it('leaves a manifest without parts as it is', async () => {
+        const result = await runPluginHooks({ components: [SELECT] }, []);
+
+        expect(result.components[0]).not.toHaveProperty('parts');
+    });
+});

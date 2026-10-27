@@ -1,4 +1,5 @@
 import type { NgPrismPlugin, PrismManifest } from '../../plugin/plugin.types.js';
+import { nestParts } from './nest-parts.js';
 
 function pluginLabel(plugin: NgPrismPlugin): string {
     return plugin.name ? `"${plugin.name}"` : '<unnamed>';
@@ -62,7 +63,8 @@ export async function runPluginHooks(manifest: PrismManifest, plugins: NgPrismPl
     const pipes = await runItemHook(manifest.pipes ?? [], plugins, 'onPipeScanned', (pipe) => `pipe "${pipe.className}"`);
     const pages = await runItemHook(manifest.pages ?? [], plugins, 'onPageScanned', (page) => `page "${page.title}"`);
 
-    let result: PrismManifest = { components, pages };
+    // Parts run through the hooks above like any component and are nested only now: `onManifestReady` and the manifest see them on their parent.
+    let result: PrismManifest = { components: nestParts(components), pages };
 
     if (manifest.services) {
         result.services = services;

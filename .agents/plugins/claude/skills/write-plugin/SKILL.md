@@ -62,6 +62,14 @@ export function notesPlugin(): NgPrismPlugin {
   does.
   It is read before the hooks run, so a hook that edits `template` or `host` afterwards changes nothing that renders,
   and it is absent when no variant has one and on a component a hook builds from scratch.
+- **Parts (since 22.7.0, experimental until 23.0.0).** A class with `@Showcase({ partOf: '<selector of the parent>' })` is
+  a part of that component or directive and has no page of its own. `onComponentScanned` runs on it like on any
+  component, so it has `inputs`, `outputs` and, with `componentApi`, `api`. When `partOf` resolved,
+  `component.parentClassName` names the parent: a hook that works per page (builds, measures or photographs each
+  component) returns early for a component that has it. `onManifestReady` gets the parts nested: they are not in
+  `manifest.components` but in `parts` of their parent (`ScannedComponent.parts`, sorted by title), the same shape as
+  `RuntimeComponent.parts`. So a plugin that walks `manifest.components` sees parents only and reads `c.parts ?? []` to
+  include parts, and a filter that drops a parent drops its parts too.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the
   whole library goes into `manifest.meta`, read in the browser with `inject(PRISM_MANIFEST).meta`.
 - The manifest that carries these results to the browser is generated source code: only JSON-like data survives. In
@@ -109,6 +117,9 @@ export function notesPlugin(): NgPrismPlugin {
   `activeComponent()?.meta.showcaseConfig.meta`, and a panel reads the API at `activeComponent()?.meta.api`
   (experimental, `undefined` for a component without one, and only in the manifest when a plugin sets
   `componentApi: true`, so set it on yours).
+- `RuntimeComponent.parts` (since 22.7.0, experimental until 23.0.0) is `RuntimePart[]`, one `{ meta: ScannedComponent }`
+  per part of the component, sorted by title, with no `type`: the variants of the component render a part, never the
+  part itself. It is missing for a component without parts.
 - **Panels for services and pipes.** `appliesTo: ('component' | 'service' | 'pipe')[]` (since 22.7.0) says where a
   panel appears, default `['component']`. A service or pipe page has no canvas and offers only the panels that apply
   to it, as view tabs: such a panel needs `placement: 'view'`, since there is no addon area. An addon panel shows on

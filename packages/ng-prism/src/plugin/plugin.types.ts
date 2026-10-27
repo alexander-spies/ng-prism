@@ -221,6 +221,15 @@ export interface ScannedComponent {
      * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
      */
     parentClassName?: string;
+    /**
+     * The parts of this component or directive, those showcased classes whose `partOf` names its selector, sorted by
+     * title. Build time only: the `PrismManifest` that `onManifestReady` receives has them here and not in
+     * `components`, and the runtime manifest carries them as {@link RuntimeComponent.parts}. The per-item hooks, such as
+     * `onComponentScanned`, run before the parts are nested and see each part as a component of its own. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parts?: ScannedComponent[];
     /** Arbitrary plugin metadata */
     meta?: Record<string, unknown>;
 }
@@ -337,6 +346,24 @@ export interface RuntimeComponent {
      * When every variant is composed, `type` is this wrapper too. Since 22.7.0.
      */
     composition?: Type<unknown>;
+    /**
+     * The parts of the component, in the order of {@link ScannedComponent.parts}. The styleguide shows each one on this
+     * component's page and never on a page of its own. Absent for a component without parts. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parts?: RuntimePart[];
+}
+
+/**
+ * A part in the runtime manifest: its scanned data and nothing else. It has no `type`, because the styleguide never
+ * renders a part by itself: the variants of the parent do, and the manifest does not import the class of a part unless
+ * a composition of the parent uses it. Since 22.7.0.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+ */
+export interface RuntimePart {
+    meta: ScannedComponent;
 }
 
 // --- Discovery manifest (the `__PRISM_MANIFEST__` global) ---

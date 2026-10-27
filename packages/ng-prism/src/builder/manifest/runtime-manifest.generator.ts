@@ -244,6 +244,7 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
         lines.push(`      type: ${typeName},`);
         if (wrapperName) lines.push(`      composition: ${wrapperName},`);
         lines.push(`      meta: ${formatMeta(comp, 6)},`);
+        if (comp.parts && comp.parts.length > 0) pushParts(lines, comp.parts);
         lines.push('    },');
     }
 
@@ -274,6 +275,22 @@ export function generateRuntimeManifest(options: RuntimeManifestOptions): string
     lines.push('');
 
     return lines.join('\n');
+}
+
+/**
+ * A part is `{ meta }` and nothing else, like a service or a pipe: the styleguide renders it through the variants of its
+ * parent, so it has no `type`, and its class is imported only when a composition of the parent names it.
+ */
+function pushParts(lines: string[], parts: ScannedComponent[]): void {
+    lines.push('      parts: [');
+
+    for (const part of parts) {
+        lines.push('        {');
+        lines.push(`          meta: ${formatMeta(part, 10)},`);
+        lines.push('        },');
+    }
+
+    lines.push('      ],');
 }
 
 /** A service or a pipe is `{ meta }` and nothing else: the styleguide never imports its class. Writes no line when there is none. */
