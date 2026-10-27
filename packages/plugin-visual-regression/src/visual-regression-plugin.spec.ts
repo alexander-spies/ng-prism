@@ -6,6 +6,17 @@ import { visualRegressionPlugin as visualRegressionPluginBrowser } from './visua
 import { visualRegressionPlugin } from './visual-regression-plugin.js';
 import type { VrtComponentMeta, VrtManifestMeta } from './visual-regression.types.js';
 
+jest.mock('./report-reader.js', () => {
+    const actual = jest.requireActual('./report-reader.js');
+
+    return {
+        ...actual,
+        readVariantsForComponent: jest.fn((reportPath: string, className: string) => {
+            return (actual.readVariantsForComponent as (reportPath: string, className: string) => unknown)(reportPath, className);
+        })
+    };
+});
+
 const FIXTURE = join(__dirname, '__fixtures__', 'vrt-report.json');
 const MISSING = join(__dirname, '__fixtures__', 'does-not-exist.json');
 
@@ -47,6 +58,8 @@ describe('visualRegressionPlugin', () => {
 
     describe('onComponentScanned', () => {
         it('leaves a part untouched and does not read variants for it', async () => {
+            const { readVariantsForComponent } = require('./report-reader.js');
+
             const plugin = visualRegressionPlugin({ reportPath: FIXTURE });
             const component: ScannedComponent = {
                 className: 'SelectOptionComponent',
@@ -61,6 +74,7 @@ describe('visualRegressionPlugin', () => {
             const result = await plugin.onComponentScanned!(component);
 
             expect(result).toBeUndefined();
+            expect(readVariantsForComponent).not.toHaveBeenCalled();
         });
 
         it('attaches the component variants to showcaseConfig.meta', async () => {
