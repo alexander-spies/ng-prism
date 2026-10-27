@@ -11,6 +11,7 @@ import type {
     ScannedService
 } from '@ng-prism/core/plugin';
 import type { JsDocData, MethodDoc } from '../jsdoc.types.js';
+import { partScope } from './api-page.helpers.js';
 import { generateComponentUsage } from './component-usage.js';
 import { generatePipeUsage } from './pipe-usage.js';
 import { generateServiceUsage } from './service-usage.js';
@@ -75,6 +76,19 @@ export interface ApiPageModel {
     /** Pipes: one entry per transform signature. */
     transform?: ApiMethod[];
     types: ApiTypeDoc[];
+}
+
+/**
+ * A part of a component as its parent's API tab shows it: the heading of its
+ * block and its API page. `scope` prefixes every anchor of the block, so the
+ * ids of two blocks never meet in the one scroll host.
+ */
+export interface ApiPagePart {
+    className: string;
+    title: string;
+    selector: string;
+    scope: string;
+    page: ApiPageModel;
 }
 
 export function servicePage(service: ScannedService): ApiPageModel {
@@ -173,6 +187,17 @@ export function componentApiPage(component: ScannedComponent): ApiPageModel {
         methods: api ? api.methods : (jsdoc?.methods ?? []).map(methodSignature),
         types: api?.types ?? []
     };
+}
+
+/** The API pages of a component's parts, in the order the manifest lists them. Each is a component page of its own: the usage has the part's import. */
+export function partPages(parts: readonly { meta: ScannedComponent }[] | undefined): ApiPagePart[] {
+    return (parts ?? []).map(({ meta }) => ({
+        className: meta.className,
+        title: meta.showcaseConfig.title,
+        selector: meta.componentMeta.selector,
+        scope: partScope(meta.className),
+        page: componentApiPage(meta)
+    }));
 }
 
 /** The deprecation leads the chips, with its message when the tag has one. */
