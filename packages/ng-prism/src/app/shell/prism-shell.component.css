@@ -73,8 +73,10 @@
     color: var(--prism-text);
 }
 
-/* Resize grips: a visible handle at rest, an 8 px hit zone around a zero-width
-   edge, and a 2 px primary line while hovered, dragged or focused. */
+/* Resize grips, one look for both edges, turned for the axis: a 3 × 28 px
+   pill at rest, centred on the edge, over an 8 px hit zone around a
+   zero-width edge. Hovered, dragged or focused, the pill stretches into a
+   2 px primary line along the whole edge. */
 .prism-resizer-col,
 .prism-resizer-row {
     position: relative;
@@ -101,24 +103,42 @@
     position: absolute;
     pointer-events: none;
     content: '';
-    transition:
-        background var(--dur-fast) var(--ease-default),
-        inset var(--dur-fast) var(--ease-default);
-}
-
-/* Sidebar edge: a 3 × 28 px pill. */
-.prism-resizer-col::after {
-    inset: calc(50% - 14px) -1.5px;
     background: var(--prism-border-strong);
     border-radius: 2px;
+    transition:
+        background var(--dur-fast) var(--ease-default),
+        inset var(--dur-fast) var(--ease-default),
+        border-radius var(--dur-fast) var(--ease-default);
+}
+
+.prism-resizer-col::after {
+    inset: calc(50% - 14px) -1.5px;
+}
+
+.prism-resizer-row::after {
+    inset: -1.5px calc(50% - 14px);
+}
+
+.prism-resizer-col:hover::after,
+.prism-resizer-col.active::after,
+.prism-resizer-col:focus-visible::after,
+.prism-resizer-row:hover::after,
+.prism-resizer-row.active::after,
+.prism-resizer-row:focus-visible::after {
+    background: var(--prism-primary);
+    border-radius: 0;
 }
 
 .prism-resizer-col:hover::after,
 .prism-resizer-col.active::after,
 .prism-resizer-col:focus-visible::after {
     inset: 0 -1px;
-    background: var(--prism-primary);
-    border-radius: 0;
+}
+
+.prism-resizer-row:hover::after,
+.prism-resizer-row.active::after,
+.prism-resizer-row:focus-visible::after {
+    inset: -1px 0;
 }
 
 .prism-main {
@@ -132,19 +152,6 @@
 .prism-resizer-row {
     flex-shrink: 0;
     height: 0;
-}
-
-/* Panel divider: three dots. */
-.prism-resizer-row::after {
-    inset: -1.5px calc(50% - 9px);
-    background: radial-gradient(circle, var(--prism-border-strong) 1.5px, transparent 1.6px) 0 0 / 6px 3px repeat-x;
-}
-
-.prism-resizer-row:hover::after,
-.prism-resizer-row.active::after,
-.prism-resizer-row:focus-visible::after {
-    inset: -1px 0;
-    background: var(--prism-primary);
 }
 
 /* One row, not two: the canvas tools no longer occupy a band above the
