@@ -8,6 +8,7 @@ import { buildDeclarableIndex } from './composition/declarables.js';
 import { createCompositionContext } from './composition/read-composition.js';
 import { type EntryPointInput, resolveEntryPointExports } from './entry-point.scanner.js';
 import { scanPipes } from './pipe.scanner.js';
+import { resolveParts } from './resolve-parts.js';
 import { scanServices } from './service.scanner.js';
 import { createSourceFileCache } from './source-file-cache.js';
 
@@ -98,14 +99,17 @@ export function createScanner(options: CreateScannerOptions): Scanner {
             // A setup function or a type is often exported by another entry point than the component, service or pipe that names it.
             const exportIndex = buildExportIndex(entries, checker);
             const context = { exportIndex, diagnostics, notices };
+            const reporters = createReporters(diagnostics, notices);
             // A showcase's templates use what any entry point exports, not only its own. Read for the first one that composes.
-            const composition = createCompositionContext(() => buildDeclarableIndex(entries, checker), compilerOptions, createReporters(diagnostics, notices));
+            const composition = createCompositionContext(() => buildDeclarableIndex(entries, checker), compilerOptions, reporters);
+            // Where each part wrote its partOf, for the messages about one that cannot be resolved.
+            const partOrigins = new Map<ScannedComponent, ts.Expression>();
 
             const fromPrimary = new Set<object>();
 
             for (const { exports, importPath, primary } of entries) {
                 const showcased = findShowcasedClasses(exports, checker);
-                const components = scanComponents(showcased, checker, { ...context, api: componentApi, composition });
+                const components = scanComponents(showcased, checker, { ...context, api: componentApi, composition, partOrigins });
                 const services = readServices ? scanServices(showcased, checker, context) : [];
                 const pipes = readPipes ? scanPipes(showcased, checker, context) : [];
 
@@ -123,8 +127,13 @@ export function createScanner(options: CreateScannerOptions): Scanner {
                 allPipes.push(...pipes);
             }
 
+            const components = dedupe(allComponents, fromPrimary);
+
+            // Only now: a part's parent may be exported by another entry point than the part.
+            resolveParts(components, { ...reporters, origins: partOrigins });
+
             return {
-                components: dedupe(allComponents, fromPrimary),
+                components,
                 services: dedupe(allServices, fromPrimary),
                 pipes: dedupe(allPipes, fromPrimary),
                 unread: { services: unreadServices.size, pipes: unreadPipes.size },

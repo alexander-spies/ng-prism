@@ -1,6 +1,6 @@
 ---
 name: showcase
-description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, compiled templates with host templates and imports for components that work together such as a form field with its input, directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and pipes with @Pipe, with their setup), when a build prints a "⚠ ng-prism:" warning, when a component, service or pipe is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
+description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, compiled templates with host templates and imports for components that work together such as a form field with its input, components that only exist as a part of another (`partOf`), directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and pipes with @Pipe, with their setup), when a build prints a "⚠ ng-prism:" warning, when a component, service or pipe is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
 ---
 
 # Writing and checking @Showcase configs
@@ -138,10 +138,29 @@ package is right:
       markup as written, a11y, perf and VRT. It doesn't cover overlays rendered into `<body>` (a select's panel, a
       datepicker popup) and has no live control for any part but the subject.
     - Don't use `renderPage` for it (rule 10). Don't write `host: '<div>…'` on a component: it has no effect.
+14. **A component that only works inside one other is a part: `partOf: '<parent selector>'`** (since 22.7.0; the typings
+    have `partOf`). `lib-option` in `lib-select`: `@Showcase({ title: 'Option', description: '…', partOf: 'lib-select' })`.
+    A part has no page of its own and no variant to write: its title, description, inputs and outputs show on its parent's
+    page.
+    - **The value is the parent's selector as a string, never the class** (that would import the parent back, and the
+      config runs when the class is defined, so the cycle is a `ReferenceError`). It matches one entry of the parent's
+      `selector` list, spaces ignored: `'lib-select'` finds `selector: 'lib-select, [libSelect]'`. The parent can be a
+      component or a directive in any entry point.
+    - **Exactly one parent that has `@Showcase`, and no chains.** A selector no showcased class has, one that several
+      have, a parent that is a part itself and a class naming itself are warnings that `strictShowcase` fails on. The
+      class then keeps a page of its own, so nothing vanishes, and you fix the selector.
+    - **A part uses `title`, `description`, `tags`, `status`, `meta`**, and its inputs and outputs from the class. Don't
+      set `variants`, `states`, `category`, `section`, `bg`, `canvasLayout`, `host`, `imports` or `renderPage` on it: they
+      are dropped with a notice that does not fail a strict build. Only components and directives can be parts; on a
+      service or a pipe `partOf` is a warning.
+    - **When a part, when a showcase of its own:** a part when the class only works inside that one parent and its page
+      would repeat the parent's variants (`lib-option`, `lib-optgroup` in `lib-select`). A showcase of its own when
+      several components use it or it has a look worth its own variants and states: `sguiInput`, used by a form field and
+      a search input, stays its own entry. `partOf` takes one parent only.
 
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
-deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13). A variant
+deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13), `partOf` (rule 14). A variant
 can set its own `description`, `bg`, `canvasLayout`, `meta`, `pseudo`, `template` and `host` (rule 13).
 
 ## Example

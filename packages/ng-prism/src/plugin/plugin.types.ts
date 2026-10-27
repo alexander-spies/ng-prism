@@ -211,6 +211,16 @@ export interface ScannedComponent {
      * declares a `template` or a host template, and when a plugin hook builds the component. Since 22.7.0.
      */
     composition?: ComponentComposition;
+    /**
+     * The class name of the component or directive this one is a part of, set only when the selector in
+     * `showcaseConfig.partOf` resolved to exactly one other showcased class. A plugin that works per page, such as one
+     * that builds or photographs something for each component, skips a component that has it: the styleguide shows a
+     * part on the page of its parent. A `partOf` that did not resolve is dropped from `showcaseConfig` and leaves this
+     * unset, so the class stays a component of its own. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parentClassName?: string;
     /** Arbitrary plugin metadata */
     meta?: Record<string, unknown>;
 }
@@ -455,7 +465,8 @@ export interface NgPrismConfig {
      * When true, the build fails instead of warning whenever the scanner has
      * to drop a `@Showcase` value: one it cannot evaluate statically, an
      * invalid `bg`, `status`, `canvasLayout` or `pseudo`, a missing `title`,
-     * or the deprecated `providers`, which never reach the styleguide.
+     * or the deprecated `providers`, which never reach the styleguide, or a
+     * `partOf` that matches no single other showcased component.
      * Default: `false`.
      */
     strictShowcase?: boolean;

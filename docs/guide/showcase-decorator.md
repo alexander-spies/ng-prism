@@ -372,6 +372,53 @@ What the templates of this showcase use and ng-prism does not find in your libra
 
 Library classes that a template names are imported without being listed. See [Content Projection: Imports](guide/content-projection.md#imports) for the rule. `imports` is for components and directives only; on a service or a pipe it counts as a [component-only field](guide/showcasing-services.md#compatibility-until-2300).
 
+### `partOf`
+
+The selector of the component or directive that this one is a part of (since 22.7.0). Some components only exist inside another one: an option inside a select, an option group, a tab inside a tab group. A showcase for each of them rebuilds the parent's markup in a variant that the parent's own variants already show. `partOf` says what it belongs to instead, and the part gets no page of its own: its title, description, inputs and outputs appear on the page of its parent.
+
+```typescript
+@Showcase<SelectComponent>({
+  title: 'Select',
+  variants: [{ name: 'Default' }, { name: 'Groups', template: '<lib-optgroup label="Fruit"><lib-option value="apple">Apple</lib-option></lib-optgroup>' }],
+})
+@Component({ selector: 'lib-select, [libSelect]', ... })
+export class SelectComponent { ... }
+
+@Showcase({
+  title: 'Option',
+  description: 'One choice of a select.',
+  partOf: 'lib-select',
+})
+@Component({ selector: 'lib-option', ... })
+export class OptionComponent { ... }
+```
+
+The value is a selector string and not the class. A class would need `option.component.ts` to import `select.component.ts`, which usually imports the option for its `contentChildren`: an import cycle, and the config is evaluated when the class is defined, which makes the cycle a `ReferenceError` in a library build. A string costs nothing at runtime, and `ng-prism-strip` removes the decorator as it does for every other field.
+
+The rules:
+
+- **A selector matches when it equals one entry of the parent's `selector`**, ignoring spaces around it. `'lib-select'` matches `selector: 'lib-select, [libSelect]'`, and so does `'[libSelect]'`. The parent can be a component or a directive, and it can be exported from another entry point than the part.
+- **One parent, and no chains.** Name a selector that exactly one other class with `@Showcase` has. A part cannot be the parent of another part, and cannot name itself.
+- **A part uses `title`, `description`, `tags` and `status`**, the inputs and outputs that the scan reads from its class, and `meta`, which stays for plugins. A plugin that reads the API of components (`componentApi`) reads the part's as well.
+- **What only a page uses has no effect:** `variants`, `states`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `bg`, `canvasLayout`, `host`, `imports`, `providers`, `setup` and `renderPage`. The scan drops them and says so in a notice. A notice does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase), since nothing is lost that the styleguide could have shown. The variants of a part are dropped too, so a part does not need one.
+- **Only a component or a directive can be a part.** `partOf` on a service or a pipe is dropped with a diagnostic, like the other losses of a service or a pipe: only when a plugin shows services or pipes.
+
+A `partOf` that does not resolve never makes a component disappear. The scan reports a diagnostic, drops `partOf`, and the class stays an entry of its own with everything it declares, its variants included:
+
+| Message                                                                                                                            | Cause and fix                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `<Class> › partOf — no component or directive with @Showcase has the selector "<selector>"; it keeps a page of its own`            | No exported class with `@Showcase` has that selector. Check the spelling, and that the parent has `@Showcase`.           |
+| `<Class> › partOf — "<selector>" is the selector of <A> and <B>; name a selector only one of them has. It keeps a page of its own` | Several showcased classes match. Name a selector only the parent has, for example an attribute selector.                 |
+| `<Class> › partOf — <Parent> is a part itself, and a part cannot have parts; it keeps a page of its own`                           | The parent declares `partOf` too. Point the part at the parent's own parent, or give the middle class a page of its own. |
+| `<Class> › partOf — a component cannot be a part of itself; it keeps a page of its own`                                            | The selector is one of the class's own.                                                                                  |
+| `<Class> › partOf — expected the selector of a showcased component or directive as a string, got <value>; it was dropped`          | `partOf` is not a string, or only spaces.                                                                                |
+| `<Class> › partOf — only a component or directive can be part of another; it was dropped`                                          | A service or a pipe declares `partOf`. Reported when a plugin shows services or pipes, as their other diagnostics are.   |
+| `<Class> › <field> — has no effect on a part, which has no page of its own: the parent's showcase shows it. It was dropped.`       | A notice, not a diagnostic. Delete the field from the part.                                                              |
+
+Each message ends with the file, line and column of the `partOf` or the field, as other `@Showcase` messages do.
+
+**When a part, when a showcase of its own.** Use `partOf` for a class that only works inside one parent and whose page would repeat what the parent's variants show: `lib-option` and `lib-optgroup` in `lib-select`. Keep a showcase of its own when the class has a life apart from one parent. `sguiInput` stays its own entry: a form field and a search input both use it, `partOf` takes exactly one parent, and it has states of its own that only a page of its own can show.
+
 ### `status`
 
 Optional migration / maturity badge. Accepts `'stable'`, `'beta'`, `'wip'`, or `'deprecated'` (the `ComponentStatus` union).

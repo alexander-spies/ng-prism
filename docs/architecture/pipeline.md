@@ -37,6 +37,8 @@ The scan returns the components, the services, the pipes and the diagnostics of 
 
 The scan also reads the [compositions](architecture/scanner.md#compositions) of every showcase that has a `template` or a host template, against an index of every component, directive and pipe the entry points export, which it builds only when a showcase composes. What it finds wrong is a diagnostic, and the variant is then left out of the composition, so a template error does not stop the build, unless [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on.
 
+Once every entry point is scanned, it resolves each [`partOf`](architecture/scanner.md#parts) to its parent. A part that cannot be resolved is a diagnostic and stays a component of its own.
+
 Before scanning, the pipeline looks at the plugins of the loaded config and passes the scan [`ScanOptions`](architecture/scanner.md#entry) for what they use. Reading more costs time on every rebuild of `serve` and makes the manifest bigger:
 
 - **`componentApi`** when some plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi) (`jsDocPlugin()` does). Without one the components come without `ScannedComponent.api`, and the manifest carries none.

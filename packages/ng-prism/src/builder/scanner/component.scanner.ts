@@ -87,7 +87,7 @@ function sourceIndex(index: number, dropped: ReadonlySet<number>): number {
     return [...dropped].sort((a, b) => a - b).reduce((position, gap) => (gap <= position ? position + 1 : position), index);
 }
 
-type Report = (message: string) => void;
+export type Report = (message: string) => void;
 
 /**
  * The two ways a scan warns, each printing a message once however often it is
