@@ -403,6 +403,17 @@ The rules:
 - **What only a page uses has no effect:** `variants`, `states`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage`. Setting one costs a notice and never fails a build: the scan drops the field and says so, and a notice does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase), since nothing is lost that the styleguide could have shown. The variants of a part are dropped too, so a part does not need one. The scan reads a class before it knows that it is a part, so a value in one of these fields that is malformed or cannot be read, and an error in the template of one of the part's variants, is reported as it is on any other component, and that does count for `strictShowcase`. `providers` and `setup` keep their own warnings on a part, as on every component.
 - **Only a component or a directive can be a part.** `partOf` on a service or a pipe is dropped with a diagnostic, like the other losses of a service or a pipe: only when a plugin shows services or pipes.
 
+**Where a part shows up.** The head of the parent's page lists its parts after the title, the info glyph and the status badge: the label "Parts" and one chip per part, in the order of their titles. A click on a chip opens a card at that chip, built like the card behind the info glyph:
+
+- the part's title, its `<selector>` and its status badge, if it has a `status`;
+- its description;
+- **Inputs**: the name (or the alias, which is what a template binds), a `required` badge, the type as it is written in the source, the default and the JSDoc line;
+- **Outputs**: the name (or the alias) and the JSDoc line.
+
+A section without entries is left out. Everything on the card comes from what the scan reads from the part's class, so it works without a plugin.
+
+At the bottom of the card, **Full API →** opens the first visible view panel that sets [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), for example the API tab of the [JSDoc plugin](plugins/jsdoc.md), at the block of that part. It appears only when such a panel exists for the component, so without one the card ends with the outputs. The band of the head never wraps: when it is too narrow for all chips, they scroll sideways inside their own track.
+
 A `partOf` that does not resolve never makes a component disappear. The scan reports a diagnostic, drops `partOf`, and the class stays an entry of its own with everything it declares, its variants included:
 
 | Message                                                                                                                            | Cause and fix                                                                                                            |

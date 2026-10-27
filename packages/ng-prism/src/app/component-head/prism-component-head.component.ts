@@ -11,42 +11,15 @@ import { headMetrics } from './head-metrics.js';
 import { pipeFacts } from './pipe-facts.js';
 import { PrismHeadGaugeComponent } from './prism-head-gauge.component.js';
 import { PrismHeadInfoComponent } from './prism-head-info.component.js';
+import { PrismHeadPartsComponent } from './prism-head-parts.component.js';
 import { serviceFacts } from './service-facts.js';
-
-interface StatusBadge {
-    label: string;
-    tooltip: string;
-    tone: 'success' | 'warn' | 'danger';
-}
-
-const STATUS_BADGES: Record<ComponentStatus, StatusBadge> = {
-    stable: {
-        label: 'Stable',
-        tooltip: 'Migrated and production-ready',
-        tone: 'success'
-    },
-    beta: {
-        label: 'Beta',
-        tooltip: 'Beta: API may change',
-        tone: 'warn'
-    },
-    wip: {
-        label: 'Work in progress',
-        tooltip: 'Migration in progress',
-        tone: 'warn'
-    },
-    deprecated: {
-        label: 'Deprecated',
-        tooltip: 'Deprecated / Legacy. Do not use in new code',
-        tone: 'danger'
-    }
-};
+import { type StatusBadge, statusBadge } from './status-badge.js';
 
 @Component({
     selector: 'prism-component-head',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismHeadInfoComponent, PrismHeadGaugeComponent, PrismBadgeComponent],
+    imports: [PrismHeadInfoComponent, PrismHeadPartsComponent, PrismHeadGaugeComponent, PrismBadgeComponent],
     templateUrl: './prism-component-head.component.html',
     styleUrl: './prism-component-head.component.css'
 })
@@ -98,11 +71,10 @@ export class PrismComponentHeadComponent {
 
     protected readonly status = computed<ComponentStatus | undefined>(() => this.subject()?.showcaseConfig.status);
 
-    protected readonly statusBadge = computed<StatusBadge | null>(() => {
-        const s = this.status();
+    protected readonly statusBadge = computed<StatusBadge | null>(() => statusBadge(this.status()));
 
-        return s ? STATUS_BADGES[s] : null;
-    });
+    /** Whether the component has parts, which the head lists after its status. */
+    protected readonly hasParts = computed(() => (this.comp()?.parts?.length ?? 0) > 0);
 
     /**
      * The configured a11y thresholds, resolved the way the panel host and the

@@ -1,0 +1,95 @@
+@if (chips().length) {
+    <span class="parts-label">Parts</span>
+    <div
+        class="parts"
+        role="group"
+        aria-label="Parts">
+        @for (chip of chips(); track chip.className) {
+            <button
+                class="part-chip"
+                type="button"
+                [attr.popovertarget]="chip.popoverId"
+                [style.anchor-name]="chip.anchorName">
+                {{ chip.title }}
+            </button>
+
+            <div
+                #card
+                popover
+                class="part-card"
+                role="dialog"
+                [attr.id]="chip.popoverId"
+                [attr.aria-label]="chip.title"
+                [style.position-anchor]="chip.anchorName">
+                <div class="part-card__top">
+                    <span class="part-card__title">{{ chip.title }}</span>
+                    <code class="part-card__selector">&lt;{{ chip.selector }}&gt;</code>
+                    @if (chip.status; as badge) {
+                        <prism-badge
+                            dot
+                            size="sm"
+                            [tone]="badge.tone"
+                            [label]="badge.label"
+                            [attr.title]="badge.tooltip" />
+                    }
+                </div>
+                @if (chip.description) {
+                    <p class="part-card__desc">{{ chip.description }}</p>
+                }
+                @if (chip.inputs.length) {
+                    <h3 class="part-card__h">Inputs</h3>
+                    <ul class="part-card__rows">
+                        @for (row of chip.inputs; track row.name) {
+                            <li class="part-row">
+                                <span class="part-row__name">
+                                    <code>{{ row.name }}</code>
+                                    @if (row.required) {
+                                        <prism-badge
+                                            tone="primary"
+                                            variant="outline"
+                                            size="sm"
+                                            label="required" />
+                                    }
+                                </span>
+                                <span class="part-row__type">
+                                    {{ row.type }}
+                                    @if (row.defaultValue !== undefined) {
+                                        = {{ row.defaultValue }}
+                                    }
+                                </span>
+                                @if (row.doc) {
+                                    <span class="part-row__doc">{{ row.doc }}</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (chip.outputs.length) {
+                    <h3 class="part-card__h">Outputs</h3>
+                    <ul class="part-card__rows">
+                        @for (row of chip.outputs; track row.name) {
+                            <li class="part-row">
+                                <span class="part-row__name">
+                                    <code>{{ row.name }}</code>
+                                </span>
+                                @if (row.doc) {
+                                    <span class="part-row__doc">{{ row.doc }}</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (partsPanel(); as panel) {
+                    <div class="part-card__foot">
+                        <button
+                            class="part-card__link"
+                            type="button"
+                            (click)="showFullApi(chip.className, panel.id, card)">
+                            Full API →
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
