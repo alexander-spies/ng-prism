@@ -7,6 +7,7 @@ export type {
     DiscoveryComponent,
     DiscoveryManifest,
     DiscoveryPage,
+    DiscoveryPart,
     DiscoveryState,
     DiscoveryVariant,
     HeaderWidgetDefinition,

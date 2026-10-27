@@ -342,7 +342,8 @@ Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome D
 a pipe open `?pipe=<ClassName>&view=jsdoc` and wait for `[data-prism-pipe-rendered="<ClassName>"]`; for the API tab of
 a component or directive open `?component=<ClassName>&view=jsdoc` and wait for
 `[data-prism-component-rendered="<ClassName>"]`. Otherwise give the user that URL. This is ng-prism's public External
-Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states, but no services or pipes.
+Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states, and under a component its
+`parts` (`@Showcase({ partOf })`, never as components of their own), but no services or pipes.
 
 ## Guides
 

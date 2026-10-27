@@ -782,6 +782,34 @@ interface DiscoveryState {
 
 ---
 
+## DiscoveryPart
+
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `DiscoveryPart` and `DiscoveryComponent.parts`.
+
+One part of a component or directive in `window.__PRISM_MANIFEST__` (since `22.7.0`), the entries of `DiscoveryComponent.parts`. The manifest is the discovery view for [external tooling](guide/external-tooling.md#enumerating-what-exists).
+
+```typescript
+interface DiscoveryPart {
+    className: string;
+    title: string;
+    selector: string;
+    inputs: string[];
+    outputs: string[];
+}
+```
+
+| Field       | Description                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `className` | The class name of the part                                                                 |
+| `title`     | `ShowcaseConfig.title`, the display name                                                   |
+| `selector`  | The selector of the class, as `@Component` or `@Directive` declares it                     |
+| `inputs`    | The public names of its inputs: the `alias` where there is one, the member name otherwise  |
+| `outputs`   | The public names of its outputs: the `alias` where there is one, the member name otherwise |
+
+`DiscoveryComponent.parts` is omitted when the component has no [parts](api/showcase-config.md#partof). A part is not in `DiscoveryManifest.components`: it has no variants and no render marker of its own, and a tool that walks the components does not visit it. `DiscoveryPart` is exported from `@ng-prism/core/plugin`.
+
+---
+
 ## ComponentStatus
 
 Optional migration / maturity badge used by `ShowcaseConfig.status`.

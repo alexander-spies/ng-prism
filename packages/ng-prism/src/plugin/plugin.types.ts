@@ -399,6 +399,34 @@ export interface DiscoveryComponent {
     states?: DiscoveryState[];
     /** Sanitised `ShowcaseConfig.meta`. Omitted when empty. */
     meta?: Record<string, unknown>;
+    /**
+     * The parts of the component or directive, those showcases whose `partOf` names its selector, in the order of the
+     * styleguide's page (sorted by title). A part is not in `components`: it has no page, no variants and no render
+     * marker of its own, and the variants of this component are what render it. Omitted when there are none.
+     * Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parts?: DiscoveryPart[];
+}
+
+/**
+ * A part of a component or directive in `__PRISM_MANIFEST__`: what a tool needs to list it and to know the surface of
+ * the class the variants of the parent render. Not something to visit, capture or address with `?component=`.
+ * Since 22.7.0.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+ */
+export interface DiscoveryPart {
+    className: string;
+    /** `ShowcaseConfig.title`, i.e. the display name, not the class name. */
+    title: string;
+    /** The selector of the class, as `@Component` or `@Directive` declares it. */
+    selector: string;
+    /** The public names the inputs are bound by: the `alias` where there is one, else the member name. */
+    inputs: string[];
+    /** The public names the outputs are bound by: the `alias` where there is one, else the member name. */
+    outputs: string[];
 }
 
 export interface DiscoveryVariant {

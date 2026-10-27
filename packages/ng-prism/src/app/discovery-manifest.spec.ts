@@ -1,7 +1,7 @@
 import type { Type } from '@angular/core';
 import type { ShowcaseConfig } from '../decorator/showcase.types.js';
 import type { RuntimePipe } from '../plugin/pipe.types.js';
-import type { RuntimeManifest } from '../plugin/plugin.types.js';
+import type { InputMeta, OutputMeta, RuntimeManifest, ScannedComponent } from '../plugin/plugin.types.js';
 import type { RuntimeService } from '../plugin/service.types.js';
 import { DEFAULT_VARIANT_BG } from '../shared/variant-bg.js';
 import { buildDiscoveryManifest, serializableMeta } from './discovery-manifest.js';
@@ -23,6 +23,18 @@ function manifestOf(...components: Array<{ className: string; showcaseConfig: Sh
                 }
             }
         }))
+    };
+}
+
+function scannedPart(className: string, title: string, overrides: Partial<ScannedComponent> = {}): ScannedComponent {
+    return {
+        className,
+        filePath: `src/${className}.ts`,
+        showcaseConfig: { title, partOf: 'x' },
+        inputs: [],
+        outputs: [],
+        componentMeta: { selector: 'x', standalone: true, isDirective: false },
+        ...overrides
     };
 }
 
@@ -415,6 +427,59 @@ describe('buildDiscoveryManifest', () => {
         expect(result.components[0].meta).toEqual({ tag: 'x' });
     });
 
+    it('lists parts under their parent with their public input and output names', () => {
+        const manifest = manifestOf({ className: 'TabsComponent', showcaseConfig: { title: 'Tabs' } });
+        const inputs: InputMeta[] = [
+            { name: 'label', type: 'string', required: true },
+            { name: 'isDisabled', alias: 'disabled', type: 'boolean', required: false }
+        ];
+        const outputs: OutputMeta[] = [{ name: 'activated' }, { name: 'closed', alias: 'closeRequested' }];
+
+        manifest.components[0].parts = [
+            {
+                meta: scannedPart('TabComponent', 'Tab', {
+                    inputs,
+                    outputs,
+                    componentMeta: { selector: 'app-tab', standalone: true, isDirective: false }
+                })
+            }
+        ];
+
+        const result = buildDiscoveryManifest(manifest);
+
+        expect(result.components[0].parts).toEqual([
+            {
+                className: 'TabComponent',
+                title: 'Tab',
+                selector: 'app-tab',
+                inputs: ['label', 'disabled'],
+                outputs: ['activated', 'closeRequested']
+            }
+        ]);
+    });
+
+    it('keeps the order of the parts', () => {
+        const manifest = manifestOf({ className: 'TabsComponent', showcaseConfig: { title: 'Tabs' } });
+
+        manifest.components[0].parts = [{ meta: scannedPart('TabComponent', 'Tab') }, { meta: scannedPart('TabPanelComponent', 'Tab panel') }];
+
+        expect(buildDiscoveryManifest(manifest).components[0].parts?.map((part) => part.className)).toEqual(['TabComponent', 'TabPanelComponent']);
+    });
+
+    it('omits parts when a component has none', () => {
+        const manifest = manifestOf(
+            { className: 'ButtonComponent', showcaseConfig: { title: 'Button' } },
+            { className: 'TabsComponent', showcaseConfig: { title: 'Tabs' } }
+        );
+
+        manifest.components[1].parts = [];
+
+        const result = buildDiscoveryManifest(manifest);
+
+        expect(result.components[0]).not.toHaveProperty('parts');
+        expect(result.components[1]).not.toHaveProperty('parts');
+    });
+
     it('maps pages to their titles', () => {
         const manifest = manifestOf({
             className: 'ButtonComponent',
@@ -441,19 +506,29 @@ describe('buildDiscoveryManifest', () => {
 
     it('produces a structured-cloneable result for a hostile manifest', () => {
         class SomeComponent {}
-        const result = buildDiscoveryManifest(
-            manifestOf({
-                className: 'ButtonComponent',
-                showcaseConfig: {
-                    title: 'Button',
-                    meta: { component: SomeComponent, cb: () => 0 },
-                    variants: [{ name: 'Primary', meta: { el: SomeComponent } }],
-                    states: [{ name: 'Hostile', pseudo: { hover: () => 0, 'focus-visible': SomeComponent } as never }]
-                }
-            })
-        );
+        const manifest = manifestOf({
+            className: 'ButtonComponent',
+            showcaseConfig: {
+                title: 'Button',
+                meta: { component: SomeComponent, cb: () => 0 },
+                variants: [{ name: 'Primary', meta: { el: SomeComponent } }],
+                states: [{ name: 'Hostile', pseudo: { hover: () => 0, 'focus-visible': SomeComponent } as never }]
+            }
+        });
+
+        manifest.components[0].parts = [
+            {
+                meta: scannedPart('IconComponent', 'Icon', {
+                    showcaseConfig: { title: 'Icon', partOf: 'x', meta: { component: SomeComponent, cb: () => 0 } },
+                    inputs: [{ name: 'name', type: 'string', required: true, defaultValue: SomeComponent }]
+                })
+            }
+        ];
+
+        const result = buildDiscoveryManifest(manifest);
 
         expect(() => structuredClone(result)).not.toThrow();
         expect(result.components[0].states).toEqual([{ name: 'Hostile', index: 0, pseudo: {} }]);
+        expect(result.components[0].parts).toHaveLength(1);
     });
 });
