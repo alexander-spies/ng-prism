@@ -1359,6 +1359,21 @@ describe('PrismUrlStateService', () => {
             expect(replaceSpy).toHaveBeenCalledTimes(1);
         });
 
+        it('adds no history entry when the active part is shown again', () => {
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+
+            url.init();
+            flush();
+            const pushSpy = jest.spyOn(window.history, 'pushState');
+
+            panel.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            expect(pushSpy).not.toHaveBeenCalled();
+            expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+        });
+
         it('drops part when the component changes', () => {
             const select = createSelect();
             const other = createComponent({ className: 'ButtonComponent' });
@@ -1410,6 +1425,24 @@ describe('PrismUrlStateService', () => {
 
             expect(panel.activePart()).toBe('OptionComponent');
             expect(window.location.search).toBe('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+        });
+
+        /** A hash link inside the page fires a popstate to the same URL; the reader must not be sent back to the part. */
+        it('does not show the part again on a popstate to the URL it is shown at', () => {
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent');
+            const { url, panel } = setup({ components: [createSelect()] }, withPartsPanel());
+            const seen: (string | null)[] = [];
+
+            url.init();
+            flush();
+            TestBed.runInInjectionContext(() => effect(() => seen.push(panel.activePart())));
+            flush();
+
+            setUrl('?component=SelectComponent&view=jsdoc&part=OptionComponent#usage');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            flush();
+
+            expect(seen).toEqual(['OptionComponent']);
         });
 
         it('forgets the part on a popstate to the URL of its view without one', () => {

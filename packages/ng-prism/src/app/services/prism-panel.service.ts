@@ -1,4 +1,15 @@
-import { computed, createEnvironmentInjector, effect, EnvironmentInjector, inject, Injectable, signal, untracked } from '@angular/core';
+import {
+    afterNextRender,
+    type AfterRenderRef,
+    computed,
+    createEnvironmentInjector,
+    effect,
+    EnvironmentInjector,
+    inject,
+    Injectable,
+    signal,
+    untracked
+} from '@angular/core';
 import type { PanelDefinition } from '../../plugin/plugin.types.js';
 import { PRISM_BUILTIN_PANELS } from '../tokens/prism-tokens.js';
 import { panelTargets } from '../view-tab-bar/panel-inputs.js';
@@ -66,6 +77,8 @@ export class PrismPanelService {
     readonly partsPanel = computed<PanelDefinition | null>(() => this.visibleViewPanels().find((p) => p.listsParts) ?? null);
 
     private readonly shownPart = signal<ShownPart | null>(null);
+    /** A part shown again, which comes back after the render that took it away. */
+    private repeat?: AfterRenderRef;
 
     /**
      * The class name of the part the active view is asked to show, `null` for
@@ -96,17 +109,40 @@ export class PrismPanelService {
      * Opens the view panel `panelId` on a part of the active component. The
      * panel reads it as its `activePart` input. A part that is not one of the
      * component's is not checked here: the panel finds no block for it.
+     *
+     * The part the panel already shows is shown again: `activePart` reads
+     * `null` for one render and the part after it, so the panel goes to it once
+     * more, as it would for a part it did not show. The URL keeps its entry.
      * Since 22.7.0.
      */
     showPart(partClassName: string, panelId: string): void {
         const component = this.navigationService.activeComponent();
+        const record = component ? { part: partClassName, component: component.meta.className, view: panelId } : null;
+        const again = record !== null && this.activePart() === partClassName && this.activeViewId() === panelId;
 
+        this.repeat?.destroy();
+        this.repeat = undefined;
         this.activeViewId.set(panelId);
-        this.shownPart.set(component ? { part: partClassName, component: component.meta.className, view: panelId } : null);
+
+        if (!again) {
+            this.shownPart.set(record);
+            return;
+        }
+
+        this.shownPart.set(null);
+        this.repeat = afterNextRender(
+            () => {
+                this.repeat = undefined;
+                this.shownPart.set(record);
+            },
+            { injector: this.envInjector }
+        );
     }
 
     /** Forgets the part without leaving the view. */
     clearPart(): void {
+        this.repeat?.destroy();
+        this.repeat = undefined;
         this.shownPart.set(null);
     }
 

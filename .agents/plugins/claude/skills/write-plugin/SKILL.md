@@ -135,7 +135,8 @@ export function notesPlugin(): NgPrismPlugin {
   `readonly activePart = input<string | null>(null)`, the class name of the part to show, and scrolls to its block; only
   a panel with `listsParts` is given the input. `activePart` follows the `part` URL parameter and a part's popover in
   the component head, which links to the first visible panel with `listsParts`; it goes back to `null` when the
-  component or the view changes.
+  component or the view changes. The link of the part already shown sets it to `null` for one render and then to the
+  part again, so scrolling whenever the input changes is enough.
 - The selected variant and its inputs: inject `PrismRendererService` from `@ng-prism/core` (`activeVariantIndex()`,
   `inputValues()`, `renderedElement()`, `subjectElement()`, `selectVariant()`, `updateInput()`).
   `renderedElement()` is the root of everything the canvas renders: for a variant with a `template` or a `host: { template }`

@@ -203,7 +203,7 @@ panels: [
 
 - The panel component gets the input `activePart` (`string | null`) next to `activeComponent`: the class name of the part to show, `null` for none. It scrolls to the block of that part. Declare `readonly activePart = input<string | null>(null);`.
 - Only a panel with `listsParts` gets it, so a panel that does not declare the input never logs a warning about it.
-- `activePart` follows the `part` [URL parameter](guide/url-state.md#parts), and a part's popover in the component head links to the first visible panel with `listsParts`. Switching the component or the view sets it back to `null`.
+- `activePart` follows the `part` [URL parameter](guide/url-state.md#parts), and a part's popover in the component head links to the first visible panel with `listsParts`. Switching the component or the view sets it back to `null`. Following the link of the part the panel already shows sets it to `null` for one render and then to the part again, so scrolling whenever the input changes is enough.
 - See [Panels that list parts](api/ng-prism-plugin.md#panels-that-list-parts) for the details.
 
 ### `controls`

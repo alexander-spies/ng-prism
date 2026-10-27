@@ -360,6 +360,7 @@ export class ApiPanelComponent {
 ```
 
 - **`activePart`** is the class name of the part to show, `null` for none. It is one of `activeComponent()?.parts` (`RuntimePart[]`, matched by `meta.className`). The panel scrolls to the block of that part. The reader sets it through the `part` [URL parameter](guide/url-state.md#parts) or by following the link of a part's popover in the component head.
+- **A new value is a new request.** When the reader follows the link of the part the panel already shows, `activePart` turns `null` for one render and then names the part again, so a panel that scrolls whenever the input changes scrolls to the block once more.
 - **Only panels with `listsParts` get it.** `activePart` is handed to a view panel that sets `listsParts` and applies to `'component'`, nothing else, so a panel that does not declare the input never logs a warning about it.
 - **One panel is the target.** Several panels may set `listsParts`; the link in a part's popover and `part` in the URL address the first visible one, in registration order, builtin before plugin. The popover has no link when none is visible for the component.
 - **The part does not stay.** Switching the component or the view sets `activePart` back to `null`, and it is not persisted.

@@ -171,7 +171,11 @@ export class PrismUrlStateService {
             // The part only goes to the view that lists parts, and only a part the component has.
             // Anywhere else it is dropped, and a part shown before this restore goes with it.
             if (viewId && part && restored && hasPart(restored, part) && this.panelService.partsPanel()?.id === viewId) {
-                this.panelService.showPart(part, viewId);
+                // Not the part the view shows already: showing it again sends the reader back to it, and a
+                // popstate to the same URL (a hash link inside the page fires one) must not do that.
+                if (this.panelService.activePart() !== part || this.panelService.activeViewId() !== viewId) {
+                    this.panelService.showPart(part, viewId);
+                }
             } else {
                 this.panelService.clearPart();
                 if (viewId) {

@@ -1,4 +1,4 @@
-import { ApplicationRef, computed, signal, type Type, type WritableSignal } from '@angular/core';
+import { ApplicationRef, computed, effect, signal, type Type, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { PanelDefinition, RuntimeComponent } from '../../plugin/plugin.types.js';
@@ -372,6 +372,65 @@ describe('PrismPanelService', () => {
             service.showPart('GroupComponent', 'jsdoc');
 
             expect(service.activePart()).toBe('GroupComponent');
+        });
+
+        /** The panel jumps when `activePart` changes; the same part again would not change it. */
+        it('jumps again when the active part is shown again', () => {
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') });
+            const seen: (string | null)[] = [];
+
+            TestBed.runInInjectionContext(() => effect(() => seen.push(service.activePart())));
+            service.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            service.showPart('OptionComponent', 'jsdoc');
+            expect(service.activePart()).toBeNull();
+            expect(service.activeViewId()).toBe('jsdoc');
+
+            flush();
+            expect(service.activePart()).toBe('OptionComponent');
+            expect(seen).toEqual(['OptionComponent', null, 'OptionComponent']);
+        });
+
+        it('does not bring the part back over one shown before the next render', () => {
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') });
+
+            service.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            service.showPart('OptionComponent', 'jsdoc');
+            service.showPart('GroupComponent', 'jsdoc');
+            flush();
+
+            expect(service.activePart()).toBe('GroupComponent');
+        });
+
+        it('does not bring the part back after clearPart', () => {
+            const service = createService({ pluginViewPanels: [jsdoc], activeComponent: makeComponent('SelectComponent') });
+
+            service.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            service.showPart('OptionComponent', 'jsdoc');
+            service.clearPart();
+            flush();
+
+            expect(service.activePart()).toBeNull();
+        });
+
+        it('shows a part at once when it is the active one only in another view', () => {
+            const service = createService({
+                pluginViewPanels: [jsdoc, { id: 'docs', label: 'Docs', placement: 'view', listsParts: true }],
+                activeComponent: makeComponent('SelectComponent')
+            });
+
+            service.showPart('OptionComponent', 'jsdoc');
+            flush();
+
+            service.showPart('OptionComponent', 'docs');
+
+            expect(service.activeViewId()).toBe('docs');
+            expect(service.activePart()).toBe('OptionComponent');
         });
     });
 });
