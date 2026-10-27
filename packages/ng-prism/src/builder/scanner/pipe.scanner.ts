@@ -6,7 +6,7 @@ import { extractPipeApi } from './api/pipe-api.extractor.js';
 import { readSetupRefs } from './api/setup.reader.js';
 import { createReporters, extractShowcaseConfig, type ShowcasedClass } from './component.scanner.js';
 import { pickServiceFields } from './service.scanner.js';
-import { describePipeNameUnreadable, describePipeNotStandalone, describeUnreadableApi } from './showcase-diagnostics.js';
+import { describePartOfOnServiceOrPipe, describePipeNameUnreadable, describePipeNotStandalone, describeUnreadableApi } from './showcase-diagnostics.js';
 
 export interface ScanPipesOptions {
     /** Built from every entry point of the library, since a setup function or a type is often exported by another one than the pipe. */
@@ -43,6 +43,9 @@ export function scanPipes(showcased: ShowcasedClass[], checker: ts.TypeChecker, 
         const showcaseConfig = extractShowcaseConfig(decorator, className, report, checker);
 
         if (!showcaseConfig || !argument) continue;
+
+        // pickServiceFields drops it below; the diagnostic tells the author why nothing came of it.
+        if (showcaseConfig.partOf !== undefined) report(describePartOfOnServiceOrPipe(className, argument));
 
         const options = readPipeOptions(classKind.decorator, checker);
 

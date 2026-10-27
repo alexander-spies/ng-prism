@@ -126,6 +126,11 @@ export interface ScanComponentsOptions {
     api?: boolean;
     /** What {@link ScannedComponent.composition} is read against; without it, no composition is read. */
     composition?: CompositionContext;
+    /**
+     * Filled by the scan with the `@Showcase` argument of every component whose config kept `partOf`, which is what the
+     * messages about a part that cannot be resolved point at.
+     */
+    partOrigins?: Map<ScannedComponent, ts.Expression>;
 }
 
 /**
@@ -248,7 +253,7 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
                 { report, notify }
             );
 
-        components.push({
+        const component: ScannedComponent = {
             className,
             filePath,
             showcaseConfig,
@@ -261,7 +266,11 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
                 .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : [])),
             api,
             ...(composition && { composition })
-        });
+        };
+
+        components.push(component);
+
+        if (showcaseConfig.partOf !== undefined) options.partOrigins?.set(component, showcaseArg);
     }
 
     return components;
@@ -404,6 +413,23 @@ function readShowcaseConfig(
         }
     }
     if (obj['renderPage']) config.renderPage = obj['renderPage'] as string;
+
+    if (obj['partOf'] !== undefined) {
+        const partOf = typeof obj['partOf'] === 'string' ? obj['partOf'].trim() : '';
+
+        if (partOf) {
+            config.partOf = partOf;
+        } else {
+            report(
+                describeShowcaseIssue(
+                    className,
+                    arg,
+                    ['partOf'],
+                    `expected the selector of a showcased component or directive as a string, got ${describeValue(obj['partOf'])}; it was dropped`
+                )
+            );
+        }
+    }
 
     if (obj['states'] !== undefined) {
         if (config.renderPage) {

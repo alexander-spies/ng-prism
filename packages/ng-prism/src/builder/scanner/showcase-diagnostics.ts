@@ -56,6 +56,16 @@ export function describeShowcaseOrigin(config: ts.Expression, paths: readonly Ev
 }
 
 /**
+ * A service or a pipe that declares `partOf`: the styleguide shows parts on the page of a component or directive, so
+ * there is nothing for it to be a part of or to have parts. Points at the `partOf` property.
+ *
+ * `OptionPipe › partOf — only a component or directive can be part of another; it was dropped (src/option.pipe.ts:5:36)`
+ */
+export function describePartOfOnServiceOrPipe(className: string, config: ts.Expression): string {
+    return describeShowcaseIssue(className, config, ['partOf'], 'only a component or directive can be part of another; it was dropped');
+}
+
+/**
  * `providers` never reached the manifest: classes, factories and instances
  * cannot be written into static data. One message for the field, not one per
  * provider, because none of them could have been kept. It points at the

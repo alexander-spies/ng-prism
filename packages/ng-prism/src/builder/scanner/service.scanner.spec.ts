@@ -156,3 +156,34 @@ describe('scanServices', () => {
         }
     });
 });
+
+describe('scanServices with partOf', () => {
+    let warn: jest.SpyInstance;
+
+    beforeEach(() => {
+        warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+    });
+
+    it('reports partOf on a service as a diagnostic and drops it', () => {
+        const result = resolveEntryPointExports([{ entryFile: path.join(__dirname, '__fixtures__', 'parts-api.ts'), importPath: 'fixture/parts' }], compilerOptions);
+        const checker = result.program.getTypeChecker();
+        const diagnostics: string[] = [];
+        const services = scanServices(findShowcasedClasses(result.entries[0].exports, checker), checker, {
+            exportIndex: buildExportIndex(result.entries, checker),
+            diagnostics,
+            notices: new Set()
+        });
+        const stub = services.find((s) => s.className === 'PartServiceStub')!;
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(
+                /^PartServiceStub › partOf — only a component or directive can be part of another; it was dropped \(.*parts-select\.component\.ts:\d+:\d+\)$/
+            )
+        );
+        expect(stub.showcaseConfig).not.toHaveProperty('partOf');
+    });
+});
