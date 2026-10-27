@@ -150,9 +150,11 @@ package is right:
       have, a parent that is a part itself and a class naming itself are warnings that `strictShowcase` fails on. The
       class then keeps a page of its own, so nothing vanishes, and you fix the selector.
     - **A part uses `title`, `description`, `tags`, `status`, `meta`**, and its inputs and outputs from the class. Don't
-      set `variants`, `states`, `category`, `section`, `bg`, `canvasLayout`, `host`, `imports` or `renderPage` on it: they
-      are dropped with a notice that does not fail a strict build. Only components and directives can be parts; on a
-      service or a pipe `partOf` is a warning.
+      set `variants`, `states`, `category`, `section`, `bg`, `canvasLayout`, `host`, `imports` or `renderPage` on it: each
+      is dropped with a notice that does not fail a strict build. A malformed value in them, or an error in the template
+      of a variant, is a warning as on any component, since the class is read before it is known to be a part, and that
+      one does fail a strict build. Only components and directives can be parts; on a service or a pipe `partOf` is a
+      warning.
     - **When a part, when a showcase of its own:** a part when the class only works inside that one parent and its page
       would repeat the parent's variants (`lib-option`, `lib-optgroup` in `lib-select`). A showcase of its own when
       several components use it or it has a look worth its own variants and states: `sguiInput`, used by a form field and

@@ -8,6 +8,9 @@ import { describeShowcaseIssue } from './showcase-diagnostics.js';
  * The fields of a `@Showcase` config that do nothing on a part, which has no page of its own: the variants, states,
  * placement in the navigation and canvas settings belong to a page, and what the templates of a showcase need is
  * only read for its variants.
+ *
+ * Only what reaches a component's `showcaseConfig` is listed. `providers` and `setup` never do: the scan reports them
+ * on any component, a part included (`describeDeprecatedProviders`, `describeSetupOnComponent`), and that stays so.
  */
 export const PART_IGNORED_FIELDS = [
     'variants',
@@ -21,8 +24,6 @@ export const PART_IGNORED_FIELDS = [
     'canvasLayout',
     'host',
     'imports',
-    'providers',
-    'setup',
     'renderPage'
 ] as const satisfies ReadonlyArray<keyof ShowcaseConfig>;
 
@@ -50,7 +51,9 @@ export function selectorList(selector: string): string[] {
  * points are scanned, so that the parent can be in another one, and changes `components` in place.
  *
  * A resolved part gets {@link ScannedComponent.parentClassName}. What it has set that only a page uses is dropped,
- * each field with a notice, and so is its composition, since nothing renders its variants.
+ * each field with a notice, and so is its composition, since nothing renders its variants. The notices never fail
+ * `strictShowcase`, but the scan has read the class before it knows that it is a part: a malformed value or an error in
+ * the template of one of its variants is a diagnostic all the same.
  *
  * A part that cannot be resolved is a diagnostic. It loses `partOf` and stays a component of its own, as it would
  * without it: a part must not vanish from the styleguide over a wrong selector.

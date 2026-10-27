@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path, { join } from 'node:path';
 import ts from 'typescript';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
-import { resolveParts, selectorList } from './resolve-parts.js';
+import { PART_IGNORED_FIELDS, resolveParts, selectorList } from './resolve-parts.js';
 import { createScanner, type ScanResult } from './scanner.js';
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
@@ -98,7 +98,7 @@ describe('resolveParts through the scan', () => {
     });
 });
 
-describe('resolveParts across entry points', () => {
+describe('resolveParts with exports picked per entry point', () => {
     let tmp: string;
     let warn: jest.SpyInstance;
 
@@ -130,6 +130,18 @@ describe('resolveParts across entry points', () => {
             expect(components.find((c) => c.className === 'OptionComponent')?.parentClassName).toBe('SelectComponent');
             expect(diagnostics).toEqual([]);
         }
+    });
+
+    it('leaves providers and setup of a part to the diagnostics every component gets, with no notice of its own', () => {
+        const { components, diagnostics } = createScanner({ entryPoints: [entry('part', 'SelectComponent', 'ProvidersPartComponent')] }).scan();
+        const messages = warn.mock.calls.map(([message]) => String(message));
+
+        expect(components.find((c) => c.className === 'ProvidersPartComponent')?.parentClassName).toBe('SelectComponent');
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(/^ProvidersPartComponent declares @Showcase providers \(.*parts-select\.component\.ts:\d+:\d+\), which are deprecated/)
+        );
+        expect(diagnostics).toContainEqual(expect.stringMatching(/^ProvidersPartComponent › setup \(.*\) only applies to services and pipes/));
+        expect(messages.filter((message) => message.includes('has no effect on a part'))).toEqual([]);
     });
 
     it('does not take a class that two entry points export for its own twin', () => {
@@ -169,6 +181,12 @@ describe('resolveParts', () => {
 
         return messages;
     }
+
+    it('lists only fields that can reach the showcaseConfig of a component, so providers and setup keep their own diagnostics', () => {
+        expect(PART_IGNORED_FIELDS).not.toContain('providers');
+        expect(PART_IGNORED_FIELDS).not.toContain('setup');
+        expect(PART_IGNORED_FIELDS).toContain('variants');
+    });
 
     it('drops the composition of a valid part together with its variants', () => {
         const parent = component('ParentComponent', 'lib-parent');

@@ -51,3 +51,8 @@ export class NumberPartOfComponent {}
 @Showcase({ title: 'Svc', partOf: 'lib-select' })
 @Injectable({ providedIn: 'root' })
 export class PartServiceStub {}
+
+// Not in parts-api.ts: a part that also declares what the scan reports on any component. A test picks it per entry point.
+@Showcase({ title: 'Providers part', partOf: 'lib-select', providers: [], setup: () => [] })
+@Component({ selector: 'lib-providers-part', standalone: true, template: '' })
+export class ProvidersPartComponent {}
