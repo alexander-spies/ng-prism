@@ -20,15 +20,13 @@ import { activeTocId, buildApiPageToc, buildPartsToc, isTypeAnchor, partAnchor }
 import type { ApiPageModel, ApiPagePart } from './api-page.model.js';
 import { TYPE_LINK_ATTRIBUTE } from './doc-links.js';
 import { ApiPageNavigation, JsDocApiSectionsComponent } from './jsdoc-api-sections.component.js';
+import { JumpFollow } from './jump-follow.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
 const SCROLL_OFFSET = 12;
 
 /** How long a type card or a part's block stays highlighted after a jump to it. */
 const HIGHLIGHT_MS = 1600;
-
-/** Without `scrollend`, a jump counts as over once its smooth scroll has been quiet for this long. */
-const JUMP_SETTLE_MS = 150;
 
 /** What the reader does to scroll by hand; any of it ends a jump. */
 const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
@@ -99,15 +97,21 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
     /** The type card or part's block the last jump lit up, for as long as it stays lit. */
     readonly highlightedId = this.highlighted.asReadonly();
 
-    /**
-     * The entry the reader jumped to, until the jump is over: the smooth scroll
-     * passes other sections on its way, and one near the bottom of the page is
-     * never scrolled up to the activation line.
-     */
-    private jumpTarget: string | null = null;
     private spyFrame = 0;
-    private jumpTimer?: ReturnType<typeof setTimeout>;
     private highlightTimer?: ReturnType<typeof setTimeout>;
+
+    /**
+     * The jump in progress, if any. Its target is the entry the list marks
+     * while it lasts: a smooth scroll passes other sections on its way, and one
+     * near the bottom of the page is never scrolled up to the activation line.
+     * Once it is over, the entry stays as it is until the next scroll moves
+     * the page, so a frame still pending from the jump is dropped rather than
+     * allowed to overrule it.
+     */
+    private readonly follow = new JumpFollow(() => {
+        cancelAnimationFrame(this.spyFrame);
+        this.spyFrame = 0;
+    });
 
     constructor() {
         // The panel keeps this instance when the reader moves to another
@@ -116,7 +120,7 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
             this.kind();
             this.className();
             untracked(() => {
-                this.endJump();
+                this.follow.end();
                 this.host.scrollTo({ top: 0, behavior: 'instant' });
                 this.activeId.set('usage');
                 this.highlighted.set(null);
@@ -138,14 +142,13 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
         // Outside the zone: a scroll event alone changes nothing on screen.
         // Only a different active entry does, and that is a signal write.
         const onScroll = () => this.onScroll();
-        const endJump = () => this.endJump();
+        const endJump = () => this.follow.end();
 
-        // A code block gets its text a frame after it is rendered, so the page
-        // still grows under a jump that starts right after a render, as the
-        // one to `activePart` does. Until the jump is over, it follows its target.
+        // The page still grows under a jump that starts right after a render,
+        // as the one to `activePart` does (see `JumpFollow`). Until the jump is
+        // over, each resize puts its target back in place.
         const resizes = inject(NgZone).runOutsideAngular(() => {
             this.host.addEventListener('scroll', onScroll, { passive: true });
-            this.host.addEventListener('scrollend', endJump);
             for (const type of READER_INPUT) this.host.addEventListener(type, endJump, { passive: true });
             return new ResizeObserver(() => this.followJump());
         });
@@ -154,10 +157,9 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
         inject(DestroyRef).onDestroy(() => {
             resizes.disconnect();
             this.host.removeEventListener('scroll', onScroll);
-            this.host.removeEventListener('scrollend', endJump);
             for (const type of READER_INPUT) this.host.removeEventListener(type, endJump);
+            this.follow.end();
             cancelAnimationFrame(this.spyFrame);
-            clearTimeout(this.jumpTimer);
             clearTimeout(this.highlightTimer);
         });
     }
@@ -172,7 +174,7 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
         if (!target) return;
 
         this.activeId.set(id);
-        this.jumpTarget = id;
+        this.follow.start(id);
         this.host.scrollTo({ top: this.offsetOf(target) - SCROLL_OFFSET });
 
         if (!isTypeAnchor(id) && !this.parts().some((part) => part.scope === id)) return;
@@ -193,11 +195,9 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
         this.goTo(anchor);
     }
 
+    /** A scroll during a jump is the jump's own, and keeps it going: the reader's input has ended it before the scroll. */
     private onScroll(): void {
-        if (this.jumpTarget && !('onscrollend' in this.host)) {
-            clearTimeout(this.jumpTimer);
-            this.jumpTimer = setTimeout(() => this.endJump(), JUMP_SETTLE_MS);
-        }
+        this.follow.moved();
 
         if (this.spyFrame) return;
 
@@ -207,25 +207,12 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
         });
     }
 
-    /**
-     * The jump is over: from here on the scroll position decides. The entry
-     * stays as it is until the next scroll moves the page, so a frame still
-     * pending from the jump is dropped rather than allowed to overrule it.
-     */
-    private endJump(): void {
-        if (!this.jumpTarget) return;
-
-        this.jumpTarget = null;
-        clearTimeout(this.jumpTimer);
-        cancelAnimationFrame(this.spyFrame);
-        this.spyFrame = 0;
-    }
-
     /** The page grew or shrank during a jump: the jump goes on to where its target is now. */
     private followJump(): void {
-        const target = this.jumpTarget === null ? undefined : this.anchorOf(this.jumpTarget);
+        const target = this.follow.moved();
+        const anchor = target === null ? undefined : this.anchorOf(target);
 
-        if (target) this.host.scrollTo({ top: this.offsetOf(target) - SCROLL_OFFSET });
+        if (anchor) this.host.scrollTo({ top: this.offsetOf(anchor) - SCROLL_OFFSET });
     }
 
     private anchors(): HTMLElement[] {
@@ -252,7 +239,7 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
             scrollTop,
             clientHeight,
             scrollHeight,
-            jumpTarget: this.jumpTarget
+            jumpTarget: this.follow.target
         });
     }
 }
