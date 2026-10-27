@@ -127,15 +127,7 @@ Groups the component in the sidebar. Components without a category land in "Unca
 @Showcase({ title: 'Card', category: 'Molecules' })
 ```
 
-Use `/` (space-slash-space) to nest categories under a parent group:
-
-```typescript
-@Showcase({ title: 'Button', category: 'Atoms' })
-@Showcase({ title: 'Dialog', category: 'Overlays' })
-@Showcase({ title: 'Color Tokens', category: 'Foundations' })
-```
-
-This creates a collapsible **Components** group in the sidebar containing **Atoms** and **Overlays** as sub-categories, while **Foundations** remains a top-level category.
+For a top-level group above categories, use [`section`](#section).
 
 ### `categoryOrder`
 
