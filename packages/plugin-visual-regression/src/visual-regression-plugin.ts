@@ -22,6 +22,8 @@ export function visualRegressionPlugin(options?: VisualRegressionPluginOptions):
         name: '@ng-prism/plugin-visual-regression',
 
         async onComponentScanned(component) {
+            if (component.parentClassName) return;
+
             const { readVariantsForComponent } = await import('./report-reader.js');
             const variants = readVariantsForComponent(reportPath, component.className);
 

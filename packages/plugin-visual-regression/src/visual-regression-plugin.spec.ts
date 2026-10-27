@@ -46,6 +46,23 @@ describe('visualRegressionPlugin', () => {
     });
 
     describe('onComponentScanned', () => {
+        it('leaves a part untouched and does not read variants for it', async () => {
+            const plugin = visualRegressionPlugin({ reportPath: FIXTURE });
+            const component: ScannedComponent = {
+                className: 'SelectOptionComponent',
+                filePath: '/src/select-option.ts',
+                showcaseConfig: { title: 'SelectOption' },
+                inputs: [],
+                outputs: [],
+                componentMeta: { selector: 'x', standalone: true, isDirective: false },
+                parentClassName: 'SelectComponent'
+            };
+
+            const result = await plugin.onComponentScanned!(component);
+
+            expect(result).toBeUndefined();
+        });
+
         it('attaches the component variants to showcaseConfig.meta', async () => {
             const plugin = visualRegressionPlugin({ reportPath: FIXTURE });
             const result = (await plugin.onComponentScanned!(scanned('DividerComponent'))) as ScannedComponent;

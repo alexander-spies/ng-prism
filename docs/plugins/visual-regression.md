@@ -75,7 +75,7 @@ The first pairing is what this repository's test workspace uses. The report reco
 
 ## The variant list
 
-Most of a library's variants are usually unchanged, and a flat list gives all of them equal weight, so the list is grouped instead.
+Most of a library's variants are usually unchanged, and a flat list gives all of them equal weight, so the list is grouped instead. A [part](guide/showcase-decorator.md#partof) is skipped entirely; its parent's variants render and cover it.
 
 ```
 Needs review · 1
