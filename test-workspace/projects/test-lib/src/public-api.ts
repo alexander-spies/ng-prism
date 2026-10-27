@@ -20,6 +20,8 @@ export { IconComponent, type IconNameType } from './lib/components/icon/icon.com
 export { RadioGroupComponent } from './lib/components/radio/radio-group.component.js';
 export { RadioComponent } from './lib/components/radio/radio.component.js';
 export { LIB_RADIO_GROUP, type LibRadioGroup } from './lib/components/radio/radio.tokens.js';
+export { ListComponent } from './lib/components/list/list.component.js';
+export { ListItemComponent } from './lib/components/list/list-item.component.js';
 export { NotificationService } from './lib/services/notification/notification.service.js';
 export { provideNotifications } from './lib/services/notification/provide-notifications.js';
 export { NotificationRef } from './lib/services/notification/notification-ref.js';

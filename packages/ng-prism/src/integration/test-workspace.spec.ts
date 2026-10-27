@@ -18,7 +18,7 @@ const EXCLUDED_ENTRIES = new Set(['node_modules', 'dist', '.angular', 'ng-prism-
 const LINKED_PACKAGES = ['@angular/cdk'];
 
 /** The classes the compositions of test-lib bring in, with or without a showcase of their own. */
-const COMPOSITION_CLASSES = ['FormFieldComponent', 'InputDirective', 'IconComponent', 'RadioGroupComponent', 'RadioComponent'];
+const COMPOSITION_CLASSES = ['FormFieldComponent', 'InputDirective', 'IconComponent', 'RadioGroupComponent', 'RadioComponent', 'ListItemComponent'];
 
 function createTempWorkspace(): string {
     const tmp = mkdtempSync(join(tmpdir(), 'ng-prism-integration-'));
@@ -112,7 +112,7 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(19);
+        expect(result.componentCount).toBe(20);
     });
 
     it('should write prism-manifest.ts into prism project', async () => {
@@ -179,10 +179,10 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(19);
+        expect(result.componentCount).toBe(20);
         expect(ctx.reportStatus).toHaveBeenCalledWith('Loading ng-prism config...');
         expect(ctx.reportStatus).toHaveBeenCalledWith('Running plugin hooks...');
-        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 19 component(s)'));
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 20 component(s)'));
     });
 
     it('should compile the compositions of the form field, input, radio group and radio showcases', async () => {
@@ -207,6 +207,17 @@ describe('test-workspace integration', () => {
         } finally {
             warn.mockRestore();
         }
+    });
+
+    it('should nest a part on its parent instead of giving it a page', async () => {
+        tmp = createTempWorkspace();
+
+        await runPrismPipeline(pipelineOptions, createMockContext(tmp), createPipelineState());
+
+        const content = readFileSync(join(tmp, 'ng-prism-cache', 'test-lib-prism', 'prism-manifest.ts'), 'utf-8');
+
+        // lib-list-item is a part of lib-list: it sits in the parts of the list, not among the components.
+        expect(content).toMatch(/parts: \[\s*\{\s*meta: \{\s*className: "ListItemComponent"/);
     });
 
     it('end-to-end: core ng-add then plugin ng-add wires config + deps', async () => {
