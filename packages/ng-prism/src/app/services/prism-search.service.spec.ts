@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from '@angular/core';
 import type { RuntimePipe } from '../../plugin/pipe.types.js';
-import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { RuntimeComponent, RuntimeManifest, RuntimePart } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismManifestService } from './prism-manifest.service.js';
@@ -20,6 +20,23 @@ function createComponent(overrides: Partial<{ title: string; category: string; t
             inputs: [],
             outputs: [],
             componentMeta: { selector: 'test', standalone: true, isDirective: false }
+        }
+    };
+}
+
+function createPart(overrides: Partial<{ title: string; tags: string[]; className: string; selector: string }> = {}): RuntimePart {
+    return {
+        meta: {
+            className: overrides.className ?? 'OptionComponent',
+            filePath: '/option.component.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Choice',
+                tags: overrides.tags,
+                partOf: 'lib-select'
+            },
+            inputs: [],
+            outputs: [],
+            componentMeta: { selector: overrides.selector ?? 'lib-option', standalone: true, isDirective: false }
         }
     };
 }
@@ -195,5 +212,53 @@ describe('PrismSearchService', () => {
 
         service.search('timeago');
         expect(service.filteredPipes()).toEqual([timeAgo]);
+    });
+
+    describe('parts', () => {
+        function createSelect(): RuntimeComponent {
+            return { ...createComponent({ title: 'Select' }), parts: [createPart({ title: 'Choice', tags: ['listbox'] })] };
+        }
+
+        it.each(['choice', 'option', 'OptionComponent', 'lib-option', 'listbox'])('lists the parent for a query that matches its part: %s', (query) => {
+            const select = createSelect();
+            const button = createComponent({ title: 'Button' });
+            const service = setup({ components: [select, button] });
+
+            service.search(query);
+            expect(service.filteredComponents()).toEqual([select]);
+        });
+
+        it('does not list a part on its own', () => {
+            const select = createSelect();
+            const service = setup({ components: [select, createComponent({ title: 'Button' })] });
+
+            for (const query of ['', 'option', 'choice', 'select']) {
+                service.search(query);
+                expect(service.filteredComponents().map((comp) => comp.meta.className)).not.toContain('OptionComponent');
+            }
+        });
+
+        it('lists a parent once when both it and a part match', () => {
+            const select = {
+                ...createComponent({ title: 'Option picker' }),
+                parts: [createPart(), createPart({ className: 'OptgroupComponent', selector: 'lib-optgroup' })]
+            };
+            const service = setup({ components: [select] });
+
+            service.search('option');
+            expect(service.filteredComponents()).toEqual([select]);
+        });
+
+        it('keeps matching a component by its own fields, with or without parts', () => {
+            const select = createSelect();
+            const plain = { ...createComponent({ title: 'Button' }), parts: [] };
+            const service = setup({ components: [select, plain] });
+
+            service.search('select');
+            expect(service.filteredComponents()).toEqual([select]);
+
+            service.search('button');
+            expect(service.filteredComponents()).toEqual([plain]);
+        });
     });
 });

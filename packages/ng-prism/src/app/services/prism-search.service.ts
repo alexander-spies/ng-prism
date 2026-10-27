@@ -2,6 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import type { StyleguidePage } from '../../plugin/page.types.js';
 import type { RuntimePipe } from '../../plugin/pipe.types.js';
+import type { RuntimePart } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 
@@ -20,6 +21,11 @@ function matchesQuery(q: string, config: ShowcaseConfig, names: readonly string[
     );
 }
 
+/** Whether a part matches a query: its title, class name, selector or tags. */
+function matchesPart(q: string, part: RuntimePart): boolean {
+    return matchesQuery(q, part.meta.showcaseConfig, [part.meta.className, part.meta.componentMeta.selector]);
+}
+
 @Injectable({ providedIn: 'root' })
 export class PrismSearchService {
     private readonly manifestService = inject(PrismManifestService);
@@ -31,7 +37,8 @@ export class PrismSearchService {
         const all = this.manifestService.components();
 
         if (!q) return all;
-        return all.filter((comp) => matchesQuery(q, comp.meta.showcaseConfig));
+        // A part has no entry in the sidebar, so a query that matches one lists its parent.
+        return all.filter((comp) => matchesQuery(q, comp.meta.showcaseConfig) || (comp.parts ?? []).some((part) => matchesPart(q, part)));
     });
 
     readonly filteredServices = computed<RuntimeService[]>(() => {

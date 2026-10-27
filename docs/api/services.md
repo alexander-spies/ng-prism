@@ -88,7 +88,7 @@ Provides sidebar search and filtering.
 | Member               | Type                         | Description                                                                 |
 | -------------------- | ---------------------------- | --------------------------------------------------------------------------- |
 | `query`              | `Signal<string>`             | Current search query                                                        |
-| `filteredComponents` | `Signal<RuntimeComponent[]>` | Components matching the query (title, category, tags)                       |
+| `filteredComponents` | `Signal<RuntimeComponent[]>` | Components matching the query (title, category, tags, parts)                |
 | `filteredServices`   | `Signal<RuntimeService[]>`   | Services matching the query (title, class name, category, tags)             |
 | `filteredPipes`      | `Signal<RuntimePipe[]>`      | Pipes matching the query (title, class name, template name, category, tags) |
 | `filteredPages`      | `Signal<StyleguidePage[]>`   | Pages matching the query (title, category)                                  |
