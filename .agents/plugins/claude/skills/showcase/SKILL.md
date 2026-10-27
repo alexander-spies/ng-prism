@@ -309,7 +309,8 @@ node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --pipe TimeAgoPipe
 - It selects the variant and the state through URL parameters, like the URL below, and `urlState: false` in
   `ng-prism.config.ts` turns them off. The script then times out with "Variant never rendered"; ask before switching `urlState` back on.
 - Exit codes: `0` saved. `1` the styleguide doesn't answer, the component, variant or state doesn't exist (it lists
-  the components and variants that do), the variant or the service or pipe page never rendered (it saves the full window for diagnosis), or the
+  the components and variants that do), the class is a part (it names the parent and the URL of the part's block on
+  the parent's API tab: screenshot the parent instead), the variant or the service or pipe page never rendered (it saves the full window for diagnosis), or the
   screenshot failed, e.g. for a component without a visible size (`--shell` still works). `2` invalid arguments. `3`
   Playwright or its Chromium is missing or won't start: suggest `npm i -D playwright && npx playwright install chromium`
   (on Linux with missing system libraries `npx playwright install --with-deps chromium`) and run it only if the user
