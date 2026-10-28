@@ -1,4 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
+import {
+    afterNextRender,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    effect,
+    ElementRef,
+    HostListener,
+    inject,
+    Injector,
+    signal,
+    untracked,
+    viewChild
+} from '@angular/core';
 import type { ComponentStatus } from '../../decorator/showcase.types.js';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { BUILTIN_NAVIGATION_DECORATIONS } from '../panels/builtin-navigation-decorations.js';
@@ -18,6 +31,7 @@ import {
     rollupCategory,
     sectionFacet
 } from './navigation-decorations.js';
+import { revealScrollTop } from './reveal-item.js';
 
 const STORAGE_KEY = 'ng-prism-sidebar-collapsed';
 
@@ -49,6 +63,8 @@ function idleIcon(item: NavigationItem): string | undefined {
 
 interface SidebarCategory {
     name: string;
+    /** The key the group's collapsed state is stored under. */
+    key: string;
     items: NavigationItem[];
 }
 
@@ -60,6 +76,8 @@ interface SidebarItem {
 
 interface ComponentCategory {
     name: string;
+    /** The key the group's collapsed state is stored under. */
+    key: string;
     items: SidebarItem[];
     rollup: CategoryRollup;
 }
@@ -76,7 +94,9 @@ export class PrismSidebarComponent {
     protected readonly navigationService = inject(PrismNavigationService);
     protected readonly searchService = inject(PrismSearchService);
     private readonly pluginService = inject(PrismPluginService);
+    private readonly injector = inject(Injector);
     private readonly filterInput = viewChild<ElementRef<HTMLInputElement>>('filterInput');
+    private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
 
     private readonly decorations = computed(() => resolveNavigationDecorations(BUILTIN_NAVIGATION_DECORATIONS, this.pluginService.navigationDecorations()));
 
@@ -109,6 +129,7 @@ export class PrismSidebarComponent {
         }
         return [...catMap.entries()].map(([name, items]) => ({
             name,
+            key: `page:${name}`,
             items
         }));
     });
@@ -129,12 +150,31 @@ export class PrismSidebarComponent {
 
                 return {
                     name: cat.name,
+                    key: `sec:${section.name}:${cat.name}`,
                     rollup: rollupCategory(items.map((row) => row.decorations)),
                     items
                 };
             })
         }));
     });
+
+    constructor() {
+        // Keeps the active item in sight: after a reload that restores it from the
+        // URL, on back and forward, and wherever else it is selected from outside the
+        // list. Its group opens if it is collapsed. Before the list renders, so the
+        // item is there to scroll to once it has.
+        effect(() => {
+            const active = this.navigationService.activeItem();
+
+            if (!active) return;
+            untracked(() => {
+                const group = this.groupOf(active);
+
+                if (group && this.isCollapsed(group)) this.toggleCollapse(group);
+                afterNextRender({ read: () => this.revealActive() }, { injector: this.injector });
+            });
+        });
+    }
 
     protected isCollapsed(key: string): boolean {
         return this.collapsedSet().has(key);
@@ -201,6 +241,30 @@ export class PrismSidebarComponent {
                 this.navigationService.selectPage(item.data);
                 break;
         }
+    }
+
+    /** The key of the group the list shows `item` in, `undefined` while the filter hides it. */
+    private groupOf(item: NavigationItem): string | undefined {
+        const key = itemKey(item);
+        const page = this.pageCategories().find((cat) => cat.items.some((entry) => itemKey(entry) === key));
+
+        if (page) return page.key;
+        for (const section of this.componentSections()) {
+            const cat = section.categories.find((c) => c.items.some((row) => itemKey(row.item) === key));
+
+            if (cat) return cat.key;
+        }
+        return undefined;
+    }
+
+    private revealActive(): void {
+        const scroller = this.scroller()?.nativeElement;
+        const active = scroller?.querySelector('.sb-item--active');
+
+        if (!scroller || !active) return;
+        const top = revealScrollTop(scroller.getBoundingClientRect(), active.getBoundingClientRect(), scroller.scrollTop);
+
+        if (top !== null) scroller.scrollTop = top;
     }
 
     private loadCollapsed(): Set<string> {

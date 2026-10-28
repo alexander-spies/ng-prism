@@ -78,6 +78,8 @@ Selecting another component or page pushes a new browser history entry. Changing
 
 Selecting a component in the sidebar opens it on the Playground, whichever view tab the page before showed (since 22.7.0; before, the view stayed from one component to the next while the next one offered it). A link, a reload and the back and forward buttons open the view their URL names, so going back returns to the Overview or API tab an entry was left on.
 
+The sidebar keeps the open component, service, pipe or page in sight (since 22.7.0). After a link, a reload or a step back or forward it scrolls the entry into the middle of the list and opens its group if that was collapsed. An entry already in sight stays where it is, so a click in the sidebar never moves the list.
+
 ## Control Panel & A11y State (sessionStorage)
 
 URL state does not carry control panel overrides, since long input strings would bloat every link. Instead, ng-prism mirrors these to `sessionStorage` under the key `ng-prism:state`:

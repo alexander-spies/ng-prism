@@ -11,7 +11,9 @@
         <kbd>/</kbd>
     </div>
 
-    <div class="sb-scroll">
+    <div
+        #scroller
+        class="sb-scroll">
         @if (pageCategories().length > 0) {
             <div class="sb-pinned">
                 <div class="sb-section-head sb-section-head--first">
@@ -27,18 +29,18 @@
                 @for (cat of pageCategories(); track cat.name) {
                     <div
                         class="sb-group"
-                        [class.sb-group--collapsed]="isCollapsed('page:' + cat.name)">
+                        [class.sb-group--collapsed]="isCollapsed(cat.key)">
                         <button
                             class="sb-group-head"
-                            (click)="toggleCollapse('page:' + cat.name)"
-                            [attr.aria-expanded]="!isCollapsed('page:' + cat.name)">
+                            (click)="toggleCollapse(cat.key)"
+                            [attr.aria-expanded]="!isCollapsed(cat.key)">
                             <prism-icon
                                 name="chevron-down"
                                 [size]="10" />
                             <span class="sb-group-chip"></span>
                             {{ cat.name }}
                         </button>
-                        @if (!isCollapsed('page:' + cat.name)) {
+                        @if (!isCollapsed(cat.key)) {
                             <div class="sb-group-body">
                                 @for (item of cat.items; track itemKey(item)) {
                                     <button
@@ -73,11 +75,11 @@
             @for (cat of section.categories; track cat.name) {
                 <div
                     class="sb-group"
-                    [class.sb-group--collapsed]="isCollapsed('sec:' + section.name + ':' + cat.name)">
+                    [class.sb-group--collapsed]="isCollapsed(cat.key)">
                     <button
                         class="sb-group-head"
-                        (click)="toggleCollapse('sec:' + section.name + ':' + cat.name)"
-                        [attr.aria-expanded]="!isCollapsed('sec:' + section.name + ':' + cat.name)">
+                        (click)="toggleCollapse(cat.key)"
+                        [attr.aria-expanded]="!isCollapsed(cat.key)">
                         <prism-icon
                             name="chevron-down"
                             [size]="10" />
@@ -99,7 +101,7 @@
                             }
                         </span>
                     </button>
-                    @if (!isCollapsed('sec:' + section.name + ':' + cat.name)) {
+                    @if (!isCollapsed(cat.key)) {
                         <div class="sb-group-body">
                             @for (row of cat.items; track itemKey(row.item)) {
                                 <button
