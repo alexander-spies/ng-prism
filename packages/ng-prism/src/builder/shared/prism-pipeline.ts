@@ -39,6 +39,8 @@ export interface PrismPipelineResult {
     pageCount: number;
     /** True if the manifest file was actually written; false if the existing content was identical. */
     written: boolean;
+    /** Absolute path of the a11y report this run read, or would have: `serve` watches it. Since 22.7.0. */
+    a11yReportPath: string;
 }
 
 export interface PrismPipelineState {
@@ -203,7 +205,8 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
         serviceCount,
         pipeCount,
         pageCount,
-        written
+        written,
+        a11yReportPath: a11yReportPathAbs
     };
 }
 

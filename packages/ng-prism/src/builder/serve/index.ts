@@ -22,7 +22,7 @@ async function createServeBuilder(options: ServeBuilderSchema, context: BuilderC
 
     const state = createPipelineState();
 
-    await runPrismPipeline(pipelineOptions, context, state);
+    const initial = await runPrismPipeline(pipelineOptions, context, state);
 
     const absoluteEntryPoint = join(context.workspaceRoot, options.entryPoint);
     const configFilePath = join(context.workspaceRoot, pipelineOptions.configFile);
@@ -31,9 +31,14 @@ async function createServeBuilder(options: ServeBuilderSchema, context: BuilderC
         entryPoint: absoluteEntryPoint,
         configFile: existsSync(configFilePath) ? configFilePath : undefined,
         ignorePaths: [absolutePrismProject],
+        // A new audit run rebuilds the manifest like a source change. Re-set after
+        // every rebuild: the config may name another report.
+        files: [initial.a11yReportPath],
         debounceMs: 50,
         onRebuild: async () => {
-            await runPrismPipeline(pipelineOptions, context, state);
+            const result = await runPrismPipeline(pipelineOptions, context, state);
+
+            watcher.setFiles([result.a11yReportPath]);
         },
         logger: {
             info: (msg: string) => context.logger.info(msg),

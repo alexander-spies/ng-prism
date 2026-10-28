@@ -112,6 +112,20 @@ describe('runPrismPipeline integration', () => {
         expect(result.componentCount).toBe(9);
     });
 
+    it('names where it reads the a11y report, for serve to watch, whether or not it exists', async () => {
+        tmp = createTempWorkspace();
+
+        const result = await runPrismPipeline(defaultOptions, createMockContext(tmp), createPipelineState());
+
+        expect(result.a11yReportPath).toBe(join(tmp, 'a11y-report.json'));
+
+        writeA11yConfig(tmp, "{ reportPath: 'coverage/a11y.json' }");
+
+        const configured = await runPrismPipeline(defaultOptions, createMockContext(tmp), createPipelineState());
+
+        expect(configured.a11yReportPath).toBe(join(tmp, 'coverage', 'a11y.json'));
+    });
+
     it('should write prism-manifest.ts to expected path', async () => {
         tmp = createTempWorkspace();
         const ctx = createMockContext(tmp);
