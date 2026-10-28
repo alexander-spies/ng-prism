@@ -22,7 +22,7 @@
     min-width: 0;
 }
 
-.viol-passed summary {
+.viol-fold summary {
     display: flex;
     gap: 6px;
     align-items: center;
@@ -34,31 +34,31 @@
     list-style: none;
 }
 
-.viol-passed summary::-webkit-details-marker {
+.viol-fold summary::-webkit-details-marker {
     display: none;
 }
 
-.viol-passed summary::before {
+.viol-fold summary::before {
     font-size: 10px;
     content: '▸';
     transition: transform var(--dur-fast);
 }
 
-.viol-passed[open] summary::before {
+.viol-fold[open] summary::before {
     transform: rotate(90deg);
 }
 
-.viol-passed summary:hover {
+.viol-fold summary:hover {
     color: var(--prism-text-2);
 }
 
-.viol-passed summary:focus-visible {
+.viol-fold summary:focus-visible {
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;
     border-radius: 2px;
 }
 
-.viol-passed__list {
+.viol-fold__list {
     display: flex;
     flex-direction: column;
     gap: 6px;

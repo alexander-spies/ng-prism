@@ -35,10 +35,31 @@
                 }
             }
 
+            @if (review().length > 0) {
+                <details
+                    class="viol-fold"
+                    open>
+                    <summary title="axe could not decide these checks; they do not count towards the score."> Needs review · {{ review().length }} </summary>
+                    <div class="viol-fold__list">
+                        @for (item of review(); track item.id) {
+                            <prism-list-row>
+                                <prism-badge
+                                    rowBadge
+                                    tone="neutral"
+                                    label="Review" />
+                                <span rowTitle>{{ item.help }}</span>
+                                <span rowDescription>{{ item.reasons.join(' · ') }}</span>
+                                <span rowMeta>{{ item.id }}</span>
+                            </prism-list-row>
+                        }
+                    </div>
+                </details>
+            }
+
             @if (passes().length > 0) {
-                <details class="viol-passed">
+                <details class="viol-fold">
                     <summary>{{ passes().length }} passed {{ passes().length === 1 ? 'check' : 'checks' }}</summary>
-                    <div class="viol-passed__list">
+                    <div class="viol-fold__list">
                         @for (pass of passes(); track pass.id) {
                             <prism-list-row>
                                 <prism-badge

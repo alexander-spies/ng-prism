@@ -6,23 +6,18 @@ import { PrismListRowComponent } from '../../shared/prism-list-row.component.js'
 import { PrismMetricCardComponent } from '../../shared/prism-metric-card.component.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../../tokens/prism-tokens.js';
 import { A11yAuditService } from './a11y-audit.service.js';
+import { byImpact, reviewFindings } from './a11y-findings.js';
 import { A11yScoreComponent } from './a11y-score.component.js';
 import { deriveA11ySummary } from './a11y-summary.js';
 import { resolveA11yThresholds } from './a11y-thresholds.js';
 import type { A11yManifestMeta } from './a11y.types.js';
 import { severityBadge } from './severity.js';
 
-const IMPACT_ORDER: Record<string, number> = {
-    critical: 0,
-    serious: 1,
-    moderate: 2,
-    minor: 3
-};
-
 /**
  * The Violations view: the score as a small metric card with a ring in its
- * grade's tone, the violations as list rows, most severe first, and the passed
- * checks folded away below them.
+ * grade's tone, the violations as list rows, most severe first, what axe could
+ * not decide below them (Needs review, open, not counted), and the passed
+ * checks folded away at the end.
  */
 @Component({
     selector: 'prism-a11y-violations',
@@ -68,10 +63,10 @@ export class A11yViolationsComponent {
         const results = this.auditService.results();
 
         if (!results) return [];
-        return [...results.violations]
-            .sort((a, b) => (IMPACT_ORDER[a.impact ?? ''] ?? 4) - (IMPACT_ORDER[b.impact ?? ''] ?? 4))
-            .map((v) => ({ ...v, badge: severityBadge(v.impact) }));
+        return [...results.violations].sort(byImpact).map((v) => ({ ...v, badge: severityBadge(v.impact) }));
     });
+
+    protected readonly review = computed(() => reviewFindings(this.auditService.results()?.incomplete ?? []));
 
     protected readonly passes = computed(() => this.auditService.results()?.passes ?? []);
 }
