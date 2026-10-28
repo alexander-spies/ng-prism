@@ -49,7 +49,13 @@
     outline-offset: 1px;
 }
 
+/* The containing block for whatever the component positions absolutely, as
+   .demo-wrap is in the Playground. Nothing above the cell is positioned, so
+   such an element would resolve against the document root, escape every
+   scroll box on the way and stretch the document: a visually hidden text in
+   a matrix row far down scrolled the whole styleguide out of the window. */
 .cell__mount {
+    position: relative;
     display: inline-block;
     max-width: 100%;
 }
