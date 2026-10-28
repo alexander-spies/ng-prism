@@ -124,7 +124,12 @@
     letter-spacing: 0.08em;
 }
 
+/* The rows of a section share its columns, so the types line up. The name
+   column is as wide as the longest name, within 92px and the cap of a name,
+   so that a name such as a model's change output is not broken mid-word. */
 .part-card__rows {
+    display: grid;
+    grid-template-columns: minmax(92px, max-content) minmax(0, 1fr);
     padding: 0;
     margin: 0;
     list-style: none;
@@ -134,7 +139,8 @@
    output has no type, so its doc takes the type's place beside the name. */
 .part-row {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
     gap: 2px var(--sp-3);
     padding: var(--sp-2) 0;
     font-size: var(--fs-md);
@@ -150,6 +156,7 @@
     flex-wrap: wrap;
     gap: var(--sp-2);
     align-items: center;
+    max-width: 160px;
     overflow-wrap: anywhere;
 }
 
