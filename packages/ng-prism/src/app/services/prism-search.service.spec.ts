@@ -6,11 +6,11 @@ import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 import { PrismSearchService } from './prism-search.service.js';
 
-function createComponent(overrides: Partial<{ title: string; category: string; tags: string[] }> = {}): RuntimeComponent {
+function createComponent(overrides: Partial<{ title: string; category: string; tags: string[]; className: string; selector: string }> = {}): RuntimeComponent {
     return {
         type: class {} as any,
         meta: {
-            className: 'Comp',
+            className: overrides.className ?? 'Comp',
             filePath: '/test.ts',
             showcaseConfig: {
                 title: overrides.title ?? 'Default',
@@ -19,7 +19,7 @@ function createComponent(overrides: Partial<{ title: string; category: string; t
             },
             inputs: [],
             outputs: [],
-            componentMeta: { selector: 'test', standalone: true, isDirective: false }
+            componentMeta: { selector: overrides.selector ?? 'test', standalone: true, isDirective: false }
         }
     };
 }
@@ -129,6 +129,21 @@ describe('PrismSearchService', () => {
         expect(service.filteredComponents()).toEqual([btn]);
     });
 
+    it('filters components by their class name and selector', () => {
+        const button = createComponent({ title: 'Button', className: 'ButtonComponent', selector: 'lib-button, [libButton]' });
+        const card = createComponent({ title: 'Card', className: 'CardComponent', selector: 'lib-card' });
+        const service = setup({ components: [button, card] });
+
+        service.search('ButtonComponent');
+        expect(service.filteredComponents()).toEqual([button]);
+
+        service.search('libbutton');
+        expect(service.filteredComponents()).toEqual([button]);
+
+        service.search('component');
+        expect(service.filteredComponents()).toEqual([button, card]);
+    });
+
     it('should clear the query', () => {
         const comps = [createComponent({ title: 'Button' }), createComponent({ title: 'Card' })];
         const service = setup({ components: comps });
@@ -235,6 +250,17 @@ describe('PrismSearchService', () => {
             for (const query of ['', 'option', 'choice', 'select']) {
                 service.search(query);
                 expect(service.filteredComponents().map((comp) => comp.meta.className)).not.toContain('OptionComponent');
+            }
+        });
+
+        it('lists a component without parts for a query that matches the class names and selectors of all', () => {
+            const select = { ...createComponent({ title: 'Select', className: 'SelectComponent', selector: 'lib-select' }), parts: [createPart()] };
+            const button = createComponent({ title: 'Button', className: 'ButtonComponent', selector: 'lib-button' });
+            const service = setup({ components: [select, button] });
+
+            for (const query of ['Component', 'lib-']) {
+                service.search(query);
+                expect(service.filteredComponents()).toEqual([select, button]);
             }
         });
 
