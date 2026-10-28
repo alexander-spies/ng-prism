@@ -106,7 +106,8 @@ describe('calculateScore', () => {
 });
 
 describe('runCoreAudit', () => {
-    const mockElement = {} as Element;
+    // Outside a canvas stage: the node environment has no DOM, and an audit there skips the hiding.
+    const mockElement = { closest: () => null } as unknown as Element;
 
     beforeEach(() => {
         jest.clearAllMocks();

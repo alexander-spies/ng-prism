@@ -1,5 +1,6 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import type { AxeResults, RunOptions } from 'axe-core';
+import { withCanvasChromeHidden } from '../../renderer/canvas-audit.js';
 import type { A11yCoreConfig, A11yScoreResult } from './a11y.types.js';
 
 export function calculateScore(results: AxeResults): A11yScoreResult {
@@ -50,7 +51,7 @@ export async function runCoreAudit(element: Element, config?: A11yCoreConfig): P
         }
     }
 
-    return axe.default.run(element, options);
+    return withCanvasChromeHidden(element, () => axe.default.run(element, options));
 }
 
 @Injectable({ providedIn: 'root' })
