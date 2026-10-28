@@ -1,4 +1,6 @@
 import type { InputMeta, RuntimePart } from '../../plugin/plugin.types.js';
+import { modelChangeOutput } from '../../shared/model-outputs.js';
+import { partKeys } from '../../shared/part-keys.js';
 import { type StatusBadge, statusBadge } from './status-badge.js';
 
 /** One input or output in the popover of a part. An output has neither type nor default. */
@@ -13,6 +15,8 @@ export interface PartRow {
 /** A part of the active component as the head shows it: a chip, and the popover that opens from it. */
 export interface PartChip {
     className: string;
+    /** What the panel service and the URL address the part by, see `partKeys`. */
+    key: string;
     title: string;
     selector: string;
     /**
@@ -30,15 +34,16 @@ export interface PartChip {
 
 /**
  * The default of an input as it is written in a template: a string in single
- * quotes, anything else as JSON. `undefined` for an input that starts out
- * without one, and `…` for one that has a default the scan could not evaluate.
+ * quotes, its quotes and backslashes escaped, anything else as JSON. `undefined`
+ * for an input that starts out without one, and `…` for one that has a default
+ * the scan could not evaluate.
  */
 export function formatPartDefault(input: InputMeta): string | undefined {
     if (input.defaultUnreadable) return '…';
     const value = input.defaultValue;
 
     if (value === undefined) return undefined;
-    return typeof value === 'string' ? `'${value}'` : JSON.stringify(value);
+    return typeof value === 'string' ? `'${value.replace(/[\\']/g, '\\$&')}'` : JSON.stringify(value);
 }
 
 /**
@@ -49,8 +54,11 @@ export function formatPartDefault(input: InputMeta): string | undefined {
  * not list among them.
  */
 export function partChips(parts: readonly RuntimePart[] | undefined): PartChip[] {
+    const keys = partKeys((parts ?? []).map(({ meta }) => meta.className));
+
     return (parts ?? []).map(({ meta }, index) => ({
         className: meta.className,
+        key: keys[index],
         title: meta.showcaseConfig.title,
         selector: meta.componentMeta.selector,
         popoverId: `prism-part-${index}`,
@@ -73,5 +81,5 @@ export function partChips(parts: readonly RuntimePart[] | undefined): PartChip[]
 
 /** The row of the change output of the `model()` a template binds as `input`. */
 function modelChangeRow(input: string): PartRow {
-    return { name: `${input}Change`, doc: `Emits when ${input} changes; bind both ways with [(${input})].` };
+    return { name: modelChangeOutput(input), doc: `Emits when ${input} changes; bind both ways with [(${input})].` };
 }

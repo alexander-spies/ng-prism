@@ -1,5 +1,6 @@
 import { effect, inject, Injectable, Injector } from '@angular/core';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
+import { partKeys } from '../../shared/part-keys.js';
 import { PRISM_CONFIG } from '../tokens/prism-tokens.js';
 import type { NavigationItem } from './navigation-item.types.js';
 import { PrismManifestService } from './prism-manifest.service.js';
@@ -36,8 +37,9 @@ function parseStateIndex(param: string | null, count: number): number | null {
 }
 
 /** Whether `className` is one of the parts of `component`. */
-function hasPart(component: RuntimeComponent, className: string): boolean {
-    return component.parts?.some((p) => p.meta.className === className) ?? false;
+/** Whether `key` is the key of one of the parts of `component`, see `partKeys`. A part's class name is the key of the first part of that name. */
+function hasPart(component: RuntimeComponent, key: string): boolean {
+    return partKeys((component.parts ?? []).map((part) => part.meta.className)).includes(key);
 }
 
 /**
@@ -115,7 +117,7 @@ export class PrismUrlStateService {
 
                 // A part has no page of its own: its class name opens its parent, on the part.
                 if (!comp) {
-                    comp = components.find((c) => hasPart(c, componentClassName));
+                    comp = this.navigationService.parentOfPart(componentClassName);
                     redirected = comp !== undefined;
                 }
 

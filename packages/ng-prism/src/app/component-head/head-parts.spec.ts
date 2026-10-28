@@ -83,6 +83,12 @@ describe('partChips', () => {
         expect(new Set(chips.map((c) => c.anchorName)).size).toBe(2);
     });
 
+    it('keys a part by its class name, and the second of a class name that two parts share with ~2', () => {
+        const twin = { meta: { ...option.meta, filePath: '/lib/other/OptionComponent.ts' } };
+
+        expect(partChips([option, optgroup, twin]).map((c) => c.key)).toEqual(['OptionComponent', 'OptgroupComponent', 'OptionComponent~2']);
+    });
+
     it('lists the change output Angular adds for a model() after the declared outputs, by the name a template binds', () => {
         const [chip] = partChips([
             part('P', {
@@ -127,6 +133,11 @@ describe('formatPartDefault', () => {
         [['a', 1], '["a",1]']
     ])('formats the default %p as %p', (value, out) => {
         expect(formatPartDefault(input({ defaultValue: value }))).toBe(out);
+    });
+
+    it('escapes a quote and a backslash in a string default, as a template writes it', () => {
+        expect(formatPartDefault(input({ defaultValue: "it's" }))).toBe("'it\\'s'");
+        expect(formatPartDefault(input({ defaultValue: 'a\\b' }))).toBe("'a\\\\b'");
     });
 
     it('shows … for a default the scan could not read', () => {

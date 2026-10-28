@@ -24,6 +24,7 @@ import { PrismVariantRibbonComponent } from '../variant-ribbon/prism-variant-rib
 import { nextViewId } from '../view-tab-bar/next-view-id.js';
 import { PrismViewPanelHostComponent } from '../view-tab-bar/prism-view-panel-host.component.js';
 import { PrismViewTabBarComponent } from '../view-tab-bar/prism-view-tab-bar.component.js';
+import { selectInstead } from './select-instead.js';
 import { shouldSelectFirst } from './should-select-first.js';
 
 @Component({
@@ -66,6 +67,17 @@ export class PrismShellComponent {
 
     protected readonly viewPanels = this.panelService.visibleViewPanels;
 
+    /** Whether a rebuild took away the item on screen, see `shouldSelectFirst`. */
+    private readonly vanished = computed(() =>
+        shouldSelectFirst(
+            this.navigationService.activeItem(),
+            this.navigationService.activeComponent(),
+            this.navigationService.activeService(),
+            this.navigationService.activePipe(),
+            this.navigationService.activePage()
+        )
+    );
+
     protected readonly showPanel = computed(() => this.layout.addonsVisible() && this.panelService.activeViewId() === 'renderer' && !this.navigationService.activePage());
 
     protected readonly shellStyle = computed(() => {
@@ -87,7 +99,11 @@ export class PrismShellComponent {
         // that is not theirs, since neither has a Playground to fall back to. The
         // rule itself lives in `nextViewId`, a pure function with its own tests;
         // this effect only reads the signals it needs and applies the result.
+        // Not while the item on screen is gone: the effect below picks the next
+        // one, and needs the view the reader had for that.
         effect(() => {
+            if (this.vanished()) return;
+
             const target = this.navigationService.activeTarget() ?? 'component';
             const next = nextViewId(this.panelService.activeViewId(), this.panelService.visibleViewPanels(), target);
 
@@ -98,13 +114,9 @@ export class PrismShellComponent {
 
         effect(() => {
             const item = this.navigationService.activeItem();
-            const activeComp = this.navigationService.activeComponent();
-            const activeService = this.navigationService.activeService();
-            const activePipe = this.navigationService.activePipe();
-            const activePage = this.navigationService.activePage();
 
-            if (shouldSelectFirst(item, activeComp, activeService, activePipe, activePage)) {
-                untracked(() => this.navigationService.selectFirst());
+            if (item && this.vanished()) {
+                untracked(() => selectInstead(item, this.navigationService, this.panelService));
             }
         });
     }

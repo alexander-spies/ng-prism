@@ -4,7 +4,7 @@
         class="parts"
         role="group"
         aria-label="Parts">
-        @for (chip of chips(); track chip.popoverId) {
+        @for (chip of chips(); track chip.key) {
             <button
                 class="part-chip"
                 type="button"
@@ -84,7 +84,7 @@
                         <button
                             class="part-card__link"
                             type="button"
-                            (click)="showFullApi(chip.className, panel.id, card)">
+                            (click)="showFullApi(chip.key, panel.id, card)">
                             Full API →
                         </button>
                     </div>

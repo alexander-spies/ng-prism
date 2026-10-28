@@ -19,6 +19,7 @@ import { PrismPluginService } from './prism-plugin.service.js';
 
 /** A part a panel was asked to show: where it was asked, so it stops showing once the reader leaves that place. */
 interface ShownPart {
+    /** The key of the part, see `partKeys`. */
     part: string;
     component: string;
     view: string;
@@ -96,8 +97,9 @@ export class PrismPanelService {
     private repeat?: AfterRenderRef;
 
     /**
-     * The class name of the part the active view is asked to show, `null` for
-     * none. It holds only while the active component and the active view are the
+     * The key of the part the active view is asked to show, `null` for none:
+     * its class name, with `~2` for the second part of a class name that two
+     * parts share (see `partKeys`). It holds only while the active component and the active view are the
      * ones {@link showPart} was called on, so a part never outlives the place it
      * was shown in. The URL carries it as `part`. Since 22.7.0.
      */
@@ -130,10 +132,10 @@ export class PrismPanelService {
      * more, as it would for a part it did not show. The URL keeps its entry.
      * Since 22.7.0.
      */
-    showPart(partClassName: string, panelId: string): void {
+    showPart(partKey: string, panelId: string): void {
         const component = this.navigationService.activeComponent();
-        const record = component ? { part: partClassName, component: component.meta.className, view: panelId } : null;
-        const again = record !== null && this.activePart() === partClassName && this.activeViewId() === panelId;
+        const record = component ? { part: partKey, component: component.meta.className, view: panelId } : null;
+        const again = record !== null && this.activePart() === partKey && this.activeViewId() === panelId;
 
         this.repeat?.destroy();
         this.repeat = undefined;

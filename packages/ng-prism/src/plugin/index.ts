@@ -46,6 +46,10 @@ export type {
 // example) replace the slot, and the constants name what ng-prism puts into and takes out of a composition.
 export { COMPOSITION_SUBJECT_ATTR, COMPOSITION_SUBJECT_SLOT, PRISM_VARIANT_INPUT, SUBJECT_MARKER_ATTR } from '../shared/composition.js';
 
+// The key a part is addressed by: the URL's `part`, the panel service and the `activePart` input of a panel that lists
+// parts carry it, and a panel that finds a part by it computes the keys of the parts it is given.
+export { partKeys } from '../shared/part-keys.js';
+
 // The canvas background a variant renders on. Part of the discovery contract
 // (`DiscoveryVariant.bg`), so external tooling and plugins can name the type
 // and resolve the declaration the same way the app does.

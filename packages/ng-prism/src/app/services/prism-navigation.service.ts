@@ -192,6 +192,11 @@ export class PrismNavigationService {
         return result;
     });
 
+    /** The component that has a part of the class `className`: a part has no page of its own, so its parent's is where it opens. Since 22.7.0. */
+    parentOfPart(className: string): RuntimeComponent | undefined {
+        return this.manifestService.components().find((comp) => comp.parts?.some((part) => part.meta.className === className));
+    }
+
     select(comp: RuntimeComponent): void {
         this.activeItem.set({ kind: 'component', data: comp });
     }

@@ -26,8 +26,12 @@ describe('prism-head-parts template', () => {
         expect(TEMPLATE).toMatch(/@if \(partsPanel\(\)[^)]*\)[\s\S]*Full API →/);
     });
 
-    it('hands the part and the panel to the panel service', () => {
-        expect(TEMPLATE).toMatch(/showFullApi\(chip\.className, panel\.id, card\)/);
+    it('hands the key of the part and the panel to the panel service', () => {
+        expect(TEMPLATE).toMatch(/showFullApi\(chip\.key, panel\.id, card\)/);
+    });
+
+    it('tracks a chip by the key of its part, so an open card leaves with it on a component switch', () => {
+        expect(TEMPLATE).toMatch(/@for \(chip of chips\(\); track chip\.key\)/);
     });
 
     it('lists the sections in the order title, description, inputs, outputs, link', () => {
