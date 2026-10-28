@@ -30,6 +30,49 @@
     background: var(--prism-brand-gradient);
 }
 
+/*
+ * Brand motion: once per --prism-brand-motion the glow behind the mark swells,
+ * a soft light leaves it along the brand edge and dissolves towards the actions,
+ * then the band rests. Slow, faint and rare on purpose: noticed after a while,
+ * never in the way. Only transform and opacity move, so the compositor runs it.
+ * Both animations share one duration and keyframe timeline, so they stay in step.
+ * A duration that is not a time (`none`) or none at all leaves both still, and
+ * the band looks exactly as it does without motion.
+ */
+.prism-header__sheen {
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--brand-edge);
+    overflow: hidden;
+    pointer-events: none;
+    mask-image: linear-gradient(90deg, transparent, #000 14%, #000 48%, transparent 94%);
+}
+
+.prism-header__sheen::after {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 25%;
+    content: '';
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 70%), transparent);
+    transform: translateX(-100%);
+    animation-name: prism-brand-sheen;
+    animation-duration: var(--prism-brand-motion);
+    animation-iteration-count: infinite;
+}
+
+@keyframes prism-brand-sheen {
+    0%,
+    16% {
+        transform: translateX(-100%);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+    }
+
+    64%,
+    100% {
+        transform: translateX(400%);
+    }
+}
+
 /* In the light theme the band sets itself apart; a hairline under it only adds noise. */
 :host-context(html[data-theme='light']) .prism-header {
     border-bottom-color: transparent;
@@ -58,6 +101,53 @@
     background: var(--prism-brand-glow);
     border-radius: 50%;
     filter: blur(10px);
+}
+
+/* A second layer of the same light that swells over the first, so the resting glow stays as it is. */
+.prism-header__glow::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: var(--prism-brand-glow);
+    border-radius: inherit;
+    opacity: 0;
+    animation-name: prism-brand-swell;
+    animation-duration: var(--prism-brand-motion);
+    animation-iteration-count: infinite;
+}
+
+@keyframes prism-brand-swell {
+    0%,
+    8% {
+        opacity: 0;
+        transform: scale(0.9);
+        animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+    }
+
+    22% {
+        opacity: 0.9;
+        transform: scale(1.08);
+        animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+    }
+
+    46%,
+    100% {
+        opacity: 0;
+        transform: scale(1.2);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .prism-header__sheen::after,
+    .prism-header__glow::after {
+        animation: none;
+    }
+}
+
+/* Capture mode keeps screenshots deterministic. */
+:host-context([data-prism-capture]) .prism-header__sheen::after,
+:host-context([data-prism-capture]) .prism-header__glow::after {
+    animation: none;
 }
 
 .prism-header__logo-img {

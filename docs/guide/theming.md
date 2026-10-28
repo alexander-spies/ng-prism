@@ -58,6 +58,23 @@ export default defineConfig({
 | `--prism-brand-ink`                                  | `var(--prism-brand-gradient)`                                                | `linear-gradient(90deg, #0891b2 0%, #2563eb 38%, #6d28d9 68%, #a20cf0 100%)` | The gradient as a stroke on the current surface: tab indicators, the active sidebar entry, the active view segment. Every stop holds 3:1 on the chrome. |
 | `--prism-brand-glow`                                 | three soft radial gradients in cyan, blue and magenta                        | the same, a little fainter                                                   | The refracted light behind the logo and the empty state                                                                                                 |
 | `--prism-facet-cyan`, `-blue`, `-violet`, `-magenta` | `#22d3ee`, `#60a5fa`, `#a78bfa`, `#e879f9`                                   | `#0891b2`, `#2563eb`, `#7c3aed`, `#c026d3`                                   | The logo's facet colours for icons (sidebar sections). Each holds 3:1 on every surface.                                                                 |
+| `--prism-brand-motion`                               | `24s`                                                                        | same                                                                         | One cycle of the brand light in the header; see [Brand Motion](#brand-motion). `none` holds it still.                                                   |
+
+### Brand Motion
+
+The header's brand light moves, slowly enough that it rarely draws the eye. Once per cycle the glow behind the logo swells, a soft light leaves the mark along the top edge and fades out towards the header actions, and then the band rests until the next cycle. Only `transform` and `opacity` animate, so the browser runs it on the compositor.
+
+`--prism-brand-motion` is the length of one cycle. A longer time makes it slower and rarer, and `none` switches it off:
+
+```typescript
+export default defineConfig({
+    theme: {
+        '--prism-brand-motion': '40s' // calmer; 'none' holds the header still
+    }
+});
+```
+
+Any value that is not a time (`none`, `0`, `off`) leaves the animation without a duration, and the header shows its static look: the brand edge and the glow as they are without motion. Set the token in `theme` (or `darkTheme`): the header renders with the dark set in both themes, so a `lightTheme` value doesn't reach it. With `prefers-reduced-motion: reduce` set in the operating system, the header stays still whatever the token says. Capture mode holds it still as well.
 
 ## Color Properties
 

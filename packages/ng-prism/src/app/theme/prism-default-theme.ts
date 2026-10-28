@@ -179,6 +179,19 @@ export const PRISM_BASE_TOKENS: Record<string, string> = {
     '--dur-slow': '0.3s',
 
     /**
+     * One cycle of the brand light in the header: the glow behind the logo
+     * swells, a soft light runs along the top edge, then both rest. A consuming
+     * app slows it down or holds it still in ng-prism.config.ts:
+     *
+     *   theme: { '--prism-brand-motion': 'none' }
+     *
+     * Any value that is not a time (`none`, `0`) leaves the animation without a
+     * duration, so the header shows its static look. Under
+     * `prefers-reduced-motion: reduce` it stays still regardless.
+     */
+    '--prism-brand-motion': '24s',
+
+    /**
      * Chrome density. A consuming app compacts or loosens the entire interface
      * with one token in ng-prism.config.ts:
      *

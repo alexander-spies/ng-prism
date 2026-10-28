@@ -137,6 +137,8 @@ alone also recolours the fills `--prism-primary-fill`, `-fill-hover` and `--pris
 `--prism-bg-elevated`, `--prism-text`, `--prism-text-muted`, `--prism-border`, `--prism-success`, `--prism-warn`,
 `--prism-danger`, `--prism-font-sans`, `--prism-font-mono`. The header is a navy brand band in both modes and renders
 with the dark set, `darkTheme` included; a custom `title` replaces the wordmark and is shown in neutral text.
+`--prism-brand-motion` (default `24s`) is the cycle of the header's slow brand light (glow swell, then a light along
+the top edge); `'none'` in `theme` holds it still, and `prefers-reduced-motion` always does.
 Deprecated since 22.7 (removed in 23.0): `--prism-primary-from`, `--prism-primary-to`, `--prism-spectrum` and
 `--prism-mark-nominal|attention|critical` (aliases of success, warn and danger; an override still carries over, with a
 console warning). Don't suggest them in new config.

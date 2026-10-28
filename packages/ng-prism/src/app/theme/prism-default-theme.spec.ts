@@ -38,6 +38,17 @@ describe('density and band heights', () => {
     });
 });
 
+describe('brand motion', () => {
+    /**
+     * The header reads the token as `animation-duration`. Anything that is not
+     * a time, such as `none`, leaves the animations without a duration, which is
+     * how a consuming app switches the motion off: the default has to be a time.
+     */
+    it('defaults to one slow cycle', () => {
+        expect(PRISM_BASE_TOKENS['--prism-brand-motion']).toBe('24s');
+    });
+});
+
 describe('mark roles', () => {
     const themes = [
         ['dark', PRISM_DARK_THEME],
