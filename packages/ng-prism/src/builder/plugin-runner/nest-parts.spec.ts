@@ -71,7 +71,7 @@ describe('nestParts', () => {
         expect(nestParts([button, SELECT])).toEqual([button, SELECT]);
     });
 
-    it('keeps a part whose parent is gone as a component of its own, without partOf and parentClassName', () => {
+    it('keeps a part whose parent is not among the components as a component of its own, without partOf and parentClassName', () => {
         const orphan = part('OrphanComponent', 'Orphan', 'lib-orphan', 'Gone', 'lib-gone');
         const out = nestParts([SELECT, orphan]);
 
@@ -82,6 +82,27 @@ describe('nestParts', () => {
         // What it was given stays as it was.
         expect(orphan.parentClassName).toBe('Gone');
         expect(orphan.showcaseConfig.partOf).toBe('lib-gone');
+    });
+
+    it('looks the parent up in the scanned list and nests what the hooks returned', () => {
+        const renamed = { ...SELECT, className: 'RenamedSelect', componentMeta: { ...SELECT.componentMeta, selector: 'lib-renamed' } };
+        const option = { ...OPTION, meta: { seen: true } };
+        const out = nestParts([renamed, option], [SELECT, OPTION]);
+
+        expect(out.map((c) => c.className)).toEqual(['RenamedSelect']);
+        expect(out[0].parts).toEqual([option]);
+        expect(out[0].parts![0]).toBe(option);
+    });
+
+    it('takes a part from the scanned list as a part, whatever the hooks did to its fields', () => {
+        const unmarked = { ...OPTION, showcaseConfig: { title: 'Option' } };
+
+        delete (unmarked as Partial<ScannedComponent>).parentClassName;
+
+        const out = nestParts([SELECT, unmarked], [SELECT, OPTION]);
+
+        expect(out.map((c) => c.className)).toEqual(['SelectComponent']);
+        expect(out[0].parts).toEqual([unmarked]);
     });
 
     it("does not take another class of the same name for the parent: the parent also has the part's selector", () => {

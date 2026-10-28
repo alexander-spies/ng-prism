@@ -288,6 +288,19 @@ describe('runPluginHooks with parts', () => {
         expect(result.components[0].parts![0].meta).toEqual({ seen: 'OptionComponent' });
     });
 
+    it('keeps the parts on a parent whose selector and class name a hook rewrote', async () => {
+        const plugin: NgPrismPlugin = {
+            name: 'p',
+            onComponentScanned: (c) =>
+                c.className === 'SelectComponent' ? { ...c, className: 'RenamedSelect', componentMeta: { ...c.componentMeta, selector: 'lib-renamed' } } : undefined
+        };
+
+        const result = await runPluginHooks({ components: [SELECT, OPTION] }, [plugin]);
+
+        expect(result.components.map((c) => c.className)).toEqual(['RenamedSelect']);
+        expect(result.components[0].parts!.map((p) => p.className)).toEqual(['OptionComponent']);
+    });
+
     it('returns the nested manifest when no plugin changes it', async () => {
         const result = await runPluginHooks({ components: [SELECT, OPTION] }, []);
 
