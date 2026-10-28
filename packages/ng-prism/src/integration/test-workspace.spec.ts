@@ -18,7 +18,16 @@ const EXCLUDED_ENTRIES = new Set(['node_modules', 'dist', '.angular', 'ng-prism-
 const LINKED_PACKAGES = ['@angular/cdk'];
 
 /** The classes the compositions of test-lib bring in, with or without a showcase of their own. */
-const COMPOSITION_CLASSES = ['FormFieldComponent', 'InputDirective', 'IconComponent', 'RadioGroupComponent', 'RadioComponent', 'ListItemComponent'];
+const COMPOSITION_CLASSES = [
+    'FormFieldComponent',
+    'InputDirective',
+    'IconComponent',
+    'RadioGroupComponent',
+    'RadioComponent',
+    'ListItemComponent',
+    'ListGroupComponent',
+    'ListItemMetaDirective'
+];
 
 function createTempWorkspace(): string {
     const tmp = mkdtempSync(join(tmpdir(), 'ng-prism-integration-'));
@@ -216,8 +225,15 @@ describe('test-workspace integration', () => {
 
         const content = readFileSync(join(tmp, 'ng-prism-cache', 'test-lib-prism', 'prism-manifest.ts'), 'utf-8');
 
-        // lib-list-item is a part of lib-list: it sits in the parts of the list, not among the components.
-        expect(content).toMatch(/parts: \[\s*\{\s*meta: \{\s*className: "ListItemComponent"/);
+        // Item, group and meta text are parts of lib-list: they sit in the parts of the list, in the order of their titles.
+        const parts = content.slice(content.indexOf('parts: ['));
+        const positions = ['ListGroupComponent', 'ListItemComponent', 'ListItemMetaDirective'].map((name) => parts.indexOf(`className: "${name}"`));
+
+        expect(content).toMatch(/parts: \[\s*\{\s*meta: \{\s*className: "ListGroupComponent"/);
+        expect(positions).not.toContain(-1);
+        expect(positions).toEqual([...positions].sort((a, b) => a - b));
+        // The directive part keeps its host: the element its usage line on the API tab is written on.
+        expect(parts).toMatch(/className: "ListItemMetaDirective",[\s\S]*?host: "<span>12<\/span>"/);
     });
 
     it('end-to-end: core ng-add then plugin ng-add wires config + deps', async () => {

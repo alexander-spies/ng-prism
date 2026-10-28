@@ -6,13 +6,15 @@ import { Showcase } from '@ng-prism/core';
  *
  * The item holds a native button: it emits `activate` on a click, or on Enter or Space once it has focus, unless it is
  * `disabled`. A disabled item is dimmed, and its button is disabled, so it ignores clicks and is out of the tab order.
+ * The button lays out the content in a row, so a `span` with `libListItemMeta` ends up at its far end.
  *
  * @since 1.7.0
  * @see ListComponent
+ * @see ListItemMetaDirective
  * @example
  * ```html
  * <lib-list>
- *   <lib-list-item (activate)="open()">Drafts</lib-list-item>
+ *   <lib-list-item (activate)="open()">Drafts <span libListItemMeta>3</span></lib-list-item>
  *   <lib-list-item disabled>Archive</lib-list-item>
  * </lib-list>
  * ```
@@ -45,7 +47,9 @@ import { Showcase } from '@ng-prism/core';
             border-top: 1px solid #e5e7eb;
         }
         .lib-list-item__action {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             width: 100%;
             margin: 0;
             padding: 10px 14px;
@@ -70,6 +74,11 @@ import { Showcase } from '@ng-prism/core';
         }
         .lib-list-item__action:disabled:hover {
             background: #ffffff;
+        }
+        .lib-list-item__meta {
+            margin-inline-start: auto;
+            font-size: 12px;
+            color: #6b7280;
         }
     `
 })
