@@ -74,6 +74,8 @@ The state is part of the address next to the variant. It stays in the URL when y
 
 Selecting another component or page pushes a new browser history entry. Changing the variant, the state, the view, the shown part or the panel tab rewrites the current entry instead, so stepping through variants does not fill the history. The browser back and forward buttons move between components and pages, and an entry holds the variant, state, view, part and panel its component was last left in.
 
+Selecting a component in the sidebar opens it on the Playground, whichever view tab the page before showed (since 22.7.0; before, the view stayed from one component to the next while the next one offered it). A link, a reload and the back and forward buttons open the view their URL names, so going back returns to the Overview or API tab an entry was left on.
+
 ## Control Panel & A11y State (sessionStorage)
 
 URL state does not carry control panel overrides, since long input strings would bloat every link. Instead, ng-prism mirrors these to `sessionStorage` under the key `ng-prism:state`:

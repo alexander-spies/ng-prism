@@ -33,7 +33,7 @@ export default defineConfig({
 });
 ```
 
-The plugin adds an **API** tab to the view tabs of every component and directive, and the same tab is the whole page of a [service](#services) or a [pipe](#pipes). The tab is there without a single JSDoc comment, since the usage snippet and the signatures come from the code.
+The plugin adds an **API** tab to the view tabs of every component and directive, and the same tab is the whole page of a [service](#services) or a [pipe](#pipes). The tab is there without a single JSDoc comment, since the usage snippet and the signatures come from the code. A component you select next opens on its Playground, not on the API tab; a link with `view=jsdoc` opens the API tab directly.
 
 ## Supported Tags
 

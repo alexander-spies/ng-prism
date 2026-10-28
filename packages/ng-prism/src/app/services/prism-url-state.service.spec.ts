@@ -354,6 +354,28 @@ describe('PrismUrlStateService', () => {
 
             expect(replaceSpy).toHaveBeenCalledTimes(1);
         });
+
+        it('should open the next component on the Playground and go back to the view the entry holds', async () => {
+            const a = createComponent({ className: 'A' });
+            const b = createComponent({ className: 'B' });
+            const { url, nav, panel } = setup({ components: [a, b] });
+
+            url.init();
+            nav.select(a);
+            panel.activeViewId.set('api');
+            flush();
+            expect(window.location.search).toBe('?component=A&view=api');
+
+            nav.select(b);
+            flush();
+            expect(panel.activeViewId()).toBe('renderer');
+            expect(window.location.search).toBe('?component=B');
+
+            await goBack();
+
+            expect(nav.activeComponent()).toBe(a);
+            expect(panel.activeViewId()).toBe('api');
+        });
     });
 
     describe('popstate handling', () => {
@@ -638,8 +660,8 @@ describe('PrismUrlStateService', () => {
             expect(window.location.search).toBe('?component=B');
         });
 
-        // No `mirrorRendererComponent()`: outside the Playground no renderer is mounted to see the switch.
-        it('should drop the variant and the state when the component changes outside the Playground', () => {
+        // No `mirrorRendererComponent()`: the switch is made from the Overview, where no renderer is mounted to see it.
+        it('should drop the variant and the state when the component changes from outside the Playground', () => {
             const a = createComponent({
                 className: 'A',
                 variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
@@ -664,14 +686,15 @@ describe('PrismUrlStateService', () => {
 
             expect(renderer.activeVariantIndex()).toBe(0);
             expect(renderer.activeStateIndex()).toBeNull();
-            expect(window.location.search).toBe('?component=B&view=overview');
+            expect(panel.activeViewId()).toBe('renderer');
+            expect(window.location.search).toBe('?component=B');
             // Not even for one write: a pushed entry with them would come back on the next back button.
             const written = [...pushSpy.mock.calls, ...replaceSpy.mock.calls].map(([, , href]) => String(href));
 
-            expect(written).toEqual(['/?component=B&view=overview']);
+            expect(written).toEqual(['/?component=B']);
         });
 
-        it('should restore a cell of another component outside the Playground on popstate', async () => {
+        it('should restore a cell of the component before in the Overview on popstate', async () => {
             const a = createComponent({
                 className: 'A',
                 variants: [{ name: 'V1' }, { name: 'V2' }, { name: 'V3' }],
@@ -688,7 +711,7 @@ describe('PrismUrlStateService', () => {
             flush();
             nav.select(b);
             flush();
-            expect(window.location.search).toBe('?component=B&view=overview');
+            expect(window.location.search).toBe('?component=B');
 
             await goBack();
             flush();
@@ -1044,6 +1067,64 @@ describe('PrismUrlStateService', () => {
             window.dispatchEvent(new PopStateEvent('popstate'));
 
             expect(nav.activeService()).toBe(toast);
+        });
+
+        it('starts the component that follows a service on the Playground, and writes no view', () => {
+            const btn = createComponent({ className: 'Btn' });
+            const card = createComponent({ className: 'Card' });
+            const toast = createService('ToastService');
+            const { url, nav, panel } = setup({ components: [btn, card], services: [toast] });
+
+            url.init();
+            nav.select(btn);
+            flush();
+            nav.selectService(toast);
+            panel.activeViewId.set('api');
+            flush();
+            expect(window.location.search).toBe('?service=ToastService&view=api');
+
+            nav.select(card);
+            flush();
+
+            expect(panel.activeViewId()).toBe('renderer');
+            expect(window.location.search).toBe('?component=Card');
+        });
+
+        it('goes back from a service to the view the entry of the component holds', async () => {
+            const btn = createComponent({ className: 'Btn' });
+            const toast = createService('ToastService');
+            const { url, nav, panel } = setup({ components: [btn], services: [toast] });
+
+            url.init();
+            nav.select(btn);
+            panel.activeViewId.set('api');
+            flush();
+            nav.selectService(toast);
+            flush();
+            expect(window.location.search).toBe('?service=ToastService&view=api');
+
+            await goBack();
+
+            expect(nav.activeComponent()).toBe(btn);
+            expect(panel.activeViewId()).toBe('api');
+        });
+
+        it('goes back from a service to the Playground of a component entry without a view', async () => {
+            const btn = createComponent({ className: 'Btn' });
+            const toast = createService('ToastService');
+            const { url, nav, panel } = setup({ components: [btn], services: [toast] });
+
+            url.init();
+            nav.select(btn);
+            flush();
+            nav.selectService(toast);
+            panel.activeViewId.set('api');
+            flush();
+
+            await goBack();
+
+            expect(nav.activeComponent()).toBe(btn);
+            expect(panel.activeViewId()).toBe('renderer');
         });
     });
 

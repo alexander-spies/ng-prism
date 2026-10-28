@@ -7,6 +7,7 @@ import {
     EnvironmentInjector,
     inject,
     Injectable,
+    linkedSignal,
     signal,
     untracked
 } from '@angular/core';
@@ -32,7 +33,21 @@ export class PrismPanelService {
     private readonly injectorCache = new Map<string, EnvironmentInjector>();
 
     readonly activePanelId = signal<string>('controls');
-    readonly activeViewId = signal<string>('renderer');
+
+    /**
+     * The id of the active view tab.
+     *
+     * Every component starts on the Playground, whichever view the page before
+     * it showed (since 22.7.0; before, a view stayed from one component to the
+     * next while the next one offered it): a reader looks at a component first,
+     * and at its API second. A view set after the switch wins, so a URL restore
+     * that names one keeps it. A service, a pipe or a guide page keeps the view
+     * it finds, and `nextViewId` moves it to one the page offers.
+     */
+    readonly activeViewId = linkedSignal<string | null, string>({
+        source: () => this.navigationService.activeComponent()?.meta.className ?? null,
+        computation: (component, previous) => (previous && (component === null || component === previous.source) ? previous.value : 'renderer')
+    });
 
     readonly activePanelInjector = computed<EnvironmentInjector | null>(() => this.getInjector(this.activePanelId()));
 

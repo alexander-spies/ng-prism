@@ -263,7 +263,7 @@ A type is only documented when a scanned entry point exports it and it is not `@
 
 - **Sidebar:** a **Services** section with a plug icon. Categories and order work as for components. The search finds a service by title, class name, category and tag. Navigation decorations (a11y, coverage, VRT) do not apply to services.
 - **Head:** category, title, a status chip, and the details popover, which shows the class name, the description, how the service is provided (`Provided automatically` or `Needs a providers entry`) and the entry point to import it from.
-- **View tabs:** only the panels that declare they apply to services, which today is the **API** tab of the JSDoc plugin. There is no Playground, no Overview and no addon panel area. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
+- **View tabs:** only the panels that declare they apply to services, which today is the **API** tab of the JSDoc plugin. There is no Playground, no Overview and no addon panel area. The API tab does not follow you back: a component you select next opens on its Playground, as every component does. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
 - **URL:** `?service=NotificationService`, see [State Preservation](guide/url-state.md).
 
 ## Without the JSDoc plugin

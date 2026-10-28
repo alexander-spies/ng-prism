@@ -165,7 +165,7 @@ The class description is the pipe's own JSDoc. A pipe without one does not take 
 
 - **Sidebar:** a **Pipes** section with a pipette icon. Categories and order work as for components. The search finds a pipe by title, class name, template name (`timeAgo`), category and tag. Navigation decorations (a11y, coverage, VRT) do not apply to pipes.
 - **Head:** category, title, a status chip, and the details popover, which shows the template name as code (`| timeAgo`), the description, whether the pipe is pure or impure and the entry point to import it from.
-- **View tabs:** only the panels that declare they apply to pipes, which today is the **API** tab of the JSDoc plugin. No Playground, no Overview, no addon panel area. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
+- **View tabs:** only the panels that declare they apply to pipes, which today is the **API** tab of the JSDoc plugin. No Playground, no Overview, no addon panel area. The API tab does not follow you back: a component you select next opens on its Playground, as every component does. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
 - **URL:** `?pipe=TimeAgoPipe`, see [State Preservation](guide/url-state.md).
 
 ## Without the JSDoc plugin

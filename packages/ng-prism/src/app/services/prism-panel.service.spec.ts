@@ -58,7 +58,11 @@ function createService(
         /** A signal to drive the active component from the spec; `activeComponent` is its start value. */
         activeComponentSignal?: WritableSignal<RuntimeComponent | null>;
         activeService?: RuntimeService | null;
+        /** A signal to drive the active service from the spec; `activeService` is its start value. */
+        activeServiceSignal?: WritableSignal<RuntimeService | null>;
         activePipe?: RuntimePipe | null;
+        /** A signal to drive the active pipe from the spec; `activePipe` is its start value. */
+        activePipeSignal?: WritableSignal<RuntimePipe | null>;
     } = {}
 ): PrismPanelService {
     const pluginStub = {
@@ -68,8 +72,8 @@ function createService(
     const activeComponent = options.activeComponentSignal ?? signal(options.activeComponent ?? null);
     // The real `activeTarget` is derived from the three re-linked signals the
     // same way: at most one of them is non-null.
-    const activeService = signal(options.activeService ?? null);
-    const activePipe = signal(options.activePipe ?? null);
+    const activeService = options.activeServiceSignal ?? signal(options.activeService ?? null);
+    const activePipe = options.activePipeSignal ?? signal(options.activePipe ?? null);
     const navigationStub = {
         activeComponent: activeComponent.asReadonly(),
         activeService: activeService.asReadonly(),
@@ -110,6 +114,89 @@ describe('PrismPanelService', () => {
 
     it('returns null activePanelInjector when no panel matches', () => {
         expect(createService().activePanelInjector()).toBeNull();
+    });
+
+    describe('activeViewId', () => {
+        function navigation(start: { component?: RuntimeComponent; service?: RuntimeService; pipe?: RuntimePipe } = {}) {
+            const component = signal<RuntimeComponent | null>(start.component ?? null);
+            const service = signal<RuntimeService | null>(start.service ?? null);
+            const pipe = signal<RuntimePipe | null>(start.pipe ?? null);
+            const panels = createService({ activeComponentSignal: component, activeServiceSignal: service, activePipeSignal: pipe });
+            const show = (next: { component?: RuntimeComponent; service?: RuntimeService; pipe?: RuntimePipe }) => {
+                component.set(next.component ?? null);
+                service.set(next.service ?? null);
+                pipe.set(next.pipe ?? null);
+            };
+
+            return { panels, show };
+        }
+
+        it('starts on the Playground', () => {
+            expect(createService().activeViewId()).toBe('renderer');
+        });
+
+        it('starts every component on the Playground, whichever view the one before showed', () => {
+            const { panels, show } = navigation({ component: makeComponent('AComponent') });
+
+            panels.activeViewId.set('jsdoc');
+            show({ component: makeComponent('BComponent') });
+            expect(panels.activeViewId()).toBe('renderer');
+        });
+
+        it('keeps the view when the manifest re-links the active component', () => {
+            const { panels, show } = navigation({ component: makeComponent('AComponent') });
+
+            panels.activeViewId.set('jsdoc');
+            show({ component: makeComponent('AComponent') });
+            expect(panels.activeViewId()).toBe('jsdoc');
+        });
+
+        it('keeps the view of a component on the service page that follows it', () => {
+            const { panels, show } = navigation({ component: makeComponent() });
+
+            panels.activeViewId.set('jsdoc');
+            show({ service: makeService() });
+            expect(panels.activeViewId()).toBe('jsdoc');
+        });
+
+        it.each([
+            ['service', { service: makeService() }],
+            ['pipe', { pipe: makePipe() }]
+        ])('starts a component that follows a %s on the Playground', (_kind, page) => {
+            const { panels, show } = navigation({ component: makeComponent() });
+
+            show(page);
+            panels.activeViewId.set('jsdoc');
+            show({ component: makeComponent('BComponent') });
+            expect(panels.activeViewId()).toBe('renderer');
+        });
+
+        it('starts a component that follows a guide page on the Playground', () => {
+            const { panels, show } = navigation({ component: makeComponent() });
+
+            panels.activeViewId.set('overview');
+            show({});
+            expect(panels.activeViewId()).toBe('overview');
+            show({ component: makeComponent('BComponent') });
+            expect(panels.activeViewId()).toBe('renderer');
+        });
+
+        it('keeps a view set right after the switch, as a URL restore sets it', () => {
+            const { panels, show } = navigation({ service: makeService() });
+
+            panels.activeViewId.set('jsdoc');
+            show({ component: makeComponent() });
+            panels.activeViewId.set('jsdoc');
+            expect(panels.activeViewId()).toBe('jsdoc');
+        });
+
+        it('keeps the view from a service to a pipe', () => {
+            const { panels, show } = navigation({ service: makeService() });
+
+            panels.activeViewId.set('jsdoc');
+            show({ pipe: makePipe() });
+            expect(panels.activeViewId()).toBe('jsdoc');
+        });
     });
 
     describe('viewPanels', () => {
