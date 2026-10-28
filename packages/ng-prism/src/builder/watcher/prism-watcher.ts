@@ -1,4 +1,4 @@
-import { statSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { dirname, resolve } from 'path';
 import chokidar from 'chokidar';
 
@@ -18,9 +18,11 @@ export interface ChangeHandler {
 export interface WatcherHandle {
     close(): void;
     /**
-     * Replaces the single files watched beside the sources. Files that stay are
-     * added again: chokidar misses a file whose directory did not exist when it
-     * was added, and a rebuild is the next chance to pick it up.
+     * Replaces the single files watched beside the sources. A file that stays is
+     * added again once its directory has appeared: chokidar misses a file whose
+     * directory did not exist when it was added, and a rebuild is the next chance
+     * to pick it up. Not otherwise, since every add of a missing file puts one
+     * more listener on its parent.
      */
     setFiles(files: string[]): void;
 }
@@ -94,6 +96,8 @@ export function createChangeHandler(options: ChangeHandlerOptions): ChangeHandle
 export function startWatcher(options: StartWatcherOptions): WatcherHandle {
     const { entryPoint, configFile, ignorePaths, onRebuild, logger, debounceMs } = options;
     let files = (options.files ?? []).map((file) => resolve(file));
+    /** The files added while their directory was missing, which chokidar cannot see yet. */
+    let blind = new Set(files.filter((file) => !existsSync(dirname(file))));
     const handler = createChangeHandler({
         onRebuild,
         logger,
@@ -141,10 +145,12 @@ export function startWatcher(options: StartWatcherOptions): WatcherHandle {
         setFiles(next: string[]) {
             const resolved = next.map((file) => resolve(file));
             const gone = files.filter((file) => !resolved.includes(file));
+            const toAdd = resolved.filter((file) => !files.includes(file) || (blind.has(file) && existsSync(dirname(file))));
 
             if (gone.length > 0) watcher.unwatch(gone);
             files = resolved;
-            if (files.length > 0) watcher.add(files);
+            blind = new Set(resolved.filter((file) => (toAdd.includes(file) || blind.has(file)) && !existsSync(dirname(file))));
+            if (toAdd.length > 0) watcher.add(toAdd);
         }
     };
 }

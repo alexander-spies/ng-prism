@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import chokidar from 'chokidar';
 import { createChangeHandler, startWatcher } from './prism-watcher.js';
 
@@ -129,14 +132,39 @@ describe('startWatcher with single files', () => {
         handle.close();
     });
 
-    it('adds the same files again on setFiles, for a directory that appeared since', () => {
-        const { w, handle } = start(['/ws/coverage/a11y-report.json']);
+    describe('a file whose directory is missing', () => {
+        let root: string;
 
-        handle.setFiles(['/ws/coverage/a11y-report.json']);
+        beforeEach(() => {
+            root = mkdtempSync(join(tmpdir(), 'ng-prism-watcher-'));
+        });
+        afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-        expect(w.add).toHaveBeenCalledWith(['/ws/coverage/a11y-report.json']);
-        expect(w.unwatch).not.toHaveBeenCalled();
-        handle.close();
+        it('adds it again once the directory exists, for chokidar to see it', () => {
+            const report = join(root, 'coverage', 'a11y-report.json');
+            const { w, handle } = start([report]);
+
+            mkdirSync(join(root, 'coverage'));
+            handle.setFiles([report]);
+
+            expect(w.add).toHaveBeenCalledWith([report]);
+            handle.close();
+        });
+
+        it('does not add it again while the directory is still missing, or once it was added with it', () => {
+            const report = join(root, 'coverage', 'a11y-report.json');
+            const { w, handle } = start([report]);
+
+            handle.setFiles([report]);
+            handle.setFiles([report]);
+            expect(w.add).not.toHaveBeenCalled();
+
+            mkdirSync(join(root, 'coverage'));
+            handle.setFiles([report]);
+            handle.setFiles([report]);
+            expect(w.add).toHaveBeenCalledTimes(1);
+            handle.close();
+        });
     });
 });
 
