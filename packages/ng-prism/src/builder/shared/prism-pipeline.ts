@@ -138,11 +138,16 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
                 const a11y = a11yByComponent.get(component.className);
 
                 if (!a11y) return component;
+                // The component's own `meta.a11y` (the panel's `rules` and `disable`, and whatever
+                // else a project keeps there) stays: the report's entry goes beside it.
+                const own = component.showcaseConfig.meta?.['a11y'];
+                const merged = typeof own === 'object' && own !== null && !Array.isArray(own) ? { ...own, ...a11y } : a11y;
+
                 return {
                     ...component,
                     showcaseConfig: {
                         ...component.showcaseConfig,
-                        meta: { ...component.showcaseConfig.meta, a11y }
+                        meta: { ...component.showcaseConfig.meta, a11y: merged }
                     }
                 };
             }),

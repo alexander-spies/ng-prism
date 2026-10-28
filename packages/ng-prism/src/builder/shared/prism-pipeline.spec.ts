@@ -33,7 +33,7 @@ function createMockContext(workspaceRoot: string) {
     } as unknown as BuilderContext;
 }
 
-function writeA11yReport(root: string, score: number): void {
+function writeA11yReport(root: string, score: number, className = 'ButtonComponent'): void {
     writeFileSync(
         join(root, 'a11y-report.json'),
         JSON.stringify({
@@ -52,7 +52,7 @@ function writeA11yReport(root: string, score: number): void {
                 auditedVariants: 5
             },
             components: {
-                ButtonComponent: {
+                [className]: {
                     score,
                     violations: 1,
                     critical: 0,
@@ -179,6 +179,39 @@ describe('runPrismPipeline integration', () => {
         const content = readManifest(tmp);
 
         expect(content).toContain('a11y:');
+        expect(content).toContain('variant: "warn"');
+    });
+
+    it("keeps a component's own meta.a11y next to the report entry", async () => {
+        tmp = createTempWorkspace();
+        writeFileSync(
+            join(tmp, 'lib', 'a11y-rules.component.ts'),
+            `import { Component } from '@angular/core';
+
+function Showcase(config: object): ClassDecorator {
+    return () => {};
+}
+
+@Showcase({
+    title: 'Rules',
+    meta: { a11y: { rules: { 'color-contrast': { enabled: false } }, disable: false } }
+})
+@Component({ selector: 'lib-rules', standalone: true, template: '' })
+export class RulesComponent {}
+`,
+            'utf-8'
+        );
+        writeFileSync(join(tmp, 'lib', 'a11y-rules-api.ts'), "export { RulesComponent } from './a11y-rules.component.js';\n", 'utf-8');
+        writeA11yReport(tmp, 70, 'RulesComponent');
+
+        await runPrismPipeline({ ...defaultOptions, entryPoint: 'lib/a11y-rules-api.ts' }, createMockContext(tmp), createPipelineState());
+
+        const content = readManifest(tmp);
+
+        // The panel reads `rules` and `disable` from here; the report entry goes beside them.
+        expect(content).toMatch(/"color-contrast": \{\s*enabled: false,\s*\}/);
+        expect(content).toContain('disable: false');
+        expect(content).toContain('found: true');
         expect(content).toContain('variant: "warn"');
     });
 

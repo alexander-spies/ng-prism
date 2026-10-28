@@ -44,7 +44,7 @@ export interface A11yManifestMeta {
     thresholds: A11yThresholds;
 }
 
-/** Shape stored under `showcaseConfig.meta.a11y`. */
+/** What the build adds under `showcaseConfig.meta.a11y` from the report, next to the component's own {@link A11yCoreConfig}. */
 export interface A11yComponentMeta {
     found: boolean;
     score: A11yScoreResult;

@@ -158,6 +158,8 @@ The file must match this JSON shape:
 
 `total` is required and drives the header pill. `components` is optional (per-component breakdown for tooltips/drilldown). `generatedAt` is informational.
 
+The build adds a component's entry to its `showcaseConfig.meta.a11y` as `found`, `score` and `summary`, next to what the `@Showcase` already declares there: `rules` and `disable` keep working for a component the report lists (since 22.7.0; before, the entry replaced them).
+
 ### 2. Point ng-prism at the report
 
 ```typescript
