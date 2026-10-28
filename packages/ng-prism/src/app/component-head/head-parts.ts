@@ -15,9 +15,12 @@ export interface PartChip {
     className: string;
     title: string;
     selector: string;
-    /** The id of the popover and the `popovertarget` of the chip: one per part, so every chip opens its own card. */
+    /**
+     * The id of the popover and the `popovertarget` of the chip, by the position of the part rather than its class: two
+     * parts from different files can share a class name, and every chip still opens its own card.
+     */
     popoverId: string;
-    /** The CSS anchor name of the chip, which the card positions itself against. */
+    /** The CSS anchor name of the chip, which the card positions itself against; by position, as `popoverId`. */
     anchorName: string;
     status: StatusBadge | null;
     description?: string;
@@ -44,12 +47,12 @@ export function formatPartDefault(input: InputMeta): string | undefined {
  * binds them with, so an alias wins over the class member.
  */
 export function partChips(parts: readonly RuntimePart[] | undefined): PartChip[] {
-    return (parts ?? []).map(({ meta }) => ({
+    return (parts ?? []).map(({ meta }, index) => ({
         className: meta.className,
         title: meta.showcaseConfig.title,
         selector: meta.componentMeta.selector,
-        popoverId: `prism-part-${meta.className}`,
-        anchorName: `--prism-part-${meta.className}`,
+        popoverId: `prism-part-${index}`,
+        anchorName: `--prism-part-${index}`,
         status: statusBadge(meta.showcaseConfig.status),
         description: meta.showcaseConfig.description,
         inputs: meta.inputs.map((input) => ({

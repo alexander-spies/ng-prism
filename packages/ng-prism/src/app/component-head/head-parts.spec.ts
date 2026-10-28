@@ -38,8 +38,8 @@ describe('partChips', () => {
                 className: 'OptionComponent',
                 title: 'Option',
                 selector: 'lib-option',
-                popoverId: 'prism-part-OptionComponent',
-                anchorName: '--prism-part-OptionComponent'
+                popoverId: 'prism-part-0',
+                anchorName: '--prism-part-0'
             })
         );
         expect(chip.inputs).toEqual([
@@ -72,6 +72,15 @@ describe('partChips', () => {
             .flat();
 
         expect(new Set(ids).size).toBe(4);
+    });
+
+    it('gives two parts of one class name, from different files, a popover id and anchor name each', () => {
+        const twin = { meta: { ...option.meta, filePath: '/lib/other/OptionComponent.ts' } };
+        const chips = partChips([option, twin]);
+
+        expect(chips.map((c) => c.className)).toEqual(['OptionComponent', 'OptionComponent']);
+        expect(new Set(chips.map((c) => c.popoverId)).size).toBe(2);
+        expect(new Set(chips.map((c) => c.anchorName)).size).toBe(2);
     });
 
     it('carries the description and the status badge of the part', () => {

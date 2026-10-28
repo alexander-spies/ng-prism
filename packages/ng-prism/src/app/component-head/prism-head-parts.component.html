@@ -4,7 +4,7 @@
         class="parts"
         role="group"
         aria-label="Parts">
-        @for (chip of chips(); track chip.className) {
+        @for (chip of chips(); track chip.popoverId) {
             <button
                 class="part-chip"
                 type="button"
