@@ -1,4 +1,5 @@
 import type { DiscoveryComponent, DiscoveryManifest, DiscoveryPart, DiscoveryState, DiscoveryVariant, RuntimeManifest } from '../plugin/plugin.types.js';
+import { publicOutputNames } from '../shared/model-outputs.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import { resolveVariantBg } from '../shared/variant-bg.js';
 import { forcesAnyState } from './pseudo/pseudo-targets.js';
@@ -126,11 +127,7 @@ export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryMani
                 title: part.showcaseConfig.title,
                 selector: part.componentMeta.selector,
                 inputs: part.inputs.map((input) => input.alias ?? input.name),
-                outputs: [
-                    ...part.outputs.map((output) => output.alias ?? output.name),
-                    // Angular adds the change output of a `model()` by itself, so `outputs` has no entry for it.
-                    ...part.inputs.filter((input) => input.model).map((input) => `${input.alias ?? input.name}Change`)
-                ]
+                outputs: publicOutputNames(part)
             }));
 
             if (states.length) discovered.states = states;
