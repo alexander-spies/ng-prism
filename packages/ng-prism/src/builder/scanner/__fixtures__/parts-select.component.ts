@@ -1,0 +1,68 @@
+import { Component, Directive, Injectable, input, output } from '@angular/core';
+
+function Showcase(config: unknown): ClassDecorator {
+    return () => {};
+}
+
+@Showcase({ title: 'Select', variants: [{ name: 'Default' }] })
+@Component({ selector: 'lib-select, [libSelect]', standalone: true, template: '<ng-content />' })
+export class SelectComponent {}
+
+@Showcase({ title: 'Option', category: 'Forms', partOf: 'lib-select', variants: [{ name: 'Default' }] })
+@Component({ selector: 'lib-option', standalone: true, template: '<ng-content />' })
+export class OptionComponent {
+    readonly value = input.required<string>();
+    readonly disabled = input(false);
+    readonly remove = output<void>();
+}
+
+@Showcase({ title: 'Optgroup', partOf: ' [libSelect] ' })
+@Component({ selector: 'lib-optgroup', standalone: true, template: '<ng-content />' })
+export class OptgroupComponent {}
+
+@Showcase({ title: 'Orphan', partOf: 'lib-missing', variants: [{ name: 'A' }, { name: 'B' }] })
+@Component({ selector: 'lib-orphan', standalone: true, template: '' })
+export class OrphanComponent {}
+
+@Showcase({ title: 'Twin A' })
+@Component({ selector: 'lib-twin', standalone: true, template: '' })
+export class TwinAComponent {}
+
+@Showcase({ title: 'Twin B' })
+@Component({ selector: 'lib-twin', standalone: true, template: '' })
+export class TwinBComponent {}
+
+@Showcase({ title: 'Twin part', partOf: 'lib-twin' })
+@Component({ selector: 'lib-twin-part', standalone: true, template: '' })
+export class TwinPartComponent {}
+
+@Showcase({ title: 'Chain', partOf: 'lib-option' })
+@Component({ selector: 'lib-chain', standalone: true, template: '' })
+export class ChainComponent {}
+
+@Showcase({ title: 'Self', partOf: 'lib-self' })
+@Component({ selector: 'lib-self', standalone: true, template: '' })
+export class SelfComponent {}
+
+@Showcase({ title: 'Number partOf', partOf: 42 })
+@Component({ selector: 'lib-number-part-of', standalone: true, template: '' })
+export class NumberPartOfComponent {}
+
+@Showcase({ title: 'Svc', partOf: 'lib-select' })
+@Injectable({ providedIn: 'root' })
+export class PartServiceStub {}
+
+// Not in parts-api.ts: a part that also declares what the scan reports on any component. A test picks it per entry point.
+@Showcase({ title: 'Providers part', partOf: 'lib-select', providers: [], setup: () => [] })
+@Component({ selector: 'lib-providers-part', standalone: true, template: '' })
+export class ProvidersPartComponent {}
+
+// Not in parts-api.ts either: parts with a host. A directive's host element is what its usage line is written on; a
+// host template renders a showcase. A test picks them per entry point.
+@Showcase({ title: 'Trigger', partOf: 'lib-select', host: '<button type="button">' })
+@Directive({ selector: '[libSelectTrigger]', standalone: true })
+export class SelectTriggerDirective {}
+
+@Showcase({ title: 'Hint', partOf: 'lib-select', host: { template: '<lib-select><lib-select-hint /></lib-select>' } })
+@Component({ selector: 'lib-select-hint', standalone: true, template: '' })
+export class SelectHintComponent {}

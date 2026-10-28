@@ -135,6 +135,15 @@ export interface PanelDefinition {
      * pages alone, and only when it applies to `'component'`. Since 22.7.0.
      */
     appliesTo?: readonly PanelTarget[];
+    /**
+     * The panel shows the parts of the active component (a view panel for `'component'`). It gets the input
+     * `activePart` (`string | null`), the class name of the part to show, and a part's popover in the component head
+     * links to it. Without this flag the panel gets no `activePart`, so it need not declare the input. When several
+     * panels set it, the link goes to the first in registration order. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    listsParts?: boolean;
     /** Providers injected into a child EnvironmentInjector scoped to this panel */
     providers?: Provider[];
     /** When provided, the panel tab is only shown if this returns true for the active component */
@@ -211,6 +220,25 @@ export interface ScannedComponent {
      * declares a `template` or a host template, and when a plugin hook builds the component. Since 22.7.0.
      */
     composition?: ComponentComposition;
+    /**
+     * The class name of the component or directive this one is a part of, set only when the selector in
+     * `showcaseConfig.partOf` resolved to exactly one other showcased class. A plugin that works per page, such as one
+     * that builds or photographs something for each component, skips a component that has it: the styleguide shows a
+     * part on the page of its parent. A `partOf` that did not resolve is dropped from `showcaseConfig` and leaves this
+     * unset, so the class stays a component of its own. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parentClassName?: string;
+    /**
+     * The parts of this component or directive, those showcased classes whose `partOf` names its selector, sorted by
+     * title. Build time only: the `PrismManifest` that `onManifestReady` receives has them here and not in
+     * `components`, and the runtime manifest carries them as {@link RuntimeComponent.parts}. The per-item hooks, such as
+     * `onComponentScanned`, run before the parts are nested and see each part as a component of its own. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parts?: ScannedComponent[];
     /** Arbitrary plugin metadata */
     meta?: Record<string, unknown>;
 }
@@ -297,6 +325,11 @@ export interface InputMeta {
     defaultUnreadable?: true;
     required: boolean;
     doc?: string;
+    /**
+     * The input is a `model()` or `model.required()`, for which Angular adds the output `${alias ?? name}Change`.
+     * {@link ScannedComponent.outputs} has no entry for that output, since no class member declares it. Since 22.7.0.
+     */
+    model?: true;
 }
 
 export interface OutputMeta {
@@ -327,6 +360,24 @@ export interface RuntimeComponent {
      * When every variant is composed, `type` is this wrapper too. Since 22.7.0.
      */
     composition?: Type<unknown>;
+    /**
+     * The parts of the component, in the order of {@link ScannedComponent.parts}. The styleguide shows each one on this
+     * component's page and never on a page of its own. Absent for a component without parts. Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parts?: RuntimePart[];
+}
+
+/**
+ * A part in the runtime manifest: its scanned data and nothing else. It has no `type`, because the styleguide never
+ * renders a part by itself: the variants of the parent do, and the manifest does not import the class of a part unless
+ * a composition of the parent uses it. Since 22.7.0.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+ */
+export interface RuntimePart {
+    meta: ScannedComponent;
 }
 
 // --- Discovery manifest (the `__PRISM_MANIFEST__` global) ---
@@ -362,6 +413,37 @@ export interface DiscoveryComponent {
     states?: DiscoveryState[];
     /** Sanitised `ShowcaseConfig.meta`. Omitted when empty. */
     meta?: Record<string, unknown>;
+    /**
+     * The parts of the component or directive, those showcases whose `partOf` names its selector, in the order of the
+     * styleguide's page (sorted by title). A part is not in `components`: it has no page, no variants and no render
+     * marker of its own, and the variants of this component are what render it. Omitted when there are none.
+     * Since 22.7.0.
+     *
+     * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+     */
+    parts?: DiscoveryPart[];
+}
+
+/**
+ * A part of a component or directive in `__PRISM_MANIFEST__`: what a tool needs to list it and to know the surface of
+ * the class the variants of the parent render. Not something to visit or capture: a part has no page of its own, and
+ * `?component=` with its class name opens its parent. Since 22.7.0.
+ *
+ * @experimental Experimental until 23.0.0: the shape may change in a 22.x minor release.
+ */
+export interface DiscoveryPart {
+    className: string;
+    /** `ShowcaseConfig.title`, i.e. the display name, not the class name. */
+    title: string;
+    /** The selector of the class, as `@Component` or `@Directive` declares it. */
+    selector: string;
+    /** The public names the inputs are bound by: the `alias` where there is one, else the member name. */
+    inputs: string[];
+    /**
+     * The public names the outputs are bound by: the `alias` where there is one, else the member name. Then the change
+     * output Angular adds for each `model()` input, `${alias ?? name}Change`, see {@link InputMeta.model}.
+     */
+    outputs: string[];
 }
 
 export interface DiscoveryVariant {
@@ -455,7 +537,8 @@ export interface NgPrismConfig {
      * When true, the build fails instead of warning whenever the scanner has
      * to drop a `@Showcase` value: one it cannot evaluate statically, an
      * invalid `bg`, `status`, `canvasLayout` or `pseudo`, a missing `title`,
-     * or the deprecated `providers`, which never reach the styleguide.
+     * or the deprecated `providers`, which never reach the styleguide, or a
+     * `partOf` that matches no single other showcased component.
      * Default: `false`.
      */
     strictShowcase?: boolean;

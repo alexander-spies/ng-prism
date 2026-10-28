@@ -3,7 +3,7 @@ import ts from 'typescript';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import { extractComponentApi } from './api/component-api.extractor.js';
 import { buildExportIndex } from './api/export-index.js';
-import { createReporters, findShowcasedClasses, scanComponents } from './component.scanner.js';
+import { createReporters, findShowcasedClasses, scanComponents, type ScanComponentsOptions } from './component.scanner.js';
 import { buildDeclarableIndex } from './composition/declarables.js';
 import { createCompositionContext } from './composition/read-composition.js';
 import { type ResolvedEntryPoint, resolveEntryPointExports } from './entry-point.scanner.js';
@@ -1249,5 +1249,71 @@ describe('scanComponents with a string host on a directive', () => {
         expect(diagnostics.filter((d) => d.includes('HighlightDirective'))).toEqual([]);
 
         warnSpy.mockRestore();
+    });
+});
+
+describe('scanComponents with partOf', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+    let warnSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'parts-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    beforeEach(() => {
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+    });
+
+    function scan(options: ScanComponentsOptions = {}) {
+        const diagnostics: string[] = [];
+        const notices = new Set<string>();
+        const components = scanComponents(findShowcasedClasses(exports, checker), checker, { diagnostics, notices, ...options });
+        const config = (className: string) => components.find((c) => c.className === className)!.showcaseConfig;
+
+        return { components, diagnostics, notices, config };
+    }
+
+    it('keeps a selector string, trimmed', () => {
+        const { config } = scan();
+
+        expect(config('OptionComponent').partOf).toBe('lib-select');
+        expect(config('OptgroupComponent').partOf).toBe('[libSelect]');
+    });
+
+    it('drops a partOf that is not a string, as a diagnostic', () => {
+        const { diagnostics, config } = scan();
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(
+                /^NumberPartOfComponent › partOf — expected the selector of a showcased component or directive as a string, got 42; it was dropped \(.*parts-select\.component\.ts:\d+:\d+\)$/
+            )
+        );
+        expect(config('NumberPartOfComponent')).not.toHaveProperty('partOf');
+    });
+
+    it('leaves a component without partOf as it was', () => {
+        const { diagnostics, config } = scan();
+
+        expect(config('SelectComponent')).not.toHaveProperty('partOf');
+        expect(diagnostics.filter((d) => d.startsWith('SelectComponent'))).toEqual([]);
+    });
+
+    it('records where each partOf was declared', () => {
+        const partOrigins = new Map<ScannedComponent, ts.Expression>();
+        const { components } = scan({ partOrigins });
+
+        expect([...partOrigins.keys()].map((c) => c.className).sort()).toEqual(
+            ['ChainComponent', 'OptgroupComponent', 'OptionComponent', 'OrphanComponent', 'SelfComponent', 'TwinPartComponent'].sort()
+        );
+        expect(partOrigins.get(components.find((c) => c.className === 'OptionComponent')!)!.getText()).toContain("partOf: 'lib-select'");
     });
 });

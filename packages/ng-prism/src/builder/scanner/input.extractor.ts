@@ -167,7 +167,8 @@ function readInput(
         required,
         ...(values && { values }),
         ...defaultFields(initial),
-        ...(doc && { doc })
+        ...(doc && { doc }),
+        ...(isModelInput(member) && { model: true as const })
     };
 }
 

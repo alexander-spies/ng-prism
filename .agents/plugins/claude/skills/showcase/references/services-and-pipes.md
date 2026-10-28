@@ -67,7 +67,9 @@ export interface NotificationConfig {
   `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` need a canvas. **Until 23.0.0 one of them keeps an
   `@Injectable` class a component** (deprecated since 22.7.0, removed in 23.0.0), with a notice that does not count for `strictShowcase`:
   `<Class> is an @Injectable/@Service with @Showcase and declares <fields>, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.`
-  To make it a service, remove those fields and move the demo to a component page.
+  To make it a service, remove those fields and move the demo to a component page. `partOf` doesn't apply either: only a
+  component or directive can be part of another, and it is dropped with a warning that counts for `strictShowcase`
+  (`<Class> › partOf — only a component or directive can be part of another; it was dropped (<file>:<line>:<col>)`).
 - **`setup` lists what configures the service**: provider functions and `InjectionToken` constants, e.g.
   `setup: () => [provideNotifications, NOTIFICATION_CONFIG]`. It is an arrow function on purpose: a direct list would
   read a `const` of a file that imports the service back, and `@Showcase(...)` runs when the class is defined (a
@@ -172,6 +174,7 @@ same type cards and the same page without a canvas. What differs:
   `… From 23.0.0 it will be dropped, because ng-prism shows standalone pipes only; make the pipe standalone and remove the fields, or move the page to a componentPage.`
   This rule comes before the two warnings above: a NgModule pipe or a pipe with an unreadable name that has
   `renderPage` keeps its page in 22.x. To make it a pipe, remove those fields and move the demo to a component page.
+  `partOf` on a pipe is dropped with the same warning as on a service.
 - **The page is `transform()`.** Every overload signature gets its own row, with its parameters, `@param` texts and
   return type, and the implementation signature is left out when there are overloads. No other member of the class is
   listed. An overload without a doc block takes the implementation's, then the first documented overload's (only its

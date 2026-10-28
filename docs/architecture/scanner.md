@@ -162,6 +162,20 @@ Each problem is reported against the field it comes from, with the showcase's fi
 
 The compiler APIs in use are `parseTemplate`, `CssSelector`, `SelectorMatcher`, `DomElementSchemaRegistry` and the R3 template AST, exported from `@angular/compiler`, a peer dependency of `@ng-prism/core` that the config loader already imports. Only the builder imports them. If one throws, the scan reports one diagnostic for the showcase, leaves all of its compositions out and goes on, so a change in the compiler does not break the build.
 
+## Parts
+
+A showcase with `partOf` is a part of another component or directive (since 22.7.0), and has no page of its own. `readShowcaseConfig()` keeps `partOf` as a trimmed non-empty string, reports anything else, and `scanComponents()` records the `@Showcase` argument of each class that kept it in `ScanComponentsOptions.partOrigins`. A service or a pipe with `partOf` is reported by its own scan (`describePartOfOnServiceOrPipe()`) and loses the field.
+
+`resolveParts()` in `resolve-parts.ts` resolves `partOf` once, at the end of `createScanner().scan()`, after every entry point is scanned and the components are deduplicated: the parent may be exported by another entry point than the part, and a class that two entry points export is one candidate, not two. It matches on `selectorList()`, the `selector` of a component or directive split on the commas outside brackets, parentheses and quotes (an attribute value such as `[data-mode="a,b"]` can hold one) and trimmed, and checks each part in this order:
+
+1. **Itself.** One of its own selectors is the one it names.
+2. **Candidates.** The other scanned components whose `selectorList()` contains it. None is "not found"; more than one is "ambiguous", naming the classes in scan order.
+3. **Chain.** The one candidate declares `partOf` as well. That is judged on the declaration, not on how the candidate resolved, so a part whose parent could not be resolved is no parent either, and the result does not depend on the order of the scan.
+
+A part that fails one of them is a diagnostic through `report`, so it counts for `strictShowcase` and lands in `ScanResult.diagnostics`. It loses `partOf` and stays a component exactly as the scan read it, with its variants and composition: a part must not vanish over a wrong selector. The messages are in [`partOf`](guide/showcase-decorator.md#partof).
+
+A resolved part gets `ScannedComponent.parentClassName`, the public marker that plugins skip by. It keeps `showcaseConfig.partOf`, which only a resolved part still has. Every field of `PART_IGNORED_FIELDS` that it sets (`variants`, `states`, the navigation and canvas fields, `host`, `imports`, `renderPage`) is deleted, each with a notice through `notify`: nothing the styleguide could show is lost, so `strictShowcase` does not fail over the field. `host` counts only as a host template (`isHostTemplate()`). The string or object host of a directive part stays, since the usage line of the jsdoc plugin is written on its element, and `scanComponents()` has already dropped any other host of a component. The list holds only what reaches a component's `showcaseConfig`: `providers` and `setup` never do, and keep the diagnostics every component gets (`describeDeprecatedProviders()`, `describeSetupOnComponent()`). Its `composition` goes too, since the variants that it was read from are gone. Neither step undoes what the scan said before it knew the class was a part: `scanComponents()` reads and composes a part's variants like any other component's, so a malformed value or an error in a variant template stays a diagnostic. An unresolved part must keep its variants and composition, which is why the scan does not skip them. Title, description, tags, status, inputs, outputs, `meta` and `api` stay.
+
 ## Services
 
 A service is a class with `@Showcase` and `@Injectable` or `@Service`. `component.scanner.ts` and `service.scanner.ts` split the classified `@Showcase` classes between them by `kind`, so a service is in `ScanResult.services` and never in `components`: the component list, `onComponentScanned` and the discovery manifest hold components and directives only (before 22.7.0 a showcased service or pipe was listed there too). The code is in `builder/scanner/api/`. `scanServices()` only runs with `ScanOptions.services`; without it the services are only counted (see [Entry](#entry)).
@@ -256,6 +270,7 @@ In watch mode, `startWatcher()` only watches the directory of the entry point (a
 Detected by checking whether the property initializer is a call expression whose callee is `input`, `input.required`, `model`, or `model.required`.
 
 - **Required check:** `isSignalInputRequired()` looks for the `.required` property access.
+- **Model check:** `isModelInput()` sets `InputMeta.model` on a `model()` or `model.required()` (since 22.7.0). Angular adds a change output `${alias ?? name}Change` for it, which `outputs` does not list; the part cards of the head and `DiscoveryPart.outputs` add it from this flag.
 - **Type resolution:** If the call has a type argument (`input<string>()`), `checker.getTypeFromTypeNode()` resolves it. If there is a default value argument (`input('hello')`), `checker.getTypeAtLocation()` infers the type from the argument.
 
 ### Decorator inputs: `@Input()`

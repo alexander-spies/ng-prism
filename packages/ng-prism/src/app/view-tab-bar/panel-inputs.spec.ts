@@ -57,6 +57,31 @@ describe('panelInputsFor', () => {
     it('keeps activeComponent as the only input when no panel is active', () => {
         expect(panelInputsFor(undefined, component, null, null)).toEqual({ activeComponent: component });
     });
+
+    describe('activePart', () => {
+        const lister: PanelDefinition = { ...panel(), listsParts: true };
+
+        it('passes activePart only to a panel that lists parts', () => {
+            expect(panelInputsFor(lister, component, null, null, 'OptionComponent')).toEqual({ activeComponent: component, activePart: 'OptionComponent' });
+            expect(panelInputsFor(panel(), component, null, null, 'OptionComponent')).toEqual({ activeComponent: component });
+        });
+
+        it('passes null to a panel that lists parts while no part is shown', () => {
+            expect(panelInputsFor(lister, component, null, null)).toEqual({ activeComponent: component, activePart: null });
+        });
+
+        it('passes activePart only to a panel that applies to components', () => {
+            expect(panelInputsFor({ ...lister, appliesTo: ['service'] }, null, service, null, 'OptionComponent')).toEqual({ activeService: service });
+        });
+
+        it('passes activePart next to the other inputs of a panel that applies to components and services', () => {
+            expect(panelInputsFor({ ...lister, appliesTo: ['component', 'service'] }, component, null, null, 'OptionComponent')).toEqual({
+                activeComponent: component,
+                activeService: null,
+                activePart: 'OptionComponent'
+            });
+        });
+    });
 });
 
 describe('activeViewPanel', () => {

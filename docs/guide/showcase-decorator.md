@@ -127,15 +127,7 @@ Groups the component in the sidebar. Components without a category land in "Unca
 @Showcase({ title: 'Card', category: 'Molecules' })
 ```
 
-Use `/` (space-slash-space) to nest categories under a parent group:
-
-```typescript
-@Showcase({ title: 'Button', category: 'Atoms' })
-@Showcase({ title: 'Dialog', category: 'Overlays' })
-@Showcase({ title: 'Color Tokens', category: 'Foundations' })
-```
-
-This creates a collapsible **Components** group in the sidebar containing **Atoms** and **Overlays** as sub-categories, while **Foundations** remains a top-level category.
+For a top-level group above categories, use [`section`](#section).
 
 ### `categoryOrder`
 
@@ -227,7 +219,7 @@ Not combinable with [`renderPage`](#renderpage): a component page has no Overvie
 
 ### `tags`
 
-Array of strings used for search and filtering in the sidebar. Tags are matched alongside `title` and `category`.
+Array of strings used for search and filtering in the sidebar. Tags are matched alongside `title`, `category`, the class name and the selector.
 
 ```typescript
 @Showcase({
@@ -371,6 +363,64 @@ What the templates of this showcase use and ng-prism does not find in your libra
 ```
 
 Library classes that a template names are imported without being listed. See [Content Projection: Imports](guide/content-projection.md#imports) for the rule. `imports` is for components and directives only; on a service or a pipe it counts as a [component-only field](guide/showcasing-services.md#compatibility-until-2300).
+
+### `partOf`
+
+The selector of the component or directive that this one is a part of (since 22.7.0). Some components only exist inside another one: an option inside a select, an option group, a tab inside a tab group. A showcase for each of them rebuilds the parent's markup in a variant that the parent's own variants already show. `partOf` says what it belongs to instead, and the part gets no page of its own: its title, description, inputs and outputs appear on the page of its parent.
+
+```typescript
+@Showcase<SelectComponent>({
+  title: 'Select',
+  variants: [{ name: 'Default' }, { name: 'Groups', template: '<lib-optgroup label="Fruit"><lib-option value="apple">Apple</lib-option></lib-optgroup>' }],
+})
+@Component({ selector: 'lib-select, [libSelect]', ... })
+export class SelectComponent { ... }
+
+@Showcase({
+  title: 'Option',
+  description: 'One choice of a select.',
+  partOf: 'lib-select',
+})
+@Component({ selector: 'lib-option', ... })
+export class OptionComponent { ... }
+```
+
+The value is a selector string and not the class. A class would need `option.component.ts` to import `select.component.ts`, which usually imports the option for its `contentChildren`: an import cycle, and the config is evaluated when the class is defined, which makes the cycle a `ReferenceError` in a library build. A string costs nothing at runtime, and `ng-prism-strip` removes the decorator as it does for every other field.
+
+The rules:
+
+- **A selector matches when it equals one entry of the parent's `selector`**, ignoring spaces around it. `'lib-select'` matches `selector: 'lib-select, [libSelect]'`, and so does `'[libSelect]'`. The parent can be a component or a directive, and it can be exported from another entry point than the part.
+- **One parent, and no chains.** Name a selector that exactly one other class with `@Showcase` has. A part cannot be the parent of another part, and cannot name itself.
+- **A part uses `title`, `description`, `tags` and `status`**, the inputs and outputs that the scan reads from its class, and `meta`, which stays for plugins. A plugin that reads the API of components (`componentApi`) reads the part's as well. The sidebar search lists the parent for a query that matches the title, class name, selector or tags of one of its parts, since the part has no entry of its own.
+- **What only a page uses has no effect:** `variants`, `states`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `bg`, `canvasLayout`, a host template (`host: { template }`), `imports` and `renderPage`. Setting one costs a notice and never fails a build: the scan drops the field and says so, and a notice does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase), since nothing is lost that the styleguide could have shown. The variants of a part are dropped too, so a part does not need one. The scan reads a class before it knows that it is a part, so a value in one of these fields that is malformed or cannot be read, and an error in the template of one of the part's variants, is reported as it is on any other component, and that does count for `strictShowcase`. `providers` and `setup` keep their own warnings on a part, as on every component. A directive part keeps a string or object `host`, such as `host: '<button>Open</button>'`: it names the element the directive sits on, and the API tab of the [JSDoc plugin](plugins/jsdoc.md) writes the part's usage line on it (`<button libTrigger>` instead of `<div libTrigger>`).
+- **Only a component or a directive can be a part.** `partOf` on a service or a pipe is dropped with a diagnostic, like the other losses of a service or a pipe: only when a plugin shows services or pipes.
+
+**Where a part shows up.** The head of the parent's page lists its parts after the title, the info glyph and the status badge: the label "Parts" and one chip per part, in the order of their titles. A click on a chip opens a card at that chip, built like the card behind the info glyph:
+
+- the part's title, its `<selector>` and its status badge, if it has a `status`;
+- its description;
+- **Inputs**: the name (or the alias, which is what a template binds), a `required` badge, the type as it is written in the source, the default and the JSDoc line;
+- **Outputs**: the name (or the alias) and the JSDoc line, then the change output Angular adds for each `model()`, `<name>Change`, with a line on the two-way binding.
+
+A section without entries is left out. Everything on the card comes from what the scan reads from the part's class, so it works without a plugin.
+
+At the bottom of the card, **Full API →** opens the first visible view panel that sets [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), for example the API tab of the [JSDoc plugin](plugins/jsdoc.md), at the block of that part. It appears only when such a panel exists for the component, so without one the card ends with the outputs. The band of the head never wraps: when it is too narrow for all chips, they scroll sideways inside their own track.
+
+A `partOf` that does not resolve never makes a component disappear. The scan reports a diagnostic, drops `partOf`, and the class stays an entry of its own with everything it declares, its variants included:
+
+| Message                                                                                                                            | Cause and fix                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `<Class> › partOf — no component or directive with @Showcase has the selector "<selector>"; it keeps a page of its own`            | No exported class with `@Showcase` has that selector. Check the spelling, and that the parent has `@Showcase`.           |
+| `<Class> › partOf — "<selector>" is the selector of <A> and <B>; name a selector only one of them has. It keeps a page of its own` | Several showcased classes match. Name a selector only the parent has, for example an attribute selector.                 |
+| `<Class> › partOf — <Parent> is a part itself, and a part cannot have parts; it keeps a page of its own`                           | The parent declares `partOf` too. Point the part at the parent's own parent, or give the middle class a page of its own. |
+| `<Class> › partOf — a component cannot be a part of itself; it keeps a page of its own`                                            | The selector is one of the class's own.                                                                                  |
+| `<Class> › partOf — expected the selector of a showcased component or directive as a string, got <value>; it was dropped`          | `partOf` is not a string, or only spaces.                                                                                |
+| `<Class> › partOf — only a component or directive can be part of another; it was dropped`                                          | A service or a pipe declares `partOf`. Reported when a plugin shows services or pipes, as their other diagnostics are.   |
+| `<Class> › <field> — has no effect on a part, which has no page of its own: the parent's showcase shows it. It was dropped.`       | A notice, not a diagnostic. Delete the field from the part.                                                              |
+
+Each message ends with the file, line and column of the `partOf` or the field, as other `@Showcase` messages do.
+
+**When a part, when a showcase of its own.** Use `partOf` for a class that only works inside one parent and whose page would repeat what the parent's variants show: `lib-option` and `lib-optgroup` in `lib-select`. Keep a showcase of its own when the class has a life apart from one parent. `libInput` stays its own entry: a form field and a search input both use it, `partOf` takes exactly one parent, and it has states of its own that only a page of its own can show.
 
 ### `status`
 

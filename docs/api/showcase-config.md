@@ -23,6 +23,7 @@ interface ShowcaseConfig<T = unknown> {
     canvasLayout?: CanvasLayout;
     host?: string | DirectiveHost | HostTemplate;
     imports?: ShowcaseImport[];
+    partOf?: string;
     renderPage?: string;
     status?: ComponentStatus;
 }
@@ -37,7 +38,7 @@ interface ShowcaseState {
 }
 ```
 
-`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md), and on a class with `@Pipe`, which makes it a [pipe](guide/showcasing-pipes.md) (both since `22.7.0`): a page with its API and no canvas. For a service or a pipe, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only they take. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage`) need a canvas, see [Services](#services) and [Pipes](#pipes) below.
+`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md), and on a class with `@Pipe`, which makes it a [pipe](guide/showcasing-pipes.md) (both since `22.7.0`): a page with its API and no canvas. For a service or a pipe, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only they take. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage`) need a canvas, see [Services](#services) and [Pipes](#pipes) below. `partOf` is for components and directives only: on a service or a pipe it is dropped with a warning.
 
 The optional generic parameter `T` is the component class. When set via `@Showcase<MyComponent>({...})`, variant `inputs` are checked against `Partial<InputsOf<MyComponent>>`, giving you autocomplete on input names and type-checking on values. When omitted, `T` defaults to `unknown` and `inputs` accepts any `Record<string, unknown>`, so existing call sites keep working unchanged. See [Variants: Type-safe inputs](guide/variants.md#type-safe-inputs) for usage and [`InputsOf<T>`](api/types.md#inputsof) for the type mapping rules.
 
@@ -179,7 +180,7 @@ See [Variants: States](guide/variants.md#states) for how to write them and when 
 
 ### `tags`
 
-Optional array of strings used for sidebar search and filtering. Matched alongside `title` and `category`.
+Optional array of strings used for sidebar search and filtering. Matched alongside `title`, `category`, the class name and the selector.
 
 ```typescript
 @Showcase({ title: 'Button', tags: ['form', 'cta', 'interactive'] })
@@ -352,6 +353,28 @@ Optional, since `22.7.0`. What the [templates](guide/content-projection.md#compi
 | `from` | The module specifier to import it from, as in an `import` |
 
 The entries are strings so that [`ng-prism-strip`](guide/library-publishing.md) leaves no import behind in the published library. Components, directives and pipes that your library's entry points export do not need an entry: a template that names them imports them, see [the rule](guide/content-projection.md#imports). ng-prism reads each entry from the declarations of its module to know its selector or name. An entry it cannot read is imported as written, with a notice. The field applies to components and directives, not to services or pipes.
+
+---
+
+### `partOf`
+
+Optional, since `22.7.0`. The selector of the showcased component or directive that this one is a part of, such as `'lib-select'` on `lib-option`. A part has no page of its own and no entry in the sidebar: its title, description, inputs and outputs appear on the page of its parent.
+
+```typescript
+@Showcase({
+  title: 'Option',
+  description: 'One choice of a select.',
+  partOf: 'lib-select',
+})
+@Component({ selector: 'lib-option', ... })
+export class OptionComponent { ... }
+```
+
+The value is a selector and not a class, so that the part does not have to import its parent, which usually imports the part back. It matches one entry of the parent's `selector`, trimmed: `'lib-select'` finds `selector: 'lib-select, [libSelect]'`. The parent can be in another entry point. A part has exactly one parent, a part cannot have parts, and a class cannot be its own part.
+
+A part uses `title`, `description`, `tags` and `status`, its inputs and outputs, and `meta` for plugins. `variants`, `states`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `bg`, `canvasLayout`, a host template (`host: { template }`), `imports` and `renderPage` have no effect on one: the scan drops each with a notice, which does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase). A value in one of them that is malformed or cannot be read, and an error in the template of a variant of the part, is still reported as on any component and does count, since the scan reads the class before it knows that it is a part. `providers` and `setup` keep their own warnings. A directive part keeps a string or object [`host`](#host), such as `host: '<button>Open</button>'`: it names the element the directive sits on, which a usage line such as the one of the [JSDoc plugin](plugins/jsdoc.md) is written on.
+
+A `partOf` that matches no showcased class, matches several, names a part or names the class itself is a warning that `strictShowcase` turns into a build error. The class then keeps a page of its own, variants included. [The decorator guide](guide/showcase-decorator.md#partof) has every message, and says when a class is a part and when it keeps a showcase of its own.
 
 ---
 

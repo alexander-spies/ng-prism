@@ -1,21 +1,32 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, NgZone, signal, untracked } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import type { ApiDocTags, ApiMethod, ApiProperty, ApiTypeDoc } from '@ng-prism/core/plugin';
-import { Highlight } from 'ngx-highlightjs';
-import { type ParsedExample, parseExample, renderBlockMarkdown, renderInlineMarkdown } from '../markdown.js';
-import { activeTocId, buildApiPageToc, declaredParamSegments, documentsParams, setupSignature, splitReachedFrom, typeAnchor, typeSegments } from './api-page.helpers.js';
-import type { ApiOutputRow, ApiPageModel } from './api-page.model.js';
-import { resolveDocLinks, TYPE_LINK_ATTRIBUTE, typeLinkTarget } from './doc-links.js';
+import {
+    afterNextRender,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    DestroyRef,
+    effect,
+    ElementRef,
+    forwardRef,
+    inject,
+    Injector,
+    input,
+    NgZone,
+    signal,
+    untracked,
+    viewChild
+} from '@angular/core';
+import { activeTocId, buildApiPageToc, buildPartsToc, isTypeAnchor, listedTocId, partJump, samePartJump } from './api-page.helpers.js';
+import type { ApiPageModel, ApiPagePart } from './api-page.model.js';
+import { TYPE_LINK_ATTRIBUTE } from './doc-links.js';
+import { ApiPageNavigation, JsDocApiSectionsComponent } from './jsdoc-api-sections.component.js';
+import { JumpFollow } from './jump-follow.js';
 
 /** How far below the top of the scroll container a section lands when the page jumps to it. */
 const SCROLL_OFFSET = 12;
 
-/** How long a type card stays highlighted after a link jumped to it. */
+/** How long a type card or a part's block stays highlighted after a jump to it. */
 const HIGHLIGHT_MS = 1600;
-
-/** Without `scrollend`, a jump counts as over once its smooth scroll has been quiet for this long. */
-const JUMP_SETTLE_MS = 150;
 
 /** What the reader does to scroll by hand; any of it ends a jump. */
 const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
@@ -24,7 +35,8 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
  * The API page of a component, a directive, a service or a pipe: what it is,
  * how to bring it in, what it offers and the types its API reaches, with an
  * "On this page" list next to it. It renders an `ApiPageModel`, so all four
- * kinds share one look.
+ * kinds share one look. A component's parts follow its own sections, each as
+ * a block with the API page of the part, and the list has a group for them.
  *
  * The host is the scroll container (the panel stylesheet gives it `overflow:
  * auto`), so every jump scrolls it, never the window or the shell around it.
@@ -40,10 +52,11 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
 @Component({
     selector: 'prism-jsdoc-api-page',
     standalone: true,
-    imports: [Highlight, NgTemplateOutlet],
+    imports: [JsDocApiSectionsComponent, NgTemplateOutlet],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './jsdoc-api-page.component.html',
     styleUrls: ['../jsdoc-panel.component.css', './jsdoc-api-page.component.css'],
+    providers: [{ provide: ApiPageNavigation, useExisting: forwardRef(() => JsDocApiPageComponent) }],
     host: {
         '[attr.data-prism-service-rendered]': "kind() === 'service' ? className() : null",
         '[attr.data-prism-pipe-rendered]': "kind() === 'pipe' ? className() : null",
@@ -51,59 +64,50 @@ const READER_INPUT = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
         '(click)': 'onHostClick($event)'
     }
 })
-export class JsDocApiPageComponent {
+export class JsDocApiPageComponent implements ApiPageNavigation {
     readonly page = input.required<ApiPageModel>();
+    /** The parts of the component, a block each after its own sections. */
+    readonly parts = input<readonly ApiPagePart[]>([]);
+    /** The class name of the part whose block the page scrolls to and lights up, `null` for none. */
+    readonly activePart = input<string | null>(null);
 
-    private readonly sanitizer = inject(DomSanitizer);
     private readonly host: HTMLElement = inject(ElementRef).nativeElement;
+    private readonly injector = inject(Injector);
+    /** The grid of the page, content and list. */
+    private readonly layout = viewChild.required<ElementRef<HTMLElement>>('layout');
 
     /** Kind and class name, not the page object: a manifest update during `serve` hands over a new page for the same class. */
     protected readonly kind = computed(() => this.page().kind);
     protected readonly className = computed(() => this.page().className);
-    protected readonly inputs = computed(() => this.page().inputs ?? []);
-    protected readonly outputs = computed(() => this.page().outputs ?? []);
-    protected readonly serviceProperties = computed(() => this.page().properties ?? []);
-    protected readonly pageMethods = computed(() => this.page().methods ?? []);
-    protected readonly transformSignatures = computed(() => this.page().transform ?? []);
     protected readonly toc = computed(() => buildApiPageToc(this.page()));
-    protected readonly renderedDescription = computed(() => this.renderBlock(this.page().description));
+    protected readonly partsToc = computed(() => buildPartsToc(this.parts()));
+
+    /** The ids the "On this page" list has. The scroll spy marks one of them, never an anchor the list leaves out. */
+    private readonly tocIds = computed(() => new Set([...this.toc(), ...this.partsToc()].map((entry) => entry.id)));
+
+    /** The jump to the block of `activePart`, while the page has that part; see {@link samePartJump} for when it is a new one. */
+    private readonly activePartJump = computed(() => partJump(this.className(), this.parts(), this.activePart()), { equal: samePartJump });
 
     protected readonly activeId = signal('usage');
-    protected readonly highlightedId = signal<string | null>(null);
-    protected readonly copied = signal(false);
+    private readonly highlighted = signal<string | null>(null);
+    /** The type card or part's block the last jump lit up, for as long as it stays lit. */
+    readonly highlightedId = this.highlighted.asReadonly();
 
-    // The template re-renders whenever the active TOC entry changes. Cached per
-    // object or text, these hand it the same values again, so nothing below
-    // the bindings is rebuilt and no `innerHTML` is written twice.
-    protected readonly segmentsOf = memoize(typeSegments);
-    protected readonly declaredParamSegmentsOf = memoize(declaredParamSegments);
-    protected readonly signatureOf = memoize(setupSignature);
-    protected readonly documentsParams = documentsParams;
-    protected readonly splitReachedFrom = splitReachedFrom;
-    protected readonly typeAnchor = typeAnchor;
-
-    /**
-     * The rendered descriptions of the page being shown. A link resolves against
-     * that page's types, so the caches go with the page: this instance outlives
-     * a switch to another component, service or pipe, and the HTML of its
-     * texts must not outlive the page they were rendered for.
-     */
-    private readonly rendered = computed(() => ({
-        page: this.page(),
-        block: new Map<string, SafeHtml>(),
-        inline: new Map<string, SafeHtml>()
-    }));
-
-    /**
-     * The entry the reader jumped to, until the jump is over: the smooth scroll
-     * passes other sections on its way, and one near the bottom of the page is
-     * never scrolled up to the activation line.
-     */
-    private jumpTarget: string | null = null;
     private spyFrame = 0;
-    private jumpTimer?: ReturnType<typeof setTimeout>;
     private highlightTimer?: ReturnType<typeof setTimeout>;
-    private copiedTimer?: ReturnType<typeof setTimeout>;
+
+    /**
+     * The jump in progress, if any. Its target is the entry the list marks
+     * while it lasts: a smooth scroll passes other sections on its way, and one
+     * near the bottom of the page is never scrolled up to the activation line.
+     * Once it is over, the entry stays as it is until the next scroll moves
+     * the page, so a frame still pending from the jump is dropped rather than
+     * allowed to overrule it.
+     */
+    private readonly follow = new JumpFollow(() => {
+        cancelAnimationFrame(this.spyFrame);
+        this.spyFrame = 0;
+    });
 
     constructor() {
         // The panel keeps this instance when the reader moves to another
@@ -112,117 +116,68 @@ export class JsDocApiPageComponent {
             this.kind();
             this.className();
             untracked(() => {
-                this.endJump();
+                this.follow.end();
                 this.host.scrollTo({ top: 0, behavior: 'instant' });
                 this.activeId.set('usage');
-                this.highlightedId.set(null);
+                this.highlighted.set(null);
             });
+        });
+
+        // After the next render: the block has to be in the DOM, and the jump
+        // has to come after the effect above has put a new component at the top.
+        effect((onCleanup) => {
+            const target = this.activePartJump();
+
+            if (!target) return;
+
+            const jump = afterNextRender(() => this.goTo(target.anchor), { injector: this.injector });
+
+            onCleanup(() => jump.destroy());
         });
 
         // Outside the zone: a scroll event alone changes nothing on screen.
         // Only a different active entry does, and that is a signal write.
         const onScroll = () => this.onScroll();
-        const endJump = () => this.endJump();
+        const endJump = () => this.follow.end();
 
-        inject(NgZone).runOutsideAngular(() => {
+        // The page still grows under a jump that starts right after a render,
+        // as the one to `activePart` does (see `JumpFollow`). Until the jump is
+        // over, each resize puts its target back in place.
+        const resizes = inject(NgZone).runOutsideAngular(() => {
             this.host.addEventListener('scroll', onScroll, { passive: true });
-            this.host.addEventListener('scrollend', endJump);
             for (const type of READER_INPUT) this.host.addEventListener(type, endJump, { passive: true });
+            return new ResizeObserver(() => this.followJump());
         });
+
+        afterNextRender(() => resizes.observe(this.layout().nativeElement));
         inject(DestroyRef).onDestroy(() => {
+            resizes.disconnect();
             this.host.removeEventListener('scroll', onScroll);
-            this.host.removeEventListener('scrollend', endJump);
             for (const type of READER_INPUT) this.host.removeEventListener(type, endJump);
+            this.follow.end();
             cancelAnimationFrame(this.spyFrame);
-            clearTimeout(this.jumpTimer);
             clearTimeout(this.highlightTimer);
-            clearTimeout(this.copiedTimer);
         });
     }
 
-    /** Scroll to a section or a type card; a type card lights up briefly so the eye finds it. */
-    protected goTo(id: string): void {
-        const target = this.anchors().find((anchor) => anchor.dataset['tocId'] === id);
+    /**
+     * Scroll to a section, a type card or a part's block. A card or a block
+     * lights up briefly so the eye finds it; a section has its heading.
+     */
+    goTo(id: string): void {
+        const target = this.anchorOf(id);
 
         if (!target) return;
 
-        this.activeId.set(id);
-        this.jumpTarget = id;
+        this.activeId.set(this.listedFor(id));
+        this.follow.start(id);
         this.host.scrollTo({ top: this.offsetOf(target) - SCROLL_OFFSET });
 
-        if (!id.startsWith('type-')) return;
+        if (!isTypeAnchor(id) && !this.parts().some((part) => part.scope === id)) return;
 
-        this.highlightedId.set(id);
+        this.highlighted.set(id);
         clearTimeout(this.highlightTimer);
-        this.highlightTimer = setTimeout(() => this.highlightedId.set(null), HIGHLIGHT_MS);
-    }
-
-    protected copyUsage(): void {
-        navigator.clipboard
-            ?.writeText(this.page().usage)
-            .then(() => {
-                this.copied.set(true);
-                clearTimeout(this.copiedTimer);
-                this.copiedTimer = setTimeout(() => this.copied.set(false), 1500);
-            })
-            .catch(() => undefined);
-    }
-
-    protected isDeprecated(tags: ApiDocTags): boolean {
-        return !!tags.deprecated;
-    }
-
-    protected deprecatedMessage(tags: ApiDocTags): string | undefined {
-        return typeof tags.deprecated === 'string' ? tags.deprecated : undefined;
-    }
-
-    // Source is library-author JSDoc compiled into the manifest at build time,
-    // not user input, so bypassing sanitization is safe here.
-    protected renderBlock(text: string | undefined): SafeHtml | null {
-        if (!text) return null;
-
-        const { page, block } = this.rendered();
-
-        if (!block.has(text)) block.set(text, this.sanitizer.bypassSecurityTrustHtml(renderBlockMarkdown(this.withLinks(page, text)) ?? ''));
-        return block.get(text)!;
-    }
-
-    protected renderInline(text: string): SafeHtml {
-        const { page, inline } = this.rendered();
-
-        if (!inline.has(text)) inline.set(text, this.sanitizer.bypassSecurityTrustHtml(renderInlineMarkdown(this.withLinks(page, text))));
-        return inline.get(text)!;
-    }
-
-    /** The TOC anchor of the type card a `@see` reference names, if it is on the page. */
-    protected seeTarget(reference: string): string | undefined {
-        return typeLinkTarget(this.page().types, reference);
-    }
-
-    protected parseExample(raw: string): ParsedExample {
-        return parseExample(raw);
-    }
-
-    /** An interface or object type says what may be left out; a class property has nothing to require. */
-    protected isRequired(property: ApiProperty, owner?: ApiTypeDoc): boolean {
-        return owner?.kind !== 'class' && !property.optional;
-    }
-
-    protected hasDefaults(properties: ApiProperty[]): boolean {
-        return properties.some((property) => property.tags.default !== undefined);
-    }
-
-    /** The scanner reads an output's payload from the source; without it the column would be empty. */
-    protected hasPayloads(outputs: ApiOutputRow[]): boolean {
-        return outputs.some((output) => output.payload !== undefined);
-    }
-
-    protected hasParams(methods: ApiMethod[]): boolean {
-        return methods.some((method) => method.params.length > 0);
-    }
-
-    protected hasValues(type: ApiTypeDoc): boolean {
-        return !!type.members?.some((member) => member.value !== undefined);
+        this.highlightTimer = setTimeout(() => this.highlighted.set(null), HIGHLIGHT_MS);
     }
 
     /** The links inside rendered descriptions are plain HTML, so one listener on the host catches them all. */
@@ -236,15 +191,9 @@ export class JsDocApiPageComponent {
         this.goTo(anchor);
     }
 
-    private withLinks(page: ApiPageModel, text: string): string {
-        return resolveDocLinks(text, (target) => typeLinkTarget(page.types, target));
-    }
-
+    /** A scroll during a jump is the jump's own, and keeps it going: the reader's input has ended it before the scroll. */
     private onScroll(): void {
-        if (this.jumpTarget && !('onscrollend' in this.host)) {
-            clearTimeout(this.jumpTimer);
-            this.jumpTimer = setTimeout(() => this.endJump(), JUMP_SETTLE_MS);
-        }
+        this.follow.moved();
 
         if (this.spyFrame) return;
 
@@ -254,46 +203,48 @@ export class JsDocApiPageComponent {
         });
     }
 
-    /**
-     * The jump is over: from here on the scroll position decides. The entry
-     * stays as it is until the next scroll moves the page, so a frame still
-     * pending from the jump is dropped rather than allowed to overrule it.
-     */
-    private endJump(): void {
-        if (!this.jumpTarget) return;
+    /** The page grew or shrank during a jump: the jump goes on to where its target is now. */
+    private followJump(): void {
+        const target = this.follow.moved();
+        const anchor = target === null ? undefined : this.anchorOf(target);
 
-        this.jumpTarget = null;
-        clearTimeout(this.jumpTimer);
-        cancelAnimationFrame(this.spyFrame);
-        this.spyFrame = 0;
+        if (anchor) this.host.scrollTo({ top: this.offsetOf(anchor) - SCROLL_OFFSET });
     }
 
     private anchors(): HTMLElement[] {
         return [...this.host.querySelectorAll<HTMLElement>('[data-toc-id]')];
     }
 
+    private anchorOf(id: string): HTMLElement | undefined {
+        return this.anchors().find((anchor) => anchor.dataset['tocId'] === id);
+    }
+
     private offsetOf(element: HTMLElement): number {
         return element.getBoundingClientRect().top - this.host.getBoundingClientRect().top + this.host.scrollTop;
     }
 
+    /** A part's Types section and its cards have anchors but no entry, so reading them keeps the part's last listed section marked. */
     private sectionInView(): string {
         const { scrollTop, clientHeight, scrollHeight } = this.host;
+        const listed = this.tocIds();
 
         return activeTocId({
-            anchors: this.anchors().map((anchor) => ({ id: anchor.dataset['tocId']!, top: this.offsetOf(anchor) })),
+            anchors: this.anchors()
+                .filter((anchor) => listed.has(anchor.dataset['tocId']!))
+                .map((anchor) => ({ id: anchor.dataset['tocId']!, top: this.offsetOf(anchor) })),
             scrollTop,
             clientHeight,
             scrollHeight,
-            jumpTarget: this.jumpTarget
+            jumpTarget: this.follow.target === null ? null : this.listedFor(this.follow.target)
         });
     }
-}
 
-function memoize<K extends object, V>(fn: (key: K) => V): (key: K) => V {
-    const cache = new WeakMap<K, V>();
-
-    return (key) => {
-        if (!cache.has(key)) cache.set(key, fn(key));
-        return cache.get(key)!;
-    };
+    /** The entry the list marks for the anchor `id`, which a type card of a part has none of its own for. */
+    private listedFor(id: string): string {
+        return listedTocId(
+            this.anchors().map((anchor) => anchor.dataset['tocId']!),
+            this.tocIds(),
+            id
+        );
+    }
 }

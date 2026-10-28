@@ -29,9 +29,10 @@ A lightweight, Angular-native component showcase tool. Annotate your components 
 - **TypeScript Compiler API:** inputs, outputs, and types are extracted at build time instead of through runtime reflection
 - **Component Pages:** register free-form Angular components as styleguide pages alongside `@Showcase` components
 - **Compositions:** show a component with the parts it works with, such as a form field with its input, as a compiled Angular template with `template`, `host: { template }` and `imports`, and keep the Overview, states and Controls (since `22.7.0`)
+- **Parts:** a component that only works inside another, such as an option in a select, names its parent with [`partOf`](guide/showcase-decorator.md#partof) and shows on the parent's page, with its inputs and outputs on a card behind a chip and a block on the API tab, instead of a page of its own (since `22.7.0`)
 - **Services:** an `@Injectable` or `@Service` with `@Showcase` gets an API page and a usage snippet, read from the code and its JSDoc, drawn by the [JSDoc plugin](plugins/jsdoc.md) (since `22.7.0`)
 - **Pipes:** a standalone `@Pipe` with `@Showcase` gets the same kind of page, with every `transform()` overload and a template line in its usage snippet (since `22.7.0`)
-- **URL state:** deep-linking via `?component=`, `?service=`, `?pipe=`, `?variant=`, `?state=`, `?page=`, `?view=` params
+- **URL state:** deep-linking via `?component=`, `?service=`, `?pipe=`, `?variant=`, `?state=`, `?page=`, `?view=`, `?part=` params
 - **Zoneless ready:** opt in via `ng add @ng-prism/core --zoneless` for ~30 KB bundle savings
 
 ## Quick Example

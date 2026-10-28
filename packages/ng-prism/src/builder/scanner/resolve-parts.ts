@@ -1,0 +1,147 @@
+import type ts from 'typescript';
+import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
+import type { ScannedComponent } from '../../plugin/plugin.types.js';
+import { isHostTemplate, type Report } from './component.scanner.js';
+import { describeShowcaseIssue } from './showcase-diagnostics.js';
+
+/**
+ * The fields of a `@Showcase` config that do nothing on a part, which has no page of its own: the variants, states,
+ * placement in the navigation and canvas settings belong to a page, and what the templates of a showcase need is
+ * only read for its variants.
+ *
+ * `host` only as a host template, `{ template }`, which renders a showcase. The string or object host of a directive
+ * stays: it names the element the directive sits on, which the usage line of a plugin such as jsdoc writes it on. A
+ * component keeps no other host anyway, the scan drops it before (see {@link isHostTemplate}).
+ *
+ * Only what reaches a component's `showcaseConfig` is listed. `providers` and `setup` never do: the scan reports them
+ * on any component, a part included (`describeDeprecatedProviders`, `describeSetupOnComponent`), and that stays so.
+ */
+export const PART_IGNORED_FIELDS = [
+    'variants',
+    'states',
+    'category',
+    'categoryOrder',
+    'componentOrder',
+    'section',
+    'sectionOrder',
+    'bg',
+    'canvasLayout',
+    'host',
+    'imports',
+    'renderPage'
+] as const satisfies ReadonlyArray<keyof ShowcaseConfig>;
+
+const IGNORED_ON_A_PART = "has no effect on a part, which has no page of its own: the parent's showcase shows it. It was dropped.";
+
+export interface PartResolution {
+    /** For a part that cannot be resolved: counts for `strictShowcase`. */
+    report: Report;
+    /** For what a resolved part drops: never fails the build. */
+    notify: Report;
+    /** Where each class that declares `partOf` wrote it, which is what the messages point at. */
+    origins: ReadonlyMap<ScannedComponent, ts.Expression>;
+}
+
+/**
+ * The selectors a component or directive matches, from its comma separated `selector`. Only a comma outside brackets,
+ * parentheses and quotes separates two: the value of an attribute, `[data-mode="a,b"]`, can hold one.
+ */
+export function selectorList(selector: string): string[] {
+    const entries: string[] = [];
+    let start = 0;
+    let depth = 0;
+    let quote: string | undefined;
+
+    for (let index = 0; index < selector.length; index++) {
+        const char = selector[index];
+
+        if (quote) {
+            if (char === quote) quote = undefined;
+        } else if (char === '"' || char === "'") {
+            quote = char;
+        } else if (char === '[' || char === '(') {
+            depth++;
+        } else if (char === ']' || char === ')') {
+            depth = Math.max(0, depth - 1);
+        } else if (char === ',' && depth === 0) {
+            entries.push(selector.slice(start, index));
+            start = index + 1;
+        }
+    }
+
+    entries.push(selector.slice(start));
+    return entries.map((entry) => entry.trim()).filter((entry) => entry !== '');
+}
+
+/**
+ * Resolve `partOf`, the selector a part names, to the component or directive it is a part of. Runs once all entry
+ * points are scanned, so that the parent can be in another one, and changes `components` in place.
+ *
+ * A resolved part gets {@link ScannedComponent.parentClassName}. What it has set that only a page uses is dropped,
+ * each field with a notice, and so is its composition, since nothing renders its variants. A directive part keeps a
+ * string or object `host`, see {@link PART_IGNORED_FIELDS}. The notices never fail
+ * `strictShowcase`, but the scan has read the class before it knows that it is a part: a malformed value or an error in
+ * the template of one of its variants is a diagnostic all the same.
+ *
+ * A part that cannot be resolved is a diagnostic. It loses `partOf` and stays a component of its own, as it would
+ * without it: a part must not vanish from the styleguide over a wrong selector.
+ */
+export function resolveParts(components: ScannedComponent[], { report, notify, origins }: PartResolution): void {
+    // A chain is judged on what a class declares: the parent of a part that cannot be resolved loses its partOf below.
+    const declaring = new Set(components.filter((component) => component.showcaseConfig.partOf !== undefined));
+    // Parsed once: every part is matched against all of them.
+    const selectors = new Map(components.map((component) => [component, selectorList(component.componentMeta.selector)]));
+
+    for (const part of components) {
+        const selector = part.showcaseConfig.partOf;
+        const origin = origins.get(part);
+
+        // The scan records the origin of every class that kept partOf.
+        if (selector === undefined || !origin) continue;
+
+        const resolved = findParent(part, selector, selectors, declaring);
+
+        if (typeof resolved === 'string') {
+            report(describeShowcaseIssue(part.className, origin, ['partOf'], resolved));
+            delete part.showcaseConfig.partOf;
+            continue;
+        }
+
+        part.parentClassName = resolved.className;
+
+        for (const field of PART_IGNORED_FIELDS) {
+            const value = part.showcaseConfig[field];
+
+            if (value === undefined || (field === 'host' && !isHostTemplate(value))) continue;
+
+            notify(describeShowcaseIssue(part.className, origin, [field], IGNORED_ON_A_PART));
+            delete part.showcaseConfig[field];
+        }
+
+        delete part.composition;
+    }
+}
+
+/** The parent of `part`, or what is wrong with the selector it names. */
+function findParent(
+    part: ScannedComponent,
+    selector: string,
+    selectors: ReadonlyMap<ScannedComponent, readonly string[]>,
+    declaring: ReadonlySet<ScannedComponent>
+): ScannedComponent | string {
+    if (selectors.get(part)?.includes(selector)) return 'a component cannot be a part of itself; it keeps a page of its own';
+
+    const candidates = [...selectors].filter(([component, list]) => component !== part && list.includes(selector)).map(([component]) => component);
+
+    if (candidates.length === 0) return `no component or directive with @Showcase has the selector "${selector}"; it keeps a page of its own`;
+
+    if (candidates.length > 1) {
+        const names = candidates.map((candidate) => candidate.className).join(' and ');
+
+        return `"${selector}" is the selector of ${names}; name a selector only one of them has. It keeps a page of its own`;
+    }
+
+    const [parent] = candidates;
+
+    return declaring.has(parent) ? `${parent.className} is a part itself, and a part cannot have parts; it keeps a page of its own` : parent;
+}

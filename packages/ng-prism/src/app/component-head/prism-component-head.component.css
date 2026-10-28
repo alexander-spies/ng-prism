@@ -59,6 +59,16 @@ prism-head-gauge,
     flex: none;
 }
 
+/* The chips give way before the title does and after the crumb: shrink factors
+   are weighted by size, so with the crumb at 8 and the title at 1, a factor of 2
+   lets the chips, which are by far the widest of the three, take most of what the
+   row lacks while the title stays readable. They scroll inside their own track
+   once they are narrower than their content (see prism-head-parts). */
+prism-head-parts {
+    flex: 0 2 auto;
+    min-width: 0;
+}
+
 /* Wraps the slot rather than styling the projected element, which this
    stylesheet cannot reach. :empty keeps the row's trailing gap from
    appearing when nothing is projected; comment anchors do not count. */

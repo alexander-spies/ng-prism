@@ -1,5 +1,8 @@
 @if (apiPage(); as current) {
-    <prism-jsdoc-api-page [page]="current" />
+    <prism-jsdoc-api-page
+        [page]="current"
+        [parts]="parts()"
+        [activePart]="activePart()" />
 } @else {
     <div class="prism-jsdoc-panel">
         <div class="prism-jsdoc-panel__empty"> Select a component to view API documentation. </div>

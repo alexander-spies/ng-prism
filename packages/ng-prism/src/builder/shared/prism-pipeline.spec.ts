@@ -197,6 +197,59 @@ describe('runPrismPipeline integration', () => {
         }
     });
 
+    it('fails on a partOf that matches no component when strictShowcase is on', async () => {
+        tmp = createTempWorkspace();
+        writeFileSync(join(tmp, 'ng-prism.config.ts'), 'export default { strictShowcase: true };', 'utf-8');
+        writeFileSync(join(tmp, 'lib', 'orphan-api.ts'), "export { OrphanComponent, SelectComponent } from './parts-select.component.js';\n", 'utf-8');
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            await expect(runPrismPipeline({ ...defaultOptions, entryPoint: 'lib/orphan-api.ts' }, createMockContext(tmp), createPipelineState())).rejects.toThrow(
+                /strictShowcase is enabled and 1 @Showcase value/
+            );
+            expect(warn).toHaveBeenCalledWith(
+                expect.stringContaining('OrphanComponent › partOf — no component or directive with @Showcase has the selector "lib-missing"')
+            );
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('does not fail strictShowcase over what a resolved part drops', async () => {
+        tmp = createTempWorkspace();
+        writeFileSync(join(tmp, 'ng-prism.config.ts'), 'export default { strictShowcase: true };', 'utf-8');
+        writeFileSync(join(tmp, 'lib', 'part-api.ts'), "export { OptionComponent, SelectComponent } from './parts-select.component.js';\n", 'utf-8');
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            const result = await runPrismPipeline({ ...defaultOptions, entryPoint: 'lib/part-api.ts' }, createMockContext(tmp), createPipelineState());
+
+            // The part is nested on its parent, so only the parent counts.
+            expect(result.componentCount).toBe(1);
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('OptionComponent › variants — has no effect on a part'));
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('writes a part on its parent in the runtime manifest, not as a component of its own', async () => {
+        tmp = createTempWorkspace();
+        writeFileSync(join(tmp, 'lib', 'part-api.ts'), "export { OptionComponent, SelectComponent } from './parts-select.component.js';\n", 'utf-8');
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        try {
+            await runPrismPipeline({ ...defaultOptions, entryPoint: 'lib/part-api.ts' }, createMockContext(tmp), createPipelineState());
+
+            const source = readManifest(tmp);
+
+            expect(source.match(/^ {6}type: .*$/gm)).toEqual(['      type: SelectComponent,']);
+            expect(source).toMatch(/ {6}parts: \[\s*\{\s*meta: \{\s*className: "OptionComponent"/);
+            expect(source).not.toMatch(/import \{[^}]*\bOptionComponent\b/);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
     it('only warns about a dropped @Showcase value while strictShowcase is off', async () => {
         tmp = createTempWorkspace();
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);

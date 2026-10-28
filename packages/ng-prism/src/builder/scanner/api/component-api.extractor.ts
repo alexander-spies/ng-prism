@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import type { ComponentApi, InputMeta, OutputMeta } from '../../../plugin/plugin.types.js';
 import type { ApiTypeRef } from '../../../plugin/service.types.js';
+import { modelChangeOutput } from '../../../shared/model-outputs.js';
 import { findDecorator } from '../ast-utils.js';
 import type { ClassHierarchy } from '../class-hierarchy.js';
 import { findInputDeclaration, findOutputDeclaration, getInstantiatedType, isModelInput, usesTypeParameters } from '../input.extractor.js';
@@ -53,7 +54,7 @@ export function extractComponentApi(
 
         inputTypes[name] = ref;
 
-        if (isModelInput(declaration.member)) modelChanges.push({ input: name, event: `${pub}Change`, type: ref });
+        if (isModelInput(declaration.member)) modelChanges.push({ input: name, event: modelChangeOutput(pub), type: ref });
     }
 
     for (const { name, alias } of outputs) {

@@ -1,9 +1,29 @@
-import { computed, createEnvironmentInjector, EnvironmentInjector, inject, Injectable, signal } from '@angular/core';
+import {
+    afterNextRender,
+    type AfterRenderRef,
+    computed,
+    createEnvironmentInjector,
+    effect,
+    EnvironmentInjector,
+    inject,
+    Injectable,
+    linkedSignal,
+    signal,
+    untracked
+} from '@angular/core';
 import type { PanelDefinition } from '../../plugin/plugin.types.js';
 import { PRISM_BUILTIN_PANELS } from '../tokens/prism-tokens.js';
 import { panelTargets } from '../view-tab-bar/panel-inputs.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
 import { PrismPluginService } from './prism-plugin.service.js';
+
+/** A part a panel was asked to show: where it was asked, so it stops showing once the reader leaves that place. */
+interface ShownPart {
+    /** The key of the part, see `partKeys`. */
+    part: string;
+    component: string;
+    view: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PrismPanelService {
@@ -14,7 +34,21 @@ export class PrismPanelService {
     private readonly injectorCache = new Map<string, EnvironmentInjector>();
 
     readonly activePanelId = signal<string>('controls');
-    readonly activeViewId = signal<string>('renderer');
+
+    /**
+     * The id of the active view tab.
+     *
+     * Every component starts on the Playground, whichever view the page before
+     * it showed (since 22.7.0; before, a view stayed from one component to the
+     * next while the next one offered it): a reader looks at a component first,
+     * and at its API second. A view set after the switch wins, so a URL restore
+     * that names one keeps it. A service, a pipe or a guide page keeps the view
+     * it finds, and `nextViewId` moves it to one the page offers.
+     */
+    readonly activeViewId = linkedSignal<string | null, string>({
+        source: () => this.navigationService.activeComponent()?.meta.className ?? null,
+        computation: (component, previous) => (previous && (component === null || component === previous.source) ? previous.value : 'renderer')
+    });
 
     readonly activePanelInjector = computed<EnvironmentInjector | null>(() => this.getInjector(this.activePanelId()));
 
@@ -51,6 +85,85 @@ export class PrismPanelService {
     });
 
     /**
+     * The view panel the part popovers link to: the first visible one that lists
+     * parts, in registration order, builtin before plugin. `null` when the active
+     * page offers none, which is how the popover ends up without its link.
+     * Since 22.7.0.
+     */
+    readonly partsPanel = computed<PanelDefinition | null>(() => this.visibleViewPanels().find((p) => p.listsParts) ?? null);
+
+    private readonly shownPart = signal<ShownPart | null>(null);
+    /** A part shown again, which comes back after the render that took it away. */
+    private repeat?: AfterRenderRef;
+
+    /**
+     * The key of the part the active view is asked to show, `null` for none:
+     * its class name, with `~2` for the second part of a class name that two
+     * parts share (see `partKeys`). It holds only while the active component and the active view are the
+     * ones {@link showPart} was called on, so a part never outlives the place it
+     * was shown in. The URL carries it as `part`. Since 22.7.0.
+     */
+    readonly activePart = computed<string | null>(() => {
+        const shown = this.shownPart();
+
+        return shown && this.isShownHere(shown) ? shown.part : null;
+    });
+
+    constructor() {
+        // `activePart` already reads `null` once the reader leaves, so this is not
+        // what hides the part. It forgets the record, which would otherwise show
+        // the part again on the way back to the same component and view.
+        effect(() => {
+            const shown = this.shownPart();
+
+            if (shown && !this.isShownHere(shown)) {
+                untracked(() => this.shownPart.set(null));
+            }
+        });
+    }
+
+    /**
+     * Opens the view panel `panelId` on a part of the active component. The
+     * panel reads it as its `activePart` input. A part that is not one of the
+     * component's is not checked here: the panel finds no block for it.
+     *
+     * The part the panel already shows is shown again: `activePart` reads
+     * `null` for one render and the part after it, so the panel goes to it once
+     * more, as it would for a part it did not show. The URL keeps its entry.
+     * Since 22.7.0.
+     */
+    showPart(partKey: string, panelId: string): void {
+        const component = this.navigationService.activeComponent();
+        const record = component ? { part: partKey, component: component.meta.className, view: panelId } : null;
+        const again = record !== null && this.activePart() === partKey && this.activeViewId() === panelId;
+
+        this.repeat?.destroy();
+        this.repeat = undefined;
+        this.activeViewId.set(panelId);
+
+        if (!again) {
+            this.shownPart.set(record);
+            return;
+        }
+
+        this.shownPart.set(null);
+        this.repeat = afterNextRender(
+            () => {
+                this.repeat = undefined;
+                this.shownPart.set(record);
+            },
+            { injector: this.envInjector }
+        );
+    }
+
+    /** Forgets the part without leaving the view. */
+    clearPart(): void {
+        this.repeat?.destroy();
+        this.repeat = undefined;
+        this.shownPart.set(null);
+    }
+
+    /**
      * Returns (and lazily creates) the EnvironmentInjector scoped to the given panel.
      * Returns `null` when the panel has no providers.
      */
@@ -67,5 +180,9 @@ export class PrismPanelService {
             this.injectorCache.set(panel.id, injector);
         }
         return injector;
+    }
+
+    private isShownHere(shown: ShownPart): boolean {
+        return this.navigationService.activeComponent()?.meta.className === shown.component && this.activeViewId() === shown.view;
     }
 }

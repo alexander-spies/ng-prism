@@ -15,13 +15,14 @@ export const TYPE_LINK_ATTRIBUTE = 'data-prism-type-link';
 /**
  * The TOC anchor of the type card a doc reference names: by id, then by name;
  * `X.y` and `X#y` name `X`. A page holds two types of one name only under
- * different ids, so an exact id is what tells them apart.
+ * different ids, so an exact id is what tells them apart. The anchor is in
+ * `scope`, the one of the part's block when the doc is a part's.
  */
-export function typeLinkTarget(types: readonly ApiTypeDoc[], target: string): string | undefined {
+export function typeLinkTarget(types: readonly ApiTypeDoc[], target: string, scope = ''): string | undefined {
     const named = (name: string) => (types.find((type) => type.id === name) ?? types.find((type) => type.name === name))?.id;
     const id = named(target) ?? named(target.split(/[.#]/, 1)[0]);
 
-    return id === undefined ? undefined : typeAnchor(id);
+    return id === undefined ? undefined : typeAnchor(id, scope);
 }
 
 /**

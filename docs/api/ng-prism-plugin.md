@@ -48,6 +48,8 @@ onComponentScanned(component) {
 }
 ```
 
+A [part](guide/showcase-decorator.md#partof) runs through this hook too, as a component with `parentClassName` (since `22.7.0`). A plugin that writes data for a page, as perf and visual-regression do, skips it with `if (component.parentClassName) return;`, since the parent's page shows the part. One that reads every component's API, as jsdoc and coverage do, keeps it. See [Parts in the hooks](architecture/plugin-hooks.md#parts-in-the-hooks).
+
 Async is supported:
 
 ```typescript
@@ -131,6 +133,8 @@ onManifestReady(manifest) {
   );
 }
 ```
+
+A part is not in `manifest.components` here (since `22.7.0`): it sits in its parent's `parts`. A plugin that walks the list reads `component.parts` as well when it must include parts, and a filter like the one above drops a parent together with its parts. See [Parts in the hooks](architecture/plugin-hooks.md#parts-in-the-hooks).
 
 ---
 
@@ -256,6 +260,7 @@ interface PanelDefinition {
     position?: 'bottom' | 'right'; // deprecated, no effect
     placement?: 'addon' | 'view';
     appliesTo?: readonly PanelTarget[];
+    listsParts?: boolean;
     providers?: Provider[];
     isVisible?: (component: RuntimeComponent) => boolean;
     badge?: (component: RuntimeComponent) => PanelBadge | null;
@@ -263,22 +268,23 @@ interface PanelDefinition {
 }
 ```
 
-| Field                  | Description                                                                                                                                                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                   | Unique panel ID. Collision with built-in IDs overwrites the built-in panel.                                                                                                                                          |
-| `label`                | Tab label shown in the panel tab bar                                                                                                                                                                                 |
-| `component`            | Static Angular component. Avoid for browser-only deps                                                                                                                                                                |
-| `loadComponent`        | Lazy-loaded component (preferred when importing `@angular/platform-browser` or DOM APIs)                                                                                                                             |
-| `overlayComponent`     | Component rendered as a canvas overlay (e.g. visual annotations)                                                                                                                                                     |
-| `loadOverlayComponent` | Lazy-loaded canvas overlay                                                                                                                                                                                           |
-| `icon`                 | Icon identifier (optional, theme-dependent)                                                                                                                                                                          |
-| `position`             | _Deprecated since 22.6.0, never had an effect: nothing reads it. Where a panel appears is `placement`._                                                                                                              |
-| `placement`            | `'addon'` = bottom tab bar, `'view'` = view toolbar toggle                                                                                                                                                           |
-| `appliesTo`            | Where the panel appears: `['component']` (the default), `['service']`, `['pipe']` or several (since `22.7.0`). See [Panels on service and pipe pages](#panels-on-service-and-pipe-pages)                             |
-| `providers`            | Providers scoped to this panel's child `EnvironmentInjector`                                                                                                                                                         |
-| `isVisible`            | Predicate. When provided, the panel tab is only shown if it returns `true` for the active component                                                                                                                  |
-| `badge`                | When provided, the panel's tab carries a [badge](#panelbadge) for the active component. Return `null` for "nothing worth saying".                                                                                    |
-| `keepAlive`            | When `true`, the panel component is rendered once on first activation and merely hidden (instead of destroyed) on tab switch. Use for expensive panels like iframes, remote previews or heavy DOM. Default: `false`. |
+| Field                  | Description                                                                                                                                                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                   | Unique panel ID. Collision with built-in IDs overwrites the built-in panel.                                                                                                                                                                                                          |
+| `label`                | Tab label shown in the panel tab bar                                                                                                                                                                                                                                                 |
+| `component`            | Static Angular component. Avoid for browser-only deps                                                                                                                                                                                                                                |
+| `loadComponent`        | Lazy-loaded component (preferred when importing `@angular/platform-browser` or DOM APIs)                                                                                                                                                                                             |
+| `overlayComponent`     | Component rendered as a canvas overlay (e.g. visual annotations)                                                                                                                                                                                                                     |
+| `loadOverlayComponent` | Lazy-loaded canvas overlay                                                                                                                                                                                                                                                           |
+| `icon`                 | Icon identifier (optional, theme-dependent)                                                                                                                                                                                                                                          |
+| `position`             | _Deprecated since 22.6.0, never had an effect: nothing reads it. Where a panel appears is `placement`._                                                                                                                                                                              |
+| `placement`            | `'addon'` = bottom tab bar, `'view'` = view toolbar toggle                                                                                                                                                                                                                           |
+| `appliesTo`            | Where the panel appears: `['component']` (the default), `['service']`, `['pipe']` or several (since `22.7.0`). See [Panels on service and pipe pages](#panels-on-service-and-pipe-pages)                                                                                             |
+| `listsParts`           | The panel shows the [parts](guide/showcase-decorator.md#partof) of the active component (since `22.7.0`, experimental until `23.0.0`). It gets the input `activePart`, and a part's popover in the component head links to it. See [Panels that list parts](#panels-that-list-parts) |
+| `providers`            | Providers scoped to this panel's child `EnvironmentInjector`                                                                                                                                                                                                                         |
+| `isVisible`            | Predicate. When provided, the panel tab is only shown if it returns `true` for the active component                                                                                                                                                                                  |
+| `badge`                | When provided, the panel's tab carries a [badge](#panelbadge) for the active component. Return `null` for "nothing worth saying".                                                                                                                                                    |
+| `keepAlive`            | When `true`, the panel component is rendered once on first activation and merely hidden (instead of destroyed) on tab switch. Use for expensive panels like iframes, remote previews or heavy DOM. Default: `false`.                                                                 |
 
 > **Note:** Always prefer `loadComponent` over `component`. The config file is evaluated by the Angular builder in Node.js, and a static import of a component that uses `DomSanitizer` or any browser global will crash the build.
 
@@ -328,6 +334,40 @@ export class ServiceNotesComponent {
     readonly activeService = input<RuntimeService | null>(null);
 }
 ```
+
+### Panels that list parts
+
+A component can have [parts](guide/showcase-decorator.md#partof) (`@Showcase({ partOf })`, since `22.7.0`): showcases that have no page of their own and are shown with their parent. A view panel that shows them sets `listsParts: true`. Experimental until `23.0.0`: the shape may change in a 22.x minor release.
+
+```typescript
+panels: [
+    {
+        id: 'api',
+        label: 'API',
+        placement: 'view',
+        listsParts: true,
+        loadComponent: () => import('./api-panel.component.js').then((m) => m.ApiPanelComponent)
+    }
+];
+```
+
+```typescript
+@Component({
+    selector: 'app-api-panel',
+    standalone: true,
+    template: `...`
+})
+export class ApiPanelComponent {
+    readonly activeComponent = input<RuntimeComponent | null>(null);
+    readonly activePart = input<string | null>(null);
+}
+```
+
+- **`activePart`** is the key of the part to show, `null` for none: the class name of one of `activeComponent()?.parts` (`RuntimePart[]`), with `~2`, `~3`, … appended for the second and later part of one class name, in the order of `parts`. `partKeys(parts)` from `@ng-prism/core/plugin` returns the keys in that order. The panel scrolls to the block of that part. The reader sets it through the `part` [URL parameter](guide/url-state.md#parts) or by following the link of a part's popover in the component head.
+- **A new value is a new request.** When the reader follows the link of the part the panel already shows, `activePart` turns `null` for one render and then names the part again, so a panel that scrolls whenever the input changes scrolls to the block once more.
+- **Only panels with `listsParts` get it.** `activePart` is handed to a view panel that sets `listsParts` and applies to `'component'`, nothing else, so a panel that does not declare the input never logs a warning about it.
+- **One panel is the target.** Several panels may set `listsParts`; the link in a part's popover and `part` in the URL address the first visible one, in registration order, builtin before plugin. The popover has no link when none is visible for the component.
+- **The part does not stay.** Switching the component or the view sets `activePart` back to `null`, and it is not persisted.
 
 ---
 

@@ -52,6 +52,12 @@ describe('jsDocPlugin', () => {
         expect(browserJsDocPlugin().panels![0].placement).toBe('view');
     });
 
+    // The core hands `activePart` only to a panel that declares it lists parts, and the app reads the browser half.
+    it('declares that the API panel lists parts', () => {
+        expect(jsDocPlugin().panels![0].listsParts).toBe(true);
+        expect(browserJsDocPlugin().panels![0].listsParts).toBe(true);
+    });
+
     // The scan only reads ScannedComponent.api for a plugin that asks for it, and the build reads the Node half.
     it('asks the build for the API of the components', () => {
         expect(jsDocPlugin().componentApi).toBe(true);

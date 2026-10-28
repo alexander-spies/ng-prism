@@ -136,7 +136,7 @@ A pipe is only listed when you mark it. Two things about the pipe itself decide 
 
 ## Which `@Showcase` fields apply
 
-The same ones as for a service: `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta`, `status` and [`setup`](guide/showcasing-services.md#setup), which works exactly as it does there. `section` defaults to `'Pipes'`, whose default `sectionOrder` is `30`, after Components, Directives and Services. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` do not apply, since a pipe has no canvas, with a consequence until 23.0.0, see [Compatibility until 23.0.0](#compatibility-until-2300).
+The same ones as for a service: `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta`, `status` and [`setup`](guide/showcasing-services.md#setup), which works exactly as it does there. `section` defaults to `'Pipes'`, whose default `sectionOrder` is `30`, after Components, Directives and Services. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` do not apply, since a pipe has no canvas, with a consequence until 23.0.0, see [Compatibility until 23.0.0](#compatibility-until-2300). [`partOf`](guide/showcase-decorator.md#partof) does not apply either, since only a component or directive can be part of another: a warning drops it, and [`strictShowcase`](api/ng-prism-config.md#strictshowcase) fails the build over it.
 
 ## What the page shows
 
@@ -165,7 +165,7 @@ The class description is the pipe's own JSDoc. A pipe without one does not take 
 
 - **Sidebar:** a **Pipes** section with a pipette icon. Categories and order work as for components. The search finds a pipe by title, class name, template name (`timeAgo`), category and tag. Navigation decorations (a11y, coverage, VRT) do not apply to pipes.
 - **Head:** category, title, a status chip, and the details popover, which shows the template name as code (`| timeAgo`), the description, whether the pipe is pure or impure and the entry point to import it from.
-- **View tabs:** only the panels that declare they apply to pipes, which today is the **API** tab of the JSDoc plugin. No Playground, no Overview, no addon panel area. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
+- **View tabs:** only the panels that declare they apply to pipes, which today is the **API** tab of the JSDoc plugin. No Playground, no Overview, no addon panel area. The API tab does not follow you back: a component you select next opens on its Playground, as every component does. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
 - **URL:** `?pipe=TimeAgoPipe`, see [State Preservation](guide/url-state.md).
 
 ## Without the JSDoc plugin

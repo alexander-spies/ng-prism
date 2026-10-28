@@ -141,17 +141,18 @@ A service is only listed when you mark it. There is no automatic discovery of ev
 
 ## Which `@Showcase` fields apply
 
-| Field                                                                                    | On a service                                                                                                                                   |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `title`                                                                                  | Required, as everywhere                                                                                                                        |
-| `description`                                                                            | Shown in the head's details popover, behind the ⓘ glyph. The class JSDoc is the page's own text                                                |
-| `category`, `categoryOrder`, `componentOrder`                                            | Group and sort the item in the sidebar, as for components                                                                                      |
-| `section`, `sectionOrder`                                                                | `section` defaults to `'Services'`, whose default `sectionOrder` is `20`, after Components and Directives                                      |
-| `tags`                                                                                   | Searchable, and shown in the popover                                                                                                           |
-| `status`                                                                                 | As for components: a status chip in the head, the dashed-circle marker for `'wip'` and a struck-through name for `'deprecated'` in the sidebar |
-| `meta`                                                                                   | For plugins, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned)                                                                 |
-| [`setup`](#setup)                                                                        | The functions and tokens that configure the service. Services and pipes only                                                                   |
-| `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage` | Do not apply: a service has no canvas                                                                                                          |
+| Field                                                                                    | On a service                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`                                                                                  | Required, as everywhere                                                                                                                                                         |
+| `description`                                                                            | Shown in the head's details popover, behind the ⓘ glyph. The class JSDoc is the page's own text                                                                                 |
+| `category`, `categoryOrder`, `componentOrder`                                            | Group and sort the item in the sidebar, as for components                                                                                                                       |
+| `section`, `sectionOrder`                                                                | `section` defaults to `'Services'`, whose default `sectionOrder` is `20`, after Components and Directives                                                                       |
+| `tags`                                                                                   | Searchable, and shown in the popover                                                                                                                                            |
+| `status`                                                                                 | As for components: a status chip in the head, the dashed-circle marker for `'wip'` and a struck-through name for `'deprecated'` in the sidebar                                  |
+| `meta`                                                                                   | For plugins, see [`onServiceScanned`](api/ng-prism-plugin.md#onservicescanned)                                                                                                  |
+| [`setup`](#setup)                                                                        | The functions and tokens that configure the service. Services and pipes only                                                                                                    |
+| `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage` | Do not apply: a service has no canvas                                                                                                                                           |
+| [`partOf`](guide/showcase-decorator.md#partof)                                           | Does not apply: only a component or directive can be part of another. A warning drops it, and [`strictShowcase`](api/ng-prism-config.md#strictshowcase) fails the build over it |
 
 The fields that do not apply have a consequence until 23.0.0 (deprecated since 22.7.0, removed in 23.0.0), see [Compatibility until 23.0.0](#compatibility-until-2300).
 
@@ -263,7 +264,7 @@ A type is only documented when a scanned entry point exports it and it is not `@
 
 - **Sidebar:** a **Services** section with a plug icon. Categories and order work as for components. The search finds a service by title, class name, category and tag. Navigation decorations (a11y, coverage, VRT) do not apply to services.
 - **Head:** category, title, a status chip, and the details popover, which shows the class name, the description, how the service is provided (`Provided automatically` or `Needs a providers entry`) and the entry point to import it from.
-- **View tabs:** only the panels that declare they apply to services, which today is the **API** tab of the JSDoc plugin. There is no Playground, no Overview and no addon panel area. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
+- **View tabs:** only the panels that declare they apply to services, which today is the **API** tab of the JSDoc plugin. There is no Playground, no Overview and no addon panel area. The API tab does not follow you back: a component you select next opens on its Playground, as every component does. See [Writing a Plugin](plugins/writing-plugins.md#panels-for-services-and-pipes) to add a panel of your own.
 - **URL:** `?service=NotificationService`, see [State Preservation](guide/url-state.md).
 
 ## Without the JSDoc plugin

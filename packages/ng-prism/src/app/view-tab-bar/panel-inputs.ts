@@ -26,18 +26,20 @@ export function activeViewPanel(viewPanels: readonly PanelDefinition[], activeVi
  * The inputs a view panel is rendered with: `activeComponent` for a panel that
  * applies to components, `activeService` for one that applies to services,
  * `activePipe` for one that applies to pipes, one input per kind it applies to,
- * and nothing else.
+ * `activePart` for a panel that lists parts and applies to components, and
+ * nothing else.
  *
  * The restriction is the point. `NgComponentOutlet` logs NG0303 for an input the
  * component does not declare, so a panel written before services or pipes
  * existed would start logging if it were handed `activeService` or `activePipe`
- * too.
+ * too, and a panel that does not list parts would if it were handed `activePart`.
  */
 export function panelInputsFor(
     panel: PanelDefinition | undefined,
     component: RuntimeComponent | null,
     service: RuntimeService | null,
-    pipe: RuntimePipe | null
+    pipe: RuntimePipe | null,
+    part: string | null = null
 ): Record<string, unknown> {
     if (!panel) return { activeComponent: component };
 
@@ -47,5 +49,6 @@ export function panelInputsFor(
     if (targets.includes('component')) inputs['activeComponent'] = component;
     if (targets.includes('service')) inputs['activeService'] = service;
     if (targets.includes('pipe')) inputs['activePipe'] = pipe;
+    if (panel.listsParts && targets.includes('component')) inputs['activePart'] = part;
     return inputs;
 }

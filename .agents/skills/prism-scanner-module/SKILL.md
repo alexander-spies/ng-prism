@@ -53,7 +53,8 @@ entry-point.scanner  →  component.scanner  →  manifest.generator
 | `composition/declarables.ts`       | Index the library's components, directives and pipes (`buildDeclarableIndex`), look up a showcase's `imports` without a program (`resolveShowcaseImports`), `readDeclarable`     |
 | `composition/match-declarables.ts` | Decide what a composed template imports, and find unknown elements and pipes, ambiguous and non-standalone matches (`matchDeclarables`)                                          |
 | `composition/template-elements.ts` | Shared helpers for template elements: `elementSelector`, `isInputBinding`, `localName`                                                                                           |
-| `scanner.ts`                       | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components, services and pipes                                                                   |
+| `resolve-parts.ts`                 | Resolve `partOf` to a parent once all entry points are scanned, dropping the page-only fields of a part (`resolveParts`, `selectorList`, `PART_IGNORED_FIELDS`)                  |
+| `scanner.ts`                       | Orchestrator — exports `createScanner(options)`, which returns a `Scanner` with components, services and pipes; runs `resolveParts` after the last entry point                   |
 | `index.ts`                         | Public surface of the scanner (re-exports the functions and their types)                                                                                                         |
 
 ## Module Template

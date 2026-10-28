@@ -2,24 +2,25 @@
 
 ng-prism keeps the UI state alive across full-page reloads, which helps a lot during component-driven development. Two layers cooperate:
 
-- **URL** carries shareable state (component, service or pipe, variant, state, view, panel tab), so links are bookmarkable and deep-linkable.
+- **URL** carries shareable state (component, service or pipe, variant, state, view, the part a view shows, panel tab), so links are bookmarkable and deep-linkable.
 - **sessionStorage** carries per-session ephemeral state (control panel input overrides, a11y sub-tab, perspective) and keeps it off the URL.
 
 After editing a SCSS file in your library and waiting for the dev-server reload, you land back on the same component, same variant, with the same control overrides applied. No more clicking your way back to where you were.
 
 ## URL Parameters
 
-| Parameter   | Example                        | Description                                                                                                                                                             |
-| ----------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `component` | `?component=ButtonComponent`   | Active component class name                                                                                                                                             |
-| `service`   | `?service=NotificationService` | Active [service](guide/showcasing-services.md) class name. Services have their own parameter, so a tool that sets `?component=` never lands on one                      |
-| `pipe`      | `?pipe=TimeAgoPipe`            | Active [pipe](guide/showcasing-pipes.md) class name. Pipes have their own parameter as well, so neither `?component=` nor `?service=` lands on one                      |
-| `page`      | `?page=Button%20Patterns`      | Active page title (URL-encoded)                                                                                                                                         |
-| `variant`   | `?variant=1`                   | Active variant index (0-based)                                                                                                                                          |
-| `state`     | `?state=1`                     | Active component-level state: the 0-based index into the component's `states`. Written only while a state is active; a value that is no index into `states` is ignored. |
-| `view`      | `?view=overview`               | Active view tab (e.g. `overview`, `docs`, `a11y`)                                                                                                                       |
-| `panel`     | `?panel=a11y`                  | Active addon panel tab (default: `controls`, omitted when default)                                                                                                      |
-| `capture`   | `?capture=1`                   | Read-only input flag. Enables [capture isolation mode](guide/external-tooling.md#capture-isolation-mode) for screenshot tooling. Never written back to the URL.         |
+| Parameter   | Example                        | Description                                                                                                                                                                                               |
+| ----------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `component` | `?component=ButtonComponent`   | Active component class name                                                                                                                                                                               |
+| `service`   | `?service=NotificationService` | Active [service](guide/showcasing-services.md) class name. Services have their own parameter, so a tool that sets `?component=` never lands on one                                                        |
+| `pipe`      | `?pipe=TimeAgoPipe`            | Active [pipe](guide/showcasing-pipes.md) class name. Pipes have their own parameter as well, so neither `?component=` nor `?service=` lands on one                                                        |
+| `page`      | `?page=Button%20Patterns`      | Active page title (URL-encoded)                                                                                                                                                                           |
+| `variant`   | `?variant=1`                   | Active variant index (0-based)                                                                                                                                                                            |
+| `state`     | `?state=1`                     | Active component-level state: the 0-based index into the component's `states`. Written only while a state is active; a value that is no index into `states` is ignored.                                   |
+| `view`      | `?view=overview`               | Active view tab (e.g. `overview`, `docs`, `a11y`)                                                                                                                                                         |
+| `part`      | `?part=OptionComponent`        | The [part](guide/showcase-decorator.md#partof) of the component that the active view shows, as its class name (since 22.7.0), `~2` appended for a second part of the same class name. See [Parts](#parts) |
+| `panel`     | `?panel=a11y`                  | Active addon panel tab (default: `controls`, omitted when default)                                                                                                                                        |
+| `capture`   | `?capture=1`                   | Read-only input flag. Enables [capture isolation mode](guide/external-tooling.md#capture-isolation-mode) for screenshot tooling. Never written back to the URL.                                           |
 
 Example URL:
 
@@ -35,6 +36,25 @@ http://localhost:4200?pipe=TimeAgoPipe&view=jsdoc
 ```
 
 `variant` and `state` mean nothing for a service or a pipe and are never written for one. When a URL carries more than one of `component`, `service`, `pipe` and `page`, the first in that order wins. A class name that is not a service or pipe in the manifest is ignored, like an unknown component.
+
+## Parts
+
+A [part](guide/showcase-decorator.md#partof) (`@Showcase({ partOf })`, since 22.7.0) has no page of its own, so there is no `component` to select for it. Its class name still works as an address, and `part` carries what it shows:
+
+- **`?component=<PartClass>` opens the parent.** The app selects the component the part belongs to and rewrites the URL to it. The `view` of the old link is kept, and the part goes into `part`:
+
+    ```
+    ?component=OptionComponent&view=jsdoc
+    → ?component=SelectComponent&view=jsdoc&part=OptionComponent
+    ```
+
+    `variant` and `state` of such a link are dropped, since they would name the part's, and the parent opens on its defaults. The rewrite replaces the history entry instead of adding one, so back does not return to the link that was rewritten.
+
+    The same happens during `ng-prism serve` when the component on screen gets a `partOf`: after the rebuild the app opens the parent, on the part when the view that lists parts was open, instead of the first entry.
+
+- **`part` is applied only where it can be shown.** The view must be the first visible view panel that sets [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), and the component must have that part. Without both the part is dropped and the component opens as usual, with the requested view. That is also what happens with a link to a part when no plugin lists parts.
+- **Switching the component or the view removes `part`.** It marks where the reader was sent to, not a setting that follows them. Coming back to the same component and view inside the app does not scroll to the part again. The browser's back and forward buttons restore a history entry as it was, `part` included, so going back to an entry with a part scrolls to it.
+- **`part` is not persisted.** Like the other navigation parameters it lives in the URL only, not in `sessionStorage`.
 
 ## Deep-Linking
 
@@ -54,7 +74,9 @@ The state is part of the address next to the variant. It stays in the URL when y
 
 ## Browser Back/Forward
 
-Selecting another component or page pushes a new browser history entry. Changing the variant, the state, the view or the panel tab rewrites the current entry instead, so stepping through variants does not fill the history. The browser back and forward buttons move between components and pages, and an entry holds the variant, state, view and panel its component was last left in.
+Selecting another component or page pushes a new browser history entry. Changing the variant, the state, the view, the shown part or the panel tab rewrites the current entry instead, so stepping through variants does not fill the history. The browser back and forward buttons move between components and pages, and an entry holds the variant, state, view, part and panel its component was last left in.
+
+Selecting a component in the sidebar opens it on the Playground, whichever view tab the page before showed (since 22.7.0; before, the view stayed from one component to the next while the next one offered it). A link, a reload and the back and forward buttons open the view their URL names, so going back returns to the Overview or API tab an entry was left on.
 
 ## Control Panel & A11y State (sessionStorage)
 

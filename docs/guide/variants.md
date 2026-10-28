@@ -482,7 +482,7 @@ A forced state is part of the variant, so a screenshot runner captures it withou
 
 ## Overview: All Variants at Once
 
-The component header carries a third view tab between `Playground` and `API`: **Overview**. It renders every variant of the active component at the same time, as a grid of cells, more of a contact sheet than a viewfinder. Use it to compare variants against each other instead of stepping through them one by one. A component with [states](#states) gets a matrix of variants against states instead, see [With states](#with-states).
+The component header carries a third view tab between `Playground` and `API`: **Overview**. It renders every variant of the active component at the same time, as a grid of cells, more of a contact sheet than a viewfinder. Use it to compare variants against each other instead of stepping through them one by one. A component with [states](#states) gets a matrix of variants against states instead, see [With states](#with-states). The Overview belongs to the component it shows: selecting another component opens that one on the Playground (since 22.7.0; before, the Overview stayed open from component to component).
 
 The tab appears when the Overview would have at least two cells. Without `states` a cell is a variant, so that means two or more variants. It stays hidden for single-variant components (a one-cell grid says nothing the Playground does not say better) and for components using [`renderPage`](guide/component-pages.md). Those render a page that reads its values from a single shared renderer state, so every cell would show the same thing.
 

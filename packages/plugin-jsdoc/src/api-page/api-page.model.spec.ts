@@ -1,6 +1,6 @@
 import type { ApiMethod, ApiSetupEntry, ApiTypeDoc, ComponentApi, InputMeta, ScannedComponent, ScannedPipe, ScannedService } from '@ng-prism/core/plugin';
 import type { JsDocData } from '../jsdoc.types.js';
-import { componentApiPage, pipePage, servicePage } from './api-page.model.js';
+import { componentApiPage, partPages, pipePage, servicePage } from './api-page.model.js';
 import { generateComponentUsage } from './component-usage.js';
 import { generatePipeUsage } from './pipe-usage.js';
 import { generateServiceUsage } from './service-usage.js';
@@ -337,5 +337,61 @@ describe('componentApiPage', () => {
             expect(page).toMatchObject({ description: undefined, chips: [{ label: 'Entry point', value: 'test-lib' }], see: [], examples: [], methods: [], types: [] });
             expect(page.inputs).toEqual([{ name: 'tabs', type: { text: 'TabItem[]' }, required: true, description: 'The tabs.', tags: {} }]);
         });
+    });
+});
+
+describe('partPages', () => {
+    const option = makeComponent(
+        {
+            className: 'OptionComponent',
+            importPath: 'test-lib/select',
+            inputs: [{ name: 'value', type: 'string', required: true }],
+            componentMeta: { selector: 'lib-option', standalone: true, isDirective: false },
+            showcaseConfig: { title: 'Option', partOf: 'lib-select' }
+        },
+        { description: 'One option of a select.' }
+    );
+    const group = makeComponent(
+        {
+            className: 'OptionGroupComponent',
+            componentMeta: { selector: '[libOptionGroup]', standalone: true, isDirective: true },
+            showcaseConfig: { title: 'Option group', partOf: 'lib-select' }
+        },
+        {}
+    );
+
+    it('is empty for a component without parts', () => {
+        expect(partPages(undefined)).toEqual([]);
+        expect(partPages([])).toEqual([]);
+    });
+
+    it('describes a part by its class, key, title and selector, and scopes it by its position', () => {
+        expect(partPages([{ meta: option }])[0]).toMatchObject({
+            className: 'OptionComponent',
+            key: 'OptionComponent',
+            title: 'Option',
+            selector: 'lib-option',
+            scope: 'part-0'
+        });
+    });
+
+    it("gives a part page its own usage with the part's import", () => {
+        const [part] = partPages([{ meta: option }]);
+
+        expect(part.page.usage).toBe(generateComponentUsage(option));
+        expect(part.page.usage).toContain('OptionComponent');
+        expect(part.page.usage).toContain('test-lib/select');
+    });
+
+    it('builds the page of the part, as the page of any component', () => {
+        expect(partPages([{ meta: option }])[0].page).toEqual(componentApiPage(option));
+        expect(partPages([{ meta: option }])[0].page).toMatchObject({ kind: 'component', className: 'OptionComponent', description: 'One option of a select.' });
+    });
+
+    it('keeps the order of the parts and knows a directive part by its page', () => {
+        const pages = partPages([{ meta: group }, { meta: option }]);
+
+        expect(pages.map((part) => part.className)).toEqual(['OptionGroupComponent', 'OptionComponent']);
+        expect(pages[0].page.kind).toBe('directive');
     });
 });

@@ -139,6 +139,25 @@ finds a problem in is left out: that variant renders as it would without `templa
   one of the compiler's APIs threw, so every composition of the showcase is left out. The reason names it, for example
   a selector of the showcased class that Angular's selector parser rejects. Tell the user, with the reason and the class.
 
+### Parts (`partOf`)
+
+Since 22.7.0. In each of these the class keeps a page of its own, with the variants it declares, and `partOf` is dropped;
+fix the selector to make it a part.
+
+- **`<Class> › partOf — no component or directive with @Showcase has the selector "<selector>"; it keeps a page of its own`**:
+  no showcased class exported by an entry point has that selector. Check the spelling, that the parent has `@Showcase`
+  and is exported, and that `partOf` is the parent's selector (one entry of a selector list is enough), not its class name.
+- **`<Class> › partOf — "<selector>" is the selector of <A> and <B>; name a selector only one of them has. It keeps a page of its own`**:
+  several showcased classes match. Name a selector only the parent has, for example its attribute selector.
+- **`<Class> › partOf — <Parent> is a part itself, and a part cannot have parts; it keeps a page of its own`**: the parent
+  declares `partOf` too. Point the class at the parent's parent, or give the parent a showcase of its own.
+- **`<Class> › partOf — a component cannot be a part of itself; it keeps a page of its own`**: the selector is one of the
+  class's own.
+- **`<Class> › partOf — expected the selector of a showcased component or directive as a string, got <value>; it was dropped`**:
+  `partOf` is not a string, or only spaces.
+- **`<Class> › partOf — only a component or directive can be part of another; it was dropped`**: a service or a pipe
+  declares `partOf` (reported when a plugin shows services or pipes). Delete it.
+
 ## Notices
 
 Same prefix, but they don't count for `strictShowcase`.
@@ -175,6 +194,9 @@ out`): the scanner failed on the class and skipped it, so that the rest of the l
 - **`<Class> › host — a string or object host has no effect on a component; use host: { template } to render it inside other markup. It was dropped.`**:
   a component never rendered in a string or object `host`, and it still doesn't, so nothing is lost. Delete the field,
   or write the markup around the component as `host: { template: '<div …><lib-x /></div>' }`.
+- **`<Class> › <field> — has no effect on a part, which has no page of its own: the parent's showcase shows it. It was dropped.`**:
+  a class with a resolved `partOf` sets a field that only a page uses (`variants`, `states`, `category`, `section`, `bg`,
+  `host`, `renderPage`, …). Nothing the styleguide could show is lost. Delete the field from the part.
 - **`<Class> › imports[<i>] — "<name>" from "<from>" is not a component, directive or pipe ng-prism can read; it is imported as written and Angular checks the template`**
   (also `host.import` of an object host): the entry resolved to something whose selector ng-prism can't read, an
   NgModule or a service for instance, or to no module at all. It is imported anyway. While one entry is unread, an
@@ -294,6 +316,8 @@ Check the log line `ng-prism: Generated manifest with N component(s)` first, the
    `@Showcase()` without an argument is skipped without a warning.
 5. Did the log warn about a missing `title` or a config that "cannot be evaluated statically, so the component is
    skipped"?
+6. Does it declare `partOf` (22.7.0)? A part has no entry of its own: it shows on the page of its parent. If that is
+   not what you want, remove `partOf`.
 
 ## The service is missing from the sidebar
 

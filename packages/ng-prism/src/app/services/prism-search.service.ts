@@ -2,14 +2,15 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import type { ShowcaseConfig } from '../../decorator/showcase.types.js';
 import type { StyleguidePage } from '../../plugin/page.types.js';
 import type { RuntimePipe } from '../../plugin/pipe.types.js';
+import type { RuntimeComponent, RuntimePart } from '../../plugin/plugin.types.js';
 import type { RuntimeService } from '../../plugin/service.types.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 
 /**
  * Whether a showcased item matches a query that is already lowercased and
  * trimmed: its title, category or tags, or one of `names`, the identifiers
- * that only some kinds have (a service's class name, a pipe's class name and
- * template name).
+ * of its kind (the class name of each, the selector of a component, the
+ * template name of a pipe).
  */
 function matchesQuery(q: string, config: ShowcaseConfig, names: readonly string[] = []): boolean {
     return (
@@ -18,6 +19,11 @@ function matchesQuery(q: string, config: ShowcaseConfig, names: readonly string[
         (config.category?.toLowerCase().includes(q) ?? false) ||
         (config.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
     );
+}
+
+/** Whether a component or a part matches a query: its title, category, class name, selector or tags. */
+function matchesComponent(q: string, { meta }: RuntimeComponent | RuntimePart): boolean {
+    return matchesQuery(q, meta.showcaseConfig, [meta.className, meta.componentMeta.selector]);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,7 +37,8 @@ export class PrismSearchService {
         const all = this.manifestService.components();
 
         if (!q) return all;
-        return all.filter((comp) => matchesQuery(q, comp.meta.showcaseConfig));
+        // A part has no entry in the sidebar, so a query that matches one lists its parent.
+        return all.filter((comp) => matchesComponent(q, comp) || (comp.parts ?? []).some((part) => matchesComponent(q, part)));
     });
 
     readonly filteredServices = computed<RuntimeService[]>(() => {

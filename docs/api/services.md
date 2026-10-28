@@ -85,15 +85,15 @@ readonly rowCount = computed(() =>
 
 Provides sidebar search and filtering.
 
-| Member               | Type                         | Description                                                                 |
-| -------------------- | ---------------------------- | --------------------------------------------------------------------------- |
-| `query`              | `Signal<string>`             | Current search query                                                        |
-| `filteredComponents` | `Signal<RuntimeComponent[]>` | Components matching the query (title, category, tags)                       |
-| `filteredServices`   | `Signal<RuntimeService[]>`   | Services matching the query (title, class name, category, tags)             |
-| `filteredPipes`      | `Signal<RuntimePipe[]>`      | Pipes matching the query (title, class name, template name, category, tags) |
-| `filteredPages`      | `Signal<StyleguidePage[]>`   | Pages matching the query (title, category)                                  |
-| `search(q)`          | `void`                       | Set the search query                                                        |
-| `clear()`            | `void`                       | Clear the search query                                                      |
+| Member               | Type                         | Description                                                                        |
+| -------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
+| `query`              | `Signal<string>`             | Current search query                                                               |
+| `filteredComponents` | `Signal<RuntimeComponent[]>` | Components matching the query (title, class name, selector, category, tags, parts) |
+| `filteredServices`   | `Signal<RuntimeService[]>`   | Services matching the query (title, class name, category, tags)                    |
+| `filteredPipes`      | `Signal<RuntimePipe[]>`      | Pipes matching the query (title, class name, template name, category, tags)        |
+| `filteredPages`      | `Signal<StyleguidePage[]>`   | Pages matching the query (title, category)                                         |
+| `search(q)`          | `void`                       | Set the search query                                                               |
+| `clear()`            | `void`                       | Clear the search query                                                             |
 
 ---
 
@@ -126,10 +126,14 @@ The built-in renderer calls `log()` automatically for all `output()` signals. Us
 
 Controls which addon panel and view tab are active.
 
-| Member          | Type                     | Description                                              |
-| --------------- | ------------------------ | -------------------------------------------------------- |
-| `activePanelId` | `WritableSignal<string>` | ID of the active addon panel tab (default: `'controls'`) |
-| `activeViewId`  | `WritableSignal<string>` | ID of the active view tab (default: `'renderer'`)        |
+| Member                       | Type                              | Description                                                                                                                                                                                                                                                                                                  |
+| ---------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `activePanelId`              | `WritableSignal<string>`          | ID of the active addon panel tab (default: `'controls'`)                                                                                                                                                                                                                                                     |
+| `activeViewId`               | `WritableSignal<string>`          | ID of the active view tab (default: `'renderer'`). Every component starts on `'renderer'`, unless the URL names a view (since 22.7.0; before, the view stayed from one component to the next while the next one offered it)                                                                                  |
+| `partsPanel`                 | `Signal<PanelDefinition \| null>` | The first visible view panel with [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), `null` when there is none (since 22.7.0)                                                                                                                                                                    |
+| `activePart`                 | `Signal<string \| null>`          | Key of the part the active view is asked to show: its class name, with `~2`, `~3`, … for a later part of the same class name (see `partKeys()`). Set by `showPart()`, and `null` as soon as the active component or view is another one (since 22.7.0)                                                       |
+| `showPart(partKey, panelId)` | `void`                            | Opens the view panel `panelId` on a part of the active component, given by its key (see `activePart`), which the panel reads as its `activePart` input. For the part the view shows already, `activePart` is `null` for one render and then the part again, so the panel goes to it once more (since 22.7.0) |
+| `clearPart()`                | `void`                            | Forgets the part without leaving the view (since 22.7.0)                                                                                                                                                                                                                                                     |
 
 ---
 

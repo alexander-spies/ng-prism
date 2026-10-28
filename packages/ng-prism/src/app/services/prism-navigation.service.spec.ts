@@ -122,6 +122,16 @@ function setup(manifest: RuntimeManifest): {
 }
 
 describe('PrismNavigationService', () => {
+    it('finds the component a part belongs to by the class name of the part', () => {
+        const option = { meta: createComponent({ className: 'OptionComponent' }).meta };
+        const select = { ...createComponent({ className: 'SelectComponent' }), parts: [option] };
+        const { service } = setup({ components: [createComponent({ className: 'ButtonComponent' }), select] });
+
+        expect(service.parentOfPart('OptionComponent')).toBe(select);
+        expect(service.parentOfPart('SelectComponent')).toBeUndefined();
+        expect(service.parentOfPart('GoneComponent')).toBeUndefined();
+    });
+
     it('should have null activeComponent by default', () => {
         const { service } = setup({ components: [] });
 

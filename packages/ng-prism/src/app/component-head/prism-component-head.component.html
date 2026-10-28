@@ -23,6 +23,10 @@
                 [attr.title]="badge.tooltip" />
         }
 
+        @if (hasParts()) {
+            <prism-head-parts />
+        }
+
         @if (comp()) {
             <prism-head-gauge [metrics]="metrics()" />
         }

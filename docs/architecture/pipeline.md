@@ -37,6 +37,8 @@ The scan returns the components, the services, the pipes and the diagnostics of 
 
 The scan also reads the [compositions](architecture/scanner.md#compositions) of every showcase that has a `template` or a host template, against an index of every component, directive and pipe the entry points export, which it builds only when a showcase composes. What it finds wrong is a diagnostic, and the variant is then left out of the composition, so a template error does not stop the build, unless [`strictShowcase`](api/ng-prism-config.md#strictshowcase) is on.
 
+Once every entry point is scanned, it resolves each [`partOf`](architecture/scanner.md#parts) to its parent. A part that cannot be resolved is a diagnostic and stays a component of its own.
+
 Before scanning, the pipeline looks at the plugins of the loaded config and passes the scan [`ScanOptions`](architecture/scanner.md#entry) for what they use. Reading more costs time on every rebuild of `serve` and makes the manifest bigger:
 
 - **`componentApi`** when some plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi) (`jsDocPlugin()` does). Without one the components come without `ScannedComponent.api`, and the manifest carries none.
@@ -75,13 +77,17 @@ The reasoning, the fact that the hint is no diagnostic and that it is logged onc
 
 `runPluginHooks()` iterates over registered plugins in registration order:
 
-1. `onComponentScanned` called once per component
+1. `onComponentScanned` called once per component, every [part](architecture/scanner.md#parts) included
 2. `onServiceScanned` called once per service
 3. `onPipeScanned` called once per pipe
 4. `onPageScanned` called once per page
 5. `onManifestReady` called once with the full `PrismManifest`
 
 All hooks are awaited, so async plugins are fully supported.
+
+**Parts are nested between 4 and 5.** The per-item hooks see a part as a component of its own, so a plugin that reads each component, such as the JSDoc plugin, reads a part exactly like one. Before `onManifestReady`, `nestParts()` moves every part onto its parent: the parent becomes a new object with [`ScannedComponent.parts`](api/types.md#scannedcomponent), sorted by `showcaseConfig.title`, and the part leaves `manifest.components`. The parent is the one the scan resolved: `nestParts()` gets the list from before the hooks next to the one they returned, and since the per-item hooks keep the order and the number of the components, it pairs them by position. A hook that rewrites a parent, its selector or class name included, therefore keeps its parts on it, and a part never falls back to a component of its own after the hooks. The manifest the hook receives therefore has the shape of the runtime manifest, see [Plugin Hooks](architecture/plugin-hooks.md#parts-in-the-hooks).
+
+The nesting also decides what the pipeline counts: the `Generated manifest with N component(s)` message and `PrismPipelineResult.componentCount` count the entries of `manifest.components`, so parents, not parts. The [a11y](api/ng-prism-config.md#a11y) merge runs over the same list, so a part gets no a11y entry of its own: the variants of its parent render it, and the checks run there.
 
 ### 6. Runtime Manifest Generation
 
@@ -154,6 +160,22 @@ export const PRISM_RUNTIME_MANIFEST: RuntimeManifest = {
 ```
 
 Pipes are written the same way, in a `pipes` list, with the `meta` of each pipe and no import of its class. A list is only written when there is something in it: a library without services or pipes gets the manifest it always got.
+
+Parts (since `22.7.0`) are written the same way, in a `parts` list on the entry of their parent, right after its `meta`. Each is `{ meta }`, the part as `formatMeta()` writes any component, and has no `type`:
+
+```typescript
+export const PRISM_RUNTIME_MANIFEST: RuntimeManifest = {
+    components: [
+        {
+            type: SelectComponent,
+            meta: { className: 'SelectComponent', ... },
+            parts: [{ meta: { className: 'OptionComponent', ... } }]
+        }
+    ]
+};
+```
+
+The styleguide renders a part through the variants of its parent, so the manifest does not import its class. The one exception is a class that a composition of the parent names in its `imports`: it is imported for the wrapper, like any class a template uses. `meta` does not carry `parts` itself, since the list is the entry's own. A component without parts gets no `parts` line, so a library without `partOf` gets the manifest it always got.
 
 ### 7. Write in Place (Skip If Unchanged)
 

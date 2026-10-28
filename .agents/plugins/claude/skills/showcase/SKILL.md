@@ -1,6 +1,6 @@
 ---
 name: showcase
-description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, compiled templates with host templates and imports for components that work together such as a form field with its input, directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and pipes with @Pipe, with their setup), when a build prints a "⚠ ng-prism:" warning, when a component, service or pipe is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
+description: Use when writing or changing an @Showcase decorator in an Angular library that uses @ng-prism/core (variants, inputs, content projection, compiled templates with host templates and imports for components that work together such as a form field with its input, components that only exist as a part of another (`partOf`), directive hosts, states and pseudo states, canvas background and layout, status, component pages, services with @Injectable or @Service and pipes with @Pipe, with their setup), when a build prints a "⚠ ng-prism:" warning, when a component, service or pipe is missing from the ng-prism styleguide or an input has no effect there, or when a showcase should be checked in the running styleguide with a screenshot. Also when someone asks for a "story" in a project that uses ng-prism instead of Storybook. Not for developing ng-prism itself.
 ---
 
 # Writing and checking @Showcase configs
@@ -138,10 +138,33 @@ package is right:
       markup as written, a11y, perf and VRT. It doesn't cover overlays rendered into `<body>` (a select's panel, a
       datepicker popup) and has no live control for any part but the subject.
     - Don't use `renderPage` for it (rule 10). Don't write `host: '<div>…'` on a component: it has no effect.
+14. **A component that only works inside one other is a part: `partOf: '<parent selector>'`** (since 22.7.0; the typings
+    have `partOf`). `lib-option` in `lib-select`: `@Showcase({ title: 'Option', description: '…', partOf: 'lib-select' })`.
+    A part has no page of its own and no variant to write: its title, description, inputs and outputs show on its parent's
+    page.
+    - **The value is the parent's selector as a string, never the class** (that would import the parent back, and the
+      config runs when the class is defined, so the cycle is a `ReferenceError`). It matches one entry of the parent's
+      `selector` list, spaces ignored: `'lib-select'` finds `selector: 'lib-select, [libSelect]'`. The parent can be a
+      component or a directive in any entry point.
+    - **Exactly one parent that has `@Showcase`, and no chains.** A selector no showcased class has, one that several
+      have, a parent that is a part itself and a class naming itself are warnings that `strictShowcase` fails on. The
+      class then keeps a page of its own, so nothing vanishes, and you fix the selector.
+    - **A part uses `title`, `description`, `tags`, `status`, `meta`**, and its inputs and outputs from the class. Don't
+      set `variants`, `states`, `category`, `section`, `bg`, `canvasLayout`, `host: { template }`, `imports` or
+      `renderPage` on it: each is dropped with a notice that does not fail a strict build. A malformed value in them, or
+      an error in the template of a variant, is a warning as on any component, since the class is read before it is
+      known to be a part, and that one does fail a strict build. A directive part keeps a string or object `host`
+      (markup such as `host: '<button>Open</button>'`, not a bare tag name): the element its usage line on the API tab
+      is written on (`<button libTrigger>`). Only components and directives can be parts; on a service or a pipe
+      `partOf` is a warning.
+    - **When a part, when a showcase of its own:** a part when the class only works inside that one parent and its page
+      would repeat the parent's variants (`lib-option`, `lib-optgroup` in `lib-select`). A showcase of its own when
+      several components use it or it has a look worth its own variants and states: `libInput`, used by a form field and
+      a search input, stays its own entry. `partOf` takes one parent only.
 
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
-deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13). A variant
+deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13), `partOf` (rule 14). A variant
 can set its own `description`, `bg`, `canvasLayout`, `meta`, `pseudo`, `template` and `host` (rule 13).
 
 ## Example
@@ -234,6 +257,8 @@ from the code and the JSDoc, so write JSDoc for what the types can't say:
   the `host` of its `@Showcase`: another reason to declare one (rule 7). A showcase-level `host: { template }` (rule 13)
   shows the subject inside that markup, with the classes the template uses. `@version` gives a Version chip next to
   `@since`; `@example` (a fenced block) goes under Examples.
+- **A part's API is a block on its parent's tab** (rule 14). Its whole page, usage to types, follows the parent's
+  under "Parts", and its links lead to the cards in its own block, so document a part as you would a component.
 
 ## Workflow
 
@@ -285,7 +310,8 @@ node "${CLAUDE_SKILL_DIR}/scripts/screenshot.mjs" --pipe TimeAgoPipe
 - It selects the variant and the state through URL parameters, like the URL below, and `urlState: false` in
   `ng-prism.config.ts` turns them off. The script then times out with "Variant never rendered"; ask before switching `urlState` back on.
 - Exit codes: `0` saved. `1` the styleguide doesn't answer, the component, variant or state doesn't exist (it lists
-  the components and variants that do), the variant or the service or pipe page never rendered (it saves the full window for diagnosis), or the
+  the components and variants that do), the class is a part (it names the parent and the URL of the part's block on
+  the parent's API tab: screenshot the parent instead), the variant or the service or pipe page never rendered (it saves the full window for diagnosis), or the
   screenshot failed, e.g. for a component without a visible size (`--shell` still works). `2` invalid arguments. `3`
   Playwright or its Chromium is missing or won't start: suggest `npm i -D playwright && npx playwright install chromium`
   (on Linux with missing system libraries `npx playwright install --with-deps chromium`) and run it only if the user
@@ -320,8 +346,11 @@ Without Playwright, use a browser tool if you have one (Playwright MCP, Chrome D
 `http://localhost:4400/?service=<ClassName>&view=jsdoc` and wait for `[data-prism-service-rendered="<ClassName>"]`; for
 a pipe open `?pipe=<ClassName>&view=jsdoc` and wait for `[data-prism-pipe-rendered="<ClassName>"]`; for the API tab of
 a component or directive open `?component=<ClassName>&view=jsdoc` and wait for
-`[data-prism-component-rendered="<ClassName>"]`. Otherwise give the user that URL. This is ng-prism's public External
-Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states, but no services or pipes.
+`[data-prism-component-rendered="<ClassName>"]`. A part has its block on the parent's API tab:
+`?component=<Parent>&view=jsdoc&part=<PartClass>` scrolls there, and the marker names `<Parent>`. Otherwise give the
+user that URL. This is ng-prism's public External
+Tooling API; `window.__PRISM_MANIFEST__` lists every component, its variants and its states, and under a component its
+`parts` (`@Showcase({ partOf })`, never as components of their own), but no services or pipes.
 
 ## Guides
 

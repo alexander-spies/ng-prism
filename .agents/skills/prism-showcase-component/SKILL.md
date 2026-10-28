@@ -86,6 +86,8 @@ interface ShowcaseConfig<T = unknown> {
     // { template } (since 22.7.0): markup the component or directive renders in
     imports?: ShowcaseImport[]; // { name, from } of classes the templates use that the
     // library does not export (since 22.7.0)
+    partOf?: string; // Selector of the showcased parent (since 22.7.0): no page of its
+    // own, shown on the parent's page
     renderPage?: string; // Render a styleguide page instead
     status?: ComponentStatus; // 'stable' | 'beta' | 'wip' | 'deprecated'
 }
@@ -138,6 +140,13 @@ interface Variant<T = unknown> {
   the combination does not fit and says why (`<target> matches nothing`, `is disabled`, `is inert` or
   `has pointer-events: none`). A state's position in the list is its index in the URL, the render marker, the
   manifest and the VRT report, so append new states at the end
+- A component or directive that only works inside one parent (an option in a select) is a part:
+  `partOf: '<parent selector>'`, a string and never the class, which would import the parent back. It gets no page
+  and needs no variants: `title`, `description`, `tags`, `status` and its inputs and outputs show on the parent's
+  page, and `variants`, `states`, `category`, `bg` and the other page fields are dropped with a notice. A directive
+  part keeps a string or object `host` (markup such as `'<span>12</span>'`) for its usage line. The parent's
+  variants show the part. Demo in test-lib: `lib-list` with `lib-list-item`, `lib-list-group` and
+  `[libListItemMeta]`. Details: `docs/guide/showcase-decorator.md` › `partOf`
 - The component must be exported from the library's entry file to be discovered.
   Which file that is comes from the builder's `entryPoint` option — commonly
   `public-api.ts` or `index.ts`, not a fixed name.
@@ -172,6 +181,7 @@ const MB = 1024 * 1024;
 - [ ] `title` is set
 - [ ] `category` groups the component logically
 - [ ] `variants` cover the main use cases
+- [ ] A class that only works inside one parent declares `partOf` instead of variants of its own, and the parent's variants show it
 - [ ] `variants.inputs` keys match the actual `input()` member names
 - [ ] States shared by several variants are in `states`, with unique names and a stable order; `pseudo` stays on a variant only for a one-off picture
 - [ ] Config values are statically evaluable (literals, `const`, enum members; no function calls, no `let`)

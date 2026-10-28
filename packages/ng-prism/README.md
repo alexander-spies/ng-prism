@@ -15,6 +15,7 @@
 - **Directive support**: showcase directives with configurable host elements
 - **Compositions**: show a component with the parts it works with, such as a form field with its input, as a compiled Angular template with `template`, `host: { template }` and `imports`
 - **Services and pipes**: `@Showcase` on a service or pipe gives it an API page, no canvas needed
+- **Parts**: a component that only works inside another, such as an option in a select, names its parent with `partOf` and shows on the parent's page
 - **Plugin architecture**: JSDoc, A11y, Figma, Performance, Box Model, Coverage
 - **Live Controls**: auto-generated input controls with type-aware editors
 - **Code Snippets**: live-updating Angular template snippets per variant

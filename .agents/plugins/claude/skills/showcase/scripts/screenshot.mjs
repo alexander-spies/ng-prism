@@ -15,6 +15,10 @@
 // --component, --variant, --state or --shell. Services and pipes aren't listed in `__PRISM_MANIFEST__`, so an unknown
 // class name only shows as the marker never appearing.
 //
+// --component looks the class up in `__PRISM_MANIFEST__`. A part (`@Showcase({ partOf })`) is listed only under its
+// parent, in `components[].parts`, and has no page of its own: for its class name the script names the parent and the
+// URL of the part's block on the parent's API tab, and exits 1 as for an unknown component.
+//
 // Run it from the project root. Playwright comes from that project (`playwright`, else `@playwright/test`),
 // resolved from the current directory, never from where this file lives (a plugin cache has no node_modules).
 //
@@ -25,9 +29,9 @@
 // Without it no state is active. A state does not fit every variant: when the styleguide marks the cell with
 // `data-prism-excluded`, the script prints the reason, takes no screenshot and exits 4.
 //
-// Exit codes: 0 saved · 1 styleguide unreachable, component, variant or state unknown, the variant or the service or
-// pipe page never rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright or its Chromium missing · 4 the
-// requested state does not fit the variant (the styleguide marked the cell as excluded).
+// Exit codes: 0 saved · 1 styleguide unreachable, component (or a part, which has no page), variant or state unknown,
+// the variant or the service or pipe page never rendered, or the screenshot failed · 2 invalid arguments · 3 Playwright
+// or its Chromium missing · 4 the requested state does not fit the variant (the styleguide marked the cell as excluded).
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -227,6 +231,15 @@ async function capture(page) {
     if (apiPage) return captureApiPage(page);
 
     const entry = manifest.components.find((c) => c.className === component);
+    // A part (`@Showcase({ partOf })`) is listed under its parent only: it has no page, no variant and no marker.
+    const parent = entry ? undefined : manifest.components.find((c) => c.parts?.some((p) => p.className === component));
+    if (parent) {
+        console.error(
+            `${component} is a part of ${parent.className} and has no page of its own. Screenshot ${parent.className}, or open ` +
+                `?component=${parent.className}&view=jsdoc&part=${component} for the part's block on its API tab.`
+        );
+        return 1;
+    }
     if (!entry) {
         const known = manifest.components.map((c) => `  ${c.className}`).join('\n');
         console.error(`No component "${component}" in this styleguide. Known components:\n${known}`);

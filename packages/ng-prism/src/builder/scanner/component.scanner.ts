@@ -78,7 +78,8 @@ function importProblem(entry: ShowcaseImport): string | undefined {
     return isImportableName(entry.name) ? undefined : `expected the name a class is exported under, got ${JSON.stringify(entry.name)}; it was dropped`;
 }
 
-function isHostTemplate(value: unknown): value is HostTemplate {
+/** Whether a `host` is a host template, `{ template }`, rather than the string or object host of a directive. */
+export function isHostTemplate(value: unknown): value is HostTemplate {
     return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>)['template'] === 'string';
 }
 
@@ -87,7 +88,7 @@ function sourceIndex(index: number, dropped: ReadonlySet<number>): number {
     return [...dropped].sort((a, b) => a - b).reduce((position, gap) => (gap <= position ? position + 1 : position), index);
 }
 
-type Report = (message: string) => void;
+export type Report = (message: string) => void;
 
 /**
  * The two ways a scan warns, each printing a message once however often it is
@@ -126,6 +127,11 @@ export interface ScanComponentsOptions {
     api?: boolean;
     /** What {@link ScannedComponent.composition} is read against; without it, no composition is read. */
     composition?: CompositionContext;
+    /**
+     * Filled by the scan with the `@Showcase` argument of every component whose config kept `partOf`, which is what the
+     * messages about a part that cannot be resolved point at.
+     */
+    partOrigins?: Map<ScannedComponent, ts.Expression>;
 }
 
 /**
@@ -248,7 +254,7 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
                 { report, notify }
             );
 
-        components.push({
+        const component: ScannedComponent = {
             className,
             filePath,
             showcaseConfig,
@@ -261,7 +267,11 @@ export function scanComponents(showcased: ShowcasedClass[], checker: ts.TypeChec
                 .flatMap(({ classDecl: base }) => (base.name ? [{ className: base.name.text, filePath: base.getSourceFile().fileName }] : [])),
             api,
             ...(composition && { composition })
-        });
+        };
+
+        components.push(component);
+
+        if (showcaseConfig.partOf !== undefined) options.partOrigins?.set(component, showcaseArg);
     }
 
     return components;
@@ -404,6 +414,23 @@ function readShowcaseConfig(
         }
     }
     if (obj['renderPage']) config.renderPage = obj['renderPage'] as string;
+
+    if (obj['partOf'] !== undefined) {
+        const partOf = typeof obj['partOf'] === 'string' ? obj['partOf'].trim() : '';
+
+        if (partOf) {
+            config.partOf = partOf;
+        } else {
+            report(
+                describeShowcaseIssue(
+                    className,
+                    arg,
+                    ['partOf'],
+                    `expected the selector of a showcased component or directive as a string, got ${describeValue(obj['partOf'])}; it was dropped`
+                )
+            );
+        }
+    }
 
     if (obj['states'] !== undefined) {
         if (config.renderPage) {

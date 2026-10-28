@@ -1,11 +1,16 @@
 import type { ApiParam, ApiSetupEntry, ApiTypeRef } from '@ng-prism/core/plugin';
-import type { ApiPageModel } from './api-page.model.js';
+import type { ApiPageModel, ApiPagePart } from './api-page.model.js';
 
-/** One entry of the API page's "On this page" list. `id` names the section, `level` 2 is a type below "Types". */
+/**
+ * One entry of the API page's "On this page" list. `id` names the section, `level` 2 is a type below "Types", or a
+ * section of a part below the part's own entry, which is flagged with `part`.
+ */
 export interface TocEntry {
     id: string;
     label: string;
     level: 1 | 2;
+    /** The entry of a part: the heading of its block, which its sections follow. */
+    part?: true;
 }
 
 /** A piece of a type as written; `link` is the TOC id of the documented type the piece names. */
@@ -14,18 +19,70 @@ export interface TypeSegment {
     link?: string;
 }
 
-/** The TOC id of a documented type's card. */
-export function typeAnchor(typeId: string): string {
-    return `type-${typeId}`;
+/**
+ * An anchor id inside a scope: `scope-id`, or the id itself without a scope. The API page of a part shares one scroll
+ * host with its parent's page and the pages of the other parts, so every id on it carries the scope of its part.
+ */
+export function scopedAnchor(scope: string, id: string): string {
+    return scope ? `${scope}-${id}` : id;
 }
 
 /**
- * The sections of an API page in the order the page shows them. Usage is
- * always there, being generated; any other section only when it has content.
- * A component or directive has inputs, outputs and methods, a service
- * properties and methods, a pipe its transform signatures.
+ * The scope of a part's block, by the position of the part on the page rather than its class: two parts from different
+ * files can share a class name. The scope holds no hyphen after `part-`, which {@link isTypeAnchor} relies on.
  */
-export function buildApiPageToc(page: ApiPageModel): TocEntry[] {
+export function partScope(index: number): string {
+    return `part-${index}`;
+}
+
+/** The TOC id of the block of the part `key` names (see `partKeys`), `null` when the page has no such part. */
+export function partAnchor(parts: readonly ApiPagePart[], key: string | null): string | null {
+    return parts.find((part) => part.key === key)?.scope ?? null;
+}
+
+/** Where the page jumps for `activePart`: the block, on the page of a class. */
+export interface PartJump {
+    page: string;
+    anchor: string;
+}
+
+/**
+ * The jump to the block of the part `key` names on the page of `page`, `null` when the page has no such part. Two jumps
+ * are the same when {@link samePartJump} says so: the page goes to the block once per jump.
+ */
+export function partJump(page: string, parts: readonly ApiPagePart[], key: string | null): PartJump | null {
+    const anchor = partAnchor(parts, key);
+
+    return anchor ? { page, anchor } : null;
+}
+
+/**
+ * Whether two jumps go to the same block. The page is part of it because a block's anchor goes by the position of the
+ * part: the parts of two components at the same position share one, and going from one to the other (back and forward
+ * between their links) is a jump all the same. The parts themselves are not: a manifest update during `serve` hands
+ * over new ones, which must not send the reader back to the block.
+ */
+export function samePartJump(a: PartJump | null, b: PartJump | null): boolean {
+    return a?.page === b?.page && a?.anchor === b?.anchor;
+}
+
+/** The TOC id of a documented type's card, in the scope of the page that shows it. */
+export function typeAnchor(typeId: string, scope = ''): string {
+    return scopedAnchor(scope, `type-${typeId}`);
+}
+
+const TYPE_ANCHOR = /^(?:part-[^-]+-)?type-/;
+
+/** Whether a TOC id is the anchor of a type card, in the page's own scope or in a part's. */
+export function isTypeAnchor(id: string): boolean {
+    return TYPE_ANCHOR.test(id);
+}
+
+/** The section of the types: its heading, and a card per type below it. */
+const TYPES_SECTION = 'types';
+
+/** The sections of an API page in the order the page shows them, by their unscoped id; the ones without content are left out. */
+function pageSections(page: ApiPageModel): { id: string; label: string }[] {
     const sections: [id: string, label: string, present: boolean][] = [
         ['usage', 'Usage', true],
         ['setup', 'Setup', page.setup.length > 0],
@@ -35,12 +92,56 @@ export function buildApiPageToc(page: ApiPageModel): TocEntry[] {
         ['properties', 'Properties', !!page.properties?.length],
         ['methods', 'Methods', !!page.methods?.length],
         ['transform', 'Transform', !!page.transform?.length],
-        ['types', 'Types', page.types.length > 0]
+        [TYPES_SECTION, 'Types', page.types.length > 0]
     ];
-    const toc: TocEntry[] = sections.filter(([, , present]) => present).map(([id, label]) => ({ id, label, level: 1 }));
 
-    for (const type of page.types) toc.push({ id: typeAnchor(type.id), label: type.name, level: 2 });
+    return sections.filter(([, , present]) => present).map(([id, label]) => ({ id, label }));
+}
+
+/**
+ * The sections of an API page in the order the page shows them. Usage is
+ * always there, being generated; any other section only when it has content.
+ * A component or directive has inputs, outputs and methods, a service
+ * properties and methods, a pipe its transform signatures. Every id is in
+ * `scope`, the one of a part's block, or unscoped for the page itself.
+ */
+export function buildApiPageToc(page: ApiPageModel, scope = ''): TocEntry[] {
+    const toc: TocEntry[] = pageSections(page).map(({ id, label }) => ({ id: scopedAnchor(scope, id), label, level: 1 }));
+
+    for (const type of page.types) toc.push({ id: typeAnchor(type.id, scope), label: type.name, level: 2 });
     return toc;
+}
+
+/**
+ * The "Parts" group of the "On this page" list: for each part an entry that
+ * names the part by its title, then the sections of its page one level down.
+ * The Types section and its cards stay out, as the parent's list is the place
+ * for those; the part's block still has them.
+ */
+export function buildPartsToc(parts: readonly ApiPagePart[]): TocEntry[] {
+    return parts.flatMap(({ scope, title, page }): TocEntry[] => [
+        { id: scope, label: title, level: 1, part: true },
+        ...pageSections(page)
+            .filter(({ id }) => id !== TYPES_SECTION)
+            .map(({ id, label }): TocEntry => ({ id: scopedAnchor(scope, id), label, level: 2 }))
+    ]);
+}
+
+/**
+ * The entry of the "On this page" list that stands for the anchor `id`: the anchor's own, or for one without an entry
+ * (a part's Types section and its cards) the last listed anchor before it on the page, the part's last listed section.
+ * `anchorIds` are the TOC ids of all anchors in page order, `listed` those the list has. `id` itself when nothing
+ * listed comes before it.
+ */
+export function listedTocId(anchorIds: readonly string[], listed: ReadonlySet<string>, id: string): string {
+    if (listed.has(id)) return id;
+
+    return (
+        anchorIds
+            .slice(0, Math.max(anchorIds.indexOf(id), 0))
+            .filter((anchor) => listed.has(anchor))
+            .at(-1) ?? id
+    );
 }
 
 /** How far down the view, as a share of its height, a section's heading has to come to make the section active. */
@@ -91,7 +192,7 @@ const IDENTIFIER = /[A-Za-z_$][\w$]*/g;
  * (`import { Item as OtherItem }`) appears in the text by its local name, which
  * no id carries, so it stays unlinked.
  */
-export function typeSegments(ref: ApiTypeRef): TypeSegment[] {
+export function typeSegments(ref: ApiTypeRef, scope = ''): TypeSegment[] {
     const links = ref.links ?? [];
     const segments: TypeSegment[] = [];
     let plain = '';
@@ -105,7 +206,7 @@ export function typeSegments(ref: ApiTypeRef): TypeSegment[] {
 
         plain += ref.text.slice(last, match.index);
         if (plain) segments.push({ text: plain });
-        segments.push({ text: name, link: typeAnchor(id) });
+        segments.push({ text: name, link: typeAnchor(id, scope) });
         plain = '';
         last = match.index + name.length;
     }
@@ -116,8 +217,8 @@ export function typeSegments(ref: ApiTypeRef): TypeSegment[] {
 }
 
 /** A parameter as a signature writes it, `config?: ToastConfig` or `...features: Feature[]`, with its type linked. */
-export function paramSegments(param: ApiParam): TypeSegment[] {
-    return joinSegments(`${param.rest ? '...' : ''}${param.name}${param.optional ? '?' : ''}: `, typeSegments(param.type));
+export function paramSegments(param: ApiParam, scope = ''): TypeSegment[] {
+    return joinSegments(`${param.rest ? '...' : ''}${param.name}${param.optional ? '?' : ''}: `, typeSegments(param.type, scope));
 }
 
 /**
@@ -125,9 +226,9 @@ export function paramSegments(param: ApiParam): TypeSegment[] {
  * `config: ToastConfig = {}`. A default makes the parameter optional, so it
  * goes without the `?`; one without a default reads as in a signature.
  */
-export function declaredParamSegments(param: ApiParam): TypeSegment[] {
-    if (param.defaultValue === undefined) return paramSegments(param);
-    return joinSegments(`${param.rest ? '...' : ''}${param.name}: `, typeSegments(param.type), ` = ${param.defaultValue}`);
+export function declaredParamSegments(param: ApiParam, scope = ''): TypeSegment[] {
+    if (param.defaultValue === undefined) return paramSegments(param, scope);
+    return joinSegments(`${param.rest ? '...' : ''}${param.name}: `, typeSegments(param.type, scope), ` = ${param.defaultValue}`);
 }
 
 /** Whether a parameter list says more than its signature: a `@param` text or a default. */
@@ -139,12 +240,12 @@ export function documentsParams(params: readonly ApiParam[] | undefined): boolea
  * What follows a setup entry's name on its signature line: the parameters and
  * the return type of a function, the type of a token.
  */
-export function setupSignature(entry: ApiSetupEntry): TypeSegment[] {
-    if (entry.kind === 'token') return entry.tokenType ? joinSegments(': ', typeSegments(entry.tokenType)) : [];
+export function setupSignature(entry: ApiSetupEntry, scope = ''): TypeSegment[] {
+    if (entry.kind === 'token') return entry.tokenType ? joinSegments(': ', typeSegments(entry.tokenType, scope)) : [];
 
-    const params = (entry.params ?? []).flatMap((param, index) => (index ? [', ', paramSegments(param)] : [paramSegments(param)]));
+    const params = (entry.params ?? []).flatMap((param, index) => (index ? [', ', paramSegments(param, scope)] : [paramSegments(param, scope)]));
 
-    return joinSegments('(', ...params, ')', ...(entry.returnType ? [': ', typeSegments(entry.returnType)] : []));
+    return joinSegments('(', ...params, ')', ...(entry.returnType ? [': ', typeSegments(entry.returnType, scope)] : []));
 }
 
 /** Concatenate text and segments, merging neighbouring plain text into one segment. */

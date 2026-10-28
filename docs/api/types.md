@@ -30,10 +30,29 @@ interface RuntimeComponent {
     meta: ScannedComponent;
     type: Type<unknown>;
     composition?: Type<unknown>;
+    parts?: RuntimePart[];
 }
 ```
 
 `composition` (since `22.7.0`) is the generated wrapper that renders the [compositions](#componentcomposition) of the showcase. The renderer sets its `__prismVariant__` input to the index of the variant and binds the inputs of the subject through the member names of the wrapper. It is only there when `meta.composition` is. When every variant is composed, `type` is the wrapper too. A variant without a composition renders `type` as before.
+
+`parts` (since `22.7.0`) are the components whose [`partOf`](api/showcase-config.md#partof) names this one, sorted by title, see [`RuntimePart`](#runtimepart). It is missing for a component without parts. **Experimental**
+
+---
+
+## RuntimePart
+
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `RuntimePart` and `RuntimeComponent.parts`.
+
+A part of a component or directive in the runtime manifest (since `22.7.0`): a showcase with [`partOf`](api/showcase-config.md#partof), which the styleguide shows on the page of its parent and never on a page of its own.
+
+```typescript
+interface RuntimePart {
+    meta: ScannedComponent;
+}
+```
+
+A part has `meta` and nothing else. It has no `type`, because the variants of the parent render it, and the manifest does not import its class, so a part costs no bundle size. The exception is a class that a [composition](#componentcomposition) of the parent names in its `imports`: that one is imported for the wrapper, as any class a template uses. A part is no longer in `RuntimeManifest.components`, so code that walks that list, such as a plugin or an external tool, does not see it as a component without variants.
 
 ---
 
@@ -57,27 +76,31 @@ interface ScannedComponent {
     baseClasses?: { className: string; filePath: string }[];
     api?: ComponentApi;
     composition?: ComponentComposition;
+    parentClassName?: string;
+    parts?: ScannedComponent[];
     meta?: Record<string, unknown>;
 }
 ```
 
-| Field                       | Description                                                                                                                                                                                                                                                                      |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `className`                 | TypeScript class name                                                                                                                                                                                                                                                            |
-| `filePath`                  | Absolute path to the source file                                                                                                                                                                                                                                                 |
-| `showcaseConfig`            | The `ShowcaseConfig` passed to `@Showcase`                                                                                                                                                                                                                                       |
-| `inputs`                    | Array of extracted `InputMeta` for each `input()` signal, base classes included                                                                                                                                                                                                  |
-| `outputs`                   | Array of extracted `OutputMeta` for each `output()` signal, base classes included                                                                                                                                                                                                |
-| `componentMeta.selector`    | Angular element selector                                                                                                                                                                                                                                                         |
-| `componentMeta.standalone`  | Whether the component is standalone                                                                                                                                                                                                                                              |
-| `componentMeta.isDirective` | `true` if decorated with `@Directive`, `false` for `@Component`                                                                                                                                                                                                                  |
-| `importPath`                | Import path of the entry point that exports the component (e.g. `'my-lib'` or `'my-lib/atoms'`). The scanner sets it for every entry point it scans, the primary one included                                                                                                    |
-| `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest                                                                                                                                                                              |
-| `api`                       | What the API page needs beyond `inputs` and `outputs`, see [`ComponentApi`](#componentapi) (since `22.7.0`). Only read when a plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi), missing otherwise and when a plugin hook builds the component. **Experimental** |
-| `composition`               | What the variants render when they have a `template` or a host template, see [`ComponentComposition`](#componentcomposition) (since `22.7.0`). Missing when no variant is composed and when a plugin hook builds the component. **Experimental**                                 |
-| `meta`                      | Plugin-injected metadata                                                                                                                                                                                                                                                         |
+| Field                       | Description                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `className`                 | TypeScript class name                                                                                                                                                                                                                                                                                                                                                                         |
+| `filePath`                  | Absolute path to the source file                                                                                                                                                                                                                                                                                                                                                              |
+| `showcaseConfig`            | The `ShowcaseConfig` passed to `@Showcase`                                                                                                                                                                                                                                                                                                                                                    |
+| `inputs`                    | Array of extracted `InputMeta` for each `input()` signal, base classes included                                                                                                                                                                                                                                                                                                               |
+| `outputs`                   | Array of extracted `OutputMeta` for each `output()` signal, base classes included                                                                                                                                                                                                                                                                                                             |
+| `componentMeta.selector`    | Angular element selector                                                                                                                                                                                                                                                                                                                                                                      |
+| `componentMeta.standalone`  | Whether the component is standalone                                                                                                                                                                                                                                                                                                                                                           |
+| `componentMeta.isDirective` | `true` if decorated with `@Directive`, `false` for `@Component`                                                                                                                                                                                                                                                                                                                               |
+| `importPath`                | Import path of the entry point that exports the component (e.g. `'my-lib'` or `'my-lib/atoms'`). The scanner sets it for every entry point it scans, the primary one included                                                                                                                                                                                                                 |
+| `baseClasses`               | Base classes with source the component extends, nearest first. Build time only, not in the manifest                                                                                                                                                                                                                                                                                           |
+| `api`                       | What the API page needs beyond `inputs` and `outputs`, see [`ComponentApi`](#componentapi) (since `22.7.0`). Only read when a plugin sets [`componentApi`](api/ng-prism-plugin.md#componentapi), missing otherwise and when a plugin hook builds the component. **Experimental**                                                                                                              |
+| `composition`               | What the variants render when they have a `template` or a host template, see [`ComponentComposition`](#componentcomposition) (since `22.7.0`). Missing when no variant is composed and when a plugin hook builds the component. **Experimental**                                                                                                                                              |
+| `parentClassName`           | The class name of the component or directive this one is a part of, set when the selector in `showcaseConfig.partOf` resolved to exactly one other showcased class (since `22.7.0`). A plugin that works per page skips a component that has it. Missing for a component that is not a part, and for one whose `partOf` did not resolve, which stays a component of its own. **Experimental** |
+| `parts`                     | The parts of the component, sorted by title (since `22.7.0`). Build time only: `onManifestReady` gets the parts here and not in `manifest.components`, and the runtime manifest carries them as [`RuntimeComponent.parts`](#runtimecomponent). `onComponentScanned` runs before the parts are nested and sees each as a component of its own. **Experimental**                                |
+| `meta`                      | Plugin-injected metadata                                                                                                                                                                                                                                                                                                                                                                      |
 
-The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, which stays build-time only. That includes `importPath` and `api` since `22.7.0`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them. `composition` is carried too, with its `imports` and without the `origin` of each case, which only the generated code uses.
+The runtime manifest carries every field of `ScannedComponent` except `baseClasses`, `parentClassName` and `parts`. `baseClasses` stays build-time only. A part sits under its parent in [`RuntimeComponent.parts`](#runtimecomponent), next to the `meta` of the parent rather than inside it, which makes `parentClassName` redundant. Since `22.7.0` the manifest carries `importPath` and `api`, `api` only when a plugin in the config sets `componentApi`: an older core wrote neither, and the page of a plugin has to cope with a manifest that lacks them. `composition` is carried too, with its `imports` and without the `origin` of each case, which only the generated code uses.
 
 The scan reads `composition` before the plugin hooks run. A hook that changes `showcaseConfig.variants[].template`, a host template or `imports` afterwards does not change what renders.
 
@@ -340,6 +363,7 @@ interface InputMeta {
     defaultUnreadable?: true;
     required: boolean;
     doc?: string;
+    model?: true;
 }
 ```
 
@@ -354,6 +378,7 @@ interface InputMeta {
 | `defaultUnreadable` | `true` when the input starts out with a value the scan could not evaluate, such as the result of a function call (since `22.7.0`). `defaultValue` is missing then. Not set for `input<string>()`, which starts out `undefined` |
 | `required`          | `true` if declared with `input.required<T>()`                                                                                                                                                                                  |
 | `doc`               | JSDoc comment from the property, as written: `{@link X \| text}` keeps its bar (since `22.7.0`, see below)                                                                                                                     |
+| `model`             | `true` for a `model()` or `model.required()` (since `22.7.0`). Angular adds the output `${alias ?? name}Change` for it, which `ScannedComponent.outputs` does not list, since no class member declares it                      |
 
 `defaultUnreadable` is what tells a composition to leave an input alone. The wrapper of a [composed variant](#componentcomposition) does not bind an input with an unreadable default unless the variant sets it, because binding `undefined` would replace the default the subject has. In a variant that does not set it, its control reads `Not editable` with the reason "Its default is unknown to ng-prism".
 
@@ -756,6 +781,34 @@ interface DiscoveryState {
 | `pseudo` | The states it forces, as declared, see [`ForcedPseudoStates`](#forcedpseudostates). `{}` for a slot that forces nothing; it stays listed so the indices behind it keep their value |
 
 `DiscoveryComponent.states` is omitted when the component declares none, and `DiscoveryVariant.states` is `false` for a variant that opted out of the component's states and absent otherwise. `DiscoveryState` is exported from `@ng-prism/core/plugin`.
+
+---
+
+## DiscoveryPart
+
+> **Experimental until 23.0.0: the shape may change in a 22.x minor release.** This covers `DiscoveryPart` and `DiscoveryComponent.parts`.
+
+One part of a component or directive in `window.__PRISM_MANIFEST__` (since `22.7.0`), the entries of `DiscoveryComponent.parts`. The manifest is the discovery view for [external tooling](guide/external-tooling.md#enumerating-what-exists).
+
+```typescript
+interface DiscoveryPart {
+    className: string;
+    title: string;
+    selector: string;
+    inputs: string[];
+    outputs: string[];
+}
+```
+
+| Field       | Description                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `className` | The class name of the part                                                                                                                                           |
+| `title`     | `ShowcaseConfig.title`, the display name                                                                                                                             |
+| `selector`  | The selector of the class, as `@Component` or `@Directive` declares it                                                                                               |
+| `inputs`    | The public names of its inputs: the `alias` where there is one, the member name otherwise                                                                            |
+| `outputs`   | The public names of its outputs: the `alias` where there is one, the member name otherwise, then the change output of each `model()` input, `${alias ?? name}Change` |
+
+`DiscoveryComponent.parts` is omitted when the component has no [parts](api/showcase-config.md#partof). A part is not in `DiscoveryManifest.components`: it has no variants and no render marker of its own, and a tool that walks the components does not visit it. `DiscoveryPart` is exported from `@ng-prism/core/plugin`.
 
 ---
 

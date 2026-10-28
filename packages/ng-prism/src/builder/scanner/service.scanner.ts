@@ -6,7 +6,7 @@ import type { ExportIndex } from './api/export-index.js';
 import { extractServiceApi } from './api/service-api.extractor.js';
 import { readSetupRefs } from './api/setup.reader.js';
 import { createReporters, extractShowcaseConfig, type ShowcasedClass } from './component.scanner.js';
-import { describeUnreadableApi } from './showcase-diagnostics.js';
+import { describePartOfOnServiceOrPipe, describeUnreadableApi } from './showcase-diagnostics.js';
 
 /**
  * The `@Showcase` fields that mean something for a service, and for a pipe, which the sidebar and the plugins treat the same way:
@@ -43,6 +43,9 @@ export function scanServices(showcased: ShowcasedClass[], checker: ts.TypeChecke
         const showcaseConfig = extractShowcaseConfig(decorator, className, report, checker);
 
         if (!showcaseConfig || !argument) continue;
+
+        // pickServiceFields drops it below; the diagnostic tells the author why nothing came of it.
+        if (showcaseConfig.partOf !== undefined) report(describePartOfOnServiceOrPipe(className, argument));
 
         let api: ScannedService['api'];
 

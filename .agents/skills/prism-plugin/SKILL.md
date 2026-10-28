@@ -83,6 +83,24 @@ from a showcase whose variants render as compiled compositions (a `template` or 
 - A hook that adds, removes or rebuilds variants must keep `variantCases` aligned with them, or drop `composition`.
   Editing `template` or `host` in a hook changes nothing that renders: the scan has read them already.
 
+### Parts in a hook
+
+A class with `@Showcase({ partOf: '<selector of the parent>' })` (since 22.7.0, `@experimental` until 23.0.0) is a part
+of that component or directive and has no page of its own.
+
+- `onComponentScanned` runs on a part like on any component. A resolved part has `parentClassName`, the class name of
+  its parent. A hook that works per page (builds, measures or photographs each component, as perf and
+  visual-regression do) returns early with `if (component.parentClassName) return;`. One that reads every component's
+  API (jsdoc, coverage) keeps the part.
+- `onManifestReady` gets the parts nested: not in `manifest.components` but in `parts` of their parent
+  (`ScannedComponent.parts`, sorted by title), the shape of `RuntimeComponent.parts`. A plugin that walks the list reads
+  `c.parts ?? []` to include parts, and a filter that drops a parent drops its parts too.
+- The scan decides which parent a part belongs to: a hook that rewrites a parent, its selector or class name included,
+  keeps its parts on it.
+- A view panel that shows parts sets `listsParts: true` and declares `readonly activePart = input<string | null>(null)`:
+  the key of the part to show, its class name with `~2`, `~3`, … appended for a later part of the same class name
+  (`partKeys(parts)` from `@ng-prism/core/plugin`). It scrolls to the block of that part.
+
 ## Plugin Registration
 
 ```typescript
@@ -137,6 +155,8 @@ interface PanelDefinition {
     // activePipe, and the build reads services (pipes) and keeps them in the manifest only when such a panel exists
     // for them, decided apart (read from the Node entry); otherwise it only counts them. Since 22.7.0.
     appliesTo?: readonly ('component' | 'service' | 'pipe')[];
+    // A view panel for components that shows their parts; gets the input activePart (the part's key). Since 22.7.0.
+    listsParts?: boolean;
     providers?: Provider[];
     isVisible?: (component: RuntimeComponent) => boolean; // components only
     badge?: (component: RuntimeComponent) => PanelBadge | null;

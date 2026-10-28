@@ -210,3 +210,31 @@ describe('scanPipes', () => {
         expect(pipes.filter((name) => components.includes(name) || services.includes(name))).toEqual([]);
     });
 });
+
+describe('scanPipes with partOf', () => {
+    let warn: jest.SpyInstance;
+
+    beforeEach(() => {
+        warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+    });
+
+    it('reports partOf on a pipe as a diagnostic and drops it', () => {
+        const result = resolveEntryPointExports([{ entryFile: path.join(FIXTURES_DIR, 'part-of.pipe.ts'), importPath: 'fixture/part-of' }], compilerOptions);
+        const checker = result.program.getTypeChecker();
+        const diagnostics: string[] = [];
+        const pipes = scanPipes(findShowcasedClasses(result.entries[0].exports, checker), checker, {
+            exportIndex: buildExportIndex(result.entries, checker),
+            diagnostics,
+            notices: new Set()
+        });
+
+        expect(diagnostics).toContainEqual(
+            expect.stringMatching(/^PartOfPipe › partOf — only a component or directive can be part of another; it was dropped \(.*part-of\.pipe\.ts:\d+:\d+\)$/)
+        );
+        expect(pipes.find((p) => p.className === 'PartOfPipe')!.showcaseConfig).not.toHaveProperty('partOf');
+    });
+});

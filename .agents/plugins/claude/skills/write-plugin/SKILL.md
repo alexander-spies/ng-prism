@@ -62,6 +62,15 @@ export function notesPlugin(): NgPrismPlugin {
   does.
   It is read before the hooks run, so a hook that edits `template` or `host` afterwards changes nothing that renders,
   and it is absent when no variant has one and on a component a hook builds from scratch.
+- **Parts (since 22.7.0, experimental until 23.0.0).** A class with `@Showcase({ partOf: '<selector of the parent>' })` is
+  a part of that component or directive and has no page of its own. `onComponentScanned` runs on it like on any
+  component, so it has `inputs`, `outputs` and, with `componentApi`, `api`. When `partOf` resolved,
+  `component.parentClassName` names the parent: a hook that works per page (builds, measures or photographs each
+  component) returns early for a component that has it. `onManifestReady` gets the parts nested: they are not in
+  `manifest.components` but in `parts` of their parent (`ScannedComponent.parts`, sorted by title), the same shape as
+  `RuntimeComponent.parts`. So a plugin that walks `manifest.components` sees parents only and reads `c.parts ?? []` to
+  include parts, and a filter that drops a parent drops its parts too. The scan decides which parent a part belongs to:
+  a hook that rewrites the parent, its selector or class name included, keeps its parts on it.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the
   whole library goes into `manifest.meta`, read in the browser with `inject(PRISM_MANIFEST).meta`.
 - The manifest that carries these results to the browser is generated source code: only JSON-like data survives. In
@@ -94,13 +103,13 @@ export function notesPlugin(): NgPrismPlugin {
 
 ## Runtime contributions
 
-| Field                   | Definition                                                                                                                                          | The component receives                                                                                                                                                                                |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `panels`                | `{ id, label, loadComponent, icon?, placement?: 'addon' \| 'view', appliesTo?, isVisible?, badge?, keepAlive?, providers?, loadOverlayComponent? }` | input `activeComponent: RuntimeComponent \| null`, `activeService: RuntimeService \| null` for a view panel that applies to services, `activePipe: RuntimePipe \| null` for one that applies to pipes |
-| overlay                 | `loadOverlayComponent` on a panel, drawn over the canvas while that panel is active                                                                 | input `rendererService: PrismRendererService`                                                                                                                                                         |
-| `controls`              | `{ matchType: (input: InputMeta) => boolean, component }`                                                                                           | inputs `inputMeta` and `rendererService`                                                                                                                                                              |
-| `headerWidgets`         | `{ id, loadComponent, placement?: 'start' \| 'end', order? }`                                                                                       | nothing                                                                                                                                                                                               |
-| `navigationDecorations` | `{ id, icon, order?, badge: (c) => { variant: 'warn' \| 'danger', label } \| null }`                                                                | (no component)                                                                                                                                                                                        |
+| Field                   | Definition                                                                                                                                                       | The component receives                                                                                                                                                                                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `panels`                | `{ id, label, loadComponent, icon?, placement?: 'addon' \| 'view', appliesTo?, listsParts?, isVisible?, badge?, keepAlive?, providers?, loadOverlayComponent? }` | input `activeComponent: RuntimeComponent \| null`, `activeService: RuntimeService \| null` for a view panel that applies to services, `activePipe: RuntimePipe \| null` for one that applies to pipes, `activePart: string \| null` for a panel with `listsParts` |
+| overlay                 | `loadOverlayComponent` on a panel, drawn over the canvas while that panel is active                                                                              | input `rendererService: PrismRendererService`                                                                                                                                                                                                                     |
+| `controls`              | `{ matchType: (input: InputMeta) => boolean, component }`                                                                                                        | inputs `inputMeta` and `rendererService`                                                                                                                                                                                                                          |
+| `headerWidgets`         | `{ id, loadComponent, placement?: 'start' \| 'end', order? }`                                                                                                    | nothing                                                                                                                                                                                                                                                           |
+| `navigationDecorations` | `{ id, icon, order?, badge: (c) => { variant: 'warn' \| 'danger', label } \| null }`                                                                             | (no component)                                                                                                                                                                                                                                                    |
 
 - Components are standalone. Load panels, overlays and header widgets lazily:
   `loadComponent: () => import('./notes-panel.component').then((m) => m.NotesPanelComponent)`. An eager `component`
@@ -109,6 +118,9 @@ export function notesPlugin(): NgPrismPlugin {
   `activeComponent()?.meta.showcaseConfig.meta`, and a panel reads the API at `activeComponent()?.meta.api`
   (experimental, `undefined` for a component without one, and only in the manifest when a plugin sets
   `componentApi: true`, so set it on yours).
+- `RuntimeComponent.parts` (since 22.7.0, experimental until 23.0.0) is `RuntimePart[]`, one `{ meta: ScannedComponent }`
+  per part of the component, sorted by title, with no `type`: the variants of the component render a part, never the
+  part itself. It is missing for a component without parts.
 - **Panels for services and pipes.** `appliesTo: ('component' | 'service' | 'pipe')[]` (since 22.7.0) says where a
   panel appears, default `['component']`. A service or pipe page has no canvas and offers only the panels that apply
   to it, as view tabs: such a panel needs `placement: 'view'`, since there is no addon area. An addon panel shows on
@@ -119,6 +131,14 @@ export function notesPlugin(): NgPrismPlugin {
   `placement` and `appliesTo` in the plugin's Node entry too, not only in `index.browser.ts`: the build reads them from
   there to decide whether any plugin shows services or pipes. The panel reads the API at `activeService()?.meta.api`
   or `activePipe()?.meta.api`.
+- **A panel that lists parts.** `listsParts: true` on a view panel for `'component'` (since 22.7.0, experimental until
+  23.0.0) says it shows the parts of the component (`RuntimeComponent.parts`). It declares
+  `readonly activePart = input<string | null>(null)`, the key of the part to show (its class name, `~2`, `~3`, … appended
+  for a later part of the same class name; `partKeys(parts)` from `@ng-prism/core/plugin` lists them), and scrolls to
+  its block; only a panel with `listsParts` is given the input. `activePart` follows the `part` URL parameter and a
+  part's popover in the component head, which links to the first visible panel with `listsParts`; it goes back to
+  `null` when the component or the view changes. The link of the part already shown sets it to `null` for one render
+  and then to the part again, so scrolling whenever the input changes is enough.
 - The selected variant and its inputs: inject `PrismRendererService` from `@ng-prism/core` (`activeVariantIndex()`,
   `inputValues()`, `renderedElement()`, `subjectElement()`, `selectVariant()`, `updateInput()`).
   `renderedElement()` is the root of everything the canvas renders: for a variant with a `template` or a `host: { template }`

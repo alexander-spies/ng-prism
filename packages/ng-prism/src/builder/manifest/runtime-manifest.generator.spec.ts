@@ -4,7 +4,7 @@ import type { ScannedPipe } from '../../plugin/pipe.types.js';
 import type { ScannedComponent } from '../../plugin/plugin.types.js';
 import type { ScannedService } from '../../plugin/service.types.js';
 import { COMPOSITION_SUBJECT_SLOT } from '../../shared/composition.js';
-import { extractTemplate, FRAME, manifestMeta } from './__test-utils__/composition-fixtures.js';
+import { evaluateManifest, extractTemplate, FRAME, manifestMeta } from './__test-utils__/composition-fixtures.js';
 import { templateErrors } from './__test-utils__/template-errors.js';
 import { generateRuntimeManifest } from './runtime-manifest.generator.js';
 
@@ -1165,5 +1165,122 @@ describe('compositions', () => {
         expect(source).toContain('import { ButtonComponent } from "other-lib";');
         expect(source).toContain('import { TooltipDirective, ButtonComponent as ButtonComponent__2 } from "my-lib";');
         expect(source).toContain('imports: [TooltipDirective, ButtonComponent__2],');
+    });
+});
+
+describe('parts', () => {
+    const SELECT: ScannedComponent = {
+        className: 'SelectComponent',
+        filePath: 'src/lib/select/select.component.ts',
+        showcaseConfig: { title: 'Select' },
+        inputs: [],
+        outputs: [],
+        componentMeta: { selector: 'lib-select', standalone: true, isDirective: false }
+    };
+
+    const OPTION: ScannedComponent = {
+        className: 'OptionComponent',
+        filePath: 'src/lib/select/option.component.ts',
+        importPath: 'my-lib/option',
+        showcaseConfig: { title: 'Option', partOf: 'lib-select', meta: { note: 'kept' } },
+        inputs: [{ name: 'value', type: 'string', required: true }],
+        outputs: [{ name: 'removed' }],
+        componentMeta: { selector: 'lib-option', standalone: true, isDirective: false },
+        parentClassName: 'SelectComponent'
+    };
+
+    const OPTGROUP_DIRECTIVE: ScannedComponent = {
+        className: 'OptgroupDirective',
+        filePath: 'src/lib/select/optgroup.directive.ts',
+        showcaseConfig: { title: 'Option Group', partOf: 'lib-select' },
+        inputs: [],
+        outputs: [],
+        componentMeta: { selector: '[libOptgroup]', standalone: true, isDirective: true },
+        parentClassName: 'SelectComponent'
+    };
+
+    /** A composition whose template uses the part. */
+    const SELECT_COMPOSED: ScannedComponent = {
+        ...SELECT,
+        showcaseConfig: { title: 'Select', variants: [{ name: 'Default', template: '<lib-option value="a" />' }] },
+        composition: {
+            variantCases: [0],
+            cases: [
+                {
+                    template: `<lib-select${COMPOSITION_SUBJECT_SLOT}><lib-option value="a" /></lib-select>`,
+                    unbound: [],
+                    origin: 'variants[0] "Default" (select.showcase.ts:1:1)'
+                }
+            ],
+            imports: [{ name: 'OptionComponent', from: 'my-lib/option' }]
+        }
+    };
+
+    function manifest(components: ScannedComponent[]): string {
+        return generateRuntimeManifest({ components, libraryImportPath: 'my-lib', warn: () => undefined });
+    }
+
+    it('emits parts as meta only, without importing the part class', () => {
+        const out = manifest([{ ...SELECT, parts: [OPTION] }]);
+
+        expect(out).toMatch(/parts: \[\s*\{\s*meta: \{\s*className: "OptionComponent"/);
+        expect(out).not.toMatch(/import \{[^}]*\bOptionComponent\b/);
+        expect(out).not.toContain('from "my-lib/option"');
+    });
+
+    it('writes parts after the meta of the parent, at the indent of its other keys', () => {
+        const out = manifest([{ ...SELECT, parts: [OPTION] }]);
+
+        expect(out).toMatch(/ {6}meta: \{[\s\S]*?\n {6}\},\n {6}parts: \[\n {8}\{\n {10}meta: \{\n {12}className: "OptionComponent",/);
+        expect(out).toMatch(/\n {10}\},\n {8}\},\n {6}\],\n {4}\},\n {2}\],/);
+    });
+
+    it('writes valid code that evaluates to the parts of the parent, each with its meta and no class', () => {
+        const out = manifest([
+            { ...SELECT, parts: [OPTION, OPTGROUP_DIRECTIVE] },
+            { ...SELECT, className: 'OtherComponent' }
+        ]);
+        const [select, other] = evaluateManifest(out).components;
+
+        expect(ts.transpileModule(out, { reportDiagnostics: true }).diagnostics).toEqual([]);
+        expect(select.parts!.map((p) => p.meta.className)).toEqual(['OptionComponent', 'OptgroupDirective']);
+        expect(select.parts![0]).not.toHaveProperty('type');
+        expect(select.parts![0].meta).toMatchObject({
+            filePath: 'src/lib/select/option.component.ts',
+            importPath: 'my-lib/option',
+            showcaseConfig: { title: 'Option', partOf: 'lib-select', meta: { note: 'kept' } },
+            inputs: [{ name: 'value', type: 'string', required: true }],
+            outputs: [{ name: 'removed' }],
+            componentMeta: { selector: 'lib-option', standalone: true, isDirective: false }
+        });
+        expect(other).not.toHaveProperty('parts');
+    });
+
+    it('does not write parts into the meta of a component or of a part', () => {
+        const [select] = evaluateManifest(manifest([{ ...SELECT, parts: [{ ...OPTION, parts: [OPTGROUP_DIRECTIVE] }] }])).components;
+
+        expect(select.meta).not.toHaveProperty('parts');
+        expect(select.parts![0].meta).not.toHaveProperty('parts');
+    });
+
+    it('generates no wrapper for a part that is a directive', () => {
+        const out = manifest([{ ...SELECT, parts: [OPTGROUP_DIRECTIVE] }]);
+
+        expect(out).not.toContain('OptgroupDirective__PrismHost');
+        expect(out).not.toContain('@Component');
+        expect(out).not.toMatch(/import \{[^}]*\bOptgroupDirective\b/);
+    });
+
+    it("still imports a part the parent's composition template uses", () => {
+        const out = manifest([{ ...SELECT_COMPOSED, parts: [OPTION] }]);
+
+        expect(out).toMatch(/import \{[^}]*\bOptionComponent\b[^}]*\} from "my-lib\/option"/);
+        expect(out).toContain('imports: [SelectComponent, OptionComponent],');
+        expect(out).toMatch(/parts: \[\s*\{\s*meta: \{\s*className: "OptionComponent"/);
+    });
+
+    it('writes nothing new for a component without parts', () => {
+        expect(manifest([SELECT, BUTTON])).not.toContain('parts:');
+        expect(manifest([{ ...SELECT, parts: [] }])).not.toContain('parts:');
     });
 });

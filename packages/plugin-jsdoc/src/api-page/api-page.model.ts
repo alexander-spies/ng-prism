@@ -1,16 +1,18 @@
-import type {
-    ApiDocTags,
-    ApiMethod,
-    ApiProperty,
-    ApiSetupEntry,
-    ApiTypeDoc,
-    ApiTypeRef,
-    InputMeta,
-    ScannedComponent,
-    ScannedPipe,
-    ScannedService
+import {
+    type ApiDocTags,
+    type ApiMethod,
+    type ApiProperty,
+    type ApiSetupEntry,
+    type ApiTypeDoc,
+    type ApiTypeRef,
+    type InputMeta,
+    partKeys,
+    type ScannedComponent,
+    type ScannedPipe,
+    type ScannedService
 } from '@ng-prism/core/plugin';
 import type { JsDocData, MethodDoc } from '../jsdoc.types.js';
+import { partScope } from './api-page.helpers.js';
 import { generateComponentUsage } from './component-usage.js';
 import { generatePipeUsage } from './pipe-usage.js';
 import { generateServiceUsage } from './service-usage.js';
@@ -75,6 +77,21 @@ export interface ApiPageModel {
     /** Pipes: one entry per transform signature. */
     transform?: ApiMethod[];
     types: ApiTypeDoc[];
+}
+
+/**
+ * A part of a component as its parent's API tab shows it: the heading of its
+ * block and its API page. `scope` prefixes every anchor of the block, so the
+ * ids of two blocks never meet in the one scroll host.
+ */
+export interface ApiPagePart {
+    className: string;
+    /** What `activePart` names the part by: its class name, with `~2` for the second of a class name two parts share. */
+    key: string;
+    title: string;
+    selector: string;
+    scope: string;
+    page: ApiPageModel;
 }
 
 export function servicePage(service: ScannedService): ApiPageModel {
@@ -175,6 +192,20 @@ export function componentApiPage(component: ScannedComponent): ApiPageModel {
     };
 }
 
+/** The API pages of a component's parts, in the order the manifest lists them. Each is a component page of its own: the usage has the part's import. */
+export function partPages(parts: readonly { meta: ScannedComponent }[] | undefined): ApiPagePart[] {
+    const keys = partKeys((parts ?? []).map(({ meta }) => meta.className));
+
+    return (parts ?? []).map(({ meta }, index) => ({
+        className: meta.className,
+        key: keys[index],
+        title: meta.showcaseConfig.title,
+        selector: meta.componentMeta.selector,
+        scope: partScope(index),
+        page: componentApiPage(meta)
+    }));
+}
+
 /** The deprecation leads the chips, with its message when the tag has one. */
 function deprecationChip({ deprecated }: ApiDocTags): ApiPageChip[] {
     if (!deprecated) return [];
@@ -185,9 +216,12 @@ function valueChip(label: string, value: string | undefined): ApiPageChip[] {
     return value ? [{ label, value }] : [];
 }
 
-/** As the code writes a default: a string in quotes, an array or object as JSON (`String()` would give `a,b` and `[object Object]`), anything else by its `String()`. */
+/**
+ * As the code writes a default: a string in single quotes with its quotes and backslashes escaped, an array or object
+ * as JSON (`String()` would give `a,b` and `[object Object]`), anything else by its `String()`.
+ */
 function formatDefault(value: InputMeta['defaultValue']): string {
-    if (typeof value === 'string') return `'${value}'`;
+    if (typeof value === 'string') return `'${value.replace(/[\\']/g, '\\$&')}'`;
     return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
 }
 

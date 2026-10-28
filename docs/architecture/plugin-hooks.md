@@ -27,6 +27,8 @@ For each page (in config order):
   → plugin[1].onPageScanned(page)
   → ...
 
+Then every part moves onto its parent (no hook runs, see "Parts in the hooks" below).
+
 Once, with the full manifest:
   → plugin[0].onManifestReady(manifest)
   → plugin[1].onManifestReady(manifest)
@@ -71,6 +73,15 @@ onComponentScanned(component) {
 `component.api` (since `22.7.0`) is experimental until 23.0.0: its shape may change in a 22.x minor release. The scan only reads it when a plugin in the config sets [`componentApi`](api/ng-prism-plugin.md#componentapi), so a plugin that reads it sets the flag, and a component that another hook built from scratch has none. `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Add your own data to `component.meta`, and read `component.api` knowing it can change.
 
 `component.composition` (since `22.7.0`) is what the scan read from the `template` and host template fields, see [`ComponentComposition`](api/types.md#componentcomposition). Like `component.api`, its shape is experimental until 23.0.0. It is read before the hooks run, so a hook that changes those fields afterwards does not change what renders, and a component a hook builds from scratch has none. A plugin that shows the markup of a variant can read each case and replace `COMPOSITION_SUBJECT_SLOT` with the attributes it wants on the subject, as the JSDoc plugin does for its usage example.
+
+**Parts.** A showcase with [`partOf`](guide/showcase-decorator.md#partof) is a part of another component or directive and has no page of its own, but it goes through `onComponentScanned` like any component. The JSDoc plugin therefore gives it the same `meta.jsdoc` and `memberTags` as a component, and the API block of a part is as full as the page of its parent. The `ScannedComponent` of a resolved part has `parentClassName`, the class name of its parent, and a plugin that works per page skips a component that has it: the styleguide shows a part on the page of its parent, so there is no page to build, photograph or measure. What `onManifestReady` sees of parts is described in [Parts in the hooks](#parts-in-the-hooks).
+
+```typescript
+onComponentScanned(component) {
+  if (component.parentClassName) return; // a part: its parent's page shows it
+  // ...
+}
+```
 
 **Typical uses:**
 
@@ -155,7 +166,7 @@ onPageScanned(page) {
 
 ## `onManifestReady`
 
-Called once with the complete `PrismManifest` after all `onComponentScanned`, `onServiceScanned`, `onPipeScanned` and `onPageScanned` hooks have finished.
+Called once with the complete `PrismManifest` after all `onComponentScanned`, `onServiceScanned`, `onPipeScanned` and `onPageScanned` hooks have finished and the parts are nested on their parents, see [Parts in the hooks](#parts-in-the-hooks).
 
 ```typescript
 onManifestReady(manifest: PrismManifest): PrismManifest | void | Promise<PrismManifest | void>
@@ -198,6 +209,23 @@ onManifestReady(manifest) {
 ```
 
 `manifest.meta` is serialized into the runtime manifest and accessible via the `PRISM_MANIFEST` injection token in the browser.
+
+### Parts in the hooks
+
+`onComponentScanned` runs on every part before anything is nested, so the components it sees are the flat list the scan produced. `onManifestReady` gets the manifest after the pipeline has nested the parts (see [Build Pipeline](architecture/pipeline.md#_5-plugin-hooks)):
+
+- A part is **not** in `manifest.components`. Its parent has it in `ScannedComponent.parts`, sorted by `showcaseConfig.title`, so the build-time and the runtime manifest have the same shape (`RuntimeComponent.parts`, see [`RuntimePart`](api/types.md#runtimepart)).
+- A part has no entry of its own in `onManifestReady`, so a plugin that counts or walks `manifest.components` sees parents only. One that must include parts reads `component.parts` as well.
+- A parent and its parts are one unit: a filter that drops a component from `manifest.components`, such as the `internal` tag example above, drops its parts with it.
+- A part is the object `onComponentScanned` returned, `parentClassName` and `showcaseConfig.partOf` included. Which parent it goes to is what the scan resolved, before any hook ran: a hook that rewrites a parent, its selector or class name included, keeps its parts on it, and a part never falls back to a component of its own after the hooks.
+- `parts` and `parentClassName` are experimental until 23.0.0: their shape may change in a 22.x minor release.
+
+```typescript
+onManifestReady(manifest) {
+  const parts = manifest.components.flatMap((c) => c.parts ?? []);
+  // ...
+}
+```
 
 ## Navigation Decorations
 

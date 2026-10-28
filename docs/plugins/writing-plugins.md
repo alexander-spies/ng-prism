@@ -48,6 +48,8 @@ export function myPlugin(): NgPrismPlugin {
 }
 ```
 
+A [part](guide/showcase-decorator.md#partof) (since `22.7.0`) runs through this hook as a component with `parentClassName`. A plugin that writes data for a page, as perf and visual-regression do, skips it with `if (component.parentClassName) return;`: the parent's page shows the part, so there is no page of its own to build, measure or photograph. A plugin that reads every component's API, as jsdoc and coverage do, keeps it. See [Parts in the hooks](architecture/plugin-hooks.md#parts-in-the-hooks).
+
 `component.api` (since `22.7.0`) holds the extracted API of the component or directive: the type of each input, the payload of each output, the documented methods and the types they reach, see [`ComponentApi`](api/types.md#componentapi). The scan only reads it when a plugin in the config sets `componentApi: true` (`jsDocPlugin()` does), so a plugin that reads it sets the flag itself, in its Node entry:
 
 ```typescript
@@ -118,6 +120,8 @@ onManifestReady(manifest) {
 }
 ```
 
+A part (since `22.7.0`) is not in `manifest.components` here but in its parent's `parts`, so a plugin that walks the list reads `component.parts` as well when it must include parts, and the filter above drops a parent together with its parts. See [Parts in the hooks](architecture/plugin-hooks.md#parts-in-the-hooks).
+
 ### Async Hooks
 
 All four hooks support returning a `Promise`. The pipeline awaits them before continuing.
@@ -184,6 +188,27 @@ export class ServiceNotesComponent {
 ```
 
 `activeService()?.meta.api` is the extracted API of the service (`ServiceApi`, experimental until 23.0.0). On a pipe page, a panel with `appliesTo: ['pipe']` declares `readonly activePipe = input<RuntimePipe | null>(null);` and reads `activePipe()?.meta.api.transform` (`PipeApi`, experimental until 23.0.0) and `activePipe()?.meta.pipeName`. On a component page, a panel reads `activeComponent()?.meta.api` (`ComponentApi`, experimental until 23.0.0). The manifest only carries it when a plugin in the config sets `componentApi: true`, so a plugin whose panel reads it sets the flag in its Node entry; it is also absent on a component that a hook built from scratch.
+
+#### Panels that list parts
+
+A component can have [parts](guide/showcase-decorator.md#partof) (`@Showcase({ partOf })`, since `22.7.0`), which have no page of their own. `RuntimeComponent.parts` holds them, and a view panel that shows them sets `listsParts: true` (since `22.7.0`, experimental until `23.0.0`):
+
+```typescript
+panels: [
+  {
+    id: 'api',
+    label: 'API',
+    placement: 'view',
+    listsParts: true,
+    loadComponent: () => import('./api-panel.component.js').then(m => m.ApiPanelComponent),
+  },
+],
+```
+
+- The panel component gets the input `activePart` (`string | null`) next to `activeComponent`: the key of the part to show, `null` for none. The key is the part's class name, and `~2`, `~3`, … appended for the second and later part of one class name, in the order of `parts`; `partKeys(parts)` from `@ng-prism/core/plugin` gives the keys of a component's parts. It scrolls to the block of that part. Declare `readonly activePart = input<string | null>(null);`.
+- Only a panel with `listsParts` gets it, so a panel that does not declare the input never logs a warning about it.
+- `activePart` follows the `part` [URL parameter](guide/url-state.md#parts), and a part's popover in the component head links to the first visible panel with `listsParts`. Switching the component or the view sets it back to `null`. Following the link of the part the panel already shows sets it to `null` for one render and then to the part again, so scrolling whenever the input changes is enough.
+- See [Panels that list parts](api/ng-prism-plugin.md#panels-that-list-parts) for the details.
 
 ### `controls`
 
@@ -265,20 +290,21 @@ Registered like any other `headerWidgets` entry; see [`HeaderWidgetDefinition`](
 
 ## PanelDefinition Fields
 
-| Field                  | Type                  | Description                                                                                                                                           |
-| ---------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                   | `string`              | Unique panel identifier                                                                                                                               |
-| `label`                | `string`              | Tab label                                                                                                                                             |
-| `component`            | `Type<unknown>`       | Static panel component                                                                                                                                |
-| `loadComponent`        | `() => Promise<Type>` | Lazy-loaded panel component (use when importing browser-only APIs)                                                                                    |
-| `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                                                                                                              |
-| `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                                                                                                            |
-| `icon`                 | `string`              | Icon name (optional)                                                                                                                                  |
-| `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._                                              |
-| `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                                                                   |
-| `appliesTo`            | `PanelTarget[]`       | `['component']` (default), `['service']`, `['pipe']` or several (since `22.7.0`), see [Panels for services and pipes](#panels-for-services-and-pipes) |
-| `badge`                | `(c) => PanelBadge`   | Marker on the panel's tab for the active component, `null` for nothing to report, see [`PanelBadge`](api/ng-prism-plugin.md#panelbadge)               |
-| `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                                                             |
+| Field                  | Type                  | Description                                                                                                                                                             |
+| ---------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | `string`              | Unique panel identifier                                                                                                                                                 |
+| `label`                | `string`              | Tab label                                                                                                                                                               |
+| `component`            | `Type<unknown>`       | Static panel component                                                                                                                                                  |
+| `loadComponent`        | `() => Promise<Type>` | Lazy-loaded panel component (use when importing browser-only APIs)                                                                                                      |
+| `overlayComponent`     | `Type<unknown>`       | Canvas overlay component                                                                                                                                                |
+| `loadOverlayComponent` | `() => Promise<Type>` | Lazy-loaded canvas overlay                                                                                                                                              |
+| `icon`                 | `string`              | Icon name (optional)                                                                                                                                                    |
+| `position`             | `'bottom' \| 'right'` | _Deprecated since 22.6.0, removed in 23.0.0. Never had an effect; where a panel appears is `placement`._                                                                |
+| `placement`            | `'addon' \| 'view'`   | `addon` = bottom tab bar, `view` = top view toolbar                                                                                                                     |
+| `appliesTo`            | `PanelTarget[]`       | `['component']` (default), `['service']`, `['pipe']` or several (since `22.7.0`), see [Panels for services and pipes](#panels-for-services-and-pipes)                   |
+| `listsParts`           | `boolean`             | The panel shows the parts of the active component and gets the input `activePart` (since `22.7.0`, experimental), see [Panels that list parts](#panels-that-list-parts) |
+| `badge`                | `(c) => PanelBadge`   | Marker on the panel's tab for the active component, `null` for nothing to report, see [`PanelBadge`](api/ng-prism-plugin.md#panelbadge)                                 |
+| `providers`            | `Provider[]`          | Providers scoped to this panel's injector                                                                                                                               |
 
 > **Note:** Always use `loadComponent` rather than `component` if your panel component imports anything from `@angular/platform-browser` or any other browser-only package. The config file is loaded in Node.js during the build, and a static import of a browser component crashes the builder.
 

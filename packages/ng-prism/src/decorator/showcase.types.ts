@@ -171,6 +171,12 @@ export interface ShowcaseConfig<T = unknown> {
      */
     imports?: ShowcaseImport[];
     /**
+     * The selector of the showcased component or directive this one is a part of, e.g. `'lib-select'` on
+     * `lib-option`. A part has no page of its own: its title, description, inputs and outputs show on the parent's
+     * page. Since 22.7.0.
+     */
+    partOf?: string;
+    /**
      * Title of a registered ComponentPage to render instead of the component itself. Use for complex components that need template projections or mock data. The page component can inject PrismRendererService to react to control panel changes.
      * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */
