@@ -1,9 +1,22 @@
 export interface BundleMetrics {
+    /** Bytes of the component file without `@Showcase` and comments, the source that ships. The whole file when stripping fails (`stripped: false`). */
     sourceSize: number;
+    /** Gzip size of the same source as `sourceSize`. */
     gzipEstimate: number;
+    /** Imports of the shipped source: an import that only served `@Showcase` is gone. */
     directImports: number;
     importList: string[];
     treeDepth: number;
+    /** Bytes of the whole file, showcase and comments included. Since 22.7.0. */
+    rawSourceSize?: number;
+    /** Gzip size of the whole file. Since 22.7.0. */
+    rawGzipEstimate?: number;
+    /** Whether `sourceSize` is the stripped source; `false` when stripping failed and the whole file was measured. Since 22.7.0. */
+    stripped?: boolean;
+    /** Bytes of the files behind `templateUrl` in the file's `@Component` decorators; an inline template is part of `sourceSize`. Since 22.7.0. */
+    templateSize?: number;
+    /** Bytes of the files behind `styleUrl`/`styleUrls`, uncompiled; inline styles are part of `sourceSize`. Since 22.7.0. */
+    styleSize?: number;
 }
 
 export interface PerfThresholds {

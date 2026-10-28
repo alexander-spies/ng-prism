@@ -3,3 +3,8 @@
     flex-wrap: wrap;
     gap: 6px;
 }
+
+/* The whole file, for comparison with the shipped source above it. */
+.perf-bar-fill--secondary {
+    background: var(--prism-border-strong);
+}
