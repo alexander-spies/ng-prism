@@ -15,9 +15,10 @@ import { severityBadge } from './severity.js';
 
 /**
  * The Violations view: the score as a small metric card with a ring in its
- * grade's tone, the violations as list rows, most severe first, what axe could
- * not decide below them (Needs review, open, not counted), and the passed
- * checks folded away at the end.
+ * grade's tone, the violations that count as list rows, most severe first,
+ * then the accepted ones with their reasons and what axe could not decide
+ * (Needs review), both open and not counted, and the passed checks folded
+ * away at the end.
  */
 @Component({
     selector: 'prism-a11y-violations',
@@ -59,12 +60,10 @@ export class A11yViolationsComponent {
         );
     });
 
-    protected readonly violations = computed(() => {
-        const results = this.auditService.results();
+    protected readonly violations = computed(() => [...this.auditService.violations()].sort(byImpact).map((v) => ({ ...v, badge: severityBadge(v.impact) })));
 
-        if (!results) return [];
-        return [...results.violations].sort(byImpact).map((v) => ({ ...v, badge: severityBadge(v.impact) }));
-    });
+    /** Violations a `meta.a11y.accept` covers: audited and shown, with the reason, but not counted. */
+    protected readonly accepted = computed(() => [...this.auditService.accepted()].sort(byImpact));
 
     protected readonly review = computed(() => reviewFindings(this.auditService.results()?.incomplete ?? []));
 

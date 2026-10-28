@@ -56,7 +56,22 @@ let nextId = 0;
         { name: 'Disabled', inputs: { label: 'E-Mail' }, template: '<input libInput disabled />' },
         { name: 'With icon', inputs: { label: 'Search' }, template: '<lib-icon libPrefix name="search" /><input libInput />' },
         { name: 'Note', inputs: { label: 'Note' }, template: '<textarea libInput cdkTextareaAutosize></textarea>' },
-        { name: 'With hint', inputs: { label: 'E-Mail', hint: 'We only use it for replies' }, template: '<input libInput type="email" />' },
+        {
+            name: 'With hint',
+            inputs: { label: 'E-Mail', hint: 'We only use it for replies' },
+            template: '<input libInput type="email" />',
+            // The demo of meta.a11y.accept: the A11y tab lists this under Accepted, with the reason, and does not count it.
+            meta: {
+                a11y: {
+                    accept: [
+                        {
+                            rule: 'color-contrast',
+                            reason: 'The hint grey (#6b7280) reaches 4.47:1 on the light ground, a hair under the 4.5:1 WCAG AA asks of small text. Kept as the demo of an accepted violation.'
+                        }
+                    ]
+                }
+            }
+        },
         {
             name: 'Error',
             inputs: { label: 'E-Mail', hint: 'We only use it for replies', error: 'Enter a valid e-mail address', invalid: true },

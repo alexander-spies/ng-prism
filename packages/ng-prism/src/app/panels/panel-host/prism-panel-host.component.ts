@@ -8,6 +8,7 @@ import { PrismPluginService } from '../../services/prism-plugin.service.js';
 import { PrismRendererService } from '../../services/prism-renderer.service.js';
 import { type PrismTabItem, PrismTabsComponent } from '../../shared/prism-tabs.component.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../../tokens/prism-tokens.js';
+import { resolveAcceptances } from '../a11y/a11y-acceptances.js';
 import { A11yAuditService } from '../a11y/a11y-audit.service.js';
 import { resolveA11yThresholds } from '../a11y/a11y-thresholds.js';
 import type { A11yCoreConfig, A11yManifestMeta } from '../a11y/a11y.types.js';
@@ -106,7 +107,7 @@ export class PrismPanelHostComponent {
             const comp = this.nav.activeComponent() as any;
 
             this.rendererService.inputValues();
-            this.rendererService.activeVariantIndex();
+            const variantIndex = this.rendererService.activeVariantIndex();
 
             if (!element || !comp) {
                 this.auditService.clear();
@@ -120,7 +121,10 @@ export class PrismPanelHostComponent {
                 return;
             }
 
-            this.auditService.scheduleAudit(element, a11yConfig);
+            // The acceptances of the variant on screen: the component's and its own.
+            const accept = resolveAcceptances(comp.meta?.showcaseConfig?.meta, comp.meta?.showcaseConfig?.variants?.[variantIndex]?.meta);
+
+            this.auditService.scheduleAudit(element, { ...a11yConfig, accept });
         });
 
         effect(() => {

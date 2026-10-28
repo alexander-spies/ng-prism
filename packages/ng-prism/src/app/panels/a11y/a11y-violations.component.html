@@ -35,6 +35,27 @@
                 }
             }
 
+            @if (accepted().length > 0) {
+                <details
+                    class="viol-fold"
+                    open>
+                    <summary title="Declared with meta.a11y.accept: audited and shown, but not counted towards the score."> Accepted · {{ accepted().length }} </summary>
+                    <div class="viol-fold__list">
+                        @for (item of accepted(); track item.id) {
+                            <prism-list-row>
+                                <prism-badge
+                                    rowBadge
+                                    tone="neutral"
+                                    label="Accepted" />
+                                <span rowTitle>{{ item.help || item.description }}</span>
+                                <span rowDescription>{{ item.reason }}</span>
+                                <span rowMeta>{{ item.id }}</span>
+                            </prism-list-row>
+                        }
+                    </div>
+                </details>
+            }
+
             @if (review().length > 0) {
                 <details
                     class="viol-fold"

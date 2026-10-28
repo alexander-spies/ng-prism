@@ -1,10 +1,13 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
-import type { AxeResults, RunOptions } from 'axe-core';
+import type { AxeResults, Result, RunOptions } from 'axe-core';
+import type { A11yAcceptance } from '../../../decorator/showcase.types.js';
 import { withCanvasChromeHidden } from '../../renderer/canvas-audit.js';
+import { type AcceptedViolation, partitionViolations } from './a11y-acceptances.js';
 import type { A11yCoreConfig, A11yScoreResult } from './a11y.types.js';
 
-export function calculateScore(results: AxeResults): A11yScoreResult {
-    const violations = results.violations;
+/** The score of an audit; a violation one of `acceptances` covers does not count. */
+export function calculateScore(results: AxeResults, acceptances: readonly A11yAcceptance[] = []): A11yScoreResult {
+    const violations = partitionViolations(results.violations, acceptances).counted;
     const critical = violations.filter((v) => v.impact === 'critical').length;
     const serious = violations.filter((v) => v.impact === 'serious').length;
     const moderate = violations.filter((v) => v.impact === 'moderate').length;
@@ -60,10 +63,21 @@ export class A11yAuditService {
     readonly running = signal(false);
     readonly error = signal<string | null>(null);
 
+    /** The acceptances the current results were audited under: set with them, so a later audit's never grade an earlier result. */
+    private readonly acceptances = signal<readonly A11yAcceptance[]>([]);
+
+    private readonly partition = computed(() => partitionViolations(this.results()?.violations ?? [], this.acceptances()));
+
+    /** The violations that count. */
+    readonly violations = computed<Result[]>(() => this.partition().counted);
+
+    /** The violations an acceptance covers, with its reason. Since 22.7.0. */
+    readonly accepted = computed<AcceptedViolation[]>(() => this.partition().accepted);
+
     readonly scoreResult = computed(() => {
         const r = this.results();
 
-        return r ? calculateScore(r) : null;
+        return r ? calculateScore(r, this.acceptances()) : null;
     });
 
     private timer: ReturnType<typeof setTimeout> | null = null;
@@ -86,6 +100,7 @@ export class A11yAuditService {
             runCoreAudit(element, config).then(
                 (result) => {
                     if (this.destroyed) return;
+                    this.acceptances.set(config?.accept ?? []);
                     this.results.set(result);
                     this.running.set(false);
                 },
@@ -104,6 +119,7 @@ export class A11yAuditService {
             this.timer = null;
         }
         this.results.set(null);
+        this.acceptances.set([]);
         this.running.set(false);
         this.error.set(null);
     }
