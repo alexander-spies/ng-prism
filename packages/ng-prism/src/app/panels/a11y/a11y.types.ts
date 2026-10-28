@@ -57,8 +57,20 @@ export interface A11yComponentMeta {
 }
 
 export interface NgPrismA11yConfig {
-    /** Thresholds for the header badge color-coding and (when run via the CLI) build failure. */
+    /**
+     * What the a11y figures are graded against: the header pill, the navigation
+     * marker, the gauge in the component head and the score card. While `gate` is
+     * not set, the build also fails on them, as before 22.7.0.
+     */
     thresholds?: Partial<A11yThresholds>;
+    /**
+     * The build gate: `prism-build` fails when the report's total breaks these
+     * limits (missing ones are the defaults, not `thresholds`). Left out, the
+     * build gates with `thresholds`. `false` never fails a build, so the
+     * styleguide grades and shows a report that breaks the limits, for example
+     * when CI gates on its own. The dev server only warns either way. Since 22.7.0.
+     */
+    gate?: Partial<A11yThresholds> | false;
     /** Path to the a11y report JSON, relative to the workspace root. Default: 'a11y-report.json'. */
     reportPath?: string;
 }

@@ -15,7 +15,9 @@ async function createServeBuilder(options: ServeBuilderSchema, context: BuilderC
         libraryImportPath: options.libraryImportPath ?? options.libraryProject ?? options.prismProject,
         prismProject: options.prismProject,
         configFile: options.configFile ?? 'ng-prism.config.ts',
-        cacheDir
+        cacheDir,
+        // A stale local report must not stop the dev server; it warns instead.
+        a11yGate: 'warn'
     };
 
     const state = createPipelineState();

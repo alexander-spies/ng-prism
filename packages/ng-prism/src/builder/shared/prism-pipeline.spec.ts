@@ -29,7 +29,7 @@ function createMockContext(workspaceRoot: string) {
     return {
         workspaceRoot,
         reportStatus: jest.fn(),
-        logger: { info: jest.fn() }
+        logger: { info: jest.fn(), warn: jest.fn() }
     } as unknown as BuilderContext;
 }
 
@@ -66,6 +66,21 @@ function writeA11yReport(root: string, score: number, className = 'ButtonCompone
         }),
         'utf-8'
     );
+}
+
+/** A report whose total has two serious violations: over a limit of 0, under one of 5. */
+function writeSeriousA11yReport(root: string): void {
+    const score = { score: 80, violations: 2, critical: 0, serious: 2, moderate: 0, minor: 0, passes: 20, incomplete: 0 };
+
+    writeFileSync(
+        join(root, 'a11y-report.json'),
+        JSON.stringify({ total: { ...score, auditedComponents: 1, auditedVariants: 1 }, components: { ButtonComponent: score } }),
+        'utf-8'
+    );
+}
+
+function writeA11yConfig(root: string, a11y: string): void {
+    writeFileSync(join(root, 'ng-prism.config.ts'), `export default { a11y: ${a11y} };`, 'utf-8');
 }
 
 function readManifest(root: string): string {
@@ -213,6 +228,60 @@ export class RulesComponent {}
         expect(content).toContain('disable: false');
         expect(content).toContain('found: true');
         expect(content).toContain('variant: "warn"');
+    });
+
+    describe('a11y gate', () => {
+        it('grades without failing the build with gate: false', async () => {
+            tmp = createTempWorkspace();
+            writeSeriousA11yReport(tmp);
+            writeA11yConfig(tmp, '{ thresholds: { serious: 0 }, gate: false }');
+
+            await runPrismPipeline(defaultOptions, createMockContext(tmp), createPipelineState());
+
+            const content = readManifest(tmp);
+
+            expect(content).toContain('variant: "danger"');
+            expect(content).toMatch(/"thresholds": \{[^}]*"serious": 0/);
+        });
+
+        it('gates with the grading thresholds while gate is not set, and names gate in the error', async () => {
+            tmp = createTempWorkspace();
+            writeSeriousA11yReport(tmp);
+            writeA11yConfig(tmp, '{ thresholds: { serious: 0 } }');
+
+            await expect(runPrismPipeline(defaultOptions, createMockContext(tmp), createPipelineState())).rejects.toThrow(
+                /a11y thresholds violated: serious: 2 \(threshold 0\)\..*config\.a11y\.gate/
+            );
+        });
+
+        it('gates with its own limits and grades with the thresholds', async () => {
+            tmp = createTempWorkspace();
+            writeSeriousA11yReport(tmp);
+            writeA11yConfig(tmp, '{ thresholds: { serious: 0 }, gate: { serious: 5, score: 0 } }');
+
+            await runPrismPipeline(defaultOptions, createMockContext(tmp), createPipelineState());
+
+            expect(readManifest(tmp)).toMatch(/"thresholds": \{[^}]*"serious": 0/);
+        });
+
+        it('warns instead of failing in warn mode, and still writes the report data', async () => {
+            tmp = createTempWorkspace();
+            writeSeriousA11yReport(tmp);
+            writeA11yConfig(tmp, '{ thresholds: { serious: 0 } }');
+            const ctx = createMockContext(tmp);
+
+            await runPrismPipeline({ ...defaultOptions, a11yGate: 'warn' }, ctx, createPipelineState());
+
+            expect(ctx.logger.warn).toHaveBeenCalledWith(expect.stringMatching(/a11y thresholds violated: serious: 2 \(threshold 0\)/));
+            expect(readManifest(tmp)).toContain('variant: "danger"');
+        });
+
+        it('has nothing to gate without a report', async () => {
+            tmp = createTempWorkspace();
+            writeA11yConfig(tmp, '{ gate: { serious: 0 } }');
+
+            await expect(runPrismPipeline(defaultOptions, createMockContext(tmp), createPipelineState())).resolves.toBeDefined();
+        });
     });
 
     it('fails on a dropped @Showcase value when strictShowcase is on, before writing a manifest', async () => {

@@ -5,7 +5,7 @@ import ts from 'typescript';
 import type { StyleguidePage } from '../../plugin/page.types.js';
 import type { PrismManifest } from '../../plugin/plugin.types.js';
 import type { PanelTarget } from '../../plugin/service.types.js';
-import { checkA11yThresholds, DEFAULT_A11Y_REPORT_PATH, readA11yForComponents, readA11yMeta } from '../a11y/a11y-report-reader.js';
+import { checkA11yThresholds, DEFAULT_A11Y_REPORT_PATH, readA11yForComponents, readA11yMeta, resolveA11yGate } from '../a11y/a11y-report-reader.js';
 import { loadConfig } from '../config-loader/config-loader.js';
 import { describeDeprecatedOptions } from '../config-loader/deprecated-options.js';
 import { generateRuntimeManifest } from '../manifest/runtime-manifest.generator.js';
@@ -21,6 +21,12 @@ export interface PrismPipelineOptions {
     configFile: string;
     /** Absolute path. If omitted, defaults to `<workspaceRoot>/ng-prism-cache/<prismProject>`. */
     cacheDir?: string;
+    /**
+     * What a report that breaks `a11y.gate` does: fail the run (`prism-build`, the
+     * default) or log a warning and go on (`serve`, which must not stop over a
+     * stale local report). Since 22.7.0.
+     */
+    a11yGate?: 'fail' | 'warn';
 }
 
 export interface PrismPipelineResult {
@@ -120,12 +126,17 @@ export async function runPrismPipeline(options: PrismPipelineOptions, context: B
     const a11yMeta = readA11yMeta(a11yReportPathAbs, config.a11y?.thresholds);
 
     if (a11yMeta) {
-        const violations = checkA11yThresholds(a11yMeta);
+        const gate = resolveA11yGate(config.a11y);
+        const violations = gate ? checkA11yThresholds({ total: a11yMeta.total, thresholds: gate }) : [];
 
         if (violations.length > 0) {
             const summary = violations.map((v) => `${v.metric}: ${v.actual} (threshold ${v.threshold})`).join(', ');
+            const message =
+                `ng-prism: a11y thresholds violated: ${summary}. ` +
+                'Fix the components, relax config.a11y.gate (config.a11y.thresholds while gate is not set), or set gate: false to grade without failing the build.';
 
-            throw new Error(`ng-prism: a11y thresholds violated: ${summary}. ` + `Update components or relax thresholds via config.a11y.thresholds.`);
+            if (options.a11yGate === 'warn') context.logger.warn(`⚠ ${message}`);
+            else throw new Error(message);
         }
         // Read once, not once per component: the reader re-stats the file on every
         // call even when its cache hits, so a per-component lookup scales the

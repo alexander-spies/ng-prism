@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { deriveA11ySummary } from '../../app/panels/a11y/a11y-summary.js';
 import { resolveA11yThresholds } from '../../app/panels/a11y/a11y-thresholds.js';
-import type { A11yComponentMeta, A11yManifestMeta, A11yReport, A11yThresholds } from '../../app/panels/a11y/a11y.types.js';
+import type { A11yComponentMeta, A11yManifestMeta, A11yReport, A11yThresholds, NgPrismA11yConfig } from '../../app/panels/a11y/a11y.types.js';
 
 // Re-exported so the builder side keeps one import surface for the a11y
 // report. The derivation itself lives in `app/` because the panel tab grades
@@ -73,6 +73,12 @@ export function readA11yForComponent(reportPath: string, className: string, thre
     if (!score) return null;
 
     return { found: true, score, summary: deriveA11ySummary(score, thresholds) };
+}
+
+/** The limits the build gates on: `gate` filled from the defaults, `thresholds` while `gate` is not set, `null` for `gate: false`. */
+export function resolveA11yGate(config: NgPrismA11yConfig | undefined): A11yThresholds | null {
+    if (config?.gate === false) return null;
+    return resolveA11yThresholds(config?.gate ?? config?.thresholds);
 }
 
 export interface ThresholdViolation {

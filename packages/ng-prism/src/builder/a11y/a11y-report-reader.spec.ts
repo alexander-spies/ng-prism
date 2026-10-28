@@ -10,7 +10,8 @@ import {
     loadA11yReport,
     readA11yForComponent,
     readA11yForComponents,
-    readA11yMeta
+    readA11yMeta,
+    resolveA11yGate
 } from './a11y-report-reader.js';
 
 function makeReport(overrides?: Partial<A11yReport['total']>): A11yReport {
@@ -222,6 +223,24 @@ describe('a11y-report-reader', () => {
         it('returns an empty map when the report file is missing', () => {
             expect(readA11yForComponents('does/not/exist.json', thresholds).size).toBe(0);
         });
+    });
+});
+
+describe('resolveA11yGate', () => {
+    it('gates with the defaults when nothing is configured', () => {
+        expect(resolveA11yGate(undefined)).toEqual(resolveA11yThresholds());
+    });
+
+    it('gates with the grading thresholds while gate is not set, as before 22.7.0', () => {
+        expect(resolveA11yGate({ thresholds: { score: 90 } })).toEqual(resolveA11yThresholds({ score: 90 }));
+    });
+
+    it('gates with its own limits, filled from the defaults rather than the grading thresholds', () => {
+        expect(resolveA11yGate({ thresholds: { score: 90 }, gate: { serious: 3 } })).toEqual({ ...resolveA11yThresholds(), serious: 3 });
+    });
+
+    it('does not gate with gate: false', () => {
+        expect(resolveA11yGate({ thresholds: { serious: 0 }, gate: false })).toBeNull();
     });
 });
 
