@@ -126,7 +126,11 @@ export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryMani
                 title: part.showcaseConfig.title,
                 selector: part.componentMeta.selector,
                 inputs: part.inputs.map((input) => input.alias ?? input.name),
-                outputs: part.outputs.map((output) => output.alias ?? output.name)
+                outputs: [
+                    ...part.outputs.map((output) => output.alias ?? output.name),
+                    // Angular adds the change output of a `model()` by itself, so `outputs` has no entry for it.
+                    ...part.inputs.filter((input) => input.model).map((input) => `${input.alias ?? input.name}Change`)
+                ]
             }));
 
             if (states.length) discovered.states = states;

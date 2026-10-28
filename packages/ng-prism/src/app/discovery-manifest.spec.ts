@@ -458,6 +458,24 @@ describe('buildDiscoveryManifest', () => {
         ]);
     });
 
+    it('lists the change output of a model() among the outputs of a part, without a plugin that reads the API', () => {
+        const manifest = manifestOf({ className: 'TabsComponent', showcaseConfig: { title: 'Tabs' } });
+
+        manifest.components[0].parts = [
+            {
+                meta: scannedPart('TabComponent', 'Tab', {
+                    inputs: [
+                        { name: 'selected', type: 'boolean', required: false, model: true },
+                        { name: 'open', alias: 'expanded', type: 'boolean', required: false, model: true }
+                    ],
+                    outputs: [{ name: 'activated' }]
+                })
+            }
+        ];
+
+        expect(buildDiscoveryManifest(manifest).components[0].parts?.[0].outputs).toEqual(['activated', 'selectedChange', 'expandedChange']);
+    });
+
     it('keeps the order of the parts', () => {
         const manifest = manifestOf({ className: 'TabsComponent', showcaseConfig: { title: 'Tabs' } });
 

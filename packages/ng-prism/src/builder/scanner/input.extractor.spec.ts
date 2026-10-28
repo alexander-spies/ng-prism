@@ -213,6 +213,14 @@ describe('extractInputs (signal-based)', () => {
         expect(inputs[1].required).toBe(false);
     });
 
+    it('marks a model() input, for which Angular adds a change output', () => {
+        const model = extractInputs(getClassDeclaration(exports, 'ModelInputComponent', checker), checker);
+        const signal = extractInputs(getClassDeclaration(exports, 'SignalButtonComponent', checker), checker);
+
+        expect(model.map((i) => i.model)).toEqual([true, true]);
+        expect(signal.filter((i) => 'model' in i)).toEqual([]);
+    });
+
     it('should resolve nullable number type (number | null) as number', () => {
         const classDecl = getClassDeclaration(exports, 'SignalButtonComponent', checker);
         const inputs = extractInputs(classDecl, checker);
@@ -423,6 +431,7 @@ describe('extractInputs and extractOutputs with base classes', () => {
         expect(value.required).toBe(false);
         expect(value.defaultValue).toBeNull();
         expect(value.type).toBe('string');
+        expect(value.model).toBe(true);
     });
 
     it('lets an input redeclared in the subclass win over the base class', () => {

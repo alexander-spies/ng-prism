@@ -83,6 +83,22 @@ describe('partChips', () => {
         expect(new Set(chips.map((c) => c.anchorName)).size).toBe(2);
     });
 
+    it('lists the change output Angular adds for a model() after the declared outputs, by the name a template binds', () => {
+        const [chip] = partChips([
+            part('P', {
+                inputs: [
+                    { name: 'selected', type: 'boolean', required: false, model: true },
+                    { name: 'open', alias: 'expanded', type: 'boolean', required: false, model: true },
+                    { name: 'label', type: 'string', required: false }
+                ],
+                outputs: [{ name: 'remove' }]
+            })
+        ]);
+
+        expect(chip.outputs.map((row) => row.name)).toEqual(['remove', 'selectedChange', 'expandedChange']);
+        expect(chip.outputs[1].doc).toBe('Emits when selected changes; bind both ways with [(selected)].');
+    });
+
     it('carries the description and the status badge of the part', () => {
         const [chip] = partChips([part('P', { description: 'One choice.', status: 'wip' })]);
 

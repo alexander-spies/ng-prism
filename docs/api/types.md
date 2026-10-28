@@ -363,6 +363,7 @@ interface InputMeta {
     defaultUnreadable?: true;
     required: boolean;
     doc?: string;
+    model?: true;
 }
 ```
 
@@ -377,6 +378,7 @@ interface InputMeta {
 | `defaultUnreadable` | `true` when the input starts out with a value the scan could not evaluate, such as the result of a function call (since `22.7.0`). `defaultValue` is missing then. Not set for `input<string>()`, which starts out `undefined` |
 | `required`          | `true` if declared with `input.required<T>()`                                                                                                                                                                                  |
 | `doc`               | JSDoc comment from the property, as written: `{@link X \| text}` keeps its bar (since `22.7.0`, see below)                                                                                                                     |
+| `model`             | `true` for a `model()` or `model.required()` (since `22.7.0`). Angular adds the output `${alias ?? name}Change` for it, which `ScannedComponent.outputs` does not list, since no class member declares it                      |
 
 `defaultUnreadable` is what tells a composition to leave an input alone. The wrapper of a [composed variant](#componentcomposition) does not bind an input with an unreadable default unless the variant sets it, because binding `undefined` would replace the default the subject has. In a variant that does not set it, its control reads `Not editable` with the reason "Its default is unknown to ng-prism".
 
@@ -798,13 +800,13 @@ interface DiscoveryPart {
 }
 ```
 
-| Field       | Description                                                                                |
-| ----------- | ------------------------------------------------------------------------------------------ |
-| `className` | The class name of the part                                                                 |
-| `title`     | `ShowcaseConfig.title`, the display name                                                   |
-| `selector`  | The selector of the class, as `@Component` or `@Directive` declares it                     |
-| `inputs`    | The public names of its inputs: the `alias` where there is one, the member name otherwise  |
-| `outputs`   | The public names of its outputs: the `alias` where there is one, the member name otherwise |
+| Field       | Description                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `className` | The class name of the part                                                                                                                                           |
+| `title`     | `ShowcaseConfig.title`, the display name                                                                                                                             |
+| `selector`  | The selector of the class, as `@Component` or `@Directive` declares it                                                                                               |
+| `inputs`    | The public names of its inputs: the `alias` where there is one, the member name otherwise                                                                            |
+| `outputs`   | The public names of its outputs: the `alias` where there is one, the member name otherwise, then the change output of each `model()` input, `${alias ?? name}Change` |
 
 `DiscoveryComponent.parts` is omitted when the component has no [parts](api/showcase-config.md#partof). A part is not in `DiscoveryManifest.components`: it has no variants and no render marker of its own, and a tool that walks the components does not visit it. `DiscoveryPart` is exported from `@ng-prism/core/plugin`.
 

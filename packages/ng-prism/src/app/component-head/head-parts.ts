@@ -44,7 +44,9 @@ export function formatPartDefault(input: InputMeta): string | undefined {
 /**
  * The chips of the parts of a component, in the order given: the manifest
  * already sorts them by title. Inputs and outputs go by the name a template
- * binds them with, so an alias wins over the class member.
+ * binds them with, so an alias wins over the class member. The outputs end
+ * with the change output Angular adds for each `model()`, which the scan does
+ * not list among them.
  */
 export function partChips(parts: readonly RuntimePart[] | undefined): PartChip[] {
     return (parts ?? []).map(({ meta }, index) => ({
@@ -62,6 +64,14 @@ export function partChips(parts: readonly RuntimePart[] | undefined): PartChip[]
             required: input.required,
             doc: input.doc
         })),
-        outputs: meta.outputs.map((output) => ({ name: output.alias ?? output.name, doc: output.doc }))
+        outputs: [
+            ...meta.outputs.map((output) => ({ name: output.alias ?? output.name, doc: output.doc })),
+            ...meta.inputs.filter((input) => input.model).map((input) => modelChangeRow(input.alias ?? input.name))
+        ]
     }));
+}
+
+/** The row of the change output of the `model()` a template binds as `input`. */
+function modelChangeRow(input: string): PartRow {
+    return { name: `${input}Change`, doc: `Emits when ${input} changes; bind both ways with [(${input})].` };
 }

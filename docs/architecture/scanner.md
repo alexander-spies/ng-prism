@@ -270,6 +270,7 @@ In watch mode, `startWatcher()` only watches the directory of the entry point (a
 Detected by checking whether the property initializer is a call expression whose callee is `input`, `input.required`, `model`, or `model.required`.
 
 - **Required check:** `isSignalInputRequired()` looks for the `.required` property access.
+- **Model check:** `isModelInput()` sets `InputMeta.model` on a `model()` or `model.required()` (since 22.7.0). Angular adds a change output `${alias ?? name}Change` for it, which `outputs` does not list; the part cards of the head and `DiscoveryPart.outputs` add it from this flag.
 - **Type resolution:** If the call has a type argument (`input<string>()`), `checker.getTypeFromTypeNode()` resolves it. If there is a default value argument (`input('hello')`), `checker.getTypeAtLocation()` infers the type from the argument.
 
 ### Decorator inputs: `@Input()`

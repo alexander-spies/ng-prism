@@ -325,6 +325,11 @@ export interface InputMeta {
     defaultUnreadable?: true;
     required: boolean;
     doc?: string;
+    /**
+     * The input is a `model()` or `model.required()`, for which Angular adds the output `${alias ?? name}Change`.
+     * {@link ScannedComponent.outputs} has no entry for that output, since no class member declares it. Since 22.7.0.
+     */
+    model?: true;
 }
 
 export interface OutputMeta {
@@ -434,7 +439,10 @@ export interface DiscoveryPart {
     selector: string;
     /** The public names the inputs are bound by: the `alias` where there is one, else the member name. */
     inputs: string[];
-    /** The public names the outputs are bound by: the `alias` where there is one, else the member name. */
+    /**
+     * The public names the outputs are bound by: the `alias` where there is one, else the member name. Then the change
+     * output Angular adds for each `model()` input, `${alias ?? name}Change`, see {@link InputMeta.model}.
+     */
     outputs: string[];
 }
 
