@@ -42,12 +42,35 @@ export interface PartResolution {
     origins: ReadonlyMap<ScannedComponent, ts.Expression>;
 }
 
-/** The selectors a component or directive matches, from its comma separated `selector`. */
+/**
+ * The selectors a component or directive matches, from its comma separated `selector`. Only a comma outside brackets,
+ * parentheses and quotes separates two: the value of an attribute, `[data-mode="a,b"]`, can hold one.
+ */
 export function selectorList(selector: string): string[] {
-    return selector
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter((entry) => entry !== '');
+    const entries: string[] = [];
+    let start = 0;
+    let depth = 0;
+    let quote: string | undefined;
+
+    for (let index = 0; index < selector.length; index++) {
+        const char = selector[index];
+
+        if (quote) {
+            if (char === quote) quote = undefined;
+        } else if (char === '"' || char === "'") {
+            quote = char;
+        } else if (char === '[' || char === '(') {
+            depth++;
+        } else if (char === ']' || char === ')') {
+            depth = Math.max(0, depth - 1);
+        } else if (char === ',' && depth === 0) {
+            entries.push(selector.slice(start, index));
+            start = index + 1;
+        }
+    }
+
+    entries.push(selector.slice(start));
+    return entries.map((entry) => entry.trim()).filter((entry) => entry !== '');
 }
 
 /**

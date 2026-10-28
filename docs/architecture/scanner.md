@@ -166,7 +166,7 @@ The compiler APIs in use are `parseTemplate`, `CssSelector`, `SelectorMatcher`, 
 
 A showcase with `partOf` is a part of another component or directive (since 22.7.0), and has no page of its own. `readShowcaseConfig()` keeps `partOf` as a trimmed non-empty string, reports anything else, and `scanComponents()` records the `@Showcase` argument of each class that kept it in `ScanComponentsOptions.partOrigins`. A service or a pipe with `partOf` is reported by its own scan (`describePartOfOnServiceOrPipe()`) and loses the field.
 
-`resolveParts()` in `resolve-parts.ts` resolves `partOf` once, at the end of `createScanner().scan()`, after every entry point is scanned and the components are deduplicated: the parent may be exported by another entry point than the part, and a class that two entry points export is one candidate, not two. It matches on `selectorList()`, the `selector` of a component or directive split on commas and trimmed, and checks each part in this order:
+`resolveParts()` in `resolve-parts.ts` resolves `partOf` once, at the end of `createScanner().scan()`, after every entry point is scanned and the components are deduplicated: the parent may be exported by another entry point than the part, and a class that two entry points export is one candidate, not two. It matches on `selectorList()`, the `selector` of a component or directive split on the commas outside brackets, parentheses and quotes (an attribute value such as `[data-mode="a,b"]` can hold one) and trimmed, and checks each part in this order:
 
 1. **Itself.** One of its own selectors is the one it names.
 2. **Candidates.** The other scanned components whose `selectorList()` contains it. None is "not found"; more than one is "ambiguous", naming the classes in scan order.

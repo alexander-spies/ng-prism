@@ -14,6 +14,11 @@ describe('selectorList', () => {
         expect(selectorList('lib-select, [libSelect] ,, ')).toEqual(['lib-select', '[libSelect]']);
         expect(selectorList('')).toEqual([]);
     });
+
+    it('keeps a comma inside a quoted attribute value', () => {
+        expect(selectorList(`lib-select[data-mode="a,b"], [libSelect]`)).toEqual(['lib-select[data-mode="a,b"]', '[libSelect]']);
+        expect(selectorList(`[data-mode='a, b'],lib-select:not([data-x="c,d"])`)).toEqual([`[data-mode='a, b']`, 'lib-select:not([data-x="c,d"])']);
+    });
 });
 
 describe('resolveParts through the scan', () => {
@@ -212,6 +217,15 @@ describe('resolveParts', () => {
         expect(part.parentClassName).toBe('ParentComponent');
         expect(part).not.toHaveProperty('composition');
         expect(part.showcaseConfig).not.toHaveProperty('variants');
+    });
+
+    it('resolves a selector of the parent that has a comma in an attribute value', () => {
+        const parent = component('SelectComponent', 'lib-select[data-mode="a,b"], [libSelect]');
+        const part = component('OptionComponent', 'lib-option', { partOf: 'lib-select[data-mode="a,b"]' });
+        const { diagnostics } = run([parent, part], [part]);
+
+        expect(diagnostics).toEqual([]);
+        expect(part.parentClassName).toBe('SelectComponent');
     });
 
     it('keeps the composition of a part that stays a component of its own', () => {
