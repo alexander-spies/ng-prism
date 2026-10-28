@@ -21,7 +21,7 @@ The audit re-runs automatically when you switch variants or change input values 
 
 **Needs review.** axe answers some checks with "incomplete": it could not decide, for example a contrast over a background image or under another element. Those are listed under _Needs review_ with axe's reason. They do not count towards the score, but they are not passes either (since 22.7.0; before, they did not appear at all).
 
-**What the audit sees.** It measures the component and nothing the canvas draws around it. For the duration of the audit, the panel overlays (the A11y panel's own outline, the box model, any plugin's), the measure tool, the rulers and the stage's dot or checker pattern are hidden, so the outline over the component cannot hide a contrast violation and the result does not depend on which panel is open (since 22.7.0). They may blink away for that moment. What the component renders itself, a CDK overlay in `<body>` included, stays and is audited. The theme is the one you look at.
+**What the audit sees.** It measures the component and nothing the canvas draws around it. For the duration of the audit, the panel overlays (the A11y panel's own outline, the box model, any plugin's), the measure tool, the rulers and the stage's dot or checker pattern are hidden, so the outline over the component cannot hide a contrast violation and the result does not depend on which panel is open (since 22.7.0). They may blink away for that moment. What the component renders itself stays visible, a CDK overlay in `<body>` included; the audit covers the component's own element, so such an overlay is not audited (see [How It Works](#how-it-works)). The theme is the one you look at.
 
 ### Keyboard Navigation
 

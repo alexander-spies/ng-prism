@@ -12,8 +12,9 @@ export const CANVAS_AUDITING_ATTR = 'data-prism-auditing';
  * Hidden are the siblings of `element` and of each of its ancestors up to the
  * stage, inline and restored afterwards: an overlay sits beside the subject in
  * `.demo-wrap` and measures itself against that parent, so it is not wrapped.
- * What the subject renders itself, a CDK overlay in `<body>` included, stays
- * and is audited. Synchronous, so the hiding does not wait for change
+ * What the subject renders itself stays visible, a CDK overlay in `<body>`
+ * included (axe audits the subject's subtree, so such an overlay is not
+ * audited either way). Synchronous, so the hiding does not wait for change
  * detection, and undone however `run` ends. An element outside a canvas stage
  * is audited as it is.
  */

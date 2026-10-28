@@ -70,7 +70,7 @@
                                     label="Review" />
                                 <span rowTitle>{{ item.help }}</span>
                                 <span rowDescription>{{ item.reasons.join(' · ') }}</span>
-                                <span rowMeta>{{ item.id }}</span>
+                                <span rowMeta>{{ item.id }} · {{ item.nodes }} {{ item.nodes === 1 ? 'node' : 'nodes' }}</span>
                             </prism-list-row>
                         }
                     </div>

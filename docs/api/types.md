@@ -499,7 +499,7 @@ interface Variant<T = unknown> {
     template?: string;
     host?: HostTemplate;
     description?: string;
-    meta?: Record<string, unknown>;
+    meta?: ShowcaseMeta;
     bg?: CanvasBg;
     canvasLayout?: CanvasLayout;
     pseudo?: ForcedPseudoStates;
@@ -517,7 +517,7 @@ The optional type parameter `T` is the component class. When provided (via `@Sho
 | `template`     | An Angular template, compiled as the content of the subject (since `22.7.0`). Wins over `content`. See [Compiled Content](guide/content-projection.md#compiled-content-template)                                                                                             |
 | `host`         | A [`HostTemplate`](#hosttemplate) the subject renders in for this variant (since `22.7.0`). Overrides `ShowcaseConfig.host`. See [Host Template](guide/directive-hosting.md#host-template)                                                                                   |
 | `description`  | Optional description rendered below the variant tab                                                                                                                                                                                                                          |
-| `meta`         | Arbitrary plugin metadata (e.g. `{ figma: 'url' }`)                                                                                                                                                                                                                          |
+| `meta`         | Metadata for plugins (e.g. `{ figma: 'url' }`), a [`ShowcaseMeta`](#showcasemeta). `a11y.accept` adds [accepted violations](guide/accessibility.md#accepted-violations) to the component's for this variant.                                                                 |
 | `bg`           | Recommended canvas background. Overrides `ShowcaseConfig.bg`. One of `dots`, `plain`, `light`, `dark`, `checker`, `transparent`. See [Per-Variant Background](guide/variants.md#per-variant-background).                                                                     |
 | `canvasLayout` | Canvas layout mode for this variant. Overrides `ShowcaseConfig.canvasLayout`. One of `fit`, `stretch`. See [Per-Variant Canvas Layout](guide/variants.md#per-variant-canvas-layout) and the [`CanvasLayout`](#canvaslayout) type.                                            |
 | `pseudo`       | Pseudo states forced on while the variant renders, each with the elements it applies to. See [Per-Variant Pseudo States](guide/variants.md#per-variant-pseudo-states) and the [`ForcedPseudoStates`](#forcedpseudostates) type.                                              |
@@ -828,6 +828,33 @@ type ComponentStatus = 'stable' | 'beta' | 'wip' | 'deprecated';
 | `deprecated` | Legacy component. Do not use in new code |
 
 When `status` is omitted, no indicator renders. See [`ShowcaseConfig.status`](api/showcase-config.md#status) for the full UI behavior in sidebar and header.
+
+---
+
+## ShowcaseMeta
+
+`meta` on [`ShowcaseConfig`](api/showcase-config.md#meta) and on a [`Variant`](#variant): open for plugins and projects, with `a11y` typed (since 22.7.0). Exported from `@ng-prism/core`, like `A11yShowcaseMeta` and `A11yAcceptance`.
+
+```typescript
+interface ShowcaseMeta {
+    a11y?: A11yShowcaseMeta;
+    [key: string]: unknown;
+}
+
+interface A11yShowcaseMeta {
+    rules?: Record<string, { enabled: boolean }>; // component level: switch axe rules for the live audit
+    disable?: boolean; // component level: skip the live audit
+    accept?: A11yAcceptance[]; // component and variant: audited and shown, not counted
+    [key: string]: unknown;
+}
+
+interface A11yAcceptance {
+    rule: string; // axe rule id
+    reason: string; // required
+}
+```
+
+A rule switched off with `enabled: false` is not audited at all; an accepted violation is audited and shown under _Accepted_ with its reason, but not counted. The build adds the a11y report's entry for the component (`found`, `score`, `summary`) next to these keys. See [Accepted violations](guide/accessibility.md#accepted-violations).
 
 ---
 

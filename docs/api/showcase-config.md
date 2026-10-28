@@ -17,7 +17,7 @@ interface ShowcaseConfig<T = unknown> {
     states?: ShowcaseState[];
     tags?: string[];
     providers?: Provider[];
-    meta?: Record<string, unknown>;
+    meta?: ShowcaseMeta;
     setup?: () => readonly ShowcaseSetupRef[];
     bg?: CanvasBg;
     canvasLayout?: CanvasLayout;
@@ -228,17 +228,22 @@ For a pipe it works the same way, with `provideTimeAgo` in `setup: () => [provid
 
 ### `meta`
 
-Optional arbitrary key-value metadata. Plugins read their own namespaced keys from this object.
+Optional key-value metadata, a [`ShowcaseMeta`](api/types.md#showcasemeta). Plugins read their own namespaced keys from this object. `a11y` is typed (since 22.7.0): `rules` switches axe rules on or off for the live audit, `disable` skips it, and `accept` lists [accepted violations](guide/accessibility.md#accepted-violations).
 
 ```typescript
 @Showcase({
   title: 'Button',
   meta: {
     figma: 'https://www.figma.com/design/abc/Design?node-id=1-1',
-    a11y: { disable: ['color-contrast'] },
+    a11y: {
+      rules: { 'color-contrast': { enabled: false } },
+      accept: [{ rule: 'button-name', reason: 'The icon-only variants are labelled by their tooltip.' }],
+    },
   },
 })
 ```
+
+Since `meta.a11y` is typed, an `a11y` entry in the wrong shape no longer compiles: `disable` is a boolean, a rule switch is `{ enabled: boolean }`, and an acceptance needs both `rule` and `reason`. Other keys under `meta` and under `meta.a11y` stay open.
 
 ---
 

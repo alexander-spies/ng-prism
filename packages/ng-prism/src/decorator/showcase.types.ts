@@ -73,10 +73,6 @@ export interface ShowcaseState {
 }
 
 /**
- * A function or injection token that configures a service or pipe, listed in
- * `ShowcaseConfig.setup`. ng-prism only reads its name, signature and type.
- */
-/**
  * A violation that is known, deliberate and owned: still audited and shown in
  * the A11y tab, under Accepted with its reason, but not counted. Matched by the
  * axe rule id, for every node of that rule. Since 22.7.0.
@@ -109,6 +105,10 @@ export interface ShowcaseMeta {
     [key: string]: unknown;
 }
 
+/**
+ * A function or injection token that configures a service or pipe, listed in
+ * `ShowcaseConfig.setup`. ng-prism only reads its name, signature and type.
+ */
 export type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
 
 export interface ShowcaseConfig<T = unknown> {
