@@ -1,14 +1,15 @@
-import type {
-    ApiDocTags,
-    ApiMethod,
-    ApiProperty,
-    ApiSetupEntry,
-    ApiTypeDoc,
-    ApiTypeRef,
-    InputMeta,
-    ScannedComponent,
-    ScannedPipe,
-    ScannedService
+import {
+    type ApiDocTags,
+    type ApiMethod,
+    type ApiProperty,
+    type ApiSetupEntry,
+    type ApiTypeDoc,
+    type ApiTypeRef,
+    type InputMeta,
+    partKeys,
+    type ScannedComponent,
+    type ScannedPipe,
+    type ScannedService
 } from '@ng-prism/core/plugin';
 import type { JsDocData, MethodDoc } from '../jsdoc.types.js';
 import { partScope } from './api-page.helpers.js';
@@ -85,6 +86,8 @@ export interface ApiPageModel {
  */
 export interface ApiPagePart {
     className: string;
+    /** What `activePart` names the part by: its class name, with `~2` for the second of a class name two parts share. */
+    key: string;
     title: string;
     selector: string;
     scope: string;
@@ -191,8 +194,11 @@ export function componentApiPage(component: ScannedComponent): ApiPageModel {
 
 /** The API pages of a component's parts, in the order the manifest lists them. Each is a component page of its own: the usage has the part's import. */
 export function partPages(parts: readonly { meta: ScannedComponent }[] | undefined): ApiPagePart[] {
+    const keys = partKeys((parts ?? []).map(({ meta }) => meta.className));
+
     return (parts ?? []).map(({ meta }, index) => ({
         className: meta.className,
+        key: keys[index],
         title: meta.showcaseConfig.title,
         selector: meta.componentMeta.selector,
         scope: partScope(index),
@@ -210,9 +216,12 @@ function valueChip(label: string, value: string | undefined): ApiPageChip[] {
     return value ? [{ label, value }] : [];
 }
 
-/** As the code writes a default: a string in quotes, an array or object as JSON (`String()` would give `a,b` and `[object Object]`), anything else by its `String()`. */
+/**
+ * As the code writes a default: a string in single quotes with its quotes and backslashes escaped, an array or object
+ * as JSON (`String()` would give `a,b` and `[object Object]`), anything else by its `String()`.
+ */
 function formatDefault(value: InputMeta['defaultValue']): string {
-    if (typeof value === 'string') return `'${value}'`;
+    if (typeof value === 'string') return `'${value.replace(/[\\']/g, '\\$&')}'`;
     return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
 }
 

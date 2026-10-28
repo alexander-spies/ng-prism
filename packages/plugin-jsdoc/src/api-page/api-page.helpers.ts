@@ -35,9 +35,35 @@ export function partScope(index: number): string {
     return `part-${index}`;
 }
 
-/** The TOC id of the block of the part a class name names, the first one when two share it, `null` when the page has no such part. */
-export function partAnchor(parts: readonly ApiPagePart[], className: string | null): string | null {
-    return parts.find((part) => part.className === className)?.scope ?? null;
+/** The TOC id of the block of the part `key` names (see `partKeys`), `null` when the page has no such part. */
+export function partAnchor(parts: readonly ApiPagePart[], key: string | null): string | null {
+    return parts.find((part) => part.key === key)?.scope ?? null;
+}
+
+/** Where the page jumps for `activePart`: the block, on the page of a class. */
+export interface PartJump {
+    page: string;
+    anchor: string;
+}
+
+/**
+ * The jump to the block of the part `key` names on the page of `page`, `null` when the page has no such part. Two jumps
+ * are the same when {@link samePartJump} says so: the page goes to the block once per jump.
+ */
+export function partJump(page: string, parts: readonly ApiPagePart[], key: string | null): PartJump | null {
+    const anchor = partAnchor(parts, key);
+
+    return anchor ? { page, anchor } : null;
+}
+
+/**
+ * Whether two jumps go to the same block. The page is part of it because a block's anchor goes by the position of the
+ * part: the parts of two components at the same position share one, and going from one to the other (back and forward
+ * between their links) is a jump all the same. The parts themselves are not: a manifest update during `serve` hands
+ * over new ones, which must not send the reader back to the block.
+ */
+export function samePartJump(a: PartJump | null, b: PartJump | null): boolean {
+    return a?.page === b?.page && a?.anchor === b?.anchor;
 }
 
 /** The TOC id of a documented type's card, in the scope of the page that shows it. */
@@ -99,6 +125,23 @@ export function buildPartsToc(parts: readonly ApiPagePart[]): TocEntry[] {
             .filter(({ id }) => id !== TYPES_SECTION)
             .map(({ id, label }): TocEntry => ({ id: scopedAnchor(scope, id), label, level: 2 }))
     ]);
+}
+
+/**
+ * The entry of the "On this page" list that stands for the anchor `id`: the anchor's own, or for one without an entry
+ * (a part's Types section and its cards) the last listed anchor before it on the page, the part's last listed section.
+ * `anchorIds` are the TOC ids of all anchors in page order, `listed` those the list has. `id` itself when nothing
+ * listed comes before it.
+ */
+export function listedTocId(anchorIds: readonly string[], listed: ReadonlySet<string>, id: string): string {
+    if (listed.has(id)) return id;
+
+    return (
+        anchorIds
+            .slice(0, Math.max(anchorIds.indexOf(id), 0))
+            .filter((anchor) => listed.has(anchor))
+            .at(-1) ?? id
+    );
 }
 
 /** How far down the view, as a share of its height, a section's heading has to come to make the section active. */

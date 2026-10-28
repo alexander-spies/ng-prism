@@ -16,7 +16,7 @@ import {
     untracked,
     viewChild
 } from '@angular/core';
-import { activeTocId, buildApiPageToc, buildPartsToc, isTypeAnchor, partAnchor } from './api-page.helpers.js';
+import { activeTocId, buildApiPageToc, buildPartsToc, isTypeAnchor, listedTocId, partJump, samePartJump } from './api-page.helpers.js';
 import type { ApiPageModel, ApiPagePart } from './api-page.model.js';
 import { TYPE_LINK_ATTRIBUTE } from './doc-links.js';
 import { ApiPageNavigation, JsDocApiSectionsComponent } from './jsdoc-api-sections.component.js';
@@ -85,12 +85,8 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
     /** The ids the "On this page" list has. The scroll spy marks one of them, never an anchor the list leaves out. */
     private readonly tocIds = computed(() => new Set([...this.toc(), ...this.partsToc()].map((entry) => entry.id)));
 
-    /**
-     * The block of `activePart`, while the page has that part. An id rather
-     * than the part: a manifest update during `serve` hands over new parts,
-     * which must not send the reader back to the block.
-     */
-    private readonly activePartAnchor = computed(() => partAnchor(this.parts(), this.activePart()));
+    /** The jump to the block of `activePart`, while the page has that part; see {@link samePartJump} for when it is a new one. */
+    private readonly activePartJump = computed(() => partJump(this.className(), this.parts(), this.activePart()), { equal: samePartJump });
 
     protected readonly activeId = signal('usage');
     private readonly highlighted = signal<string | null>(null);
@@ -130,11 +126,11 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
         // After the next render: the block has to be in the DOM, and the jump
         // has to come after the effect above has put a new component at the top.
         effect((onCleanup) => {
-            const anchor = this.activePartAnchor();
+            const target = this.activePartJump();
 
-            if (!anchor) return;
+            if (!target) return;
 
-            const jump = afterNextRender(() => this.goTo(anchor), { injector: this.injector });
+            const jump = afterNextRender(() => this.goTo(target.anchor), { injector: this.injector });
 
             onCleanup(() => jump.destroy());
         });
@@ -173,7 +169,7 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
 
         if (!target) return;
 
-        this.activeId.set(id);
+        this.activeId.set(this.listedFor(id));
         this.follow.start(id);
         this.host.scrollTo({ top: this.offsetOf(target) - SCROLL_OFFSET });
 
@@ -239,7 +235,16 @@ export class JsDocApiPageComponent implements ApiPageNavigation {
             scrollTop,
             clientHeight,
             scrollHeight,
-            jumpTarget: this.follow.target
+            jumpTarget: this.follow.target === null ? null : this.listedFor(this.follow.target)
         });
+    }
+
+    /** The entry the list marks for the anchor `id`, which a type card of a part has none of its own for. */
+    private listedFor(id: string): string {
+        return listedTocId(
+            this.anchors().map((anchor) => anchor.dataset['tocId']!),
+            this.tocIds(),
+            id
+        );
     }
 }

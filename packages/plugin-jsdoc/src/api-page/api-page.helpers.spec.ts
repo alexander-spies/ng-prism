@@ -6,9 +6,12 @@ import {
     declaredParamSegments,
     documentsParams,
     isTypeAnchor,
+    listedTocId,
     paramSegments,
     partAnchor,
+    partJump,
     partScope,
+    samePartJump,
     scopedAnchor,
     setupSignature,
     splitReachedFrom,
@@ -230,17 +233,83 @@ describe('partAnchor', () => {
         expect(partAnchor(parts, 'OptionComponent')).toBe('part-0');
     });
 
-    it('gives two parts of one class name, from different files, a block each, and names the first', () => {
+    it('gives two parts of one class name, from different files, a block each, and names each by its key', () => {
         const twins = partPages([{ meta: option }, { meta: { ...option, filePath: '/lib/other/option.component.ts' } }]);
 
         expect(twins.map((part) => part.scope)).toEqual(['part-0', 'part-1']);
+        expect(twins.map((part) => part.key)).toEqual(['OptionComponent', 'OptionComponent~2']);
         expect(partAnchor(twins, 'OptionComponent')).toBe('part-0');
+        expect(partAnchor(twins, 'OptionComponent~2')).toBe('part-1');
     });
 
     it('is null for no part, and for a class that is not a part of the page', () => {
         expect(partAnchor(parts, null)).toBeNull();
         expect(partAnchor(parts, 'OptionGroupComponent')).toBeNull();
         expect(partAnchor([], 'OptionComponent')).toBeNull();
+    });
+});
+
+describe('listedTocId', () => {
+    const anchors = ['usage', 'inputs', 'part-0', 'part-0-usage', 'part-0-inputs', 'part-0-types', 'part-0-type-ListItemConfig', 'part-1', 'part-1-usage'];
+    const listed = new Set(['usage', 'inputs', 'part-0', 'part-0-usage', 'part-0-inputs', 'part-1', 'part-1-usage']);
+
+    it('is the anchor itself when the list has it', () => {
+        expect(listedTocId(anchors, listed, 'part-0-inputs')).toBe('part-0-inputs');
+    });
+
+    it("is the part's last listed section for a type card or the Types section of the part", () => {
+        expect(listedTocId(anchors, listed, 'part-0-type-ListItemConfig')).toBe('part-0-inputs');
+        expect(listedTocId(anchors, listed, 'part-0-types')).toBe('part-0-inputs');
+    });
+
+    it('is the anchor itself when nothing listed comes before it, or it is not on the page', () => {
+        expect(listedTocId(['type-A', 'usage'], new Set(['usage']), 'type-A')).toBe('type-A');
+        expect(listedTocId(anchors, listed, 'missing')).toBe('missing');
+    });
+});
+
+describe('partJump', () => {
+    const option = makeComponent(
+        {},
+        {
+            className: 'OptionComponent',
+            componentMeta: { selector: 'lib-option', standalone: true, isDirective: false },
+            showcaseConfig: { title: 'Option', partOf: 'lib-select' }
+        }
+    );
+    const group = makeComponent(
+        {},
+        {
+            className: 'ListGroupComponent',
+            componentMeta: { selector: 'lib-list-group', standalone: true, isDirective: false },
+            showcaseConfig: { title: 'Group', partOf: 'lib-list' }
+        }
+    );
+
+    it('goes to the block of the part on the page', () => {
+        expect(partJump('SelectComponent', partPages([{ meta: option }]), 'OptionComponent')).toEqual({ page: 'SelectComponent', anchor: 'part-0' });
+    });
+
+    it('is null without a part, and for a part the page does not have', () => {
+        expect(partJump('SelectComponent', partPages([{ meta: option }]), null)).toBeNull();
+        expect(partJump('SelectComponent', partPages([{ meta: option }]), 'ListGroupComponent')).toBeNull();
+    });
+
+    it('is a new jump on the page of another component, though the part sits at the same position', () => {
+        const select = partJump('SelectComponent', partPages([{ meta: option }]), 'OptionComponent');
+        const list = partJump('ListComponent', partPages([{ meta: group }]), 'ListGroupComponent');
+
+        expect(list!.anchor).toBe(select!.anchor);
+        expect(samePartJump(list, select)).toBe(false);
+    });
+
+    it('is the same jump for new parts of the same page, as a manifest update during serve hands over', () => {
+        const before = partJump('SelectComponent', partPages([{ meta: option }]), 'OptionComponent');
+        const after = partJump('SelectComponent', partPages([{ meta: { ...option } }]), 'OptionComponent');
+
+        expect(samePartJump(before, after)).toBe(true);
+        expect(samePartJump(null, null)).toBe(true);
+        expect(samePartJump(before, null)).toBe(false);
     });
 });
 
