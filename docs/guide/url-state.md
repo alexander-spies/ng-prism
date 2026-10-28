@@ -9,18 +9,18 @@ After editing a SCSS file in your library and waiting for the dev-server reload,
 
 ## URL Parameters
 
-| Parameter   | Example                        | Description                                                                                                                                                             |
-| ----------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `component` | `?component=ButtonComponent`   | Active component class name                                                                                                                                             |
-| `service`   | `?service=NotificationService` | Active [service](guide/showcasing-services.md) class name. Services have their own parameter, so a tool that sets `?component=` never lands on one                      |
-| `pipe`      | `?pipe=TimeAgoPipe`            | Active [pipe](guide/showcasing-pipes.md) class name. Pipes have their own parameter as well, so neither `?component=` nor `?service=` lands on one                      |
-| `page`      | `?page=Button%20Patterns`      | Active page title (URL-encoded)                                                                                                                                         |
-| `variant`   | `?variant=1`                   | Active variant index (0-based)                                                                                                                                          |
-| `state`     | `?state=1`                     | Active component-level state: the 0-based index into the component's `states`. Written only while a state is active; a value that is no index into `states` is ignored. |
-| `view`      | `?view=overview`               | Active view tab (e.g. `overview`, `docs`, `a11y`)                                                                                                                       |
-| `part`      | `?part=OptionComponent`        | The [part](guide/showcase-decorator.md#partof) of the component that the active view shows, as its class name (since 22.7.0). See [Parts](#parts)                       |
-| `panel`     | `?panel=a11y`                  | Active addon panel tab (default: `controls`, omitted when default)                                                                                                      |
-| `capture`   | `?capture=1`                   | Read-only input flag. Enables [capture isolation mode](guide/external-tooling.md#capture-isolation-mode) for screenshot tooling. Never written back to the URL.         |
+| Parameter   | Example                        | Description                                                                                                                                                                                               |
+| ----------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `component` | `?component=ButtonComponent`   | Active component class name                                                                                                                                                                               |
+| `service`   | `?service=NotificationService` | Active [service](guide/showcasing-services.md) class name. Services have their own parameter, so a tool that sets `?component=` never lands on one                                                        |
+| `pipe`      | `?pipe=TimeAgoPipe`            | Active [pipe](guide/showcasing-pipes.md) class name. Pipes have their own parameter as well, so neither `?component=` nor `?service=` lands on one                                                        |
+| `page`      | `?page=Button%20Patterns`      | Active page title (URL-encoded)                                                                                                                                                                           |
+| `variant`   | `?variant=1`                   | Active variant index (0-based)                                                                                                                                                                            |
+| `state`     | `?state=1`                     | Active component-level state: the 0-based index into the component's `states`. Written only while a state is active; a value that is no index into `states` is ignored.                                   |
+| `view`      | `?view=overview`               | Active view tab (e.g. `overview`, `docs`, `a11y`)                                                                                                                                                         |
+| `part`      | `?part=OptionComponent`        | The [part](guide/showcase-decorator.md#partof) of the component that the active view shows, as its class name (since 22.7.0), `~2` appended for a second part of the same class name. See [Parts](#parts) |
+| `panel`     | `?panel=a11y`                  | Active addon panel tab (default: `controls`, omitted when default)                                                                                                                                        |
+| `capture`   | `?capture=1`                   | Read-only input flag. Enables [capture isolation mode](guide/external-tooling.md#capture-isolation-mode) for screenshot tooling. Never written back to the URL.                                           |
 
 Example URL:
 
@@ -49,6 +49,8 @@ A [part](guide/showcase-decorator.md#partof) (`@Showcase({ partOf })`, since 22.
     ```
 
     `variant` and `state` of such a link are dropped, since they would name the part's, and the parent opens on its defaults. The rewrite replaces the history entry instead of adding one, so back does not return to the link that was rewritten.
+
+    The same happens during `ng-prism serve` when the component on screen gets a `partOf`: after the rebuild the app opens the parent, on the part when the view that lists parts was open, instead of the first entry.
 
 - **`part` is applied only where it can be shown.** The view must be the first visible view panel that sets [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), and the component must have that part. Without both the part is dropped and the component opens as usual, with the requested view. That is also what happens with a link to a part when no plugin lists parts.
 - **Switching the component or the view removes `part`.** It marks where the reader was sent to, not a setting that follows them. Coming back to the same component and view inside the app does not scroll to the part again. The browser's back and forward buttons restore a history entry as it was, `part` included, so going back to an entry with a part scrolls to it.

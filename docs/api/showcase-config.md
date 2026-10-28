@@ -180,7 +180,7 @@ See [Variants: States](guide/variants.md#states) for how to write them and when 
 
 ### `tags`
 
-Optional array of strings used for sidebar search and filtering. Matched alongside `title` and `category`.
+Optional array of strings used for sidebar search and filtering. Matched alongside `title`, `category`, the class name and the selector.
 
 ```typescript
 @Showcase({ title: 'Button', tags: ['form', 'cta', 'interactive'] })

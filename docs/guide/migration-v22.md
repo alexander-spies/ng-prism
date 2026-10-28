@@ -388,7 +388,7 @@ A `@Pipe` declared in an NgModule (`standalone: false`) goes one step further. n
 - **A directive renders on the element its selector names.** Without a `host`, `input[libInput]` renders as `<input libInput>`, where it used to render on a `div` that the directive never matched. A directive with `host: '<input>'` or another void element used to fail the styleguide build and now renders, see [Directive Hosting](guide/directive-hosting.md#void-elements). Check the visual regression baselines of such a directive, since the output changes.
 - **`imports` joins the component-only fields.** A class with `@Injectable`, `@Service` or `@Pipe` that declares it stays a component until 23.0.0, like one that declares `variants`, see [the deprecation above](#deprecation-injectables-and-pipes-with-component-only-fields).
 
-A plugin that reads `ScannedComponent` sees one more optional field, `composition`, and `InputMeta` one more, `defaultUnreadable`, see [Type Reference](api/types.md#componentcomposition).
+A plugin that reads `ScannedComponent` sees one more optional field, `composition`, and `InputMeta` two more, `defaultUnreadable` and `model`, see [Type Reference](api/types.md#componentcomposition) and [`InputMeta`](api/types.md#inputmeta).
 
 ### New: parts
 

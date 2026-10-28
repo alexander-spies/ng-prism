@@ -48,6 +48,8 @@ onComponentScanned(component) {
 }
 ```
 
+A [part](guide/showcase-decorator.md#partof) runs through this hook too, as a component with `parentClassName` (since `22.7.0`). A plugin that writes data for a page, as perf and visual-regression do, skips it with `if (component.parentClassName) return;`, since the parent's page shows the part. One that reads every component's API, as jsdoc and coverage do, keeps it. See [Parts in the hooks](architecture/plugin-hooks.md#parts-in-the-hooks).
+
 Async is supported:
 
 ```typescript
@@ -131,6 +133,8 @@ onManifestReady(manifest) {
   );
 }
 ```
+
+A part is not in `manifest.components` here (since `22.7.0`): it sits in its parent's `parts`. A plugin that walks the list reads `component.parts` as well when it must include parts, and a filter like the one above drops a parent together with its parts. See [Parts in the hooks](architecture/plugin-hooks.md#parts-in-the-hooks).
 
 ---
 
@@ -359,7 +363,7 @@ export class ApiPanelComponent {
 }
 ```
 
-- **`activePart`** is the class name of the part to show, `null` for none. It is one of `activeComponent()?.parts` (`RuntimePart[]`, matched by `meta.className`). The panel scrolls to the block of that part. The reader sets it through the `part` [URL parameter](guide/url-state.md#parts) or by following the link of a part's popover in the component head.
+- **`activePart`** is the key of the part to show, `null` for none: the class name of one of `activeComponent()?.parts` (`RuntimePart[]`), with `~2`, `~3`, … appended for the second and later part of one class name, in the order of `parts`. `partKeys(parts)` from `@ng-prism/core/plugin` returns the keys in that order. The panel scrolls to the block of that part. The reader sets it through the `part` [URL parameter](guide/url-state.md#parts) or by following the link of a part's popover in the component head.
 - **A new value is a new request.** When the reader follows the link of the part the panel already shows, `activePart` turns `null` for one render and then names the part again, so a panel that scrolls whenever the input changes scrolls to the block once more.
 - **Only panels with `listsParts` get it.** `activePart` is handed to a view panel that sets `listsParts` and applies to `'component'`, nothing else, so a panel that does not declare the input never logs a warning about it.
 - **One panel is the target.** Several panels may set `listsParts`; the link in a part's popover and `part` in the URL address the first visible one, in registration order, builtin before plugin. The popover has no link when none is visible for the component.

@@ -69,7 +69,8 @@ export function notesPlugin(): NgPrismPlugin {
   component) returns early for a component that has it. `onManifestReady` gets the parts nested: they are not in
   `manifest.components` but in `parts` of their parent (`ScannedComponent.parts`, sorted by title), the same shape as
   `RuntimeComponent.parts`. So a plugin that walks `manifest.components` sees parents only and reads `c.parts ?? []` to
-  include parts, and a filter that drops a parent drops its parts too.
+  include parts, and a filter that drops a parent drops its parts too. The scan decides which parent a part belongs to:
+  a hook that rewrites the parent, its selector or class name included, keeps its parts on it.
 - Store per-component results in `component.showcaseConfig.meta[<your key>]`, as the official plugins do. Data for the
   whole library goes into `manifest.meta`, read in the browser with `inject(PRISM_MANIFEST).meta`.
 - The manifest that carries these results to the browser is generated source code: only JSON-like data survives. In
@@ -132,11 +133,12 @@ export function notesPlugin(): NgPrismPlugin {
   or `activePipe()?.meta.api`.
 - **A panel that lists parts.** `listsParts: true` on a view panel for `'component'` (since 22.7.0, experimental until
   23.0.0) says it shows the parts of the component (`RuntimeComponent.parts`). It declares
-  `readonly activePart = input<string | null>(null)`, the class name of the part to show, and scrolls to its block; only
-  a panel with `listsParts` is given the input. `activePart` follows the `part` URL parameter and a part's popover in
-  the component head, which links to the first visible panel with `listsParts`; it goes back to `null` when the
-  component or the view changes. The link of the part already shown sets it to `null` for one render and then to the
-  part again, so scrolling whenever the input changes is enough.
+  `readonly activePart = input<string | null>(null)`, the key of the part to show (its class name, `~2`, `~3`, … appended
+  for a later part of the same class name; `partKeys(parts)` from `@ng-prism/core/plugin` lists them), and scrolls to
+  its block; only a panel with `listsParts` is given the input. `activePart` follows the `part` URL parameter and a
+  part's popover in the component head, which links to the first visible panel with `listsParts`; it goes back to
+  `null` when the component or the view changes. The link of the part already shown sets it to `null` for one render
+  and then to the part again, so scrolling whenever the input changes is enough.
 - The selected variant and its inputs: inject `PrismRendererService` from `@ng-prism/core` (`activeVariantIndex()`,
   `inputValues()`, `renderedElement()`, `subjectElement()`, `selectVariant()`, `updateInput()`).
   `renderedElement()` is the root of everything the canvas renders: for a variant with a `template` or a `host: { template }`

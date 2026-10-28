@@ -219,7 +219,7 @@ Not combinable with [`renderPage`](#renderpage): a component page has no Overvie
 
 ### `tags`
 
-Array of strings used for search and filtering in the sidebar. Tags are matched alongside `title` and `category`.
+Array of strings used for search and filtering in the sidebar. Tags are matched alongside `title`, `category`, the class name and the selector.
 
 ```typescript
 @Showcase({

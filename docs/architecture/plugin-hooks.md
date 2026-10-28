@@ -217,7 +217,7 @@ onManifestReady(manifest) {
 - A part is **not** in `manifest.components`. Its parent has it in `ScannedComponent.parts`, sorted by `showcaseConfig.title`, so the build-time and the runtime manifest have the same shape (`RuntimeComponent.parts`, see [`RuntimePart`](api/types.md#runtimepart)).
 - A part has no entry of its own in `onManifestReady`, so a plugin that counts or walks `manifest.components` sees parents only. One that must include parts reads `component.parts` as well.
 - A parent and its parts are one unit: a filter that drops a component from `manifest.components`, such as the `internal` tag example above, drops its parts with it.
-- A part is the object `onComponentScanned` returned, `parentClassName` and `showcaseConfig.partOf` included. A part whose parent is gone (a hook replaced the parent) stays in `components` as a component of its own, without both.
+- A part is the object `onComponentScanned` returned, `parentClassName` and `showcaseConfig.partOf` included. Which parent it goes to is what the scan resolved, before any hook ran: a hook that rewrites a parent, its selector or class name included, keeps its parts on it, and a part never falls back to a component of its own after the hooks.
 - `parts` and `parentClassName` are experimental until 23.0.0: their shape may change in a 22.x minor release.
 
 ```typescript
