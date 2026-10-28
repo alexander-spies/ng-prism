@@ -60,6 +60,9 @@ describe('visualRegressionPlugin', () => {
         it('leaves a part untouched and does not read variants for it', async () => {
             const { readVariantsForComponent } = require('./report-reader.js');
 
+            // The mock is shared by the whole file and keeps the calls of the tests before this one.
+            (readVariantsForComponent as jest.Mock).mockClear();
+
             const plugin = visualRegressionPlugin({ reportPath: FIXTURE });
             const component: ScannedComponent = {
                 className: 'SelectOptionComponent',
