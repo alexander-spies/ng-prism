@@ -76,6 +76,39 @@ export interface ShowcaseState {
  * A function or injection token that configures a service or pipe, listed in
  * `ShowcaseConfig.setup`. ng-prism only reads its name, signature and type.
  */
+/**
+ * A violation that is known, deliberate and owned: still audited and shown in
+ * the A11y tab, under Accepted with its reason, but not counted. Matched by the
+ * axe rule id, for every node of that rule. Since 22.7.0.
+ */
+export interface A11yAcceptance {
+    /** The axe rule id, e.g. `'color-contrast'`. */
+    rule: string;
+    /** Why it stays. Required: an acceptance without a reason cannot be told apart from an oversight. */
+    reason: string;
+}
+
+/**
+ * `meta.a11y` on a `@Showcase` or a variant. `rules` with `enabled: false`
+ * means not audited at all; `accept` means audited and shown, but not counted.
+ */
+export interface A11yShowcaseMeta {
+    /** axe rules to switch on or off for the component's live audit. Component level. */
+    rules?: Record<string, { enabled: boolean }>;
+    /** Skips the live audit for the component. Component level. */
+    disable?: boolean;
+    /** Violations that stay visible but do not count. On the component, they apply to every variant; a variant adds its own. Since 22.7.0. */
+    accept?: A11yAcceptance[];
+    /** Other keys stay open: the build adds the a11y report's entry here, and a project may keep its own. */
+    [key: string]: unknown;
+}
+
+/** `meta` on a `@Showcase` or a variant: free for plugins and projects, with `a11y` typed. */
+export interface ShowcaseMeta {
+    a11y?: A11yShowcaseMeta;
+    [key: string]: unknown;
+}
+
 export type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
 
 export interface ShowcaseConfig<T = unknown> {
@@ -125,8 +158,8 @@ export interface ShowcaseConfig<T = unknown> {
      * page (`renderPage`) that declares them.
      */
     providers?: Provider[];
-    /** Arbitrary metadata for plugins (e.g. { figma: 'https://...' }) */
-    meta?: Record<string, unknown>;
+    /** Arbitrary metadata for plugins (e.g. { figma: 'https://...' }), and `a11y` for the live audit. */
+    meta?: ShowcaseMeta;
     /**
      * Services and pipes only: the functions and tokens that configure the service
      * or pipe, for example `provideToasts` and `TOAST_CONFIG`. The styleguide
@@ -212,8 +245,8 @@ export interface Variant<T = unknown> {
     host?: HostTemplate;
     /** Optional description for this variant */
     description?: string;
-    /** Arbitrary metadata for plugins (e.g. { figma: 'https://...?node-id=12-34' }) */
-    meta?: Record<string, unknown>;
+    /** Arbitrary metadata for plugins (e.g. { figma: 'https://...?node-id=12-34' }), and `a11y.accept` for this variant. */
+    meta?: ShowcaseMeta;
     /** Recommended canvas background for this variant. Overrides `ShowcaseConfig.bg`. */
     bg?: CanvasBg;
     /** Canvas layout mode for this variant. Overrides `ShowcaseConfig.canvasLayout`. See `ShowcaseConfig.canvasLayout` for semantics. */

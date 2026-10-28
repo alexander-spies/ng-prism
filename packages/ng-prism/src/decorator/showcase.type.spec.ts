@@ -171,6 +171,41 @@ void CompositionUsage;
 class BadCompositionUsage {}
 void BadCompositionUsage;
 
+// (i) meta.a11y: rules, disable and accept are typed, other keys stay open.
+@Showcase<FixtureComponent>({
+    title: 'A11y',
+    meta: {
+        figma: 'https://figma.com/x',
+        a11y: {
+            rules: { 'color-contrast': { enabled: false } },
+            disable: false,
+            accept: [{ rule: 'color-contrast', reason: 'The placeholder is muted by design.' }],
+            custom: 1
+        }
+    },
+    variants: [{ name: 'a', meta: { a11y: { accept: [{ rule: 'label', reason: 'Labelled by the frame.' }] } } }]
+})
+class A11yMetaUsage {}
+void A11yMetaUsage;
+
+@Showcase<FixtureComponent>({
+    title: 'A11y',
+    meta: {
+        a11y: {
+            // @ts-expect-error: an acceptance needs a reason
+            accept: [{ rule: 'color-contrast' }],
+            // @ts-expect-error: a rule is switched with a boolean
+            rules: { label: { enabled: 'no' } },
+            // @ts-expect-error: disable is a boolean
+            disable: 'yes'
+        }
+    },
+    // @ts-expect-error: a variant's acceptance needs a reason too
+    variants: [{ name: 'a', meta: { a11y: { accept: [{ rule: 'label' }] } } }]
+})
+class BadA11yMetaUsage {}
+void BadA11yMetaUsage;
+
 describe('@Showcase<T> typed variant inputs', () => {
     it('loads without runtime errors (all checks are compile-time)', () => {
         expect(true).toBe(true);

@@ -1,7 +1,6 @@
-export interface A11yCoreConfig {
-    rules?: Record<string, { enabled: boolean }>;
-    disable?: boolean;
-}
+import type { A11yShowcaseMeta } from '../../../decorator/showcase.types.js';
+/** What the live audit reads from a component's `meta.a11y`; one shape with the decorator's. */
+export type A11yCoreConfig = A11yShowcaseMeta;
 
 export interface A11yScoreResult {
     score: number;
