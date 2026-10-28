@@ -153,9 +153,10 @@ package is right:
       set `variants`, `states`, `category`, `section`, `bg`, `canvasLayout`, `host: { template }`, `imports` or
       `renderPage` on it: each is dropped with a notice that does not fail a strict build. A malformed value in them, or
       an error in the template of a variant, is a warning as on any component, since the class is read before it is
-      known to be a part, and that one does fail a strict build. A directive part keeps a string or object `host`: the
-      element its usage line on the API tab is written on (`<button libTrigger>`). Only components and directives can be
-      parts; on a service or a pipe `partOf` is a warning.
+      known to be a part, and that one does fail a strict build. A directive part keeps a string or object `host`
+      (markup such as `host: '<button>Open</button>'`, not a bare tag name): the element its usage line on the API tab
+      is written on (`<button libTrigger>`). Only components and directives can be parts; on a service or a pipe
+      `partOf` is a warning.
     - **When a part, when a showcase of its own:** a part when the class only works inside that one parent and its page
       would repeat the parent's variants (`lib-option`, `lib-optgroup` in `lib-select`). A showcase of its own when
       several components use it or it has a look worth its own variants and states: `libInput`, used by a form field and

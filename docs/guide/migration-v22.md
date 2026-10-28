@@ -320,7 +320,7 @@ None of this affects `ShowcaseConfig`, the manifest format, or any plugin's publ
 
 ## Breaking changes and deprecations in 22.7.0
 
-`22.7.0` adds [services](guide/showcasing-services.md) and [pipes](guide/showcasing-pipes.md) to the styleguide. Everything else is additive: for components and directives, `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. The exception is a class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe`, which used to be scanned as a component and now leaves `components`, as described below. Its Playground never rendered it, so nothing that worked is lost; a tool that enumerated `components` simply no longer sees it. The breaking changes in application code are type-level ones, in [`NavigationItem`](#breaking-change-navigationitem-has-two-new-kinds) and [`ShowcaseConfig.host`](#breaking-change-showcaseconfighost-is-a-wider-union). The deprecations below change nothing in 22.x. The release also brings [compiled compositions](#new-compiled-compositions-and-a-warning-for-a-host-on-a-component), the [new look](#new-look-palette-header-and-panels), and [every component opening on the Playground](#changed-every-component-opens-on-the-playground).
+`22.7.0` adds [services](guide/showcasing-services.md) and [pipes](guide/showcasing-pipes.md) to the styleguide. Everything else is additive: for components and directives, `PrismManifest.components`, `RuntimeManifest.components`, `__PRISM_MANIFEST__`, `onComponentScanned` and the panels you already have see the same entries as before, and the `@ng-prism/core` peer dependency stays `>=20.0.0`. The exception is a class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe`, which used to be scanned as a component and now leaves `components`, as described below. Its Playground never rendered it, so nothing that worked is lost; a tool that enumerated `components` simply no longer sees it. The breaking changes in application code are type-level ones, in [`NavigationItem`](#breaking-change-navigationitem-has-two-new-kinds) and [`ShowcaseConfig.host`](#breaking-change-showcaseconfighost-is-a-wider-union). The deprecations below change nothing in 22.x. The release also brings [compiled compositions](#new-compiled-compositions-and-a-warning-for-a-host-on-a-component), [parts](#new-parts), the [new look](#new-look-palette-header-and-panels), and [every component opening on the Playground](#changed-every-component-opens-on-the-playground).
 
 Before 22.7.0 every class with `@Showcase` was a component, so a class with `@Showcase` and `@Pipe` was in `components` (with the selector `''`), in `__PRISM_MANIFEST__` and in `onComponentScanned`, and its Playground never rendered it. In 22.7.0 it depends on the pipe:
 
@@ -389,6 +389,16 @@ A `@Pipe` declared in an NgModule (`standalone: false`) goes one step further. n
 - **`imports` joins the component-only fields.** A class with `@Injectable`, `@Service` or `@Pipe` that declares it stays a component until 23.0.0, like one that declares `variants`, see [the deprecation above](#deprecation-injectables-and-pipes-with-component-only-fields).
 
 A plugin that reads `ScannedComponent` sees one more optional field, `composition`, and `InputMeta` one more, `defaultUnreadable`, see [Type Reference](api/types.md#componentcomposition).
+
+### New: parts
+
+`22.7.0` adds [`partOf`](guide/showcase-decorator.md#partof): a component or directive that only works inside another one, such as an option in a select, names the selector of its parent and gets no page of its own. Its title, description, inputs and outputs show on the parent's page, on a card behind a chip in the head and, with the [JSDoc plugin](plugins/jsdoc.md), in a block of the API tab that `?part=` links to. Nothing changes until a class declares `partOf`; then it changes for the tools that read the manifest:
+
+- **A part is not in `components`.** It leaves `PrismManifest.components`, `RuntimeManifest.components` and `window.__PRISM_MANIFEST__`, and its parent lists it in `parts`. A plugin that walks `manifest.components` in `onManifestReady` and must see every class reads `component.parts` as well, see [Parts in the hooks](architecture/plugin-hooks.md#parts-in-the-hooks). A visual regression runner needs no change: the variants of the parent render the part, and the part has no variants or render marker of its own, see [External Tooling](guide/external-tooling.md).
+- **`onComponentScanned` still runs on a part**, which carries `parentClassName` once `partOf` resolved. A plugin that adds a panel per component can skip it by that field.
+- **A view panel can list parts** with `listsParts: true` and gets the input `activePart`, see [Panels that list parts](plugins/writing-plugins.md#panels-that-list-parts).
+
+`parts`, `parentClassName`, `listsParts` and `DiscoveryPart` are experimental until 23.0.0: their shape may change in a 22.x minor release.
 
 ### New look: palette, header and panels
 
