@@ -6,14 +6,14 @@
             [value]="formatKb(m.sourceSize)"
             [tone]="toneOf(sourceStatus().tone)"
             [statusLabel]="sourceStatus().label"
-            [title]="formatBytes(m.sourceSize) + ' bytes · warning above ' + warnKb() + ' kb, critical above ' + critKb() + ' kb'" />
+            [title]="sourceTitle()" />
         <prism-metric-card
             label="Gzip estimate"
             unit="kb"
             [value]="formatKb(m.gzipEstimate)"
             [tone]="toneOf(gzipStatus().tone)"
             [statusLabel]="gzipStatus().label"
-            [title]="'About ' + gzipPercent() + '% of the source · warning above ' + warnKb() + ' kb'" />
+            [title]="gzipTitle()" />
         <prism-metric-card
             label="Direct imports"
             title="Top-level imports only"
@@ -27,23 +27,19 @@
 
     <div
         class="perf-block"
-        [title]="'Against the warning budget of ' + warnKb() + ' kb'">
-        <span class="perf-block__label">Size breakdown</span>
+        [title]="breakdownTitle()">
+        <span class="perf-block__label">{{ breakdownLabel() }}</span>
         <div class="perf-bars">
-            <span class="perf-bar-label">source</span>
-            <div class="perf-bar-track"
-                ><div
-                    class="perf-bar-fill"
-                    [style.width.%]="sourceBarPercent()"></div
-            ></div>
-            <span class="perf-bar-val">{{ formatKb(m.sourceSize) }} / {{ warnKb() }} kb</span>
-            <span class="perf-bar-label">gzip est.</span>
-            <div class="perf-bar-track"
-                ><div
-                    class="perf-bar-fill"
-                    [style.width.%]="gzipBarPercent()"></div
-            ></div>
-            <span class="perf-bar-val">{{ formatKb(m.gzipEstimate) }} / {{ warnKb() }} kb</span>
+            @for (row of breakdown(); track row.label) {
+                <span class="perf-bar-label">{{ row.label }}</span>
+                <div class="perf-bar-track"
+                    ><div
+                        class="perf-bar-fill"
+                        [class.perf-bar-fill--secondary]="row.secondary"
+                        [style.width.%]="barPercent(row.bytes)"></div
+                ></div>
+                <span class="perf-bar-val">{{ formatKb(row.bytes) }}{{ row.budgeted ? ' / ' + warnKb() : '' }} kb</span>
+            }
         </div>
     </div>
 
