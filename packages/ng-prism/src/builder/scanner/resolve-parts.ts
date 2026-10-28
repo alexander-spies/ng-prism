@@ -89,6 +89,8 @@ export function selectorList(selector: string): string[] {
 export function resolveParts(components: ScannedComponent[], { report, notify, origins }: PartResolution): void {
     // A chain is judged on what a class declares: the parent of a part that cannot be resolved loses its partOf below.
     const declaring = new Set(components.filter((component) => component.showcaseConfig.partOf !== undefined));
+    // Parsed once: every part is matched against all of them.
+    const selectors = new Map(components.map((component) => [component, selectorList(component.componentMeta.selector)]));
 
     for (const part of components) {
         const selector = part.showcaseConfig.partOf;
@@ -97,7 +99,7 @@ export function resolveParts(components: ScannedComponent[], { report, notify, o
         // The scan records the origin of every class that kept partOf.
         if (selector === undefined || !origin) continue;
 
-        const resolved = findParent(part, selector, components, declaring);
+        const resolved = findParent(part, selector, selectors, declaring);
 
         if (typeof resolved === 'string') {
             report(describeShowcaseIssue(part.className, origin, ['partOf'], resolved));
@@ -124,12 +126,12 @@ export function resolveParts(components: ScannedComponent[], { report, notify, o
 function findParent(
     part: ScannedComponent,
     selector: string,
-    components: readonly ScannedComponent[],
+    selectors: ReadonlyMap<ScannedComponent, readonly string[]>,
     declaring: ReadonlySet<ScannedComponent>
 ): ScannedComponent | string {
-    if (selectorList(part.componentMeta.selector).includes(selector)) return 'a component cannot be a part of itself; it keeps a page of its own';
+    if (selectors.get(part)?.includes(selector)) return 'a component cannot be a part of itself; it keeps a page of its own';
 
-    const candidates = components.filter((component) => component !== part && selectorList(component.componentMeta.selector).includes(selector));
+    const candidates = [...selectors].filter(([component, list]) => component !== part && list.includes(selector)).map(([component]) => component);
 
     if (candidates.length === 0) return `no component or directive with @Showcase has the selector "${selector}"; it keeps a page of its own`;
 
