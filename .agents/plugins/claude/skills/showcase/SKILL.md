@@ -167,6 +167,12 @@ Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentO
 deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13), `partOf` (rule 14). A variant
 can set its own `description`, `bg`, `canvasLayout`, `meta`, `pseudo`, `template` and `host` (rule 13).
 
+`meta.a11y` (typed): `rules: { '<axe-rule>': { enabled: false } }` switches a rule off for the component's live audit
+(not audited at all), `disable: true` skips the audit, and `accept: [{ rule: '<axe-rule>', reason: '…' }]` (since 22.7,
+on the component and on a variant, which adds to the component's) accepts a known, deliberate violation: still audited
+and shown under Accepted with the reason, but not counted. Accept only what someone owns and decided to keep; `reason`
+is required and says why. Fixing the component beats accepting.
+
 ## Example
 
 ```ts

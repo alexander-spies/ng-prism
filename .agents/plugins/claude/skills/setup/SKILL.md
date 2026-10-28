@@ -82,7 +82,9 @@ the Node way, without tsconfig `paths`.
   navy in both themes, so `logo.dark` is shown whenever it is set; a `title` is plain text, not in the brand gradient.
 - `urlState` (default `true`) keeps the selection in the URL; `persistState` (default `true`) keeps state in
   sessionStorage across reloads.
-- `a11y`: thresholds and report path for the accessibility audit (`api/ng-prism-config.md`).
+- `a11y`: report path, `thresholds` (grade the header pill, navigation markers and gauges) and `gate` (since 22.7:
+  the limits the build fails on; left out it is `thresholds`, `false` never fails, e.g. when CI gates on its own; the
+  dev server only warns) for the accessibility audit (`api/ng-prism-config.md`).
 - `strictShowcase` (default `false`): a dropped `@Showcase` value fails the build instead of warning.
 
 `ui`, `appComponent`, `themeStylesheet` and `headless` are in the typings, but nothing has ever read them; they are

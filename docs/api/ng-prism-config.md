@@ -40,6 +40,7 @@ interface NgPrismConfig {
             serious?: number;
             moderate?: number;
         };
+        gate?: { score?: number; critical?: number; serious?: number; moderate?: number } | false; // since 22.7.0
         reportPath?: string;
     };
     strictShowcase?: boolean;
@@ -173,10 +174,10 @@ export default defineConfig({
 
 ### `a11y`
 
-Configuration for the library-wide accessibility audit. Drives both:
+Configuration for the library-wide accessibility audit. Drives:
 
-1. The **A11y header pill** (color-coded against `thresholds`).
-2. The **build-time threshold check**: when an `a11y-report.json` exists and a threshold is violated, `nx run my-lib-prism:build` fails.
+1. The **grading** of every a11y figure against `thresholds`: the header pill, the navigation marker, the gauge in the component head and the score card.
+2. The **build gate**: when an `a11y-report.json` exists and its total breaks the gate's limits, `nx run my-lib-prism:build` fails. The gate is `gate`, or `thresholds` while `gate` is left out (as before 22.7.0); `gate: false` never fails the build. The dev server only warns.
 
 ```typescript
 export default defineConfig({
@@ -198,6 +199,7 @@ export default defineConfig({
 | `thresholds.critical` | `0`                  | Maximum allowed critical violations                                                                                                                                   |
 | `thresholds.serious`  | `0`                  | Maximum allowed serious violations                                                                                                                                    |
 | `thresholds.moderate` | unlimited            | Maximum allowed moderate violations                                                                                                                                   |
+| `gate`                | `thresholds`         | Limits the build fails on, with the same keys and defaults as `thresholds`, or `false` to never fail. Since 22.7.0.                                                   |
 | `reportPath`          | `'a11y-report.json'` | Path (relative to workspace root) where the build pipeline reads the library-wide a11y report. Generating it is up to the consumer; see the guide for the JSON shape. |
 
 See [Accessibility: Library-Wide A11y Score](guide/accessibility.md#library-wide-a11y-score--header-badge) for the report shape and integration workflow.

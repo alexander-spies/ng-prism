@@ -110,6 +110,15 @@ const skip = (component, variant) => variant.meta?.['vrt']?.skip ?? component.me
 
 Build-time plugin hooks write into the same `meta`, so plugin output (for example the Coverage plugin's per-component numbers) is visible here too.
 
+An a11y report producer reads the [accepted violations](guide/accessibility.md#accepted-violations) the same way. The acceptances of a variant are the component's and the variant's own, matched by the axe rule id, as the live audit applies them:
+
+```js
+const accepted = (component, variant) => [...(component.meta?.['a11y']?.accept ?? []), ...(variant.meta?.['a11y']?.accept ?? [])];
+const counts = (violation, component, variant) => !accepted(component, variant).some((a) => a.rule === violation.id);
+```
+
+Once a report lists a component, the build adds its entry (`found`, `score`, `summary`) to the component's `meta.a11y` next to `accept`, so a producer that reads a styleguide built with an earlier report still finds the acceptances.
+
 > Only JSON-safe values cross over. The global is read through a structured-clone bridge, and `meta` is an open `Record<string, unknown>`. Primitives, arrays and plain objects are passed through; class instances (Angular types included), functions, symbols, non-finite numbers, `Date`, `Map` and DOM nodes are dropped rather than half-serialised, and cycles are broken. Unrepresentable array entries become `null` so indices stay stable. Keep anything a tool must read to plain data.
 
 ### Navigating
