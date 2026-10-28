@@ -365,12 +365,12 @@ describe('partPages', () => {
         expect(partPages([])).toEqual([]);
     });
 
-    it('describes a part by its class, title and selector, and scopes it by its class', () => {
+    it('describes a part by its class, title and selector, and scopes it by its position', () => {
         expect(partPages([{ meta: option }])[0]).toMatchObject({
             className: 'OptionComponent',
             title: 'Option',
             selector: 'lib-option',
-            scope: 'part-OptionComponent'
+            scope: 'part-0'
         });
     });
 

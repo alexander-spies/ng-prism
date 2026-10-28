@@ -191,11 +191,11 @@ export function componentApiPage(component: ScannedComponent): ApiPageModel {
 
 /** The API pages of a component's parts, in the order the manifest lists them. Each is a component page of its own: the usage has the part's import. */
 export function partPages(parts: readonly { meta: ScannedComponent }[] | undefined): ApiPagePart[] {
-    return (parts ?? []).map(({ meta }) => ({
+    return (parts ?? []).map(({ meta }, index) => ({
         className: meta.className,
         title: meta.showcaseConfig.title,
         selector: meta.componentMeta.selector,
-        scope: partScope(meta.className),
+        scope: partScope(index),
         page: componentApiPage(meta)
     }));
 }

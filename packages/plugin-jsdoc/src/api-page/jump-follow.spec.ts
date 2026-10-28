@@ -21,31 +21,31 @@ describe('JumpFollow', () => {
     });
 
     it('keeps the target of a jump while the page moves under it', () => {
-        follow.start('part-ListItemComponent');
+        follow.start('part-0');
 
-        expect(follow.target).toBe('part-ListItemComponent');
-        expect(follow.moved()).toBe('part-ListItemComponent');
+        expect(follow.target).toBe('part-0');
+        expect(follow.moved()).toBe('part-0');
     });
 
     /** Under reduced motion the jump's own scroll is over a frame after it starts, long before the code blocks above the target have their text. */
     it('lasts past the end of its own scroll, for as long as the page keeps moving', () => {
-        follow.start('part-ListItemComponent');
+        follow.start('part-0');
 
         for (let step = 0; step < 5; step++) {
             jest.advanceTimersByTime(JUMP_QUIET_MS - 1);
-            expect(follow.moved()).toBe('part-ListItemComponent');
+            expect(follow.moved()).toBe('part-0');
         }
 
         expect(ended).not.toHaveBeenCalled();
     });
 
     it('ends once the page has been still for the quiet time', () => {
-        follow.start('part-ListItemComponent');
+        follow.start('part-0');
         jest.advanceTimersByTime(300);
         follow.moved();
 
         jest.advanceTimersByTime(JUMP_QUIET_MS - 1);
-        expect(follow.target).toBe('part-ListItemComponent');
+        expect(follow.target).toBe('part-0');
 
         jest.advanceTimersByTime(1);
         expect(follow.target).toBeNull();

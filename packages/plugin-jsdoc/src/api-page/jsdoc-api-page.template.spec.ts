@@ -15,7 +15,7 @@ describe('api page', () => {
     });
 
     it('renders a Parts block per part, anchored and headed by title and selector', () => {
-        expect(PAGE).toMatch(/@for \(part of parts\(\); track part\.className\)/);
+        expect(PAGE).toMatch(/@for \(part of parts\(\); track part\.scope\)/);
         expect(PAGE).toContain('[attr.data-toc-id]="part.scope"');
         expect(PAGE).toMatch(/<prism-jsdoc-api-sections[^>]*\[scope\]="part\.scope"[^>]*nested/);
         expect(PAGE).toContain('{{ part.selector }}');

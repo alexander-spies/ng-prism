@@ -148,11 +148,11 @@ describe('buildApiPageToc with a scope', () => {
             makeService({ methods: [{ name: 'show', params: [], returnType: { text: 'void' }, tags: {} }], types: [typeDoc('Item', 'Item@lib/b')] })
         );
 
-        expect(buildApiPageToc(service, partScope('OptionComponent'))).toEqual([
-            { id: 'part-OptionComponent-usage', label: 'Usage', level: 1 },
-            { id: 'part-OptionComponent-methods', label: 'Methods', level: 1 },
-            { id: 'part-OptionComponent-types', label: 'Types', level: 1 },
-            { id: 'part-OptionComponent-type-Item@lib/b', label: 'Item', level: 2 }
+        expect(buildApiPageToc(service, partScope(0))).toEqual([
+            { id: 'part-0-usage', label: 'Usage', level: 1 },
+            { id: 'part-0-methods', label: 'Methods', level: 1 },
+            { id: 'part-0-types', label: 'Types', level: 1 },
+            { id: 'part-0-type-Item@lib/b', label: 'Item', level: 2 }
         ]);
     });
 });
@@ -179,29 +179,25 @@ describe('buildPartsToc', () => {
 
     it('lists each part and its sections, without types', () => {
         expect(buildPartsToc(partPages([{ meta: option }])).map((entry) => [entry.id, entry.level])).toEqual([
-            ['part-OptionComponent', 1],
-            ['part-OptionComponent-usage', 2],
-            ['part-OptionComponent-inputs', 2],
-            ['part-OptionComponent-outputs', 2]
+            ['part-0', 1],
+            ['part-0-usage', 2],
+            ['part-0-inputs', 2],
+            ['part-0-outputs', 2]
         ]);
     });
 
     it('leaves out the Types section and the type cards of a part that has types', () => {
-        expect(buildPartsToc(partPages([{ meta: group }])).map((entry) => entry.id)).toEqual([
-            'part-OptionGroupComponent',
-            'part-OptionGroupComponent-usage',
-            'part-OptionGroupComponent-methods'
-        ]);
+        expect(buildPartsToc(partPages([{ meta: group }])).map((entry) => entry.id)).toEqual(['part-0', 'part-0-usage', 'part-0-methods']);
     });
 
     it('titles the entry of a part and flags it, and leaves the sections unflagged', () => {
         const toc = buildPartsToc(partPages([{ meta: option }]));
 
-        expect(toc[0]).toEqual({ id: 'part-OptionComponent', label: 'Option', level: 1, part: true });
+        expect(toc[0]).toEqual({ id: 'part-0', label: 'Option', level: 1, part: true });
         expect(toc.slice(1)).toEqual([
-            { id: 'part-OptionComponent-usage', label: 'Usage', level: 2 },
-            { id: 'part-OptionComponent-inputs', label: 'Inputs', level: 2 },
-            { id: 'part-OptionComponent-outputs', label: 'Outputs', level: 2 }
+            { id: 'part-0-usage', label: 'Usage', level: 2 },
+            { id: 'part-0-inputs', label: 'Inputs', level: 2 },
+            { id: 'part-0-outputs', label: 'Outputs', level: 2 }
         ]);
         expect(toc.slice(1).some((entry) => 'part' in entry)).toBe(false);
     });
@@ -220,21 +216,25 @@ describe('buildPartsToc', () => {
 });
 
 describe('partAnchor', () => {
-    const parts = partPages([
+    const option = makeComponent(
+        {},
         {
-            meta: makeComponent(
-                {},
-                {
-                    className: 'OptionComponent',
-                    componentMeta: { selector: 'lib-option', standalone: true, isDirective: false },
-                    showcaseConfig: { title: 'Option', partOf: 'lib-select' }
-                }
-            )
+            className: 'OptionComponent',
+            componentMeta: { selector: 'lib-option', standalone: true, isDirective: false },
+            showcaseConfig: { title: 'Option', partOf: 'lib-select' }
         }
-    ]);
+    );
+    const parts = partPages([{ meta: option }]);
 
     it('names the block of the part by its class name', () => {
-        expect(partAnchor(parts, 'OptionComponent')).toBe('part-OptionComponent');
+        expect(partAnchor(parts, 'OptionComponent')).toBe('part-0');
+    });
+
+    it('gives two parts of one class name, from different files, a block each, and names the first', () => {
+        const twins = partPages([{ meta: option }, { meta: { ...option, filePath: '/lib/other/option.component.ts' } }]);
+
+        expect(twins.map((part) => part.scope)).toEqual(['part-0', 'part-1']);
+        expect(partAnchor(twins, 'OptionComponent')).toBe('part-0');
     });
 
     it('is null for no part, and for a class that is not a part of the page', () => {
@@ -247,24 +247,24 @@ describe('partAnchor', () => {
 describe('anchors', () => {
     it('scopes an id only when there is a scope', () => {
         expect(scopedAnchor('', 'usage')).toBe('usage');
-        expect(scopedAnchor('part-OptionComponent', 'usage')).toBe('part-OptionComponent-usage');
+        expect(scopedAnchor('part-0', 'usage')).toBe('part-0-usage');
     });
 
-    it('names the scope of a part by its class', () => {
-        expect(partScope('OptionComponent')).toBe('part-OptionComponent');
+    it('names the scope of a part by its position', () => {
+        expect(partScope(0)).toBe('part-0');
     });
 
     it("scopes a part's type anchors so they never collide with the parent's", () => {
         expect(typeAnchor('SelectOption')).toBe('type-SelectOption');
-        expect(typeAnchor('SelectOption', partScope('OptionComponent'))).toBe('part-OptionComponent-type-SelectOption');
+        expect(typeAnchor('SelectOption', partScope(0))).toBe('part-0-type-SelectOption');
     });
 
     it('tells the anchor of a type card from every other anchor', () => {
         expect(isTypeAnchor('type-SelectOption')).toBe(true);
         expect(isTypeAnchor('type-Item@lib/b')).toBe(true);
-        expect(isTypeAnchor('part-OptionComponent-type-SelectOption')).toBe(true);
-        expect(isTypeAnchor('part-OptionComponent-inputs')).toBe(false);
-        expect(isTypeAnchor('part-OptionComponent')).toBe(false);
+        expect(isTypeAnchor('part-0-type-SelectOption')).toBe(true);
+        expect(isTypeAnchor('part-0-inputs')).toBe(false);
+        expect(isTypeAnchor('part-0')).toBe(false);
         expect(isTypeAnchor('types')).toBe(false);
         expect(isTypeAnchor('inputs')).toBe(false);
         expect(isTypeAnchor('part-type-inputs')).toBe(false);
@@ -305,9 +305,9 @@ describe('typeSegments', () => {
     });
 
     it('links to the card of the scope it is given', () => {
-        expect(typeSegments({ text: 'readonly ToastRef[]', links: ['ToastRef'] }, 'part-OptionComponent')).toEqual([
+        expect(typeSegments({ text: 'readonly ToastRef[]', links: ['ToastRef'] }, 'part-0')).toEqual([
             { text: 'readonly ' },
-            { text: 'ToastRef', link: 'part-OptionComponent-type-ToastRef' },
+            { text: 'ToastRef', link: 'part-0-type-ToastRef' },
             { text: '[]' }
         ]);
     });
@@ -337,9 +337,9 @@ describe('paramSegments', () => {
     });
 
     it('links its type to the card of the scope it is given', () => {
-        expect(paramSegments({ name: 'config', type: { text: 'ToastConfig', links: ['ToastConfig'] }, optional: false }, 'part-OptionComponent')).toEqual([
+        expect(paramSegments({ name: 'config', type: { text: 'ToastConfig', links: ['ToastConfig'] }, optional: false }, 'part-0')).toEqual([
             { text: 'config: ' },
-            { text: 'ToastConfig', link: 'part-OptionComponent-type-ToastConfig' }
+            { text: 'ToastConfig', link: 'part-0-type-ToastConfig' }
         ]);
     });
 });
@@ -354,9 +354,11 @@ describe('declaredParamSegments', () => {
     });
 
     it('links its type to the card of the scope it is given', () => {
-        expect(
-            declaredParamSegments({ name: 'config', type: { text: 'ToastConfig', links: ['ToastConfig'] }, optional: true, defaultValue: '{}' }, 'part-OptionComponent')
-        ).toEqual([{ text: 'config: ' }, { text: 'ToastConfig', link: 'part-OptionComponent-type-ToastConfig' }, { text: ' = {}' }]);
+        expect(declaredParamSegments({ name: 'config', type: { text: 'ToastConfig', links: ['ToastConfig'] }, optional: true, defaultValue: '{}' }, 'part-0')).toEqual([
+            { text: 'config: ' },
+            { text: 'ToastConfig', link: 'part-0-type-ToastConfig' },
+            { text: ' = {}' }
+        ]);
     });
 
     it('writes a parameter without a default like a signature does', () => {
@@ -417,11 +419,7 @@ describe('setupSignature', () => {
             returnType: { text: 'Provider' }
         };
 
-        expect(setupSignature(entry, 'part-OptionComponent')).toEqual([
-            { text: '(config?: ' },
-            { text: 'ToastConfig', link: 'part-OptionComponent-type-ToastConfig' },
-            { text: '): Provider' }
-        ]);
+        expect(setupSignature(entry, 'part-0')).toEqual([{ text: '(config?: ' }, { text: 'ToastConfig', link: 'part-0-type-ToastConfig' }, { text: '): Provider' }]);
     });
 });
 

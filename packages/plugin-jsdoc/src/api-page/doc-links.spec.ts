@@ -29,16 +29,16 @@ describe('typeLinkTarget', () => {
     });
 
     it('builds the anchor of the scope it is given', () => {
-        expect(typeLinkTarget(types, 'TabItem', 'part-OptionComponent')).toBe('part-OptionComponent-type-TabItem');
-        expect(typeLinkTarget(types, 'Item@fixture/b', 'part-OptionComponent')).toBe('part-OptionComponent-type-Item@fixture/b');
-        expect(typeLinkTarget(types, 'TabItem.id', 'part-OptionComponent')).toBe('part-OptionComponent-type-TabItem');
+        expect(typeLinkTarget(types, 'TabItem', 'part-0')).toBe('part-0-type-TabItem');
+        expect(typeLinkTarget(types, 'Item@fixture/b', 'part-0')).toBe('part-0-type-Item@fixture/b');
+        expect(typeLinkTarget(types, 'TabItem.id', 'part-0')).toBe('part-0-type-TabItem');
     });
 
     it('is undefined for what is not on the page', () => {
         expect(typeLinkTarget(types, 'Nope')).toBeUndefined();
         expect(typeLinkTarget(types, 'TabsComponent.tabs')).toBeUndefined();
         expect(typeLinkTarget([], 'TabItem')).toBeUndefined();
-        expect(typeLinkTarget(types, 'Nope', 'part-OptionComponent')).toBeUndefined();
+        expect(typeLinkTarget(types, 'Nope', 'part-0')).toBeUndefined();
     });
 });
 

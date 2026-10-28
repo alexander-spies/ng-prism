@@ -23,7 +23,7 @@
 
         @if (parts().length) {
             <div class="prism-jsdoc-api-page__parts-title">Parts</div>
-            @for (part of parts(); track part.className) {
+            @for (part of parts(); track part.scope) {
                 <section
                     class="prism-jsdoc-api-page__part"
                     [class.prism-jsdoc-api-page__part--highlighted]="highlightedId() === part.scope"

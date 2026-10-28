@@ -27,12 +27,15 @@ export function scopedAnchor(scope: string, id: string): string {
     return scope ? `${scope}-${id}` : id;
 }
 
-/** The scope of a part's block, by its class: a class name is an identifier, so it holds no hyphen. */
-export function partScope(className: string): string {
-    return `part-${className}`;
+/**
+ * The scope of a part's block, by the position of the part on the page rather than its class: two parts from different
+ * files can share a class name. The scope holds no hyphen after `part-`, which {@link isTypeAnchor} relies on.
+ */
+export function partScope(index: number): string {
+    return `part-${index}`;
 }
 
-/** The TOC id of the block of the part a class name names, `null` when the page has no such part. */
+/** The TOC id of the block of the part a class name names, the first one when two share it, `null` when the page has no such part. */
 export function partAnchor(parts: readonly ApiPagePart[], className: string | null): string | null {
     return parts.find((part) => part.className === className)?.scope ?? null;
 }
