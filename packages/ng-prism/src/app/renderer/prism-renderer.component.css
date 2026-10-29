@@ -108,7 +108,24 @@
    test-workspace/vrt/baseline without a component having changed. Here
    the width is explicit, so containment costs nothing and is what makes
    a component's own @container rules respond. Media queries do not and
-   cannot: they read the real browser viewport.
+   cannot: they read the real browser viewport. */
+.demo-wrap[data-viewport] {
+    /* flex: none is required. The stage is a flex container
+     and this is its only item, so the default flex-shrink: 1 lets the
+     box render narrower than the width just asked for whenever the
+     canvas is the smaller of the two, and container-type below drops
+     the automatic minimum size to zero, so nothing stops the shrink.
+     The result is the one failure this whole feature cannot afford:
+     the dimension line states 1024 while every @container rule in the
+     specimen answers whatever the canvas happened to allow. The stage
+     is overflow: auto, so refusing to shrink scrolls instead. */
+    flex: none;
+    width: var(--prism-vp-w);
+    max-width: none;
+    container-type: inline-size;
+}
+
+/* The specimen is centred in the viewport width, in every layout but stretch.
 
    grid + justify-items: center, and not text-align: center, which is the
    obvious way to centre an inline-level child and the wrong one. The
@@ -124,22 +141,23 @@
    behaviour preserved: at rest .demo-wrap is an inline-block that
    already shrink-wraps its child, so a block-level specimen sizes to its
    content here the same as with the constraint off. The implicit
-   auto column still fills the declared width, so a component that asks
-   for width: 100% (the canvasLayout: 'stretch' case) keeps getting the
-   whole viewport. */
-.demo-wrap[data-viewport] {
-    display: grid;
+   auto column still fills the declared width, so a specimen whose host
+   asks for width: 100% gets the whole viewport.
 
-    /* flex: none is required. The stage is a flex container
-     and this is its only item, so the default flex-shrink: 1 lets the
-     box render narrower than the width just asked for whenever the
-     canvas is the smaller of the two, and container-type below drops
-     the automatic minimum size to zero, so nothing stops the shrink.
-     The result is the one failure this whole feature cannot afford:
-     the dimension line states 1024 while every @container rule in the
-     specimen answers whatever the canvas happened to allow. The stage
-     is overflow: auto, so refusing to shrink scrolls instead. */
-    flex: none;
+   stretch stays out, because centring undoes it. A grid item without a
+   width of its own shrinks to its content, and under stretch the item is
+   often not the specimen: a composition renders in ng-prism's wrapper,
+   which declares no width, so the subject's width: 100% resolved against a
+   wrapper as narrow as the subject's content, and a horizontal divider
+   (display: block, no width) collapsed to nothing. Left out of this rule,
+   a stretch .demo-wrap keeps the display: block of its resting rule, and
+   the viewport width is laid out exactly like the 800px at rest.
+
+   justify-items belongs here and not on the rule above: browsers align
+   block-level children in block layout by it too (CSS Box Alignment), so
+   on the stretch box it would centre and shrink them just the same. */
+.demo-wrap[data-viewport]:not([data-canvas-layout='stretch']) {
+    display: grid;
 
     /* safe center, not bare center. Centring is right while the specimen
      fits and wrong the moment it does not: bare centring spills an
@@ -149,9 +167,6 @@
      is the browser making a case distinction CSS cannot otherwise
      express. */
     justify-items: safe center;
-    width: var(--prism-vp-w);
-    max-width: none;
-    container-type: inline-size;
 }
 
 /* Both grips derive their position arithmetically, because .demo-wrap is

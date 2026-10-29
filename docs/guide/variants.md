@@ -288,7 +288,7 @@ A variant can override the wrapper layout used in the canvas. The default is `'f
 })
 ```
 
-In `'stretch'` mode `.demo-wrap` becomes `display: block; width: 100%; max-width: 800px`, giving children a real container width to size against. The variant-level value always wins over the component-level value.
+In `'stretch'` mode `.demo-wrap` becomes `display: block; width: 100%; max-width: 800px`, giving children a real container width to size against. With Viewport width on, that width is the one set there. The variant-level value always wins over the component-level value.
 
 See [Showcase Decorator: canvasLayout](guide/showcase-decorator.md#canvaslayout) for the component-level setting and the [`CanvasLayout`](api/types.md#canvaslayout) type for the wrapper styles applied in each mode.
 

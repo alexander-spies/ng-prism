@@ -166,7 +166,8 @@ package is right:
 
 Other fields: `description` (Markdown), `category`, `categoryOrder`, `componentOrder`, `section`, `tags`, `status`
 (`stable`, `beta`, `wip`, `deprecated`), `bg` (`dots`, `plain`, `light`, `dark`, `transparent`; `checker` is
-deprecated), `canvasLayout` (`fit`, `stretch`), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13), `partOf` (rule 14). A variant
+deprecated), `canvasLayout` (`fit`, or `stretch` for a component that fills its container: it gets the canvas width up
+to 800px, with Viewport width on the width set there, a subject in a composition too), `meta` (data for plugins, e.g. `meta: { figma: '<url>' }`), `imports` (rule 13), `partOf` (rule 14). A variant
 can set its own `description`, `bg`, `canvasLayout`, `meta`, `pseudo`, `template` and `host` (rule 13).
 
 `meta.a11y` (typed): `rules: { '<axe-rule>': { enabled: false } }` switches a rule off for the component's live audit

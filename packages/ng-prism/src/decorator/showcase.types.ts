@@ -183,6 +183,8 @@ export interface ShowcaseConfig<T = unknown> {
      * - `'stretch'`: wrapper takes full canvas width (up to a sensible max) so block-level
      *   components without intrinsic width (e.g. horizontal dividers) and components that
      *   opt into `width: 100%` (e.g. full-width buttons) render correctly.
+     * With Viewport width on, the wrapper takes the width set there instead: `'fit'` centres the component in it,
+     * `'stretch'` fills it as it fills the canvas, also with a subject in a `template` or a host template.
      * A `Variant.canvasLayout` overrides this.
      * Not for services or pipes: it still keeps an `@Injectable`, `@Service` or `@Pipe` class a component, deprecated since 22.7.0, removed in 23.0.0.
      */

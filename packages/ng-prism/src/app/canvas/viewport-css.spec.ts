@@ -197,11 +197,28 @@ describe('viewport CSS invariants', () => {
         // undo an inherited value. text-align would leak all the way in and
         // silently re-align the specimen's own text whenever the viewport is
         // switched on. Centring at the container touches nothing inside it.
+        const centred = block(".demo-wrap[data-viewport]:not([data-canvas-layout='stretch']) {");
+
+        expect(centred).toContain('display: grid');
+        expect(centred).toMatch(/justify-items:\s*safe center/);
+        expect(centred).not.toContain('text-align');
+        expect(block('.demo-wrap[data-viewport] {')).not.toContain('text-align');
+    });
+
+    it('leaves a stretch showcase out of the centring, so it fills the viewport width as it fills the canvas at rest', () => {
+        // Centring shrinks a grid item without a width of its own to its
+        // content. Under stretch that item is often ng-prism's composition
+        // wrapper, so a subject with width: 100% came out as wide as its
+        // content, and a horizontal divider (display: block, no width) as 0px.
+        // A stretch .demo-wrap has to keep its resting display: block instead.
         const constrained = block('.demo-wrap[data-viewport] {');
 
-        expect(constrained).toContain('display: grid');
-        expect(constrained).toMatch(/justify-items:\s*safe center/);
-        expect(constrained).not.toContain('text-align');
+        expect(constrained).not.toMatch(/(?<!-)display:/);
+
+        // Not on the shared rule either: browsers align block-level children in
+        // block layout by justify-items too, so it would centre and shrink them
+        // on the stretch box just as the grid did.
+        expect(constrained).not.toContain('justify-items');
     });
 
     it('gives each grip a guide line that spans the stage', () => {

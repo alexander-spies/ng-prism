@@ -721,6 +721,8 @@ type CanvasLayout = 'fit' | 'stretch';
 
 The variant-level value always wins over the component-level value; the default is `'fit'`.
 
+With Viewport width on (canvas rail), `.demo-wrap` takes the width set there in both modes. A `fit` component is centred in it at its own size. A `stretch` component keeps `display: block` and fills it as it fills the canvas, also when the subject renders in a [`template`](guide/content-projection.md#compiled-content-template) or a [host template](guide/directive-hosting.md#host-template).
+
 ---
 
 ## PseudoState

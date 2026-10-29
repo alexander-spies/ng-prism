@@ -81,6 +81,14 @@ let nextId = 0;
             name: 'Suffix button',
             inputs: { label: 'Password' },
             template: `<input libInput #password type="password" /><button libSuffix type="button" aria-label="Show password" [attr.aria-pressed]="password.type === 'text'" (click)="password.type = password.type === 'password' ? 'text' : 'password'"><lib-icon name="eye" /></button>`
+        },
+        {
+            // A field as wide as what it is placed in, rendered in a host template: stretch hands it the canvas, and with
+            // Viewport width on the width set there.
+            name: 'Full width',
+            inputs: { label: 'E-Mail' },
+            host: { template: '<lib-form-field style="width: 100%"><input libInput type="email" /></lib-form-field>' },
+            canvasLayout: 'stretch'
         }
     ],
     tags: ['form', 'field', 'label', 'input']

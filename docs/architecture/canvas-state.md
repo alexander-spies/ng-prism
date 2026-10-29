@@ -86,11 +86,19 @@ gives up.
 
 ### The specimen is centred at the container
 
-While constrained, `.demo-wrap` is a grid with `justify-items: safe center` and `flex: none`, so a specimen narrower than
+While constrained, `.demo-wrap` takes the viewport width with `flex: none` in every layout. With
+`canvasLayout: 'fit'` it is also a grid with `justify-items: safe center`, so a specimen narrower than
 the viewport sits in the middle of it rather than against its left edge. Sizing is unchanged by
 this: a block-level specimen shrink-wraps here as it already does at rest inside the
-`inline-block` wrapper, and one that asks for `width: 100%` (the `canvasLayout: 'stretch'` case)
-still receives the whole viewport.
+`inline-block` wrapper, and one whose host asks for `width: 100%` still receives the whole viewport.
+
+With `canvasLayout: 'stretch'` it keeps the `display: block` of its resting rule, so the viewport width
+is laid out like the 800px at rest: a block-level specimen fills it, and so does the wrapper a
+composition renders in, which hands a subject with `width: 100%` the whole viewport. Centring would
+undo that. A grid item without a width of its own shrinks to its content, and in a composition the
+grid item is ng-prism's wrapper, not the subject: the subject came out only as wide as its own
+content, and a horizontal divider (`display: block`, no width) at 0px. `justify-items` stays off the
+stretch box too, because browsers align block-level children in block layout by it as well.
 
 `flex: none` is required too: the stage is a flex container and `.demo-wrap` is its only item, so the
 default `flex-shrink: 1` would render the box narrower than the requested width whenever the canvas is

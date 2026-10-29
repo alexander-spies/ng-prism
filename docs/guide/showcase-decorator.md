@@ -302,6 +302,8 @@ Accepted values: `'fit'` (default) and `'stretch'`.
 })
 ```
 
+With Viewport width on, the wrapper takes the width set there instead of the canvas width: a `'fit'` component is centred in it, a `'stretch'` component fills it, also when the subject renders in a [`template`](guide/content-projection.md#compiled-content-template) or a [host template](guide/directive-hosting.md#host-template).
+
 Variants can override this with their own `canvasLayout`. See [Variants: Per-Variant Canvas Layout](guide/variants.md#per-variant-canvas-layout) and the [`CanvasLayout`](api/types.md#canvaslayout) type for the exact wrapper styles applied in each mode.
 
 ### `host`

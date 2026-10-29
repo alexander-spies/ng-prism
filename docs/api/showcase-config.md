@@ -281,6 +281,8 @@ Accepted values: `'fit'` (default), `'stretch'`.
 | `'fit'`     | Wrapper is `display: inline-block` and shrinks to the component's intrinsic size. The canvas stage's flexbox centers it. Use for the vast majority of components: buttons, badges, cards, alerts.                                                                   |
 | `'stretch'` | Wrapper becomes `display: block; width: 100%; max-width: 800px`. Use when the component has no intrinsic width (e.g. a horizontal divider rendered via `border-bottom`) or explicitly opts into filling its container (e.g. a full-width button via `width: 100%`). |
 
+With Viewport width on, the wrapper takes the width set there instead of the canvas width: a `'fit'` component is centred in it, a `'stretch'` component fills it, also when the subject renders in a `template` or a host template.
+
 A `Variant.canvasLayout` overrides the component-level setting.
 
 ```typescript
