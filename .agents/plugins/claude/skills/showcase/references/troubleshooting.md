@@ -406,6 +406,16 @@ What is specific to a pipe:
 `alias`, and the generated host binds the member name, which the directive doesn't accept. There the only ways out are
 to drop the alias or the `@Showcase`; ask the user which. Later versions bind the alias.
 
+## The styleguide build fails with TS2345 on a directive output
+
+`TS2345: Argument of type '<T>' is not assignable to parameter of type 'void'`, reported in
+`ng-prism-cache/<lib>-prism/prism-manifest.ts` at `(<output>)="<output>.emit($event)"`, up to 22.7.0-beta.5: a directive
+with `@Showcase` has an output that carries a payload (`output<string>()`), and its generated host `<Class>__PrismHost`
+declares the output as `output()`, which takes none. Later versions declare it as `output<any>()`; suggest the update.
+On a 22.7.0 beta, a host template on the showcase or on every variant (`host: { template }`, see "Compositions")
+renders the directive through the composition wrapper, which takes any payload. Before 22.7.0 the only way out is to
+drop the `@Showcase`. Don't change the output's type in the directive; ask the user.
+
 ## A variant renders without its template or host template
 
 Look in the build log for a `⚠ ng-prism:` line that names the variant (`variants[<i>] "<name>"`) or `host`, and read

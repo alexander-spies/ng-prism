@@ -53,8 +53,10 @@ package is right:
    `host: '<button class="btn">Save</button>'` (forms: `<tag>`, `<tag attrs>`, `<tag />`, `<tag>text</tag>`; anything
    else falls back to a `<div>` with a warning), `{ selector, import: { name, from }, inputs? }` to put the directive
    on another component, or `{ template }` for markup around it (rule 13). A void element (`<input>`, `<img>`) works
-   as a host from 22.7.0 and takes no `content`; up to 22.6.0 it broke the styleguide build. A string or object
-   `host` on a **component** has no effect, and from 22.7.0 the build reports it and points to `host: { template }`.
+   as a host from 22.7.0 and takes no `content`; up to 22.6.0 it broke the styleguide build. Up to 22.7.0-beta.5 an
+   output with a payload (`output<string>()`) on a directive breaks it too, with `TS2345`, see
+   `references/troubleshooting.md`. A string or object `host` on a **component** has no effect, and from 22.7.0 the
+   build reports it and points to `host: { template }`.
 8. **Projected content is set per variant.** `content: 'Save'` fills the default `<ng-content>`; an object fills named
    slots by their `select`, written exactly as in the template, with `default` for the unnamed one:
    `content: { '[card-header]': '<h3>Title</h3>', default: '<p>Body</p>' }`. There is no component-level `content`.

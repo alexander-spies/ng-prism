@@ -121,7 +121,7 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(20);
+        expect(result.componentCount).toBe(21);
     });
 
     it('should write prism-manifest.ts into prism project', async () => {
@@ -188,10 +188,10 @@ describe('test-workspace integration', () => {
 
         const result = await runPrismPipeline(pipelineOptions, ctx, createPipelineState());
 
-        expect(result.componentCount).toBe(20);
+        expect(result.componentCount).toBe(21);
         expect(ctx.reportStatus).toHaveBeenCalledWith('Loading ng-prism config...');
         expect(ctx.reportStatus).toHaveBeenCalledWith('Running plugin hooks...');
-        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 20 component(s)'));
+        expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('Generated manifest with 21 component(s)'));
     });
 
     it('should compile the compositions of the form field, input, radio group and radio showcases', async () => {
@@ -216,6 +216,18 @@ describe('test-workspace integration', () => {
         } finally {
             warn.mockRestore();
         }
+    });
+
+    it('should declare the outputs of a directive host so that they pass on a payload', async () => {
+        tmp = createTempWorkspace();
+
+        await runPrismPipeline(pipelineOptions, createMockContext(tmp), createPipelineState());
+
+        const content = readFileSync(join(tmp, 'ng-prism-cache', 'test-lib-prism', 'prism-manifest.ts'), 'utf-8');
+
+        // `copied` carries a string and `copyFailed` an object: `output()` alone takes only `void`, and the Prism app's build fails.
+        expect(content).toContain('(copied)="copied.emit($event)" (copyFailed)="copyFailed.emit($event)"');
+        expect(content).toMatch(/class CopyToClipboardDirective__PrismHost \{[^}]*\n {2}copied = output<any>\(\);\n {2}copyFailed = output<any>\(\);/);
     });
 
     it('should nest a part on its parent instead of giving it a page', async () => {

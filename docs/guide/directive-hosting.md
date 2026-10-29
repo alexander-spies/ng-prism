@@ -252,6 +252,12 @@ The generated wrapper declares every bindable input and every output under its c
 
 > Up to 22.5.0 the wrapper bound the member name, and the styleguide build failed with `NG8002: Can't bind to '<member>' since it isn't a known property of '<tag>'`, reported in `ng-prism-cache/<lib>-prism/prism-manifest.ts`. On those versions, drop the alias or the `@Showcase` on that directive.
 
+## Outputs
+
+The generated wrapper re-emits every output of the directive, and the Events panel logs each emission with its payload. It declares them as `output<any>()`, so a payload of any type passes, also one whose type the library does not export.
+
+> Up to 22.7.0-beta.5 the wrapper declared its outputs as `output()`, which takes no value, and a directive with an output that carries one, like `output<string>()`, failed the styleguide build with `TS2345: Argument of type 'string' is not assignable to parameter of type 'void'`, reported in `ng-prism-cache/<lib>-prism/prism-manifest.ts`. On those versions, drop the `@Showcase` on that directive, or, on a 22.7.0 beta, give it a host template (`host: { template }` on the showcase or on every variant), whose wrapper takes any payload.
+
 ## Examples
 
 ### Simple attribute directive

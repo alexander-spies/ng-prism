@@ -156,8 +156,10 @@ function generateWrapperClass(comp: ScannedComponent, warn: Warn, localNames: Re
     for (const i of bindableInputs) {
         members.push(`  ${i.name} = ${formatInputDeclaration(i)};`);
     }
+    // `output<any>()`, as in the composition wrapper: the template passes on the directive's payload, whose type may
+    // name a library type the manifest does not import, and `output()` alone takes only `void`.
     for (const o of comp.outputs) {
-        members.push(`  ${o.name} = output();`);
+        members.push(`  ${o.name} = output<any>();`);
     }
     members.push(`  __prismContent__ = input(${JSON.stringify(hostContentDefault)});`);
 
