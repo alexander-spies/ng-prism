@@ -375,48 +375,7 @@ tag_and_push_beta() {
   commit_release "$version"
   git tag "v$version" -m "Beta release v$version"
 
-  echo ""
-  read -rp "  Push to origin/$current_branch with tag v$version? (y/n) " answer
-  if [[ "$answer" == "y" ]]; then
-    git push origin "$current_branch" --tags
-    ok "Pushed v$version to origin/$current_branch"
-
-    create_github_prerelease "$version"
-  else
-    warn "Skipped push. Run manually: git push origin $current_branch --tags"
-  fi
-}
-
-# ─── GitHub Pre-release ───
-create_github_prerelease() {
-  local version="$1"
-  local tag="v$version"
-
-  if ! command -v gh &>/dev/null; then
-    warn "gh CLI not found, skipping GitHub release"
-    return
-  fi
-
-  header "Creating GitHub pre-release"
-
-  local prev_tag
-  prev_tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | sed -n '2p')
-
-  local notes
-  if [[ -n "$prev_tag" ]]; then
-    notes=$(git log --pretty=format:"- %s" "$prev_tag..$tag" -- . ':!node_modules' | grep -v "^- release:")
-  else
-    notes=$(git log --pretty=format:"- %s" "$tag" -- . ':!node_modules' | head -20 | grep -v "^- release:")
-  fi
-
-  [[ -z "$notes" ]] && notes="Pre-release $tag"
-
-  gh release create "$tag" \
-    --title "$tag" \
-    --notes "$notes" \
-    --prerelease
-
-  ok "GitHub pre-release $tag created"
+  push_and_release "$version" "$current_branch"
 }
 
 # ─── Git tag + push + GitHub release ───
@@ -430,54 +389,98 @@ tag_and_push() {
   commit_release "$version"
   git tag "v$version" -m "Release v$version"
 
-  echo ""
-  read -rp "  Push to origin/$current_branch with tag v$version? (y/n) " answer
-  if [[ "$answer" == "y" ]]; then
-    git push origin "$current_branch" --tags
-    ok "Pushed v$version to origin/$current_branch"
-
-    create_github_release "$version"
-  else
-    warn "Skipped push. Run manually: git push origin $current_branch --tags"
-  fi
+  push_and_release "$version" "$current_branch"
 }
 
-# ─── GitHub Release ───
-create_github_release() {
-  local version="$1"
-  local tag="v$version"
+# ─── Push + GitHub release ───
+# The push skips the pre-push hook. npm has the packages by now, so its lint can
+# no longer stop the release, only hold up the push: the version bump misses the
+# lint cache, so the hook relints every project first.
+#
+# Whatever stops the release after the tag (a declined prompt, a failed push)
+# names the steps left. Under `set -e` a failed push would otherwise end the
+# script on the spot, with nothing saying that the tag is unpushed and the
+# GitHub release missing, as happened to v22.7.0-beta.5.
+push_and_release() {
+  local version="$1" branch="$2"
+  local finish="git push origin $branch --tags && npm run publish -- github-release"
 
-  if ! command -v gh &>/dev/null; then
-    warn "gh CLI not found, skipping GitHub release"
+  echo ""
+  read -rp "  Push to origin/$branch with tag v$version? (y/n) " answer
+  if [[ "$answer" != "y" ]]; then
+    warn "Skipped push. Finish by hand: $finish"
     return
   fi
 
-  header "Creating GitHub release"
+  git push --no-verify origin "$branch" --tags || {
+    err "git push failed. v$version is on npm and tagged locally; finish by hand: $finish"
+    exit 1
+  }
+  ok "Pushed v$version to origin/$branch"
+
+  create_github_release "$version"
+}
+
+# ─── GitHub release ───
+# A beta becomes a pre-release, any other version the latest release. Also run
+# on its own by `npm run publish -- github-release`, for a release whose push
+# was finished by hand. `--verify-tag` stops gh from creating a missing tag on
+# the default branch instead.
+create_github_release() {
+  local version="$1"
+  local tag="v$version"
+  local kind="release" flag="--latest" fallback="Release $tag"
+
+  if [[ "$version" =~ -beta\.[0-9]+$ ]]; then
+    kind="pre-release"
+    flag="--prerelease"
+    fallback="Pre-release $tag"
+  fi
+
+  if ! command -v gh &>/dev/null; then
+    warn "gh CLI not found, skipping GitHub $kind"
+    return
+  fi
+
+  header "Creating GitHub $kind"
 
   local prev_tag
   prev_tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | sed -n '2p')
 
+  # `|| true`: grep -v finds nothing when every commit is a release commit, and
+  # under pipefail that failed assignment would end the script here.
   local notes
   if [[ -n "$prev_tag" ]]; then
-    notes=$(git log --pretty=format:"- %s" "$prev_tag..$tag" -- . ':!node_modules' | grep -v "^- release:")
+    notes=$(git log --pretty=format:"- %s" "$prev_tag..$tag" -- . ':!node_modules' | grep -v "^- release:" || true)
   else
-    notes=$(git log --pretty=format:"- %s" "$tag" -- . ':!node_modules' | head -20 | grep -v "^- release:")
+    notes=$(git log --pretty=format:"- %s" "$tag" -- . ':!node_modules' | head -20 | grep -v "^- release:" || true)
   fi
 
-  if [[ -z "$notes" ]]; then
-    notes="Release $tag"
-  fi
+  [[ -z "$notes" ]] && notes="$fallback"
 
   gh release create "$tag" \
     --title "$tag" \
     --notes "$notes" \
-    --latest
+    --verify-tag \
+    "$flag" || {
+    err "gh release create failed. Once that is sorted out: npm run publish -- github-release"
+    exit 1
+  }
 
-  ok "GitHub release $tag created"
+  ok "GitHub $kind $tag created"
 }
 
 # ─── Main ───
+# `npm run publish -- github-release` only creates the GitHub release of the
+# current version, after a push that was finished by hand (see push_and_release).
 main() {
+  if [[ "${1:-}" == "github-release" ]]; then
+    local version
+    version=$(current_version) || { err "Could not read the current version"; exit 1; }
+    create_github_release "$version"
+    return
+  fi
+
   show_menu
   read -rp "  Select: " choice
 
@@ -625,4 +628,4 @@ main() {
   esac
 }
 
-main
+main "$@"
