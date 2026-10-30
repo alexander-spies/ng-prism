@@ -89,9 +89,11 @@ export default defineConfig({
 | Field        | Type     | Description                                                                       |
 | ------------ | -------- | --------------------------------------------------------------------------------- |
 | `title`      | `string` | Header title, in plain text. Default: the ng-prism wordmark in the brand gradient |
-| `subtitle`   | `string` | Smaller text below the title (monospace, muted). Optional.                        |
+| `subtitle`   | `string` | Smaller text below the title (monospace, muted). Optional. Not shown on a phone.  |
 | `logo.light` | `string` | Logo image URL for light backgrounds                                              |
 | `logo.dark`  | `string` | Logo image URL for dark backgrounds                                               |
+
+On a phone (since 22.7.0) the header drops the subtitle, shortens a long title down to the logo when it runs out of room, and caps a wide logo at 40% of the width. See [On a Phone](guide/first-showcase.md#on-a-phone).
 
 Since 22.7 the header is a navy band in both themes, so `logo.dark` is shown whenever it is set, and `logo.light` only when it is the one you provided. Without a logo the ng-prism symbol is shown. The brand gradient belongs to the ng-prism wordmark: a `title` of your own is set in the regular text colour, and ng-prism stays credited as "Powered by ng-prism" in the sidebar footer.
 
@@ -108,7 +110,7 @@ export default defineConfig({
 });
 ```
 
-The pill appears left of the header action buttons. Both fields are optional, and the git hash is automatically truncated to 7 characters.
+The pill appears left of the header action buttons. Both fields are optional, and the git hash is automatically truncated to 7 characters. On a phone (since 22.7.0) the build info moves into the ⋮ menu.
 
 > **Note:** A small "Powered by ng-prism" notice is always visible at the bottom of the sidebar.
 

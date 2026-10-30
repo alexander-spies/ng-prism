@@ -140,6 +140,14 @@ renderer's `@if (!capture.active())` block, alongside the crosshair, the rulers 
 pill. Capture mode also never _writes_ the width back to storage (`PrismCanvasService.save()` is a
 no-op while capture is active), so a capture run cannot corrupt the user's stored preference either.
 
+### Phone layout
+
+The phone layout (since 22.7.0) ignores the width the same way: the renderer's `viewportWidth`
+computed is `null` while capture mode is active or the phone layout is, so on a phone the specimen
+meets the device's own width. The grips, the dimension line, the crosshair, the rulers and the
+measuring tool are left out there too, and the stored width, like the other toggles, stays as it was
+and applies again once the window is wide.
+
 ## Measuring
 
 The measuring tool adds a third kind of state to the two services above: a point, stored in `.demo-wrap`-local CSS pixels, and an overlay drawn as a sibling of `.demo-wrap`, deliberately never a child of it.

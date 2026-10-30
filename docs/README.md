@@ -32,6 +32,7 @@ A lightweight, Angular-native component showcase tool. Annotate your components 
 - **Parts:** a component that only works inside another, such as an option in a select, names its parent with [`partOf`](guide/showcase-decorator.md#partof) and shows on the parent's page, with its inputs and outputs on a card behind a chip and a block on the API tab, instead of a page of its own (since `22.7.0`)
 - **Services:** an `@Injectable` or `@Service` with `@Showcase` gets an API page and a usage snippet, read from the code and its JSDoc, drawn by the [JSDoc plugin](plugins/jsdoc.md) (since `22.7.0`)
 - **Pipes:** a standalone `@Pipe` with `@Showcase` gets the same kind of page, with every `transform()` overload and a template line in its usage snippet (since `22.7.0`)
+- **On a phone:** a phone layout up to 900 px wide, with full-screen navigation, a panel that folds away and touch-sized controls, so a shared link opens properly on a phone and a component can be checked on a real device (since `22.7.0`, see [On a Phone](guide/first-showcase.md#on-a-phone))
 - **URL state:** deep-linking via `?component=`, `?service=`, `?pipe=`, `?variant=`, `?state=`, `?page=`, `?view=`, `?part=` params
 - **Zoneless ready:** opt in via `ng add @ng-prism/core --zoneless` for ~30 KB bundle savings
 
