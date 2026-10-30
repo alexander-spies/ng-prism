@@ -186,6 +186,10 @@ follow the rules the built-ins follow:
   primary.
 - Colours only through `--prism-*` tokens, so the panel works in both themes; `plugins/writing-plugins.md`
   (Panel Guidelines) has a full example.
+- On a phone (since 22.7.0) a panel is about 390 px wide. Lay it out with container queries on its own width
+  (`container-type: inline-size` on its root), not with media queries on the viewport.
+- Header widgets sit in a strip that scrolls sideways on a phone: keep one to a compact pill, as
+  `PrismMetricBadgeComponent` draws it.
 
 ## Packaging for npm
 

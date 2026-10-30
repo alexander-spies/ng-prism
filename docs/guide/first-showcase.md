@@ -98,6 +98,18 @@ You will see:
 - A **Controls** panel listing `label`, `variant`, and `disabled` with appropriate input types
 - A **`</> Code`** toggle that shows a live code snippet reflecting current input values
 
+## On a Phone
+
+Since 22.7.0 the styleguide has a phone layout, so a link to a component opens properly on a phone and a component can be checked on a real device. It applies up to 900 px of width, and on touch screens no taller than 500 px, which takes in large phones held sideways.
+
+- **Navigation:** the sidebar is no longer a column. ☰ in the header opens it over the whole page; picking an entry, ✕ or Escape closes it again. A link always opens on the component, with the navigation closed.
+- **Canvas and panel:** the canvas takes the full width and the panel sits below it at about half the height. Drag the grip between them, or tap the active panel tab to fold the panel down to its tabs and tap it again to open it. On a short screen, such as a phone held sideways, the panel starts folded.
+- **Component head:** once the head runs out of room, in a narrow desktop window as well, Playground / Overview / API becomes a menu named after the active view, and the parts and the metrics move into the ⓘ card. A dot on ⓘ says that a metric warns or alarms.
+- **Header:** the theme switch and the build info move into the ⋮ menu.
+- **Controls** stack under their labels. On touch screens buttons, tabs and rows grow to a size a finger can hit, and text fields use 16 px so iOS does not zoom the page when one gets focus.
+
+The phone layout leaves out guides, rulers, the [measuring tool](guide/measuring.md) and the viewport width: they need a pointer that hovers and an Alt key, and on a phone the canvas already is the device's viewport, so the component's media queries meet the real screen. Whatever you switched on at the desktop is back when the window is wide again. The phone layout keeps its panel height to itself and never changes the layout you set at the desktop.
+
 ## Next Steps
 
 - Learn about all `@Showcase` options in the [@Showcase Decorator](guide/showcase-decorator.md) reference

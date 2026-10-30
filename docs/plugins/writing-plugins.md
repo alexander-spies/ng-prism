@@ -237,6 +237,8 @@ The Controls panel checks registered `ControlDefinition` entries in plugin regis
 import { PrismMetricBadgeComponent, PrismIconComponent } from '@ng-prism/core';
 ```
 
+On a phone (since 22.7.0) the header shows the widgets in a strip of their own, which scrolls sideways once the brand name has shortened as far as it can. Keep a widget to one compact pill, as `PrismMetricBadgeComponent` draws it.
+
 ### `PrismMetricBadgeComponent`
 
 The pill every built-in header widget (a11y, coverage, visual regression) renders through.
@@ -365,6 +367,8 @@ Since `22.7.0` every built-in panel follows the same eight rules. A plugin panel
 - **P6 Content** has 16 × 18 px of padding on a 12 px grid and follows the height the panel is dragged to. Charts and images fit instead of being cut off.
 - **P7 Surface:** the panel's background is `--prism-bg-surface`, embeds included.
 - **P8 Actions** sit on the right of the toolbar as `button[prismButton]` (`sm`, 26 px), secondary before primary.
+
+On a phone (since 22.7.0) a panel spans the screen, about 390 px wide, below the canvas. Lay it out against its own width with container queries (`container-type: inline-size` on the panel's root), not against the viewport with media queries: the built-in controls panel stacks its rows below 520 px that way, and the same panel then also fits a narrow desktop window.
 
 ```typescript
 // budget-panel.component.ts
