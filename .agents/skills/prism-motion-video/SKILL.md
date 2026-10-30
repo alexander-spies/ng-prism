@@ -79,6 +79,23 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
     throws in the player shows only a card with its name. Export (MP4) is a button on the film's page; where the MP4 goes
     is the maintainer's call.
 
+## Reference: what approved looks like
+
+`reference/` holds stills of the approved 22.7 film, rendered with `preview.mjs` from its scenes. Compare a preview
+against them before a title, an end card or a beat goes in:
+
+| Stills                                     | What they show                                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `title-1-light.jpg` … `title-4-lockup.jpg` | the title at 0, 1.1, 2.95 and 3.62 s: inside the light, the flare, the one sheen, the lockup     |
+| `end-1-sheen.jpg`, `end-2-card.jpg`        | the end card with its sheen, and as it stands                                                    |
+| `beat-*.jpg`                               | one key frame of each 22.7 beat: look, pages (click), compose and parts (code cards), a11y, perf |
+
+`reference/22.7/` is the whole 22.7 film without its lifted modules: `scenes.json`, every scene, the score, and the two
+lift configs (`lift-test-lib.json`, `lift-video-lib.json`). If the artifact is gone, the film comes back from the repo:
+build the 22.7 styleguides, lift and package with those configs, create a new film and write these modules, `base.css`
+and `shared.js` from `templates/` and the asset `symbol.png`. The lift reproduces the styleguide as it is at build time,
+so a later release's styleguide looks newer than the 22.7 stills.
+
 ## When something goes wrong
 
 | Symptom                                                  | Cause and fix                                                                                                                             |
@@ -91,4 +108,5 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
 | Camera or cursor aim beside the element                  | Measure with `UI.box` in `init`, before the camera moves, against the state the element is in.                                            |
 | A scene shows only its name card in the player           | It threw while loading. Run it through `preview.mjs` with the film's modules: page errors are printed.                                    |
 | A gradient word shows the whole gradient in every letter | Split letters need `background-size` = word width and `background-position` = −`offsetLeft` (see the title).                              |
+| A dark smear over a light canvas beside a code card      | The veil behind the card. Leave it out where the window behind the card is light, and frame the dark panel instead (the 22.7 a11y beat).  |
 | `preview.mjs` times out launching Chromium               | The machine is under load; run it again.                                                                                                  |
