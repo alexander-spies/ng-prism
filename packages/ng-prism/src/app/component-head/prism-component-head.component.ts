@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject } from '@angular/core';
 import type { ComponentStatus } from '../../decorator/showcase.types.js';
 import type { NgPrismConfig, RuntimeManifest } from '../../plugin/plugin.types.js';
 import { A11yAuditService } from '../panels/a11y/a11y-audit.service.js';
@@ -7,7 +7,8 @@ import type { A11yManifestMeta } from '../panels/a11y/a11y.types.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismBadgeComponent } from '../shared/prism-badge.component.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../tokens/prism-tokens.js';
-import { headMetrics } from './head-metrics.js';
+import { isCompactHead, PrismHeadCompactState } from './head-compact.js';
+import { headMetrics, infoDotTone } from './head-metrics.js';
 import { pipeFacts } from './pipe-facts.js';
 import { PrismHeadGaugeComponent } from './prism-head-gauge.component.js';
 import { PrismHeadInfoComponent } from './prism-head-info.component.js';
@@ -20,10 +21,19 @@ import { type StatusBadge, statusBadge } from './status-badge.js';
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [PrismHeadInfoComponent, PrismHeadPartsComponent, PrismHeadGaugeComponent, PrismBadgeComponent],
+    // Shared with what the shell projects into the head: the view switcher reads it.
+    providers: [PrismHeadCompactState],
     templateUrl: './prism-component-head.component.html',
     styleUrl: './prism-component-head.component.css'
 })
 export class PrismComponentHeadComponent {
+    /**
+     * Whether the head lacks room for its full row, measured on the head itself
+     * (see `HEAD_COMPACT_BELOW`). Compact, the category goes, the parts and the
+     * metrics move into the ⓘ card, and the view switcher turns into a menu.
+     */
+    protected readonly compact = inject(PrismHeadCompactState).compact;
+
     private readonly navigationService = inject(PrismNavigationService);
     private readonly auditService = inject(A11yAuditService);
     private readonly manifest = inject<RuntimeManifest>(PRISM_MANIFEST);
@@ -96,10 +106,24 @@ export class PrismComponentHeadComponent {
         })
     );
 
+    /** A warning or an alarm among the metrics, shown as a dot on ⓘ while the gauge sits inside its card. */
+    protected readonly infoDot = computed(() => infoDotTone(this.metrics()));
+
     private readonly componentMeta = computed(() => {
         const c = this.comp();
         const meta = c?.meta.showcaseConfig.meta;
 
         return meta && typeof meta === 'object' ? (meta as Record<string, unknown>) : null;
     });
+
+    constructor() {
+        const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+
+        // jsdom has no ResizeObserver; the head then simply stays full.
+        if (typeof ResizeObserver !== 'function') return;
+        const observer = new ResizeObserver(([entry]) => this.compact.set(isCompactHead(entry.contentRect.width)));
+
+        observer.observe(host);
+        inject(DestroyRef).onDestroy(() => observer.disconnect());
+    }
 }

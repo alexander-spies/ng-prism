@@ -41,6 +41,13 @@
     flex-direction: column;
 }
 
+/* The same rows inside the ⓘ card of a compact head. */
+.gauge-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
 .gauge-card__row--head {
     display: grid;
     grid-template-columns: minmax(110px, 1fr) 90px 70px;

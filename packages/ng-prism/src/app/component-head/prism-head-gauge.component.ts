@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { toneForStatus } from '../shared/badge.types.js';
 import { PrismBadgeComponent } from '../shared/prism-badge.component.js';
 import { gaugeChip, type HeadMetric } from './head-metrics.js';
@@ -16,12 +17,14 @@ import { PrismStatComponent } from './prism-stat.component.js';
     selector: 'prism-head-gauge',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismBadgeComponent, PrismStatComponent],
+    imports: [NgTemplateOutlet, PrismBadgeComponent, PrismStatComponent],
     templateUrl: './prism-head-gauge.component.html',
     styleUrl: './prism-head-gauge.component.css'
 })
 export class PrismHeadGaugeComponent {
     readonly metrics = input.required<readonly HeadMetric[]>();
+    /** Only the readout's rows, without the chip and its popover: how a compact head shows the metrics inside the ⓘ card. */
+    readonly inline = input(false, { transform: booleanAttribute });
     protected readonly chip = computed(() => gaugeChip(this.metrics()));
     protected readonly tone = computed(() => {
         const chip = this.chip();

@@ -1,7 +1,7 @@
 import { deriveA11ySummary } from '../panels/a11y/a11y-summary.js';
 import { DEFAULT_A11Y_THRESHOLDS } from '../panels/a11y/a11y-thresholds.js';
 import type { A11yScoreResult } from '../panels/a11y/a11y.types.js';
-import { gaugeChip, type HeadMetric, headMetrics } from './head-metrics.js';
+import { gaugeChip, type HeadMetric, headMetrics, infoDotTone } from './head-metrics.js';
 
 const audit = (patch: Partial<A11yScoreResult> = {}): A11yScoreResult => ({
     score: 100,
@@ -90,5 +90,23 @@ describe('gaugeChip', () => {
 
     it('has nothing to show when nothing is measured', () => {
         expect(gaugeChip([metric('a', 'none'), metric('b', 'none')])).toBeNull();
+    });
+});
+
+describe('infoDotTone', () => {
+    const metric = (id: string, variant: HeadMetric['variant']): HeadMetric => ({ id, label: id, value: '1', threshold: '', variant });
+
+    it('should be danger when the worst metric is', () => {
+        expect(infoDotTone([metric('a', 'warn'), metric('b', 'danger')])).toBe('danger');
+    });
+
+    it('should be warn when the worst metric is', () => {
+        expect(infoDotTone([metric('a', 'ok'), metric('b', 'warn')])).toBe('warn');
+    });
+
+    it('should be null when everything is fine or nothing is measured', () => {
+        expect(infoDotTone([metric('a', 'ok')])).toBeNull();
+        expect(infoDotTone([metric('a', 'none')])).toBeNull();
+        expect(infoDotTone([])).toBeNull();
     });
 });

@@ -1,3 +1,85 @@
 :host {
     display: inline-flex;
 }
+
+/* The compact head's view switcher: the active view's name, opening a menu of all views. */
+.view-menu__trigger {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    height: 28px;
+    padding: 0 8px 0 10px;
+    anchor-name: --prism-view-menu;
+    font-family: var(--font-sans);
+    font-size: var(--fs-md);
+    color: var(--prism-text-2);
+    white-space: nowrap;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--prism-border);
+    border-radius: var(--radius-sm);
+}
+
+.view-menu__trigger:hover {
+    color: var(--prism-text);
+    background: var(--prism-input-bg);
+}
+
+.view-menu__trigger:focus-visible,
+.view-menu__item:focus-visible {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: 2px;
+}
+
+.view-menu {
+    inset: auto;
+    min-width: 180px;
+    padding: var(--sp-2);
+    margin: 0;
+    position-area: block-end span-inline-start;
+    position-anchor: --prism-view-menu;
+    position-try-fallbacks: flip-block, flip-inline;
+    background: var(--prism-bg-elevated);
+    border: 1px solid var(--prism-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--prism-shadow-md);
+}
+
+/* display belongs on :popover-open and nowhere else (see the note in
+   prism-template-popover.component.ts). */
+.view-menu:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.view-menu__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 36px;
+    padding: 0 var(--sp-4);
+    font-family: var(--font-sans);
+    font-size: var(--fs-lg);
+    color: var(--prism-text-2);
+    text-align: left;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+}
+
+.view-menu__item:hover {
+    color: var(--prism-text);
+    background: var(--prism-input-bg);
+}
+
+.view-menu__item[aria-checked='true'] {
+    color: var(--prism-text);
+    background: var(--prism-primary-bg);
+}
+
+.view-menu__item[aria-checked='true']::after {
+    color: var(--prism-primary);
+    content: '✓';
+}

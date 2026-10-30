@@ -125,3 +125,14 @@ export function gaugeChip(metrics: readonly HeadMetric[]): GaugeChip | null {
 
     return { metric: worst, variant: worst.variant as StatusTone, measured: measured.length };
 }
+
+/**
+ * The tone of the dot on ⓘ in the compact head, where the gauge chip has moved
+ * into the ⓘ card: the gauge's tone when it warns or alarms, `null` otherwise,
+ * so a dot always means something needs a look.
+ */
+export function infoDotTone(metrics: readonly HeadMetric[]): 'warn' | 'danger' | null {
+    const variant = gaugeChip(metrics)?.variant;
+
+    return variant === 'warn' || variant === 'danger' ? variant : null;
+}

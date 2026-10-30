@@ -1,36 +1,49 @@
-@if (chip(); as c) {
-    <button
-        class="gauge"
-        type="button"
-        popovertarget="prism-head-gauge"
-        [attr.aria-label]="c.metric.label + ' ' + c.metric.value + '. ' + title()"
-        [attr.title]="title()">
-        <prism-badge
-            dot
-            [tone]="tone()"
-            [label]="c.metric.label"
-            [value]="c.metric.value" />
-    </button>
-
+<ng-template #rows>
     <div
-        popover
-        id="prism-head-gauge"
-        class="gauge-card"
-        role="dialog"
-        aria-label="Component metrics">
-        <div
-            class="gauge-card__row gauge-card__row--head"
-            aria-hidden="true">
-            <span>Metric</span>
-            <span>Threshold</span>
-            <span>Value</span>
-        </div>
-        @for (m of metrics(); track m.id) {
-            <prism-stat
-                [label]="m.label"
-                [threshold]="m.threshold"
-                [value]="m.value"
-                [variant]="m.variant" />
-        }
+        class="gauge-card__row gauge-card__row--head"
+        aria-hidden="true">
+        <span>Metric</span>
+        <span>Threshold</span>
+        <span>Value</span>
     </div>
+    @for (m of metrics(); track m.id) {
+        <prism-stat
+            [label]="m.label"
+            [threshold]="m.threshold"
+            [value]="m.value"
+            [variant]="m.variant" />
+    }
+</ng-template>
+
+@if (chip(); as c) {
+    @if (inline()) {
+        <div
+            class="gauge-rows"
+            role="group"
+            aria-label="Component metrics">
+            <ng-container *ngTemplateOutlet="rows" />
+        </div>
+    } @else {
+        <button
+            class="gauge"
+            type="button"
+            popovertarget="prism-head-gauge"
+            [attr.aria-label]="c.metric.label + ' ' + c.metric.value + '. ' + title()"
+            [attr.title]="title()">
+            <prism-badge
+                dot
+                [tone]="tone()"
+                [label]="c.metric.label"
+                [value]="c.metric.value" />
+        </button>
+
+        <div
+            popover
+            id="prism-head-gauge"
+            class="gauge-card"
+            role="dialog"
+            aria-label="Component metrics">
+            <ng-container *ngTemplateOutlet="rows" />
+        </div>
+    }
 }

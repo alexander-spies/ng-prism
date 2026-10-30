@@ -1,5 +1,37 @@
-<prism-segmented
-    ariaLabel="View"
-    [options]="options()"
-    [value]="panelService.activeViewId()"
-    (valueChange)="select($event)" />
+@if (compact()) {
+    <button
+        class="view-menu__trigger"
+        type="button"
+        popovertarget="prism-view-menu"
+        aria-haspopup="menu">
+        {{ activeLabel() }}
+        <prism-icon
+            name="chevron-down"
+            [size]="14" />
+    </button>
+
+    <div
+        #menu
+        popover
+        id="prism-view-menu"
+        class="view-menu"
+        role="menu"
+        aria-label="View">
+        @for (option of options(); track option.value) {
+            <button
+                class="view-menu__item"
+                type="button"
+                role="menuitemradio"
+                [attr.aria-checked]="option.value === panelService.activeViewId()"
+                (click)="pick(option.value, menu)">
+                {{ option.label }}
+            </button>
+        }
+    </div>
+} @else {
+    <prism-segmented
+        ariaLabel="View"
+        [options]="options()"
+        [value]="panelService.activeViewId()"
+        (valueChange)="select($event)" />
+}

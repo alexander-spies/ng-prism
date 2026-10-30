@@ -62,13 +62,21 @@ describe('prism-head-parts styles', () => {
 });
 
 describe('prism-component-head template', () => {
-    it('puts the parts between the status badge and the gauge', () => {
+    /** The full row's instances are the last ones; a compact head projects the first ones into the ⓘ card. */
+    it('puts the parts between the status badge and the gauge in the full row', () => {
         const status = HEAD.indexOf('comp-status');
-        const parts = HEAD.indexOf('<prism-head-parts');
-        const gauge = HEAD.indexOf('<prism-head-gauge');
+        const parts = HEAD.lastIndexOf('<prism-head-parts');
+        const gauge = HEAD.lastIndexOf('<prism-head-gauge');
 
         expect(status).toBeGreaterThan(-1);
         expect(parts).toBeGreaterThan(status);
         expect(gauge).toBeGreaterThan(parts);
+    });
+
+    it('moves the parts and the gauge into the ⓘ card when compact', () => {
+        const info = HEAD.slice(HEAD.indexOf('<prism-head-info'), HEAD.indexOf('</prism-head-info>'));
+
+        expect(info).toContain('<prism-head-parts');
+        expect(info).toMatch(/<prism-head-gauge\s+inline/);
     });
 });

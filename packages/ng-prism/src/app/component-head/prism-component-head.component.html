@@ -1,6 +1,8 @@
 @if (subject(); as s) {
     <section class="comp-head">
-        <span class="comp-crumb">{{ category() }}</span>
+        @if (!compact()) {
+            <span class="comp-crumb">{{ category() }}</span>
+        }
         <h1 class="comp-title">{{ s.showcaseConfig.title }}</h1>
 
         <prism-head-info
@@ -11,7 +13,19 @@
             [tags]="s.showcaseConfig.tags ?? []"
             [variantCount]="variantCount()"
             [stateCount]="stateCount()"
-            [facts]="facts()" />
+            [facts]="facts()"
+            [dot]="compact() ? infoDot() : null">
+            @if (compact()) {
+                @if (hasParts()) {
+                    <prism-head-parts />
+                }
+                @if (comp()) {
+                    <prism-head-gauge
+                        inline
+                        [metrics]="metrics()" />
+                }
+            }
+        </prism-head-info>
 
         @if (statusBadge(); as badge) {
             <prism-badge
@@ -23,12 +37,14 @@
                 [attr.title]="badge.tooltip" />
         }
 
-        @if (hasParts()) {
-            <prism-head-parts />
-        }
+        @if (!compact()) {
+            @if (hasParts()) {
+                <prism-head-parts />
+            }
 
-        @if (comp()) {
-            <prism-head-gauge [metrics]="metrics()" />
+            @if (comp()) {
+                <prism-head-gauge [metrics]="metrics()" />
+            }
         }
 
         <span class="comp-spacer"></span>
