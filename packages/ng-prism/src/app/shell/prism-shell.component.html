@@ -106,10 +106,10 @@
     </div>
 
     @if (showNavScreen()) {
-        <nav
+        <!-- No landmark of its own: the sidebar inside is the <nav>. -->
+        <div
             class="prism-nav-screen"
-            [id]="navScreenId"
-            aria-label="Navigation">
+            [id]="navScreenId">
             <prism-sidebar />
             <div class="prism-sidebar-foot">
                 <prism-logo [size]="13" />
@@ -121,6 +121,6 @@
                     Powered by ng-prism
                 </a>
             </div>
-        </nav>
+        </div>
     }
 </div>

@@ -3,7 +3,8 @@
         class="view-menu__trigger"
         type="button"
         popovertarget="prism-view-menu"
-        aria-haspopup="menu">
+        aria-haspopup="menu"
+        [attr.aria-label]="'View: ' + activeLabel()">
         {{ activeLabel() }}
         <prism-icon
             name="chevron-down"

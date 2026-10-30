@@ -20,6 +20,8 @@ export class PrismMobileLayoutService {
     private readonly chosen = signal<number | null>(null);
     /** The height the canvas and the panel share, measured by the shell; `null` until it has. */
     private readonly space = signal<number | null>(null);
+    /** Set when the layout switched to the desktop with the navigation open, see `takeFocusHandoff`. */
+    private focusHandoff = false;
 
     readonly mobile = this.isMobile.asReadonly();
     readonly viewportHeight = this.height.asReadonly();
@@ -103,12 +105,29 @@ export class PrismMobileLayoutService {
         else this.collapsed.set(false);
     }
 
+    /**
+     * Whether the desktop sidebar should take focus over, answered once. When
+     * the window widens past the breakpoint with the navigation open, the list
+     * and the ☰ button that held focus disappear and focus would fall to the
+     * page; the sidebar that appears in their place asks this after its first
+     * render and puts focus on its active entry.
+     */
+    takeFocusHandoff(): boolean {
+        const handoff = this.focusHandoff;
+
+        this.focusHandoff = false;
+        return handoff;
+    }
+
     private apply(mobile: boolean): void {
         if (mobile && !this.isMobile()) {
             this.chosen.set(null);
             this.collapsed.set(startsCollapsed(this.height()));
         }
-        if (!mobile) this.open.set(false);
+        if (!mobile) {
+            this.focusHandoff = this.open();
+            this.open.set(false);
+        }
         this.isMobile.set(mobile);
     }
 }

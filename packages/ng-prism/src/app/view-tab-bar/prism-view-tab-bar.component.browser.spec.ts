@@ -109,4 +109,16 @@ describe('PrismViewTabBarComponent', () => {
         expect(activeViewId()).toBe('jsdoc');
         expect(trigger(fixture)?.textContent?.trim()).toBe('API');
     });
+
+    /** The visible text is only the view's name; the accessible name says what the button switches. */
+    it('names the menu trigger after what it switches', async () => {
+        const fixture = await render(true);
+
+        expect(trigger(fixture)?.getAttribute('aria-label')).toBe('View: Playground');
+
+        items(fixture)[1].click();
+        fixture.detectChanges();
+
+        expect(trigger(fixture)?.getAttribute('aria-label')).toBe('View: API');
+    });
 });

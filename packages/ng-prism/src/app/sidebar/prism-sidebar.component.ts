@@ -22,6 +22,7 @@ import { PrismNavigationService } from '../services/prism-navigation.service.js'
 import { PrismPluginService } from '../services/prism-plugin.service.js';
 import { PrismSearchService } from '../services/prism-search.service.js';
 import { PrismBadgeComponent } from '../shared/prism-badge.component.js';
+import { handoffTarget } from './focus-handoff.js';
 import {
     categoryCount,
     type CategoryRollup,
@@ -161,6 +162,15 @@ export class PrismSidebarComponent {
     });
 
     constructor() {
+        // The phone layout's navigation was open when the window widened past
+        // the breakpoint: the ☰ button that held focus is gone, so this
+        // sidebar, which takes the list's place, takes focus over too.
+        const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+
+        afterNextRender(() => {
+            if (!this.mobileLayout.mobile() && this.mobileLayout.takeFocusHandoff()) handoffTarget(host)?.focus();
+        });
+
         // Keeps the active item in sight: after a reload that restores it from the
         // URL, on back and forward, and wherever else it is selected from outside the
         // list. Its group opens if it is collapsed. Before the list renders, so the

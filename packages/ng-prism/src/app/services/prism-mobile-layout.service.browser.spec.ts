@@ -105,6 +105,29 @@ describe('PrismMobileLayoutService', () => {
         expect(service.navOpen()).toBe(false);
     });
 
+    /** The ☰ button that held focus disappears with the phone layout; the desktop sidebar takes focus over. */
+    it('should hand focus over to the desktop sidebar when the layout switches with the navigation open', () => {
+        const { query } = installMatchMedia(true);
+        const service = create();
+
+        service.toggleNav();
+        query.flip(false);
+        TestBed.tick();
+
+        expect(service.takeFocusHandoff()).toBe(true);
+        expect(service.takeFocusHandoff()).toBe(false);
+    });
+
+    it('should not take focus anywhere when the layout switches with the navigation closed', () => {
+        const { query } = installMatchMedia(true);
+        const service = create();
+
+        query.flip(false);
+        TestBed.tick();
+
+        expect(service.takeFocusHandoff()).toBe(false);
+    });
+
     it('should hand focus back to the toggle when the navigation closes', () => {
         installMatchMedia(true);
         const toggle = document.createElement('button');

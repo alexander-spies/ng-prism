@@ -110,7 +110,9 @@
                 @if (buildInfo) {
                     <div
                         class="layout-menu__info"
-                        role="none">
+                        role="menuitem"
+                        aria-disabled="true"
+                        [attr.aria-label]="'Build ' + buildInfo">
                         {{ buildInfo }}
                     </div>
                 }

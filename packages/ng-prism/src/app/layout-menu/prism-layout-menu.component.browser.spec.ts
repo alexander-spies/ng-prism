@@ -103,4 +103,15 @@ describe('PrismLayoutMenuComponent', () => {
 
         expect(buildInfo(fixture)).toBe('v1.2.0 · abcdef1');
     });
+
+    /** Screen readers in menu mode move between menu items only; plain text in a menu is skipped. */
+    it('reads the build info out as a disabled menu item', async () => {
+        const fixture = await openMenu(true);
+        const info = fixture.nativeElement.querySelector('.layout-menu__info') as HTMLElement;
+
+        expect(info.closest('[role="menu"]')).not.toBeNull();
+        expect(info.getAttribute('role')).toBe('menuitem');
+        expect(info.getAttribute('aria-disabled')).toBe('true');
+        expect(info.getAttribute('aria-label')).toBe('Build v1.2.0 · abcdef1');
+    });
 });
