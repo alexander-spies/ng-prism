@@ -41,7 +41,8 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
   file's lines **verbatim**, one line typed at 34 cps with a caret, the rest already there; the typed line must fit inside the card. Dropping the indentation all
   shown lines share is fine and is said to the maintainer; a long line runs out of the card under the fade, never
   wrapped or shortened. video-lib's showcases are written to fit a card; test-lib works where its lines do.
-- **Sound:** no music. Only keystrokes (automatic from `kit.typist`) and the cursor's clicks (`CLICKS`).
+- **Sound:** no music. In the film only keystrokes (automatic from `kit.typist`) and the cursor's clicks (`CLICKS`); a
+  narration goes on the exported MP4 afterwards (below), in the voice Ava (Premium).
 - **Rejected, don't bring back:** mark pieces flying in, a light beam with a spectrum fan, twinkling stars, a ray burst,
   a second shine on the title (one sheen through prism and name, like the end card), music of any kind.
 
@@ -76,8 +77,23 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
    `modules/scenes.json` with `"stage": "final"`. Every write to an existing document needs `if_version`. The store is the source: before changing
    a film later, read it back (`ArtifactData` `list` with `out_dir`).
 10. **Hand it over:** the link, a word on any dropped indentation, and ask the maintainer to scrub it once: a scene that
-    throws in the player shows only a card with its name. Export (MP4) is a button on the film's page; where the MP4 goes
-    is the maintainer's call.
+    throws in the player shows only a card with its name. Export (MP4) is a button on the film's page, and only the
+    maintainer can press it: ask for 1080p, 60 fps, High, Sharper text on; that file is the master, its size does not
+    matter. A contact sheet of the master (`ffmpeg -i <mp4> -vf "fps=1/1.5,scale=400:-1,tile=6x6" -frames:v 1 sheet.png`)
+    shows whether every scene rendered in the real player.
+11. **Encode for the web:** `ffmpeg -i <master> -vf fps=30 -c:v libx264 -preset slow -crf 20 -tune animation -profile:v high
+-pix_fmt yuv420p -c:a copy -movflags +faststart <out>.mp4` turns a 47 MB master into about 10 MB with no visible loss
+    (compare crops of code and small text against the master). The docs tour goes to `docs/assets/video/tour.mp4`, its
+    poster (`tour-poster.png`) is a frame of the master: `ffmpeg -ss 3.62 -i <master> -frames:v 1 tour-poster.png`.
+12. **Narrate,** where the maintainer wants a voice: one line per scene, written for a listener, approved by the
+    maintainer before anything is generated. A line starts 0.3–0.6 s after its cut and ends before the next line; at
+    `--tempo 1.04` the voice speaks about 2.9 words a second. Spell what it would read wrongly as it should sound
+    (`N G prism`, `J S Doc`). Write them as `narration.json` (`{ at, until, text }` per line, like
+    `reference/tour/narration.json`), check the fit with `node scripts/narrate.mjs <mp4> narration.json --dry`, then
+    `node scripts/narrate.mjs <mp4> narration.json <out>.mp4`. It needs the voice installed (System Settings →
+    Accessibility → Spoken Content → System voice → Manage Voices → English → Ava (Premium)); it ducks the clicks
+    under the voice, normalises to −16 LUFS and copies the picture. Play the result to the maintainer
+    (`open -a "QuickTime Player" <out>.mp4`) before it replaces anything.
 
 ## Reference: what approved looks like
 
@@ -92,7 +108,7 @@ against them before a title, an end card or a beat goes in:
 
 `reference/tour/` is the same for the tour on the docs start page ("ng-prism tour", 54.5 s: title with the slogan,
 @Showcase typed into `button.component.ts`, the styleguide, live inputs, states and the box model, a11y, an API page,
-`ng add`), its stills numbered in film order.
+`ng add`), its stills numbered in film order, and its narration (`narration.json`).
 
 `reference/22.7/` is the whole 22.7 film without its lifted modules: `scenes.json`, every scene, the score, and the two
 lift configs (`lift-test-lib.json`, `lift-video-lib.json`). If the artifact is gone, the film comes back from the repo:
