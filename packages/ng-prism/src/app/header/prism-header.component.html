@@ -48,15 +48,18 @@
         </div>
     }
     <div class="prism-header__actions">
-        @for (w of widgetsEnd(); track w.id) {
-            <prism-header-widget-host [widget]="w" />
-        }
+        <div class="prism-header__widgets--end">
+            @for (w of widgetsEnd(); track w.id) {
+                <prism-header-widget-host [widget]="w" />
+            }
+        </div>
         @if (buildInfoLabel()) {
             <span class="prism-header__build-pill">{{ buildInfoLabel() }}</span>
         }
         <button
             prismIconButton
             size="md"
+            class="prism-header__theme"
             (click)="themeService.toggle()"
             [title]="themeService.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
             [attr.aria-label]="themeService.isDark() ? 'Switch to light mode' : 'Switch to dark mode'">

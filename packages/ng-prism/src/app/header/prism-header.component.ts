@@ -11,7 +11,7 @@ import { PrismThemeService } from '../services/prism-theme.service.js';
 import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
 import { PrismLogoComponent } from '../shared/prism-logo.component.js';
 import { PRISM_CONFIG } from '../tokens/prism-tokens.js';
-import { headerBrand } from './header-brand.js';
+import { buildInfoLabel, headerBrand } from './header-brand.js';
 import { PrismHeaderWidgetHostComponent } from './prism-header-widget-host.component.js';
 
 @Component({
@@ -52,16 +52,7 @@ export class PrismHeaderComponent {
     });
     protected readonly subtitle = computed(() => this.config.subtitle ?? null);
 
-    protected readonly buildInfoLabel = computed(() => {
-        const info = this.config.buildInfo;
-
-        if (!info) return null;
-        const parts: string[] = [];
-
-        if (info.version) parts.push(`v${info.version}`);
-        if (info.gitHash) parts.push(info.gitHash.slice(0, 7));
-        return parts.length ? parts.join(' · ') : null;
-    });
+    protected readonly buildInfoLabel = computed(() => buildInfoLabel(this.config));
 
     @HostListener('document:keydown', ['$event'])
     protected onGlobalKey(e: KeyboardEvent): void {

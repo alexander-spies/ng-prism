@@ -21,3 +21,19 @@ export function headerBrand(config: Pick<NgPrismConfig, 'title' | 'logo'>): Head
 
     return config.title ? { kind: 'title', title: config.title, logoUrl } : { kind: 'wordmark', logoUrl };
 }
+
+/**
+ * The build info as one short line, `v1.2.0 · abcdef1`: the version and the
+ * first seven characters of the hash, whichever are set. The header shows it
+ * as a pill, the phone layout in its ⋮ menu.
+ */
+export function buildInfoLabel(config: Pick<NgPrismConfig, 'buildInfo'>): string | null {
+    const info = config.buildInfo;
+
+    if (!info) return null;
+    const parts: string[] = [];
+
+    if (info.version) parts.push(`v${info.version}`);
+    if (info.gitHash) parts.push(info.gitHash.slice(0, 7));
+    return parts.length ? parts.join(' · ') : null;
+}

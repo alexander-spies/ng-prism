@@ -21,30 +21,32 @@
             role="menu"
             aria-label="Layout"
             [style]="theme.appTokens()">
-            <button
-                class="layout-menu__item"
-                role="menuitemcheckbox"
-                [attr.aria-checked]="layout.sidebarVisible()"
-                (click)="toggle('sidebar')">
-                <span
-                    class="layout-menu__check"
-                    [class.layout-menu__check--on]="layout.sidebarVisible()">
-                    <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none">
-                        <path
-                            d="M2 6l3 3 5-5"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round" />
-                    </svg>
-                </span>
-                <span class="layout-menu__label">Show sidebar</span>
-                <span class="layout-menu__kbd"><kbd>⌥</kbd><kbd>S</kbd></span>
-            </button>
+            @if (!mobileLayout.mobile()) {
+                <button
+                    class="layout-menu__item"
+                    role="menuitemcheckbox"
+                    [attr.aria-checked]="layout.sidebarVisible()"
+                    (click)="toggle('sidebar')">
+                    <span
+                        class="layout-menu__check"
+                        [class.layout-menu__check--on]="layout.sidebarVisible()">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 12 12"
+                            fill="none">
+                            <path
+                                d="M2 6l3 3 5-5"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    <span class="layout-menu__label">Show sidebar</span>
+                    <span class="layout-menu__kbd"><kbd>⌥</kbd><kbd>S</kbd></span>
+                </button>
+            }
             <button
                 class="layout-menu__item"
                 role="menuitemcheckbox"
@@ -93,6 +95,26 @@
                 <span class="layout-menu__label">Show addons panel</span>
                 <span class="layout-menu__kbd"><kbd>⌥</kbd><kbd>A</kbd></span>
             </button>
+            @if (mobileLayout.mobile()) {
+                <button
+                    class="layout-menu__item"
+                    role="menuitem"
+                    (click)="toggleTheme()">
+                    <span class="layout-menu__icon">
+                        <prism-icon
+                            [name]="theme.isDark() ? 'sun' : 'moon'"
+                            [size]="12" />
+                    </span>
+                    <span class="layout-menu__label">{{ theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode' }}</span>
+                </button>
+                @if (buildInfo) {
+                    <div
+                        class="layout-menu__info"
+                        role="none">
+                        {{ buildInfo }}
+                    </div>
+                }
+            }
         </div>
     }
 </div>

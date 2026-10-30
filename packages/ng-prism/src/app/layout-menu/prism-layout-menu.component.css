@@ -80,6 +80,23 @@
     opacity: 0.6;
 }
 
+/* Keyboard shortcuts mean nothing on a touch screen. */
+@media (pointer: coarse) {
+    .layout-menu__kbd {
+        display: none;
+    }
+}
+
+/* The build info the header pill shows on wider screens, as a footnote. */
+.layout-menu__info {
+    padding: 8px 10px 6px;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--prism-text-muted);
+    border-top: 1px solid var(--prism-border);
+}
+
 kbd {
     padding: 1px 4px;
     font-family: var(--prism-font-sans);

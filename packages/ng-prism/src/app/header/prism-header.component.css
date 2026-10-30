@@ -73,12 +73,6 @@
     }
 }
 
-/* The phone layout puts the navigation toggle in front of the brand. */
-:host-context([data-prism-mobile]) .prism-header {
-    grid-template-columns: auto minmax(min-content, var(--sw, 264px)) 1fr auto;
-    padding-left: 4px;
-}
-
 /* In the light theme the band sets itself apart; a hairline under it only adds noise. */
 :host-context(html[data-theme='light']) .prism-header {
     border-bottom-color: transparent;
@@ -220,6 +214,100 @@
 .prism-header__widgets--start {
     justify-content: flex-start;
     padding-left: 4px;
+}
+
+/* A wrapper for the end widgets that the phone layout turns into a strip of
+   its own. Out of the way everywhere else, so the actions keep their gap. */
+.prism-header__widgets--end {
+    display: contents;
+}
+
+/*
+ * The phone layout: one flex row of ☰, brand, widgets and ⋮. The subtitle,
+ * the build info pill and the theme switch leave the band; the pill and the
+ * switch move into the ⋮ menu. What is left gives way in a fixed order: the
+ * brand name shortens first, down to the logo alone, and only then do the
+ * widget strips start to scroll. Flex does the ordering. Shrinking is weighted
+ * by flex-shrink, and the name's factor is a thousand times the strips', so the
+ * name takes all of the shortfall until it is gone, leaving the logo, and the
+ * strips only then take what remains. The strips' factor stays at 1: factors
+ * that add up to less than 1 only ever apply that fraction of the shortfall.
+ */
+:host-context([data-prism-mobile]) .prism-header {
+    /* A stacking context for the glow, which loses the brand box it sat in.
+       Raised above the page and the full-screen navigation (20), since the ⋮
+       menu that opens out of the band stays inside this context. */
+    z-index: 30;
+    display: flex;
+    gap: 4px;
+    padding-left: 4px;
+}
+
+:host-context([data-prism-mobile]) .prism-header__nav-toggle,
+:host-context([data-prism-mobile]) prism-layout-menu,
+:host-context([data-prism-mobile]) .prism-header__brand prism-logo,
+:host-context([data-prism-mobile]) .prism-header__logo-img {
+    flex: none;
+}
+
+/*
+ * The brand box steps aside, so the logo and the text are flex items of the
+ * row themselves. As one box, the brand could not shrink below its min-content
+ * width, and with the name on one line that is the whole name: it would push
+ * the widgets and the menu out of the band instead of shortening.
+ */
+:host-context([data-prism-mobile]) .prism-header__brand {
+    display: contents;
+}
+
+/* No minimum width, so the name yields while the logo beside it stays whole. */
+:host-context([data-prism-mobile]) .prism-header__brand-text {
+    flex: 0 1000 auto;
+    min-width: 0;
+    margin: 0 6px 0 5px;
+    overflow: hidden;
+}
+
+:host-context([data-prism-mobile]) .prism-header__wordmark,
+:host-context([data-prism-mobile]) .prism-header__brand-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:host-context([data-prism-mobile]) .prism-header__brand-sub,
+:host-context([data-prism-mobile]) .prism-header__build-pill,
+:host-context([data-prism-mobile]) .prism-header__theme {
+    display: none;
+}
+
+:host-context([data-prism-mobile]) .prism-header__actions {
+    display: contents;
+}
+
+:host-context([data-prism-mobile]) .prism-header__widgets--start,
+:host-context([data-prism-mobile]) .prism-header__widgets--end {
+    display: flex;
+    flex: 0 1 auto;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    padding-left: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+:host-context([data-prism-mobile]) .prism-header__widgets--end {
+    margin-left: auto;
+}
+
+/* Each widget keeps its size and the strip scrolls instead. The host is
+   display: contents elsewhere, which would make the plugin's own element the
+   flex item, and this stylesheet cannot reach that one. */
+:host-context([data-prism-mobile]) prism-header-widget-host {
+    display: flex;
+    flex: none;
 }
 
 :focus-visible {

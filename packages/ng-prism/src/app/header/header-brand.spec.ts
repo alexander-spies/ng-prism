@@ -1,4 +1,4 @@
-import { headerBrand } from './header-brand.js';
+import { buildInfoLabel, headerBrand } from './header-brand.js';
 
 describe('headerBrand', () => {
     it('shows the ng-prism wordmark without a configured title', () => {
@@ -20,5 +20,20 @@ describe('headerBrand', () => {
     it('falls back to the light logo, then to none', () => {
         expect(headerBrand({ title: 'sg-ui', logo: { light: 'l.svg' } })).toEqual({ kind: 'title', title: 'sg-ui', logoUrl: 'l.svg' });
         expect(headerBrand({ title: 'sg-ui' })).toEqual({ kind: 'title', title: 'sg-ui', logoUrl: null });
+    });
+});
+
+describe('buildInfoLabel', () => {
+    it('joins the version and the short hash', () => {
+        expect(buildInfoLabel({ buildInfo: { version: '1.2.0', gitHash: 'abcdef123456' } })).toBe('v1.2.0 · abcdef1');
+    });
+
+    it('shows the hash alone without a version', () => {
+        expect(buildInfoLabel({ buildInfo: { gitHash: 'abcdef123456' } })).toBe('abcdef1');
+    });
+
+    it('is null without build info, or with nothing in it', () => {
+        expect(buildInfoLabel({})).toBeNull();
+        expect(buildInfoLabel({ buildInfo: {} })).toBeNull();
     });
 });
