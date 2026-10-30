@@ -1,7 +1,7 @@
 /* What every product scene shares: the lifted styleguide in a window on the brand ground, a camera, the caption. */
-/* The styleguide's own CSS, lifted from its builds (test-lib: ui-test.css, video-lib scoped .ngv: ui-video.css), once for
+/* The styleguide's own CSS, lifted from its builds (test-lib: ui-test.css, video-lib scoped .ngv: ui-video.css, test-lib at phone size scoped .ngm: ui-phone.css), once for
    the whole film; a film may hold either or both. */
-for (const name of ['ui-test.css', 'ui-video.css']) {
+for (const name of ['ui-test.css', 'ui-video.css', 'ui-phone.css']) {
     const css = kit.module(name);
     if (css) kit.css(css);
 }

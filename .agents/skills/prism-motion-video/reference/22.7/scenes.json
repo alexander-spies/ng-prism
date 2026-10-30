@@ -9,8 +9,16 @@
     "fps": 60,
     "background": "#080d19",
     "fonts": {
-        "sans": { "family": "Inter", "or": "instrument-sans", "weights": [400, 500, 600, 700] },
-        "mono": { "family": "JetBrains Mono", "or": "dm-mono", "weights": [400, 500, 600] }
+        "sans": {
+            "family": "Inter",
+            "or": "instrument-sans",
+            "weights": [400, 500, 600, 700]
+        },
+        "mono": {
+            "family": "JetBrains Mono",
+            "or": "dm-mono",
+            "weights": [400, 500, 600]
+        }
     },
     "scenes": [
         {
@@ -19,8 +27,24 @@
             "dur": 4,
             "desc": "Out of the mark's own blurred light the camera pulls back until the prism is sharp; a flare runs through it, the name slides out from behind it, 22.7 settles below."
         },
-        { "id": "look", "name": "Dark and light", "dur": 7, "desc": "The styleguide in its new look; the theme button switches it to light and back." },
-        { "id": "pages", "name": "Service pages", "dur": 7, "desc": "From the Time Ago pipe page, a click on Notification Service opens the service's own API page." },
+        {
+            "id": "look",
+            "name": "Dark and light",
+            "dur": 7,
+            "desc": "The styleguide in its new look; the theme button switches it to light and back."
+        },
+        {
+            "id": "mobile",
+            "name": "On a phone",
+            "dur": 7,
+            "desc": "The desktop styleguide moves aside and the same styleguide comes up on a phone; a tap on the menu opens the navigation full screen, a tap on Toggle opens it."
+        },
+        {
+            "id": "pages",
+            "name": "Service pages",
+            "dur": 7,
+            "desc": "From the Time Ago pipe page, a click on Notification Service opens the service's own API page."
+        },
         {
             "id": "compose",
             "name": "Real templates",
@@ -39,7 +63,17 @@
             "dur": 8,
             "desc": "The Form Field variant accepts the color-contrast rule with a reason; the A11y tab lists it as accepted, and the score stays 100."
         },
-        { "id": "perf", "name": "Bundle size", "dur": 5.5, "desc": "The Performance tab shows the size of the shipped source, without @Showcase and comments." },
-        { "id": "end", "name": "ng update", "dur": 4, "desc": "End card: the ng-prism logo and the update command." }
+        {
+            "id": "perf",
+            "name": "Bundle size",
+            "dur": 5.5,
+            "desc": "The Performance tab shows the size of the shipped source, without @Showcase and comments."
+        },
+        {
+            "id": "end",
+            "name": "ng update",
+            "dur": 4,
+            "desc": "End card: the ng-prism logo and the update command."
+        }
     ]
 }

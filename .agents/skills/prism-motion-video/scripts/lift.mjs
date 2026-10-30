@@ -19,7 +19,11 @@ const config = JSON.parse(readFileSync(configPath, 'utf8'));
 mkdirSync(outDir, { recursive: true });
 
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+// `viewport` lifts at another size (a phone: { width: 390, height: 844 }); `touch` emulates a touch screen, so
+// (pointer: coarse) and the touch-sized controls apply.
+const VW = config.viewport?.width ?? 1440,
+    VH = config.viewport?.height ?? 900;
+const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1, ...(config.touch ? { hasTouch: true, isMobile: true } : {}) });
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
 page.on('console', (m) => {
@@ -370,8 +374,8 @@ const scopeSel = (selText) => {
 const px = (n, base) => `${+((parseFloat(n) * base) / 100).toFixed(3)}px`;
 const fixValues = (body) =>
     body
-        .replace(/(-?\d*\.?\d+)(?:d|s|l)?vh\b/g, (_, n) => px(n, 900))
-        .replace(/(-?\d*\.?\d+)(?:d|s|l)?vw\b/g, (_, n) => px(n, 1440))
+        .replace(/(-?\d*\.?\d+)(?:d|s|l)?vh\b/g, (_, n) => px(n, VH))
+        .replace(/(-?\d*\.?\d+)(?:d|s|l)?vw\b/g, (_, n) => px(n, VW))
         .replace(/(font-family|--[\w-]*font[\w-]*)\s*:\s*([^;}]*)/g, (m, prop, val) => {
             if (/JetBrains/i.test(val)) return `${prop}: var(--mono, "JetBrains Mono", ui-monospace, monospace)`;
             if (/\bInter\b/.test(val)) return `${prop}: var(--sans, Inter, system-ui, sans-serif)`;
@@ -388,7 +392,7 @@ const processRule = (text) => {
     return scopeSel(text.slice(0, i)) + ' ' + fixValues(text.slice(i));
 };
 let css = cssOrder.map(processRule).join('\n');
-css += `\n.ngp { position:relative; width:1440px; height:900px; overflow:hidden; contain:layout paint; text-align:left; }\n.ngp-body { margin:0; width:100%; height:100%; }\n[data-lift-scroll] { overflow:hidden !important; }\n[data-lift-scroll] > * { translate: calc(-1 * var(--sx, 0px)) calc(-1 * var(--sy, 0px)); }\n`;
+css += `\n.ngp { position:relative; width:${VW}px; height:${VH}px; overflow:hidden; contain:layout paint; text-align:left; }\n.ngp-body { margin:0; width:100%; height:100%; }\n[data-lift-scroll] { overflow:hidden !important; }\n[data-lift-scroll] > * { translate: calc(-1 * var(--sx, 0px)) calc(-1 * var(--sy, 0px)); }\n`;
 writeFileSync(`${outDir}/${config.cssName}`, css);
 
 // html: also rewrite fonts inside the root style
@@ -403,7 +407,7 @@ for (const s of config.steps.filter((x) => x.capture)) {
               : m
     );
     h = h.replace(/url\(&quot;data:image\/svg\+xml,[^&]+&quot;\)/g, 'var(--ngp-logo)');
-    h = h.replace(/(-?\d*\.?\d+)(?:d|s|l)?vh\b/g, (_, n) => px(n, 900)).replace(/(-?\d*\.?\d+)(?:d|s|l)?vw\b/g, (_, n) => px(n, 1440));
+    h = h.replace(/(-?\d*\.?\d+)(?:d|s|l)?vh\b/g, (_, n) => px(n, VH)).replace(/(-?\d*\.?\d+)(?:d|s|l)?vw\b/g, (_, n) => px(n, VW));
     writeFileSync(`${outDir}/${s.capture}.html`, h);
 }
 console.log(report.join('\n'));
