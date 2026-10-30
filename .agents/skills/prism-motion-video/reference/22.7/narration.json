@@ -8,5 +8,5 @@
     { "at": 32.9, "until": 40.0, "text": "A component that only lives inside another becomes a part, shown on its parent's page." },
     { "at": 40.4, "until": 48.0, "text": "Accessibility violations you accept stay visible, with their reason, but no longer count against the score." },
     { "at": 48.4, "until": 53.5, "text": "And bundle size measures the code you actually ship." },
-    { "at": 53.9, "until": 57.5, "text": "Update with one command." }
+    { "at": 53.9, "until": 57.5, "text": "Try it out!" }
 ]

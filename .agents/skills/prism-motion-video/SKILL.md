@@ -44,7 +44,7 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
 - **Sound:** no music. In the film only keystrokes (automatic from `kit.typist`) and the cursor's clicks (`CLICKS`); a
   narration goes on the exported MP4 afterwards (below). It opens with the sonic logo, `templates/sonic-logo.flac`
   (the voice Lily whispering "N G prism" in a hall), at 0.5 s into the title; everything after it is the ElevenLabs
-  voice Chris, an advertising read. The end card shows the logo without speaking it.
+  voice Chris, an advertising read. The end card shows the logo without speaking it; its line is "Try it out!".
 - **Rejected, don't bring back:** mark pieces flying in, a light beam with a spectrum fan, twinkling stars, a ray burst,
   a second shine on the title (one sheen through prism and name, like the end card), music of any kind, the macOS
   system voices.
@@ -91,12 +91,13 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
 12. **Narrate,** where the maintainer wants a voice: one line per scene, written for a listener, approved by the
     maintainer before anything is generated. The first two lines are fixed: `{ "at": 0.5, "logo": true }`, which puts
     the sonic logo in (the master has no voice of any kind), then the title's own line from 2.1 s: "What's new in
-    twenty-two point seven." with the release's minor spelled out, for the tour its slogan. Every other line starts
-    0.3–0.6 s after its cut and ends before the next line; `until` is the cut that ends its scene, which it may overrun
-    by 0.6 s. At the default `--tempo 1.05` the voice speaks about 2.6 words a second. Spell what it would read wrongly
-    as it should sound (`N G prism`, `J S Doc`). Write the lines to `reference/<version>/narration.json` (like
-    `reference/22.7/narration.json`), check the fit against the web encode from step 11 with
-    `node scripts/narrate.mjs <encode>.mp4 reference/<version>/narration.json --dry`, then narrate it with
+    twenty-two point seven." with the release's minor spelled out, for the tour its slogan. The end card always says
+    just "Try it out!", 0.4 s after its cut. Every other line starts 0.3–0.6 s after its cut and ends before the next
+    line; `until` is the cut that ends its scene, which it may overrun by 0.6 s. At the default `--tempo 1.05` the voice
+    speaks about 2.6 words a second. Spell what it would read wrongly as it should sound (`N G prism`, `J S Doc`). Write
+    the lines to `reference/<version>/narration.json` (like `reference/22.7/narration.json`), check the fit against the
+    web encode from step 11 with `node scripts/narrate.mjs <encode>.mp4 reference/<version>/narration.json --dry`, then
+    narrate it with
     `node scripts/narrate.mjs <encode>.mp4 reference/<version>/narration.json <out>.mp4 --title "ng-prism <version>"`.
     The voice comes from ElevenLabs' API on the free plan and needs `ELEVENLABS_API_KEY` in the shell (the
     maintainer's is in `~/.zshrc`). The free plan can't use voices from ElevenLabs' library over the API, only its
@@ -104,8 +105,8 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
     `.videos/narration-cache/`: `--dry` already generates the lines it measures, so it is the run that spends the
     credits, and the real run and a run after editing one line reuse what didn't change. The free plan has 10,000
     characters a month, a film's narration about 700. A line that sounds wrong gets a `"seed"` (any other number) for
-    another take. The script ducks the clicks under the voice, normalises to −16 LUFS, copies the picture and titles
-    the MP4 "ng-prism <version> · voice: elevenlabs.io". Play the result to the maintainer
+    another take. The script ducks the clicks under the voice, normalises to −16 LUFS, copies the picture and titles the
+    MP4 "ng-prism <version> · voice: elevenlabs.io". Play the result to the maintainer
     (`open -a "QuickTime Player" <out>.mp4`) before it replaces anything.
 13. **Deliver:** the finished release clip (encoded, narrated) goes to `.videos/ng-prism-<version>.mp4` at the repo root,
     which is gitignored: the maintainer attaches it to the release from there. Its `narration.json` is committed. The
