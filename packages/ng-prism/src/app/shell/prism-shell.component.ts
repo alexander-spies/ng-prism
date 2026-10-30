@@ -27,6 +27,7 @@ import { PrismVariantRibbonComponent } from '../variant-ribbon/prism-variant-rib
 import { nextViewId } from '../view-tab-bar/next-view-id.js';
 import { PrismViewPanelHostComponent } from '../view-tab-bar/prism-view-panel-host.component.js';
 import { PrismViewTabBarComponent } from '../view-tab-bar/prism-view-tab-bar.component.js';
+import { layoutShortcut } from './layout-shortcut.js';
 import { panelSpace } from './panel-space.js';
 import { selectInstead } from './select-instead.js';
 import { shouldSelectFirst } from './should-select-first.js';
@@ -177,20 +178,19 @@ export class PrismShellComponent {
             this.mobileLayout.closeNav();
             return;
         }
-        if (!e.altKey) return;
-        switch (e.code) {
-            case 'KeyS':
+        switch (layoutShortcut(e, this.mobileLayout.mobile())) {
+            case 'sidebar':
                 e.preventDefault();
                 this.layout.toggleSidebar();
                 break;
             // Alt+T toggles the variant rail only. It used to hide the component
             // head as well, but the head now carries the Playground/API switcher and
             // hiding it would take primary navigation with it.
-            case 'KeyT':
+            case 'toolbar':
                 e.preventDefault();
                 this.layout.toggleToolbar();
                 break;
-            case 'KeyA':
+            case 'addons':
                 e.preventDefault();
                 this.layout.toggleAddons();
                 break;
