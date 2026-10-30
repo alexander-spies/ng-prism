@@ -56,3 +56,9 @@
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;
 }
+
+@media (pointer: coarse) {
+    .panel-tabs {
+        height: 44px;
+    }
+}

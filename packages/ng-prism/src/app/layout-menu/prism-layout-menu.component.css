@@ -112,3 +112,9 @@ kbd {
     margin: 4px 0;
     background: var(--prism-border);
 }
+
+@media (pointer: coarse) {
+    .layout-menu__item {
+        min-height: 44px;
+    }
+}

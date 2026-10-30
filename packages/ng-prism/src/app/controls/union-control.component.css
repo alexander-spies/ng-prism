@@ -29,3 +29,10 @@
     background: var(--prism-primary-bg);
     border-color: color-mix(in srgb, var(--prism-primary) 55%, transparent);
 }
+
+@media (pointer: coarse) {
+    .ctl-pill {
+        min-width: 40px;
+        height: 40px;
+    }
+}

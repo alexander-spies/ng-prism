@@ -314,3 +314,10 @@
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;
 }
+
+/* Touch screens: the band the shell's row reserves for it (see prism-shell.component.css). */
+@media (pointer: coarse) {
+    .prism-header {
+        height: calc(48px * var(--density, 1));
+    }
+}

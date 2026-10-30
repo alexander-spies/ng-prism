@@ -157,3 +157,9 @@
 .prism-toolmenu__row button.is-na:not(.is-on) {
     color: var(--prism-text-muted);
 }
+
+@media (pointer: coarse) {
+    .prism-toolmenu__row button {
+        min-height: 40px;
+    }
+}

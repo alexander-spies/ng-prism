@@ -83,3 +83,13 @@
     color: var(--prism-primary);
     content: '✓';
 }
+
+@media (pointer: coarse) {
+    .view-menu__trigger {
+        height: 40px;
+    }
+
+    .view-menu__item {
+        min-height: 44px;
+    }
+}

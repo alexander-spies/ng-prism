@@ -57,3 +57,9 @@
     font-family: var(--font-mono);
     font-size: var(--fs-sm);
 }
+
+@media (pointer: coarse) {
+    .prism-segment {
+        min-height: 40px;
+    }
+}

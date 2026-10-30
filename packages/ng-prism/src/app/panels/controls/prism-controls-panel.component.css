@@ -39,6 +39,14 @@
     border-bottom: 1px solid var(--prism-border);
 }
 
+/* A narrow panel, as on a phone: the label above its control, the control at full width. */
+@container (max-width: 520px) {
+    .ctl-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+}
+
 .ctl-label {
     display: flex;
     flex-wrap: wrap;

@@ -20,11 +20,6 @@
    title truncates with an ellipsis and the chip stays at the right edge. The crumb gives way
    first, being the least important text in the row. */
 
-/* Room for a finger on the ⓘ and the view menu. */
-:host-context([data-prism-mobile]) .comp-head {
-    height: 44px;
-}
-
 .comp-crumb {
     flex: 0 8 auto;
     min-width: 0;

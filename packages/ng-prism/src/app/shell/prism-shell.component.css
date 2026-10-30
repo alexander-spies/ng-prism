@@ -260,3 +260,25 @@
     font-size: var(--fs-lg);
     color: var(--prism-text-muted);
 }
+
+/*
+ * Touch screens: bands a finger can hit. The band sizes are density tokens on
+ * <html>, redefined here for the shell's subtree. The header carries its own
+ * inline copy of the tokens (the navy set), so it repeats its height itself;
+ * keep the two in step. The resize grips get a wider invisible hit zone.
+ */
+@media (pointer: coarse) {
+    .prism-shell {
+        --band-header: calc(48px * var(--density, 1));
+        --band-head: calc(44px * var(--density, 1));
+        --band-rail: calc(44px * var(--density, 1));
+    }
+
+    .prism-resizer-col::before {
+        inset: 0 -12px;
+    }
+
+    .prism-resizer-row::before {
+        inset: -16px 0;
+    }
+}
