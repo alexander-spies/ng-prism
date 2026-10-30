@@ -1,0 +1,11 @@
+[
+    { "at": 1.0, "until": 4.0, "text": "What's new in N G prism twenty-two point seven." },
+    { "at": 4.4, "until": 11.0, "text": "A new look, built on one brand palette, in dark and in light." },
+    { "at": 11.4, "until": 18.0, "text": "It's fully responsive now. On a phone, the navigation opens full screen, and every control fits a finger." },
+    { "at": 18.4, "until": 25.0, "text": "Services and pipes get their own pages, generated from their code and their J S Doc." },
+    { "at": 25.4, "until": 32.5, "text": "Showcases can hold real templates now, compiled by Angular, with components and directives working together." },
+    { "at": 32.9, "until": 40.0, "text": "A component that only lives inside another becomes a part, shown on its parent's page." },
+    { "at": 40.4, "until": 48.0, "text": "Accessibility violations you accept stay visible, with their reason, but no longer count against the score." },
+    { "at": 48.4, "until": 53.5, "text": "And bundle size measures the code you actually ship." },
+    { "at": 53.9, "until": 57.5, "text": "Update with one command." }
+]
