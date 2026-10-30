@@ -196,6 +196,16 @@ describe('PrismMobileLayoutService', () => {
         expect(service.panelCollapsed()).toBe(false);
     });
 
+    it('should open a folded panel on request', () => {
+        installMatchMedia(true);
+        const service = create();
+
+        service.onPanelTab('controls', 'controls');
+        service.expandPanel();
+
+        expect(service.panelCollapsed()).toBe(false);
+    });
+
     it('should never write to localStorage', () => {
         const setItem = jest.spyOn(Storage.prototype, 'setItem');
 

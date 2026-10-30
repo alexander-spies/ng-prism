@@ -7,7 +7,7 @@
             panelIdPrefix="panel-"
             [items]="tabItems()"
             [active]="panelService.activePanelId()"
-            (activeChange)="$event && panelService.activePanelId.set($event)"
+            (activeChange)="onTabActivated($event)"
             (tabClick)="onTabClick($event)" />
     </div>
     <div

@@ -149,6 +149,13 @@ export class PrismPanelHostComponent {
         if (this.mobileLayout.mobile()) this.mobileLayout.onPanelTab(id, this.panelService.activePanelId());
     }
 
+    /** Another tab became active, also by the arrow keys, which report no click: on a phone that opens a folded panel. */
+    protected onTabActivated(id: string | null): void {
+        if (id === null) return;
+        this.panelService.activePanelId.set(id);
+        if (this.mobileLayout.mobile()) this.mobileLayout.expandPanel();
+    }
+
     private ensurePanelLoaded(panel: PanelDefinition): void {
         if (this.renderedPanels().has(panel.id)) return;
 

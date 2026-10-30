@@ -92,6 +92,11 @@ export class PrismMobileLayoutService {
         this.collapsed.set(false);
     }
 
+    /** Opens a folded panel: another panel tab became active, by a tap or by the arrow keys. */
+    expandPanel(): void {
+        this.collapsed.set(false);
+    }
+
     /** A tap on the active tab folds the panel away or opens it again; a tap on another tab always opens it. */
     onPanelTab(tappedId: string, activeId: string): void {
         if (tappedId === activeId) this.collapsed.update((v) => !v);
