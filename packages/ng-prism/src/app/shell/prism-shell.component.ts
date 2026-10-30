@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, HostListener, inject, untracked } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, HostListener, inject, untracked } from '@angular/core';
 import type { NgPrismConfig } from '../../plugin/plugin.types.js';
 import { canvasOverlayTokens } from '../canvas/canvas-overlay-tokens.js';
 import { PrismCanvasPinRowComponent } from '../canvas/prism-canvas-pin-row.component.js';
@@ -27,6 +27,7 @@ import { PrismVariantRibbonComponent } from '../variant-ribbon/prism-variant-rib
 import { nextViewId } from '../view-tab-bar/next-view-id.js';
 import { PrismViewPanelHostComponent } from '../view-tab-bar/prism-view-panel-host.component.js';
 import { PrismViewTabBarComponent } from '../view-tab-bar/prism-view-tab-bar.component.js';
+import { panelSpace } from './panel-space.js';
 import { selectInstead } from './select-instead.js';
 import { shouldSelectFirst } from './should-select-first.js';
 
@@ -146,6 +147,22 @@ export class PrismShellComponent {
             if (item && this.vanished()) {
                 untracked(() => selectInstead(item, this.navigationService, this.panelService));
             }
+        });
+
+        // The phone layout bounds the panel by the space it shares with the
+        // canvas, so a drag to the top or a turned phone leaves the canvas its
+        // minimum. `.prism-main` is always rendered; it resizes with the window.
+        const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+        const destroyRef = inject(DestroyRef);
+
+        afterNextRender(() => {
+            const main = host.querySelector('.prism-main');
+
+            if (!main || typeof ResizeObserver !== 'function') return;
+            const observer = new ResizeObserver(() => this.mobileLayout.setPanelSpace(panelSpace(main)));
+
+            observer.observe(main);
+            destroyRef.onDestroy(() => observer.disconnect());
         });
     }
 

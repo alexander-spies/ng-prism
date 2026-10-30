@@ -158,6 +158,23 @@ describe('PrismMobileLayoutService', () => {
         expect(service.panelHeight()).toBe(292);
     });
 
+    /** Review Focus 2: dragged to the top, then turned, the canvas still has its 96px. */
+    it('should keep the canvas visible when the phone turns after a drag to the top', () => {
+        installMatchMedia(true);
+        const service = create();
+
+        service.setPanelSpace(708);
+        service.setPanelHeight(10_000);
+        expect(service.panelHeight()).toBe(612);
+
+        setHeight(390);
+        window.dispatchEvent(new Event('resize'));
+        service.setPanelSpace(254);
+
+        expect(service.panelHeight()).toBe(158);
+        expect(254 - service.panelHeight()).toBeGreaterThanOrEqual(96);
+    });
+
     it('should fold and unfold the panel on a tap of the active tab', () => {
         installMatchMedia(true);
         const service = create();

@@ -216,6 +216,18 @@
     height: auto;
 }
 
+/* The phone layout's guarantee that the canvas never vanishes: the panel gives
+   way before the canvas goes below MOBILE_PANEL.minCanvas (mobile-layout.ts),
+   even before the shell has measured the space or while a toggle changes it. */
+.prism-shell--mobile .prism-main__panel {
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.prism-shell--mobile .prism-canvas-wrap {
+    min-height: 96px;
+}
+
 .prism-shell__empty {
     display: flex;
     flex-direction: column;

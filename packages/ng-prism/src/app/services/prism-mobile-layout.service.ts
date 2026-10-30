@@ -18,14 +18,16 @@ export class PrismMobileLayoutService {
     private readonly collapsed = signal(false);
     /** The panel height the reader dragged to, `null` until they do. */
     private readonly chosen = signal<number | null>(null);
+    /** The height the canvas and the panel share, measured by the shell; `null` until it has. */
+    private readonly space = signal<number | null>(null);
 
     readonly mobile = this.isMobile.asReadonly();
     readonly viewportHeight = this.height.asReadonly();
     readonly navOpen = this.open.asReadonly();
     readonly panelCollapsed = this.collapsed.asReadonly();
     /** Follows the viewport, so a turned phone gets a panel that fits: a dragged height is clamped again, not forgotten. */
-    readonly panelHeight = computed(() => mobilePanelHeight(this.height(), this.chosen()));
-    readonly panelBounds = computed(() => mobilePanelBounds(this.height()));
+    readonly panelHeight = computed(() => mobilePanelHeight(this.height(), this.chosen(), this.space()));
+    readonly panelBounds = computed(() => mobilePanelBounds(this.height(), this.space()));
 
     constructor() {
         const destroyRef = inject(DestroyRef);
@@ -76,6 +78,11 @@ export class PrismMobileLayoutService {
         if (!this.open()) return;
         this.open.set(false);
         document.getElementById(NAV_TOGGLE_ID)?.focus();
+    }
+
+    /** The shell reports the height the canvas and the panel share, so the panel never takes the canvas's last 96px. */
+    setPanelSpace(px: number | null): void {
+        this.space.set(px);
     }
 
     setPanelHeight(px: number): void {

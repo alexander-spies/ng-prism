@@ -22,19 +22,30 @@ export const NAV_SCREEN_ID = 'prism-nav-screen';
 /**
  * The addon panel on a phone, relative to the height of the viewport: it starts
  * at `share`, can be dragged up to `maxShare` but not below `min`, and starts
- * folded away below `collapseBelow`, where the canvas would otherwise all but vanish.
+ * folded away below `collapseBelow`, where the canvas would otherwise all but
+ * vanish. Whatever the share allows, the canvas keeps `minCanvas` of the space
+ * it shares with the panel.
  */
-export const MOBILE_PANEL = { share: 0.45, maxShare: 0.75, min: 160, collapseBelow: 500 } as const;
+export const MOBILE_PANEL = { share: 0.45, maxShare: 0.75, min: 160, collapseBelow: 500, minCanvas: 96 } as const;
 
-export function mobilePanelBounds(viewportHeight: number): { min: number; max: number } {
-    const min = MOBILE_PANEL.min;
+/**
+ * How far the panel can be dragged. `space` is the height the canvas and the
+ * panel share, below the header, the head and the rail; until the shell has
+ * measured it, only the share of the viewport bounds the panel. When the two
+ * conflict on a short screen the canvas wins: the minimum drops to the maximum
+ * rather than the bounds crossing.
+ */
+export function mobilePanelBounds(viewportHeight: number, space: number | null = null): { min: number; max: number } {
+    const byShare = viewportHeight * MOBILE_PANEL.maxShare;
+    const bySpace = space === null ? Infinity : space - MOBILE_PANEL.minCanvas;
+    const max = Math.max(0, Math.floor(Math.min(byShare, bySpace)));
 
-    return { min, max: Math.max(min, Math.floor(viewportHeight * MOBILE_PANEL.maxShare)) };
+    return { min: Math.min(MOBILE_PANEL.min, max), max };
 }
 
 /** The panel height for a viewport height: the reader's own choice if there is one, else the default share, within the bounds either way. */
-export function mobilePanelHeight(viewportHeight: number, chosen: number | null): number {
-    const { min, max } = mobilePanelBounds(viewportHeight);
+export function mobilePanelHeight(viewportHeight: number, chosen: number | null, space: number | null = null): number {
+    const { min, max } = mobilePanelBounds(viewportHeight, space);
     const wanted = chosen ?? Math.round(viewportHeight * MOBILE_PANEL.share);
 
     return Math.max(min, Math.min(max, wanted));
