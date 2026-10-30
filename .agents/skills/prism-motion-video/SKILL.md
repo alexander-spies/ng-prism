@@ -94,6 +94,9 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
     Accessibility → Spoken Content → System voice → Manage Voices → English → Ava (Premium)); it ducks the clicks
     under the voice, normalises to −16 LUFS and copies the picture. Play the result to the maintainer
     (`open -a "QuickTime Player" <out>.mp4`) before it replaces anything.
+13. **Deliver:** the finished release clip (encoded, narrated) goes to `.videos/ng-prism-<version>.mp4` at the repo root,
+    which is gitignored: the maintainer attaches it to the release from there. Its narration goes to
+    `reference/<version>/narration.json`. The docs tour is the one film in git (`docs/assets/video/`).
 
 ## Reference: what approved looks like
 
