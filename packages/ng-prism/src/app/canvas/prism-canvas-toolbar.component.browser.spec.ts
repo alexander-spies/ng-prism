@@ -1,9 +1,11 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import { ApplicationRef, ɵresolveComponentResources as resolveComponentResources } from '@angular/core';
+import { ApplicationRef, signal, ɵresolveComponentResources as resolveComponentResources } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import type { ShowcaseState } from '../../decorator/showcase.types.js';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
+import { PrismCanvasService } from '../services/prism-canvas.service.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
@@ -143,5 +145,60 @@ describe('PrismCanvasToolbarComponent: tools menu trigger', () => {
 
         expect(dot()).toBeNull();
         expect(trigger().getAttribute('aria-label')).toBe('Canvas, state, zoom and width');
+    });
+});
+
+describe('PrismCanvasToolbarComponent: phone layout', () => {
+    const DESKTOP_TOOLS = ['Guides', 'Rulers', 'Viewport width', 'Measure'];
+
+    async function render(mobile: boolean, rulers = false): Promise<ComponentFixture<PrismCanvasToolbarComponent>> {
+        TestBed.resetTestingModule();
+        TestBed.configureTestingModule({
+            providers: [
+                { provide: PRISM_MANIFEST, useValue: { components: [COMP] } },
+                { provide: PrismMobileLayoutService, useValue: { mobile: signal(mobile) } }
+            ]
+        });
+        await resolveComponentResources(readAppResource);
+        TestBed.inject(PrismNavigationService).select(COMP);
+        TestBed.inject(PrismCanvasService).rulers.set(rulers);
+        TestBed.inject(ApplicationRef).tick();
+
+        const fixture = TestBed.createComponent(PrismCanvasToolbarComponent);
+
+        fixture.detectChanges();
+        return fixture;
+    }
+
+    function labels(fixture: ComponentFixture<PrismCanvasToolbarComponent>): string[] {
+        return [...fixture.nativeElement.querySelectorAll('.prism-toolrail button')].map((b: Element) => b.getAttribute('aria-label') ?? '');
+    }
+
+    function sections(fixture: ComponentFixture<PrismCanvasToolbarComponent>): string[] {
+        return [...fixture.nativeElement.querySelectorAll('.prism-toolmenu__lbl')].map((l: Element) => l.textContent?.trim() ?? '');
+    }
+
+    afterEach(() => localStorage.clear());
+
+    it('keeps every tool on the desktop layout', async () => {
+        const fixture = await render(false);
+
+        expect(labels(fixture)).toEqual(expect.arrayContaining([...DESKTOP_TOOLS, 'Angular template']));
+        expect(sections(fixture)).toContain('Width');
+    });
+
+    it('leaves the measuring tools and the width out on a phone', async () => {
+        const fixture = await render(true);
+
+        for (const tool of DESKTOP_TOOLS) expect(labels(fixture)).not.toContain(tool);
+        expect(labels(fixture)).toContain('Angular template');
+        expect(sections(fixture)).toEqual(expect.arrayContaining(['Canvas', 'State', 'Zoom']));
+        expect(sections(fixture)).not.toContain('Width');
+    });
+
+    it('does not make room for rulers a desktop session switched on', async () => {
+        const fixture = await render(true, true);
+
+        expect(fixture.nativeElement.querySelector('.prism-toolrail').classList.contains('has-rulers')).toBe(false);
     });
 });

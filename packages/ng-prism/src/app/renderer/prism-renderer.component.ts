@@ -32,6 +32,7 @@ import { PrismCanvasService } from '../services/prism-canvas.service.js';
 import { PrismCaptureService } from '../services/prism-capture.service.js';
 import { PrismEventLogService } from '../services/prism-event-log.service.js';
 import { PrismManifestService } from '../services/prism-manifest.service.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
@@ -61,6 +62,14 @@ export class PrismRendererComponent {
     protected readonly capture = inject(PrismCaptureService);
     protected readonly variantBg = inject(PrismVariantBgService);
     private readonly pseudoState = inject(PrismPseudoStateService);
+    private readonly mobileLayout = inject(PrismMobileLayoutService);
+
+    /**
+     * Guides, rulers and the measuring tool, which the phone layout leaves out:
+     * they need a hovering pointer, and a phone's canvas already is its viewport.
+     * The toggles stay as the reader set them, so the desktop layout brings them back.
+     */
+    protected readonly desktopTools = computed(() => !this.mobileLayout.mobile());
 
     /**
      * The width the canvas is actually constrained to, `null` for unconstrained.
@@ -74,8 +83,11 @@ export class PrismRendererComponent {
      * `setViewportWidth` during a capture run would have recorded every
      * visual-regression baseline at the constrained width with no visible chrome
      * to reveal it. One computed makes the guarantee structural.
+     *
+     * The phone layout is unconstrained for the same structural reason: the
+     * component there is meant to meet the device's own width.
      */
-    protected readonly viewportWidth = computed(() => (this.capture.active() ? null : this.canvasService.viewportWidth()));
+    protected readonly viewportWidth = computed(() => (this.capture.active() || !this.desktopTools() ? null : this.canvasService.viewportWidth()));
 
     protected readonly VIEWPORT_MIN = VIEWPORT_MIN;
     protected readonly VIEWPORT_MAX = VIEWPORT_MAX;

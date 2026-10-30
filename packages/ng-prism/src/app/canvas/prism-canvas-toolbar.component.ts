@@ -6,6 +6,7 @@ import { VIEWPORT_SNAPS } from '../../shared/viewport.type.js';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { evaluateStateFit, type StateFit } from '../pseudo/state-fit.js';
 import { PrismCanvasService } from '../services/prism-canvas.service.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
@@ -42,6 +43,7 @@ export class PrismCanvasToolbarComponent {
     protected readonly pseudoState = inject(PrismPseudoStateService);
     private readonly navigation = inject(PrismNavigationService);
     private readonly renderer = inject(PrismRendererService);
+    protected readonly mobileLayout = inject(PrismMobileLayoutService);
 
     /**
      * The pseudo states the canvas can force, as toggles. Several can be on at
