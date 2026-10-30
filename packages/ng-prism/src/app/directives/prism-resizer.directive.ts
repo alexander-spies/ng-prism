@@ -1,4 +1,5 @@
 import { Directive, ElementRef, inject, input, output } from '@angular/core';
+import { trackPointerDrag } from './pointer-drag.js';
 import { resizeValue } from './resize-value.js';
 
 @Directive({
@@ -8,7 +9,10 @@ import { resizeValue } from './resize-value.js';
         '[style.cursor]': 'axis() === "x" ? "col-resize" : "row-resize"',
         '[attr.role]': '"separator"',
         '[attr.aria-orientation]': 'axis() === "x" ? "vertical" : "horizontal"',
-        '(mousedown)': 'onMouseDown($event)',
+        '(pointerdown)': 'onPointerDown($event)',
+        // The browser would otherwise claim a touch on the grip for scrolling or
+        // zooming and cancel the drag before it starts.
+        '[style.touch-action]': '"none"',
         '(keydown)': 'onKeyDown($event)',
         '[attr.tabindex]': '"0"'
     }
@@ -37,33 +41,17 @@ export class PrismResizerDirective {
     /** How far one arrow key moves the value. */
     private static readonly STEP = 10;
 
-    protected onMouseDown(e: MouseEvent): void {
-        // Primary button only. Without this a right-click arms the document-level
-        // listeners below, the context menu takes the pointer so the matching
-        // mouseup never arrives, and the drag stays live afterwards, so the value
-        // then follows the cursor with no button held. `preventDefault` does not
-        // suppress `contextmenu`, so the guard has to be here.
+    protected onPointerDown(e: PointerEvent): void {
+        // Primary button only, and a touch or pen contact reports 0 as well. Without
+        // this a right-click would start a drag the context menu then takes the
+        // pointer away from, so the value would follow the cursor with no button
+        // held. `preventDefault` does not suppress `contextmenu`, so the guard has
+        // to be here.
         if (e.button !== 0) return;
         e.preventDefault();
-        const startPos = this.axis() === 'x' ? e.clientX : e.clientY;
         const startVal = this.value();
 
-        this.el.nativeElement.classList.add('active');
-
-        const onMove = (ev: MouseEvent) => {
-            const delta = this.axis() === 'x' ? ev.clientX - startPos : startPos - ev.clientY;
-
-            this.valueChange.emit(resizeValue(startVal, delta, this.scale(), this.min(), this.max()));
-        };
-
-        const onUp = () => {
-            this.el.nativeElement.classList.remove('active');
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-        };
-
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+        trackPointerDrag(this.el.nativeElement, e, this.axis(), (delta) => this.valueChange.emit(resizeValue(startVal, delta, this.scale(), this.min(), this.max())));
     }
 
     /**
