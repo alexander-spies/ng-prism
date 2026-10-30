@@ -1,12 +1,13 @@
 <div
     class="prism-shell"
+    [class.prism-shell--mobile]="mobileLayout.mobile()"
     [style]="shellStyle()">
     <prism-header class="prism-shell__header" />
 
     <div
         class="prism-body"
-        [class.prism-body--no-sidebar]="!layout.sidebarVisible()">
-        @if (layout.sidebarVisible()) {
+        [class.prism-body--no-sidebar]="!showSidebar()">
+        @if (showSidebar()) {
             <aside class="prism-sidebar-wrap">
                 <prism-sidebar />
                 <div class="prism-sidebar-foot">
@@ -36,7 +37,7 @@
 
         <main
             class="prism-main"
-            [style.--ph.px]="showPanel() ? layout.panelHeight() : 0">
+            [style.--ph.px]="showPanel() ? panelSize().value : 0">
             @if (navigationService.activeComponent()) {
                 @if (panelService.activeViewId() === 'renderer') {
                     <prism-component-head>
@@ -62,19 +63,23 @@
                     <prism-view-panel-host class="prism-main__canvas" />
                 }
                 @if (showPanel()) {
+                    @if (!panelCollapsed()) {
+                        <div
+                            class="prism-resizer-row"
+                            prismResizer
+                            axis="y"
+                            [min]="panelSize().min"
+                            [max]="panelSize().max"
+                            aria-label="Panel height"
+                            [attr.aria-valuemin]="panelSize().min"
+                            [attr.aria-valuemax]="panelSize().max"
+                            [attr.aria-valuenow]="panelSize().value"
+                            [value]="panelSize().value"
+                            (valueChange)="onPanelResize($event)"></div>
+                    }
                     <div
-                        class="prism-resizer-row"
-                        prismResizer
-                        axis="y"
-                        [min]="panelBounds.min"
-                        [max]="panelBounds.max"
-                        aria-label="Panel height"
-                        [attr.aria-valuemin]="panelBounds.min"
-                        [attr.aria-valuemax]="panelBounds.max"
-                        [attr.aria-valuenow]="layout.panelHeight()"
-                        [value]="layout.panelHeight()"
-                        (valueChange)="layout.setPanelHeight($event)"></div>
-                    <div class="prism-main__panel">
+                        class="prism-main__panel"
+                        [class.prism-main__panel--collapsed]="panelCollapsed()">
                         <prism-panel-host />
                     </div>
                 }

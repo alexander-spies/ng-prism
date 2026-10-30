@@ -22,6 +22,10 @@
      is why this one track is the only place that needs saying. */
     grid-template-columns: minmax(0, 1fr);
     height: 100vh;
+
+    /* The visible height on a phone, without the part the browser's own bars
+       cover. Browsers without dynamic viewport units keep 100vh from above. */
+    height: 100dvh;
     overflow: hidden;
     font-family: var(--font-sans, var(--prism-font-sans));
     color: var(--prism-text);
@@ -187,6 +191,10 @@
     height: var(--ph, 300px);
     min-height: 0;
     overflow: hidden;
+}
+
+.prism-main__panel--collapsed {
+    height: auto;
 }
 
 .prism-shell__empty {

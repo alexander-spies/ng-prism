@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, model, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, model, output, viewChildren } from '@angular/core';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import type { BadgeTone } from './badge.types.js';
 import { nextRovingIndex, rovingTabStop } from './roving-focus.js';
@@ -45,6 +45,13 @@ export class PrismTabsComponent {
     /** When set, each tab points at `<prefix><id>` through `aria-controls`. */
     readonly panelIdPrefix = input<string | null>(null);
 
+    /**
+     * Every click on a tab, the active one included, before `active` changes.
+     * `activeChange` stays silent when the active tab is clicked again, which
+     * the phone layout needs to fold its panel away.
+     */
+    readonly tabClick = output<string>();
+
     private readonly tabs = viewChildren<ElementRef<HTMLButtonElement>>('tab');
 
     /** The tab in the tab order: the active one, or the first when the active id matches none. */
@@ -64,6 +71,7 @@ export class PrismTabsComponent {
     }
 
     protected select(item: PrismTabItem): void {
+        this.tabClick.emit(item.id);
         this.active.set(item.id);
     }
 

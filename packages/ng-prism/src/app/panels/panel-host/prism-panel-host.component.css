@@ -34,6 +34,16 @@
     border-radius: 4px;
 }
 
+/* Folded away on a phone: only the tab bar shows. The panes stay in the DOM
+   so a panel keeps its state until it is opened again. */
+.panel--collapsed {
+    height: auto;
+}
+
+.panel--collapsed .panel-body {
+    display: none;
+}
+
 .panel-pane {
     height: 100%;
 }

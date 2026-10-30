@@ -2,6 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, EnvironmentInjector, inject, signal, type Type, untracked } from '@angular/core';
 import type { NgPrismConfig, PanelDefinition, RuntimeManifest } from '../../../plugin/plugin.types.js';
 import { PrismEventLogService } from '../../services/prism-event-log.service.js';
+import { PrismMobileLayoutService } from '../../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../../services/prism-navigation.service.js';
 import { PrismPanelService } from '../../services/prism-panel.service.js';
 import { PrismPluginService } from '../../services/prism-plugin.service.js';
@@ -38,6 +39,7 @@ export class PrismPanelHostComponent {
     private readonly pluginService = inject(PrismPluginService);
     private readonly nav = inject(PrismNavigationService);
     protected readonly panelService = inject(PrismPanelService);
+    protected readonly mobileLayout = inject(PrismMobileLayoutService);
     protected readonly envInjector = inject(EnvironmentInjector);
     private readonly auditService = inject(A11yAuditService);
     private readonly rendererService = inject(PrismRendererService);
@@ -140,6 +142,11 @@ export class PrismPanelHostComponent {
                 this.pruneRenderedPanels(panels, panel ? activeId : null);
             });
         });
+    }
+
+    /** On a phone, a tap on the active tab folds the panel down to its tab bar, and any tab opens it again. */
+    protected onTabClick(id: string): void {
+        if (this.mobileLayout.mobile()) this.mobileLayout.onPanelTab(id, this.panelService.activePanelId());
     }
 
     private ensurePanelLoaded(panel: PanelDefinition): void {

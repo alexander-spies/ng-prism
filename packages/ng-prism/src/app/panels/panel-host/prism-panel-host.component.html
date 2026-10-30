@@ -1,11 +1,14 @@
-<div class="panel">
+<div
+    class="panel"
+    [class.panel--collapsed]="mobileLayout.mobile() && mobileLayout.panelCollapsed()">
     <div class="panel-tabs">
         <prism-tabs
             ariaLabel="Panels"
             panelIdPrefix="panel-"
             [items]="tabItems()"
             [active]="panelService.activePanelId()"
-            (activeChange)="$event && panelService.activePanelId.set($event)" />
+            (activeChange)="$event && panelService.activePanelId.set($event)"
+            (tabClick)="onTabClick($event)" />
     </div>
     <div
         class="panel-body"

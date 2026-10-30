@@ -11,6 +11,7 @@ import { PrismPageRendererComponent } from '../page-renderer/prism-page-renderer
 import { PrismPanelHostComponent } from '../panels/panel-host/prism-panel-host.component.js';
 import { PrismRendererComponent } from '../renderer/prism-renderer.component.js';
 import { PANEL_HEIGHT, PrismLayoutService, SIDEBAR_WIDTH } from '../services/prism-layout.service.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPanelService } from '../services/prism-panel.service.js';
 import { PrismPersistenceService } from '../services/prism-persistence.service.js';
@@ -55,8 +56,8 @@ export class PrismShellComponent {
     protected readonly navigationService = inject(PrismNavigationService);
     private readonly themeService = inject(PrismThemeService);
     protected readonly layout = inject(PrismLayoutService);
+    protected readonly mobileLayout = inject(PrismMobileLayoutService);
     protected readonly sidebarBounds = SIDEBAR_WIDTH;
-    protected readonly panelBounds = PANEL_HEIGHT;
     protected readonly panelService = inject(PrismPanelService);
     private readonly urlStateService = inject(PrismUrlStateService);
     private readonly persistenceService = inject(PrismPersistenceService);
@@ -80,11 +81,28 @@ export class PrismShellComponent {
 
     protected readonly showPanel = computed(() => this.layout.addonsVisible() && this.panelService.activeViewId() === 'renderer' && !this.navigationService.activePage());
 
+    /** The sidebar column exists on the desktop layout only; a phone opens the navigation full screen instead. */
+    protected readonly showSidebar = computed(() => !this.mobileLayout.mobile() && this.layout.sidebarVisible());
+
     protected readonly shellStyle = computed(() => {
-        const sw = this.layout.sidebarVisible() ? this.layout.sidebarWidth() : 0;
+        const sw = this.showSidebar() ? this.layout.sidebarWidth() : 0;
 
         return `--sw: ${sw}px;`;
     });
+
+    /** Folded down to its tab bar, which only the phone layout does. */
+    protected readonly panelCollapsed = computed(() => this.mobileLayout.mobile() && this.mobileLayout.panelCollapsed());
+
+    /**
+     * The panel's height and drag range. A phone sizes the panel against its
+     * own height and keeps it apart from the desktop height, which stays as the
+     * reader left it in `ng-prism-layout`.
+     */
+    protected readonly panelSize = computed(() =>
+        this.mobileLayout.mobile()
+            ? { ...this.mobileLayout.panelBounds(), value: this.mobileLayout.panelHeight() }
+            : { min: PANEL_HEIGHT.min, max: PANEL_HEIGHT.max, value: this.layout.panelHeight() }
+    );
 
     constructor() {
         this.themeService.applyConfigOverrides(this.config);
@@ -119,6 +137,11 @@ export class PrismShellComponent {
                 untracked(() => selectInstead(item, this.navigationService, this.panelService));
             }
         });
+    }
+
+    protected onPanelResize(px: number): void {
+        if (this.mobileLayout.mobile()) this.mobileLayout.setPanelHeight(px);
+        else this.layout.setPanelHeight(px);
     }
 
     @HostListener('document:keydown', ['$event'])
