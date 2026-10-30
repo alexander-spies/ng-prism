@@ -1,5 +1,5 @@
-// Prism config of video-lib, the demo library the product videos record (video/ at the repo root). Committed, unlike
-// ng-prism.config.ts, so every recording sees the same plugins and fixtures.
+// Prism config of video-lib, the demo library of the product films (skill prism-motion-video). Committed, unlike
+// ng-prism.config.ts, so every film lifts the same plugins and fixtures.
 import { defineConfig } from '@ng-prism/core/config';
 import { boxModelPlugin } from '@ng-prism/plugin-box-model';
 import { coveragePlugin } from '@ng-prism/plugin-coverage';
