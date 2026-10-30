@@ -1,6 +1,7 @@
 const { seg, eo, ei, eio, lerp, clamp01 } = kit;
-// The version in the pill under the lockup: the release's minor, e.g. '22.7'.
+// The pill under the lockup: the release's minor ('22.7', set in mono), or for the tour the slogan (set in Inter).
 const VERSION = '22.7';
+const SLOGAN = !/^\d/.test(VERSION);
 // Times in seconds. The film opens inside the mark's own light and pulls back until the prism is sharp; a flare runs
 // through it as it lands, the name slides out from behind it, a sheen passes over the lockup.
 const TT = { pull: 1.3, flare: 1.08, slide: 1.42, name: 1.52, ver: 2.2, sheen: 2.6, out: 3.7, end: 4.0 };
@@ -45,6 +46,7 @@ kit.scene('title', {
                 'px;margin:0;padding:14px 40px;border:2px solid transparent;border-radius:999px;font-size:46px;font-weight:500;letter-spacing:.06em;color:var(--second);' +
                 'background:linear-gradient(color-mix(in srgb, var(--ground) 90%, var(--indigo)), color-mix(in srgb, var(--ground) 90%, var(--indigo))) padding-box, linear-gradient(90deg, var(--cyan), var(--main) 38%, var(--indigo) 68%, var(--accent)) border-box}'
         );
+        kit.css('.title-slogan{font-size:38px;font-weight:500;letter-spacing:-.01em;padding:14px 38px}');
         kit.stage.append(kit.h('<div class="ground"></div>'));
         const img = kit.assets.url('symbol.png');
         const g = kit.h(
@@ -72,7 +74,7 @@ kit.scene('title', {
         kit.stage.append(word);
         const sheen = kit.h('<p class="title-sheen">' + kit.esc(WORD) + '</p>');
         kit.stage.append(sheen);
-        const ver = kit.h('<p class="title-ver mono">' + kit.esc(VERSION) + '</p>');
+        const ver = kit.h('<p class="title-ver' + (SLOGAN ? ' title-slogan' : ' mono') + '">' + kit.esc(VERSION) + '</p>');
         kit.stage.append(ver);
         const ww = word.offsetWidth,
             wh = word.offsetHeight;

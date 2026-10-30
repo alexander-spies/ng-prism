@@ -14,7 +14,7 @@ for pixel. The maintainer approved the look and the structure of the 22.7 film; 
 
 | Scene                | Template                                 | Length   | Set per film                                                            |
 | -------------------- | ---------------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `title`              | `templates/scene-title.js`               | 4.0 s    | `VERSION` (and the scene's `name` in `scenes.json`)                     |
+| `title`              | `templates/scene-title.js`               | 4.0 s    | `VERSION`: the minor (mono) or, for the tour, the slogan (Inter)        |
 | one beat per feature | `scene-code-card.js` or `scene-click.js` | 6–8 s    | everything: they are 22.7's Parts and Service pages beats, as examples  |
 | `end`                | `templates/scene-end.js`                 | 4.0 s    | `COMMAND`: `ng update @ng-prism/core`; the tour `ng add @ng-prism/core` |
 | sound                | `templates/score.js`                     | the film | `CLICKS` only                                                           |
@@ -23,7 +23,7 @@ The beats follow the order of the release notes; a click beat takes 6–7 s, a c
 and `templates/shared.js` go in unchanged, `templates/scenes.example.json` is the shape of `modules/scenes.json` (its
 `fonts`, `palettes` and `theirs` stay as they are; each scene's `id`, `name`, `dur` and `desc` are the film's), and the
 asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end card or the sound unasked. Every film is a new artifact, titled
-"ng-prism <version>".
+"ng-prism <version>" (the tour: "ng-prism tour"). The tour's slogan is "Your components, in full spectrum."
 
 ## House style (the maintainer's decisions)
 
@@ -90,6 +90,10 @@ against them before a title, an end card or a beat goes in:
 | `end-1-sheen.jpg`, `end-2-card.jpg`        | the end card with its sheen, and as it stands                                                    |
 | `beat-*.jpg`                               | one key frame of each 22.7 beat: look, pages (click), compose and parts (code cards), a11y, perf |
 
+`reference/tour/` is the same for the tour on the docs start page ("ng-prism tour", 54.5 s: title with the slogan,
+@Showcase typed into `button.component.ts`, the styleguide, live inputs, states and the box model, a11y, an API page,
+`ng add`), its stills numbered in film order.
+
 `reference/22.7/` is the whole 22.7 film without its lifted modules: `scenes.json`, every scene, the score, and the two
 lift configs (`lift-test-lib.json`, `lift-video-lib.json`). If the artifact is gone, the film comes back from the repo:
 build the 22.7 styleguides, lift and package with those configs, create a new film and write these modules, `base.css`
@@ -109,4 +113,6 @@ so a later release's styleguide looks newer than the 22.7 stills.
 | A scene shows only its name card in the player           | It threw while loading. Run it through `preview.mjs` with the film's modules: page errors are printed.                                    |
 | A gradient word shows the whole gradient in every letter | Split letters need `background-size` = word width and `background-position` = −`offsetLeft` (see the title).                              |
 | A dark smear over a light canvas beside a code card      | The veil behind the card. Leave it out where the window behind the card is light, and frame the dark panel instead (the 22.7 a11y beat).  |
+| A later state still shows an earlier one's inputs        | The styleguide keeps control values per component across navigation: click `Reset` and `goto` again before lifting the next beat.         |
+| A `click` with `:text-is()` times out                    | The text sits in a child (`<span class="prism-tab__label">`): address the element by `aria-label` or class instead.                       |
 | `preview.mjs` times out launching Chromium               | The machine is under load; run it again.                                                                                                  |

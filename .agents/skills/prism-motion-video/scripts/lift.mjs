@@ -1,8 +1,9 @@
 // Lifts the DOM and the used CSS of styleguide states into Motion film modules.
 //   node lift.mjs <config.json> <out-dir>
 // The config names the served styleguide (`base`), the CSS file to write (`cssName`) and the steps: `goto` a query,
-// `click` a selector, `clickText` a button's name, `eval` code, `capture` a state (with `marks`, which put data-v hooks
-// on elements for the camera and the cursor). Writes <state>.html, real-<state>.png and <cssName> into <out-dir>.
+// `click` a selector, `clickText` a button's name, `fill` a selector with `text`, `press` a key, `hover` a selector,
+// `waitFor` a selector, `eval` code, `capture` a state (with `marks`, which put data-v hooks on elements for the camera
+// and the cursor; a mark with `text` needs the element's whole text to match). Writes <state>.html, real-<state>.png and <cssName> into <out-dir>.
 // One out dir per styleguide build: the _ngcontent ids differ between builds.
 /* global document, getComputedStyle, innerWidth, innerHeight, location, matchMedia, CSS, CSSStyleRule, CSSMediaRule, CSSSupportsRule, CSSLayerBlockRule, CSSKeyframesRule, CSSFontFaceRule, CSSImportRule, FileReader, NodeFilter -- page.evaluate runs in the browser */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -314,6 +315,22 @@ async function step(s) {
             .click();
         await page.waitForTimeout(s.wait ?? 900);
     }
+    if (s.fill) {
+        await page
+            .locator(s.fill)
+            .first()
+            .fill(s.text ?? '');
+        await page.waitForTimeout(s.wait ?? 700);
+    }
+    if (s.press) {
+        await page.keyboard.press(s.press);
+        await page.waitForTimeout(s.wait ?? 500);
+    }
+    if (s.hover) {
+        await page.locator(s.hover).first().hover();
+        await page.waitForTimeout(s.wait ?? 700);
+    }
+    if (s.waitFor) await page.locator(s.waitFor).first().waitFor();
     if (s.eval) {
         await page.evaluate(s.eval);
         await page.waitForTimeout(s.wait ?? 500);

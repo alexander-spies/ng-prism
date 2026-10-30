@@ -1,0 +1,11 @@
+{
+    "base": "http://127.0.0.1:4430/",
+    "cssName": "ui-test.css",
+    "steps": [
+        { "goto": "?component=FormFieldComponent" },
+        { "capture": "api-before", "marks": [{ "selector": "button", "text": "API", "as": "api-seg" }] },
+        { "click": "button:text-is('API')", "wait": 1800 },
+        { "eval": "document.activeElement && document.activeElement.blur()" },
+        { "capture": "api-after" }
+    ]
+}
