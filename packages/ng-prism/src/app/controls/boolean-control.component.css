@@ -45,3 +45,13 @@
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;
 }
+
+/* Touch screens: the switch keeps its look, an invisible margin around it
+   takes the tap, 46 × 42 px in all. */
+@media (pointer: coarse) {
+    .ctl-toggle::before {
+        position: absolute;
+        inset: -13px -7px;
+        content: '';
+    }
+}
