@@ -42,6 +42,7 @@ const ICONS: Record<string, string> = {
     eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
     code: '<path d="m18 16 4-4-4-4M6 8l-4 4 4 4m8.5-12-5 16"/>',
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
     info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
     'circle-dashed':

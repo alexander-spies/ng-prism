@@ -120,6 +120,21 @@ describe('PrismMobileLayoutService', () => {
         expect(document.activeElement).toBe(toggle);
     });
 
+    /** iOS Safari does not focus a tapped button, so the toggle, now ✕, would otherwise not hold focus while the list is open. */
+    it('should put focus on the toggle when the navigation opens', () => {
+        installMatchMedia(true);
+        const toggle = document.createElement('button');
+
+        toggle.id = NAV_TOGGLE_ID;
+        document.body.appendChild(toggle);
+        const service = create();
+
+        service.toggleNav();
+
+        expect(service.navOpen()).toBe(true);
+        expect(document.activeElement).toBe(toggle);
+    });
+
     it('should keep a dragged height and open the panel', () => {
         installMatchMedia(true);
         const service = create();

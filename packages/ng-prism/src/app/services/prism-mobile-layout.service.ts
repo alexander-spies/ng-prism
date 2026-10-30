@@ -53,9 +53,18 @@ export class PrismMobileLayoutService {
         }
     }
 
+    /**
+     * Opens the navigation, or closes it when it is open. Opening puts focus on
+     * the toggle, which now reads ✕: iOS Safari does not focus a tapped button,
+     * and focus left on a control behind the list would land under it.
+     */
     toggleNav(): void {
-        if (this.open()) this.closeNav();
-        else this.open.set(true);
+        if (this.open()) {
+            this.closeNav();
+            return;
+        }
+        this.open.set(true);
+        document.getElementById(NAV_TOGGLE_ID)?.focus();
     }
 
     /**

@@ -73,6 +73,12 @@
     }
 }
 
+/* The phone layout puts the navigation toggle in front of the brand. */
+:host-context([data-prism-mobile]) .prism-header {
+    grid-template-columns: auto minmax(min-content, var(--sw, 264px)) 1fr auto;
+    padding-left: 4px;
+}
+
 /* In the light theme the band sets itself apart; a hairline under it only adds noise. */
 :host-context(html[data-theme='light']) .prism-header {
     border-bottom-color: transparent;

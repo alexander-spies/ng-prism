@@ -10,6 +10,8 @@ import { PrismHeaderComponent } from '../header/prism-header.component.js';
 import { PrismPageRendererComponent } from '../page-renderer/prism-page-renderer.component.js';
 import { PrismPanelHostComponent } from '../panels/panel-host/prism-panel-host.component.js';
 import { PrismRendererComponent } from '../renderer/prism-renderer.component.js';
+import { NAV_SCREEN_ID } from '../services/mobile-layout.js';
+import { PrismCaptureService } from '../services/prism-capture.service.js';
 import { PANEL_HEIGHT, PrismLayoutService, SIDEBAR_WIDTH } from '../services/prism-layout.service.js';
 import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
@@ -57,6 +59,8 @@ export class PrismShellComponent {
     private readonly themeService = inject(PrismThemeService);
     protected readonly layout = inject(PrismLayoutService);
     protected readonly mobileLayout = inject(PrismMobileLayoutService);
+    private readonly capture = inject(PrismCaptureService);
+    protected readonly navScreenId = NAV_SCREEN_ID;
     protected readonly sidebarBounds = SIDEBAR_WIDTH;
     protected readonly panelService = inject(PrismPanelService);
     private readonly urlStateService = inject(PrismUrlStateService);
@@ -89,6 +93,12 @@ export class PrismShellComponent {
 
         return `--sw: ${sw}px;`;
     });
+
+    /**
+     * The full-screen navigation of the phone layout. Never in capture mode: a
+     * screenshot runner on a phone-sized viewport must get the canvas alone.
+     */
+    protected readonly showNavScreen = computed(() => this.mobileLayout.mobile() && this.mobileLayout.navOpen() && !this.capture.active());
 
     /** Folded down to its tab bar, which only the phone layout does. */
     protected readonly panelCollapsed = computed(() => this.mobileLayout.mobile() && this.mobileLayout.panelCollapsed());
@@ -146,6 +156,10 @@ export class PrismShellComponent {
 
     @HostListener('document:keydown', ['$event'])
     protected onKeyDown(e: KeyboardEvent): void {
+        if (e.key === 'Escape' && this.mobileLayout.navOpen()) {
+            this.mobileLayout.closeNav();
+            return;
+        }
         if (!e.altKey) return;
         switch (e.code) {
             case 'KeyS':

@@ -2,6 +2,21 @@
     <span
         class="prism-header__sheen"
         aria-hidden="true"></span>
+    @if (mobileLayout.mobile()) {
+        <button
+            prismIconButton
+            size="md"
+            class="prism-header__nav-toggle"
+            [id]="navToggleId"
+            [attr.aria-controls]="navScreenId"
+            [attr.aria-expanded]="mobileLayout.navOpen()"
+            [attr.aria-label]="mobileLayout.navOpen() ? 'Close navigation' : 'Open navigation'"
+            (click)="mobileLayout.toggleNav()">
+            <prism-icon
+                [name]="mobileLayout.navOpen() ? 'x' : 'menu'"
+                [size]="18" />
+        </button>
+    }
     <div class="prism-header__brand">
         <span
             class="prism-header__glow"

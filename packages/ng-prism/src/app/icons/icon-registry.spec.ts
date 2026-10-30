@@ -25,4 +25,9 @@ describe('icon registry', () => {
         expect(ICON_NAMES).toContain('pipette');
         expect(ICONS.pipette).toBeTruthy();
     });
+
+    it('should carry a glyph for the navigation toggle on a phone', () => {
+        expect(ICON_NAMES).toContain('menu');
+        expect(ICONS.menu).toBeTruthy();
+    });
 });

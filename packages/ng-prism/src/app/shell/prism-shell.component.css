@@ -52,9 +52,28 @@
     border-right: 1px solid var(--prism-border);
 }
 
-.prism-sidebar-wrap prism-sidebar {
+.prism-sidebar-wrap prism-sidebar,
+.prism-nav-screen prism-sidebar {
     flex: 1;
     min-height: 0;
+}
+
+/* The phone layout's navigation: the sidebar over the whole area below the
+   header. Positioned rather than placed in the grid, because capture mode
+   overrides the shell's tracks and an explicitly placed sibling would move
+   the body out of the track it keeps. The shell is its containing block. */
+.prism-shell--mobile {
+    position: relative;
+}
+
+.prism-nav-screen {
+    position: absolute;
+    inset: var(--band-header) 0 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--prism-bg);
 }
 
 .prism-sidebar-foot {

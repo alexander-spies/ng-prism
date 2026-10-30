@@ -3,6 +3,8 @@ import type { NgPrismConfig } from '../../plugin/plugin.types.js';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { PrismLayoutMenuComponent } from '../layout-menu/prism-layout-menu.component.js';
 import { BUILTIN_HEADER_WIDGETS } from '../panels/builtin-header-widgets.js';
+import { NAV_SCREEN_ID, NAV_TOGGLE_ID } from '../services/mobile-layout.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
 import { PrismSearchService } from '../services/prism-search.service.js';
 import { PrismThemeService } from '../services/prism-theme.service.js';
@@ -28,6 +30,9 @@ export class PrismHeaderComponent {
     private readonly pluginService = inject(PrismPluginService);
     protected readonly searchService = inject(PrismSearchService);
     protected readonly themeService = inject(PrismThemeService);
+    protected readonly mobileLayout = inject(PrismMobileLayoutService);
+    protected readonly navToggleId = NAV_TOGGLE_ID;
+    protected readonly navScreenId = NAV_SCREEN_ID;
 
     protected readonly widgetsStart = computed(() =>
         [...BUILTIN_HEADER_WIDGETS.filter((w) => w.placement === 'start'), ...this.pluginService.headerWidgetsStart()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))

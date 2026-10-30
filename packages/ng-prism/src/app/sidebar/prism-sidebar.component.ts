@@ -17,6 +17,7 @@ import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { BUILTIN_NAVIGATION_DECORATIONS } from '../panels/builtin-navigation-decorations.js';
 import { itemKey, itemShowcaseConfig } from '../services/navigation-item.js';
 import type { NavigationItem } from '../services/navigation-item.types.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
 import { PrismSearchService } from '../services/prism-search.service.js';
@@ -92,6 +93,7 @@ interface ComponentCategory {
 })
 export class PrismSidebarComponent {
     protected readonly navigationService = inject(PrismNavigationService);
+    private readonly mobileLayout = inject(PrismMobileLayoutService);
     protected readonly searchService = inject(PrismSearchService);
     private readonly pluginService = inject(PrismPluginService);
     private readonly injector = inject(Injector);
@@ -241,6 +243,9 @@ export class PrismSidebarComponent {
                 this.navigationService.selectPage(item.data);
                 break;
         }
+        // On a phone the list covers the page; picking an entry, the active one
+        // included, takes the reader back to it. A no-op on the desktop layout.
+        this.mobileLayout.closeNav();
     }
 
     /** The key of the group the list shows `item` in, `undefined` while the filter hides it. */

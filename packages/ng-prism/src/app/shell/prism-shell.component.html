@@ -6,7 +6,8 @@
 
     <div
         class="prism-body"
-        [class.prism-body--no-sidebar]="!showSidebar()">
+        [class.prism-body--no-sidebar]="!showSidebar()"
+        [attr.inert]="showNavScreen() ? '' : null">
         @if (showSidebar()) {
             <aside class="prism-sidebar-wrap">
                 <prism-sidebar />
@@ -103,4 +104,23 @@
             }
         </main>
     </div>
+
+    @if (showNavScreen()) {
+        <nav
+            class="prism-nav-screen"
+            [id]="navScreenId"
+            aria-label="Navigation">
+            <prism-sidebar />
+            <div class="prism-sidebar-foot">
+                <prism-logo [size]="13" />
+                <a
+                    class="prism-sidebar-foot__link"
+                    href="https://ng-prism.github.io/ng-prism/#/"
+                    target="_blank"
+                    rel="noopener">
+                    Powered by ng-prism
+                </a>
+            </div>
+        </nav>
+    }
 </div>
