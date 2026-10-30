@@ -250,6 +250,13 @@
     flex: none;
 }
 
+/* A consumer's own logo can be a wide wordmark; capped, it scales down
+   inside its box instead of pushing the widgets and the menu out of the band. */
+:host-context([data-prism-mobile]) .prism-header__logo-img {
+    max-width: 40vw;
+    object-position: left center;
+}
+
 /*
  * The brand box steps aside, so the logo and the text are flex items of the
  * row themselves. As one box, the brand could not shrink below its min-content
