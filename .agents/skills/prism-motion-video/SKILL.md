@@ -22,7 +22,7 @@ for pixel. The maintainer approved the look and the structure of the 22.7 film; 
 The beats follow the order of the release notes; a click beat takes 6–7 s, a code card 7.5–8 s. `templates/base.css`
 and `templates/shared.js` go in unchanged, `templates/scenes.example.json` is the shape of `modules/scenes.json` (its
 `fonts`, `palettes` and `theirs` stay as they are; each scene's `id`, `name`, `dur` and `desc` are the film's), and the
-asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end card or the sound unasked. Every film is a new artifact, titled
+asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end card, the sound or the sonic logo unasked. Every film is a new artifact, titled
 "ng-prism <version>" (the tour: "ng-prism tour"). The tour's slogan is "Your components, in full spectrum."
 
 ## House style (the maintainer's decisions)
@@ -42,9 +42,12 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
   shown lines share is fine and is said to the maintainer; a long line runs out of the card under the fade, never
   wrapped or shortened. video-lib's showcases are written to fit a card; test-lib works where its lines do.
 - **Sound:** no music. In the film only keystrokes (automatic from `kit.typist`) and the cursor's clicks (`CLICKS`); a
-  narration goes on the exported MP4 afterwards (below), in the voice Ava (Premium).
+  narration goes on the exported MP4 afterwards (below). It opens with the sonic logo, `templates/sonic-logo.flac`
+  (the voice Lily whispering "N G prism" in a hall), at 0.5 s into the title; everything after it is the ElevenLabs
+  voice Chris, an advertising read. The end card shows the logo without speaking it.
 - **Rejected, don't bring back:** mark pieces flying in, a light beam with a spectrum fan, twinkling stars, a ray burst,
-  a second shine on the title (one sheen through prism and name, like the end card), music of any kind.
+  a second shine on the title (one sheen through prism and name, like the end card), music of any kind, the macOS
+  system voices.
 
 ## Making a film
 
@@ -86,17 +89,29 @@ asset `symbol.png` is `docs/logo_only_big.png`. Never change the title, the end 
     (compare crops of code and small text against the master). The docs tour goes to `docs/assets/video/tour.mp4`, its
     poster (`tour-poster.png`) is a frame of the master: `ffmpeg -ss 3.62 -i <master> -frames:v 1 tour-poster.png`.
 12. **Narrate,** where the maintainer wants a voice: one line per scene, written for a listener, approved by the
-    maintainer before anything is generated. A line starts 0.3–0.6 s after its cut and ends before the next line; at
-    `--tempo 1.04` the voice speaks about 2.9 words a second. Spell what it would read wrongly as it should sound
-    (`N G prism`, `J S Doc`). Write them as `narration.json` (`{ at, until, text }` per line, like
-    `reference/tour/narration.json`), check the fit with `node scripts/narrate.mjs <mp4> narration.json --dry`, then
-    `node scripts/narrate.mjs <mp4> narration.json <out>.mp4`. It needs the voice installed (System Settings →
-    Accessibility → Spoken Content → System voice → Manage Voices → English → Ava (Premium)); it ducks the clicks
-    under the voice, normalises to −16 LUFS and copies the picture. Play the result to the maintainer
+    maintainer before anything is generated. The first two lines are fixed: `{ "at": 0.5, "logo": true }`, which puts
+    the sonic logo in (the master has no voice of any kind), then the title's own line from 2.1 s: "What's new in
+    twenty-two point seven." with the release's minor spelled out, for the tour its slogan. Every other line starts
+    0.3–0.6 s after its cut and ends before the next line; `until` is the cut that ends its scene, which it may overrun
+    by 0.6 s. At the default `--tempo 1.05` the voice speaks about 2.6 words a second. Spell what it would read wrongly
+    as it should sound (`N G prism`, `J S Doc`). Write the lines to `reference/<version>/narration.json` (like
+    `reference/22.7/narration.json`), check the fit against the web encode from step 11 with
+    `node scripts/narrate.mjs <encode>.mp4 reference/<version>/narration.json --dry`, then narrate it with
+    `node scripts/narrate.mjs <encode>.mp4 reference/<version>/narration.json <out>.mp4 --title "ng-prism <version>"`.
+    The voice comes from ElevenLabs' API on the free plan and needs `ELEVENLABS_API_KEY` in the shell (the
+    maintainer's is in `~/.zshrc`). The free plan can't use voices from ElevenLabs' library over the API, only its
+    default voices, which is why the narrator is Chris. Every line is generated once and cached in
+    `.videos/narration-cache/`: `--dry` already generates the lines it measures, so it is the run that spends the
+    credits, and the real run and a run after editing one line reuse what didn't change. The free plan has 10,000
+    characters a month, a film's narration about 700. A line that sounds wrong gets a `"seed"` (any other number) for
+    another take. The script ducks the clicks under the voice, normalises to −16 LUFS, copies the picture and titles
+    the MP4 "ng-prism <version> · voice: elevenlabs.io". Play the result to the maintainer
     (`open -a "QuickTime Player" <out>.mp4`) before it replaces anything.
 13. **Deliver:** the finished release clip (encoded, narrated) goes to `.videos/ng-prism-<version>.mp4` at the repo root,
-    which is gitignored: the maintainer attaches it to the release from there. Its narration goes to
-    `reference/<version>/narration.json`. The docs tour is the one film in git (`docs/assets/video/`).
+    which is gitignored: the maintainer attaches it to the release from there. Its `narration.json` is committed. The
+    docs tour is the one film in git (`docs/assets/video/`). The free plan's licence is non-commercial and wants
+    "elevenlabs.io" in the title wherever the film is published: the release notes carry a line
+    `Voice: elevenlabs.io` right below the clip, `docs/README.md` the same line below the tour's `<video>`.
 
 ## Reference: what approved looks like
 
@@ -136,3 +151,4 @@ so a later release's styleguide looks newer than the 22.7 stills.
 | A `click` with `:text-is()` times out                    | The text sits in a child (`<span class="prism-tab__label">`): address the element by `aria-label` or class instead.                                                                                                                                                             |
 | A phone-sized lift breaks the desktop windows            | Lift the phone at its size (`viewport` `{ width: 390, height: 844 }`, `touch: true` in the config), check it with `verify-lift.mjs … --size 390x844`, package it as `ui-phone.css` with the scope `ngm`, and show it in a device frame of the scene's own (22.7's mobile beat). |
 | `preview.mjs` times out launching Chromium               | The machine is under load; run it again.                                                                                                                                                                                                                                        |
+| `narrate.mjs` gets 401 or `quota_exceeded`               | 401: the key is wrong or lacks the Text to Speech permission. `quota_exceeded`: the month's free characters are spent; cached lines still work, new ones wait for the reset.                                                                                                    |

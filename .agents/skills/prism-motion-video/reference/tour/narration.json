@@ -1,8 +1,12 @@
 [
     {
-        "at": 1.0,
+        "at": 0.5,
+        "logo": true
+    },
+    {
+        "at": 2.1,
         "until": 4.0,
-        "text": "N G prism. Your components, in full spectrum."
+        "text": "Your components, in full spectrum."
     },
     {
         "at": 4.9,
