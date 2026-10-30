@@ -1,0 +1,38 @@
+{
+    "base": "http://127.0.0.1:4430/",
+    "cssName": "ui-test.css",
+    "steps": [
+        { "goto": "?component=ButtonComponent" },
+        {
+            "capture": "look-dark",
+            "marks": [
+                { "selector": "button[aria-label='Switch to light mode']", "as": "theme" },
+                { "selector": ".prism-header__brand", "as": "brand" }
+            ]
+        },
+        { "click": "button[aria-label='Switch to light mode']" },
+        { "capture": "look-light", "marks": [{ "selector": "button[aria-label='Switch to dark mode']", "as": "theme" }] },
+        { "click": "button[aria-label='Switch to dark mode']" },
+        { "click": "button:has-text('Performance'), [role=tab]:has-text('Performance')", "wait": 1500 },
+        { "capture": "perf", "marks": [{ "text": "Performance", "selector": "button, [role=tab]", "as": "perf-tab" }] },
+        { "goto": "?pipe=TimeAgoPipe" },
+        {
+            "capture": "svc-before",
+            "marks": [
+                { "text": "Notification Service", "selector": ".sb-item", "as": "svc-item" },
+                { "text": "Time Ago", "selector": ".sb-item", "as": "pipe-item" }
+            ]
+        },
+        { "click": ".sb-item:has-text('Notification Service')", "wait": 1500 },
+        { "capture": "svc-after", "marks": [{ "text": "Notification Service", "selector": ".sb-item", "as": "svc-item" }] },
+        { "goto": "?component=ListComponent" },
+        { "capture": "parts-before", "marks": [{ "text": "List Item", "selector": "button", "as": "part-chip" }] },
+        { "click": "button:text-is('List Item')", "wait": 1000 },
+        { "capture": "parts-after", "marks": [{ "text": "List Item", "selector": "button", "as": "part-chip" }] },
+        { "goto": "?component=FormFieldComponent&variant=5" },
+        { "capture": "a11y-before", "marks": [{ "selector": "button, [role=tab]", "text": "A11y", "as": "a11y-tab" }] },
+        { "click": "[role=tab][aria-controls=panel-a11y]", "wait": 2000 },
+        { "eval": "document.activeElement && document.activeElement.blur()", "wait": 300 },
+        { "capture": "a11y-after", "marks": [{ "selector": "button, [role=tab]", "text": "A11y", "as": "a11y-tab" }] }
+    ]
+}
