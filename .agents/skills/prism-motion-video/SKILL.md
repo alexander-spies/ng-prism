@@ -119,13 +119,20 @@ change to the tour, read _Changing the tour_ first.
 11. **Encode for the web,** into a temporary file; narrating it comes next:
 
     ```bash
-    ffmpeg -i <master> -vf fps=30 -c:v libx264 -preset slow -crf <crf> -tune animation -profile:v high \
-      -pix_fmt yuv420p -c:a copy -movflags +faststart <encode>.mp4
+    ffmpeg -i <master> -filter_complex "[0:v]fps=30,split[a][b];\
+    [b]trim=start=3.62,trim=end_frame=1,setpts=PTS-STARTPTS[p];[a]trim=start_frame=1,setpts=PTS-STARTPTS[r];\
+    [p][r]concat=n=2:v=1:a=0[v]" -map "[v]" -map 0:a -c:v libx264 -preset slow -crf <crf> -tune animation \
+      -profile:v high -pix_fmt yuv420p -c:a copy -movflags +faststart <encode>.mp4
     ```
 
     `<crf>` is 22 for a release clip and 20 for the tour. A release clip has to stay under 10 MB, GitHub's limit for a
     video on the free plan; CRF 22 turns a one-minute master of 47 MB into about 9 MB with the narration, CRF 20 into
     about 11 MB. Neither shows a visible loss (compare crops of code and small text against the master).
+
+    The filter swaps the first frame for the title's lockup at 3.62 s. A player without a poster, on GitHub or Reddit,
+    shows the first frame until someone presses play, and the film's own first frame is a blur of light. The swap keeps
+    every other frame where it was, so the narration stays in sync; check that frame 0 shows the lockup and the frame
+    count matches the plain encode.
 
 12. **Narrate:**
     - **The lines:** the logo, the title's line, one line per beat written for a listener, the end card's. The
@@ -160,8 +167,9 @@ change to the tour, read _Changing the tour_ first.
 
 13. **Deliver:**
     - **A release clip** stays in `.videos/ng-prism-<version>.mp4`. Check that it is under 10 MB. The maintainer drags
-      it into the release notes in GitHub's web editor, which puts a player into the text; a file under the release's
-      assets would only be a download.
+      it into the release notes in GitHub's web editor, which inserts a `github.com/user-attachments/assets/…` URL; a
+      file under the release's assets would only be a download. The URL becomes a player only when it stands alone in
+      its paragraph, so an empty line goes between it and the credit below; without it GitHub shows a plain link.
     - **The tour** is copied to `docs/assets/video/tour.mp4`, with a new poster from the master's lockup:
       `ffmpeg -ss 3.62 -i <master> -frames:v 1 docs/assets/video/tour-poster.png`.
     - **The credit:** the free plan's licence is non-commercial and wants "elevenlabs.io" in the title wherever a film

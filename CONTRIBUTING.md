@@ -330,6 +330,10 @@ lints every package plus the workspace root (`scripts/` and `jest.config.ts`,
 see above). Nx serves the unchanged ones from cache, so this costs little
 more than linting only what changed, and it cannot pick the wrong base.
 
+A commit-msg hook (`scripts/strip-ai-coauthors.mjs`) drops the co-author
+trailers Claude Code and Copilot add to a commit message. Once such a commit
+is on `main`, GitHub lists the tool among the repo's contributors.
+
 Editor setup: VS Code picks up `.vscode/settings.json` automatically. It is
 tracked in git via a negation rule in `.gitignore` (`.vscode/*` is
 ignored, then `!.vscode/settings.json` un-ignores this one file). Install the
