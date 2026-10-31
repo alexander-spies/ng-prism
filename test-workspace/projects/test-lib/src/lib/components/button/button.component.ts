@@ -256,21 +256,6 @@ export type ButtonVariantType = 'filled' | 'outlined' | 'elevated' | 'text' | 'i
     `
 })
 export class ButtonComponent {
-    /**
-     * Visual style **variant** of the button.
-     * Use `icon-only` to render `icon` instead of `label`.
-     */
-    readonly variant = input<ButtonVariantType>('filled');
-
-    /** Label text displayed inside the button. Not rendered in `icon-only` variant. */
-    readonly label = input<string>('Button');
-
-    /**
-     * Icon character displayed in `icon-only` variant.
-     * Any Unicode character or symbol can be used.
-     */
-    readonly icon = input<string>('★');
-
     /** Disables the button: prevents interaction and reduces opacity. */
     readonly disabled = input<boolean>(false);
 
@@ -282,6 +267,21 @@ export class ButtonComponent {
      * @since 1.1.0
      */
     readonly readonly = input<boolean>(false);
+
+    /**
+     * Icon character displayed in `icon-only` variant.
+     * Any Unicode character or symbol can be used.
+     */
+    readonly icon = input<string>('★');
+
+    /** Label text displayed inside the button. Not rendered in `icon-only` variant. */
+    readonly label = input<string>('Button');
+
+    /**
+     * Visual style **variant** of the button.
+     * Use `icon-only` to render `icon` instead of `label`.
+     */
+    readonly variant = input<ButtonVariantType>('filled');
 
     /** Emits when the button is clicked. Not emitted when `disabled`. */
     readonly clicked = output<void>();

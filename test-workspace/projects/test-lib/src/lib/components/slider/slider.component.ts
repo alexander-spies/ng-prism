@@ -113,15 +113,6 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class SliderComponent {
-    /** Lowest value the slider allows. */
-    readonly min = input<number>(0);
-
-    /** Highest value the slider allows. */
-    readonly max = input<number>(100);
-
-    /** Distance between two values the slider can stop at. */
-    readonly step = input<number>(1);
-
     /** Disables the slider and dims it. */
     readonly disabled = input<boolean>(false);
 
@@ -130,6 +121,15 @@ export class SliderComponent {
 
     /** Text in a header line above the track. */
     readonly label = input<string>('');
+
+    /** Highest value the slider allows. */
+    readonly max = input<number>(100);
+
+    /** Lowest value the slider allows. */
+    readonly min = input<number>(0);
+
+    /** Distance between two values the slider can stop at. */
+    readonly step = input<number>(1);
 
     /** Current value. Two-way bindable with `[(value)]`. */
     readonly value = model<number>(50);

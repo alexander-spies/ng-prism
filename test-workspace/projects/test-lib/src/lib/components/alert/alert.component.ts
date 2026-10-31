@@ -142,15 +142,6 @@ export type AlertSeverityType = 'info' | 'success' | 'warning' | 'error';
     `
 })
 export class AlertComponent {
-    /** Severity of the message, see {@link AlertSeverityType}. Sets the background and the accent border. */
-    readonly severity = input<AlertSeverityType>('info');
-
-    /** The message itself, as plain text. */
-    readonly message = input.required<string>();
-
-    /** Optional heading, shown in **bold** above the message. Left out when empty. */
-    readonly title = input<string>('');
-
     /** Adds a close button that hides the alert and emits `dismissed`. */
     readonly dismissible = input<boolean>(false);
 
@@ -159,6 +150,15 @@ export class AlertComponent {
      * @since 1.2.0
      */
     readonly visible = model<boolean>(true);
+
+    /** The message itself, as plain text. */
+    readonly message = input.required<string>();
+
+    /** Severity of the message, see {@link AlertSeverityType}. Sets the background and the accent border. */
+    readonly severity = input<AlertSeverityType>('info');
+
+    /** Optional heading, shown in **bold** above the message. Left out when empty. */
+    readonly title = input<string>('');
 
     /** Emits after the user closed the alert. Not emitted when `visible` is set from outside. */
     readonly dismissed = output<void>();

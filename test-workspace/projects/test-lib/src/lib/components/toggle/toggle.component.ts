@@ -99,14 +99,14 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class ToggleComponent {
-    /** Text next to the switch. Left out when empty. */
-    readonly label = input<string>('');
+    /** Whether the switch is on. Two-way bindable with `[(checked)]`. */
+    readonly checked = model<boolean>(false);
 
     /** Disables the switch and dims it. `toggle()` does nothing while it is set. */
     readonly disabled = input<boolean>(false);
 
-    /** Whether the switch is on. Two-way bindable with `[(checked)]`. */
-    readonly checked = model<boolean>(false);
+    /** Text next to the switch. Left out when empty. */
+    readonly label = input<string>('');
 
     /** Emits the new state when the switch is flipped, by a click or by `toggle()`. */
     readonly changed = output<boolean>();

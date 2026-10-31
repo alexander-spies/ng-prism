@@ -74,7 +74,7 @@ export type ButtonVariantType = 'primary' | 'secondary' | 'ghost';
     `
 })
 export class ButtonComponent {
-    readonly variant = input<ButtonVariantType>('primary');
     readonly label = input<string>('Button');
+    readonly variant = input<ButtonVariantType>('primary');
     readonly clicked = output<void>();
 }

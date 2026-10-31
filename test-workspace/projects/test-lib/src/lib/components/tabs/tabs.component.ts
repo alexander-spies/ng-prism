@@ -142,11 +142,11 @@ export interface TabItem {
     `
 })
 export class TabsComponent {
-    /** The tabs, in order, see {@link TabItem}. */
-    readonly tabs = input.required<TabItem[]>();
-
     /** Id of the active tab. Two-way bindable with `[(activeTabId)]`. */
     readonly activeTabId = model<string>('');
+
+    /** The tabs, in order, see {@link TabItem}. */
+    readonly tabs = input.required<TabItem[]>();
 
     /** Emits the id of a tab when it is activated. Never emitted for a disabled tab. */
     readonly tabChanged = output<string>();

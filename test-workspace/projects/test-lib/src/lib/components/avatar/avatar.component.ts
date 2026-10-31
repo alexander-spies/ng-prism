@@ -103,14 +103,14 @@ export type AvatarSizeType = 'sm' | 'md' | 'lg';
     `
 })
 export class AvatarComponent {
-    /** URL of the photo. When empty, the avatar falls back to the initials or the placeholder icon. */
-    readonly src = input<string>('');
-
     /** Full name of the person: the source of the initials and the image's `alt` text. */
     readonly name = input<string>('');
 
     /** Diameter of the avatar, see {@link AvatarSizeType}. */
     readonly size = input<AvatarSizeType>('md');
+
+    /** URL of the photo. When empty, the avatar falls back to the initials or the placeholder icon. */
+    readonly src = input<string>('');
 
     protected readonly initials = computed(() => {
         const n = this.name();

@@ -60,6 +60,6 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class CardComponent {
-    readonly title = input<string>('Card');
     readonly body = input<string>('');
+    readonly title = input<string>('Card');
 }

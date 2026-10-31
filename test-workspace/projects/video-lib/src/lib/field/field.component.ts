@@ -19,6 +19,6 @@ import { Showcase } from '@ng-prism/core';
     encapsulation: ViewEncapsulation.None
 })
 export class FieldComponent {
-    readonly label = input('Label');
     readonly error = input('');
+    readonly label = input('Label');
 }

@@ -146,17 +146,8 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class TextareaComponent {
-    /** Hint shown while the field is empty. */
-    readonly placeholder = input<string>('');
-
-    /** Visible height of the field, in lines of text. */
-    readonly rows = input<number>(4);
-
     /** Disables the field and dims it. */
     readonly disabled = input<boolean>(false);
-
-    /** Most characters the field takes, passed on as `maxlength`. `0` means no limit. */
-    readonly maxLength = input<number>(0);
 
     /** Shows the character count below the field, as `count / maxLength` when there is a limit. */
     readonly showCounter = input<boolean>(false);
@@ -164,17 +155,26 @@ export class TextareaComponent {
     /** Error message below the field. Any text also switches the field to its error style. */
     readonly error = input<string>('');
 
+    /** Most characters the field takes, passed on as `maxlength`. `0` means no limit. */
+    readonly maxLength = input<number>(0);
+
+    /** Hint shown while the field is empty. */
+    readonly placeholder = input<string>('');
+
+    /** Visible height of the field, in lines of text. */
+    readonly rows = input<number>(4);
+
     /** Current text. Two-way bindable with `[(value)]`. */
     readonly value = model<string>('');
-
-    /** Emits the new text on every input and on `clear()`. */
-    readonly valueChanged = output<string>();
 
     /**
      * Emits when the field loses focus, e.g. to validate it then.
      * @since 1.1.0
      */
     readonly blurred = output<void>();
+
+    /** Emits the new text on every input and on `clear()`. */
+    readonly valueChanged = output<string>();
 
     protected readonly charCount = computed(() => this.value().length);
     protected readonly isAtLimit = computed(() => this.maxLength() > 0 && this.charCount() >= this.maxLength());

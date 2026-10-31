@@ -238,17 +238,17 @@ let nextId = 0;
     `
 })
 export class FormFieldComponent implements LibFormField {
-    /** Text of the label above the control. No label is rendered while it is empty. */
-    readonly label = input<string>('');
-
-    /** Help text below the control, which the control takes as its description. Left out when empty and while the error shows. */
-    readonly hint = input<string>('');
+    /** Shows the error state right away, on top of the control's own, e.g. for an error only a server knows about. */
+    readonly invalid = input(false, { transform: booleanAttribute });
 
     /** Message in place of the hint while the field is in its error state. Without it the error shows by colour alone. */
     readonly error = input<string>('');
 
-    /** Shows the error state right away, on top of the control's own, e.g. for an error only a server knows about. */
-    readonly invalid = input(false, { transform: booleanAttribute });
+    /** Help text below the control, which the control takes as its description. Left out when empty and while the error shows. */
+    readonly hint = input<string>('');
+
+    /** Text of the label above the control. No label is rendered while it is empty. */
+    readonly label = input<string>('');
 
     private readonly baseId = `lib-form-field-${nextId++}`;
 

@@ -92,15 +92,15 @@ export type SpinnerSizeType = 'sm' | 'md' | 'lg';
     `
 })
 export class SpinnerComponent {
-    /** Diameter of the spinner, see {@link SpinnerSizeType}. */
-    readonly size = input<SpinnerSizeType>('md');
-
-    /** Text next to the spinner. Left out when empty. */
-    readonly label = input<string>('');
-
     /**
      * Colour of the arc, any CSS colour. The track is drawn in the same colour at 20% opacity.
      * @since 1.1.0
      */
     readonly color = input<string>('#6366f1');
+
+    /** Text next to the spinner. Left out when empty. */
+    readonly label = input<string>('');
+
+    /** Diameter of the spinner, see {@link SpinnerSizeType}. */
+    readonly size = input<SpinnerSizeType>('md');
 }

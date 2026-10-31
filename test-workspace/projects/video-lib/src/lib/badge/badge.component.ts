@@ -33,6 +33,6 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class BadgeComponent {
-    readonly value = input('0');
     readonly tone = input<'neutral' | 'accent'>('neutral');
+    readonly value = input('0');
 }

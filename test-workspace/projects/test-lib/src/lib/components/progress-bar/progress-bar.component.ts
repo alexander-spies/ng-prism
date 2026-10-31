@@ -123,20 +123,20 @@ export type ProgressBarVariantType = 'default' | 'success' | 'warning' | 'error'
     `
 })
 export class ProgressBarComponent {
-    /** Progress in percent, clamped to 0 to 100. Ignored while `indeterminate`. */
-    readonly value = input<number>(0);
-
-    /** Colour of the fill: `success` once the task is done, `warning` and `error` for thresholds such as disk usage. */
-    readonly variant = input<ProgressBarVariantType>('default');
-
-    /** Text above the bar. Without it the header line, percentage included, is left out. */
-    readonly label = input<string>('');
-
     /**
      * Shows a running segment instead of a fill, for work of unknown length.
      * @since 1.2.0
      */
     readonly indeterminate = input<boolean>(false);
+
+    /** Text above the bar. Without it the header line, percentage included, is left out. */
+    readonly label = input<string>('');
+
+    /** Progress in percent, clamped to 0 to 100. Ignored while `indeterminate`. */
+    readonly value = input<number>(0);
+
+    /** Colour of the fill: `success` once the task is done, `warning` and `error` for thresholds such as disk usage. */
+    readonly variant = input<ProgressBarVariantType>('default');
 
     protected readonly clampedValue = computed(() => Math.max(0, Math.min(100, this.value())));
 

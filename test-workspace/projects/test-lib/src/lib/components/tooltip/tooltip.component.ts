@@ -134,11 +134,11 @@ export type TooltipPositionType = 'top' | 'bottom' | 'left' | 'right';
     `
 })
 export class TooltipComponent {
-    /** Text of the tooltip. */
-    readonly text = input.required<string>();
-
     /** Side of the trigger the tooltip appears on, see {@link TooltipPositionType}. */
     readonly position = input<TooltipPositionType>('top');
+
+    /** Text of the tooltip. */
+    readonly text = input.required<string>();
 
     /** Text of the trigger the tooltip belongs to. */
     readonly triggerLabel = input<string>('');

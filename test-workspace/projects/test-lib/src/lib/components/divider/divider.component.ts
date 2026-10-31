@@ -97,12 +97,12 @@ export type DividerVariantType = 'default' | 'dark';
     `
 })
 export class DividerComponent {
+    /** Renders a thicker, bolder line. */
+    readonly bold = input<boolean>(false);
+
     /** Orientation of the divider. */
     readonly orientation = input<DividerOrientationType>('horizontal');
 
     /** Visual variant: `'default'` or `'dark'` (more prominent). */
     readonly variant = input<DividerVariantType>('default');
-
-    /** Renders a thicker, bolder line. */
-    readonly bold = input<boolean>(false);
 }

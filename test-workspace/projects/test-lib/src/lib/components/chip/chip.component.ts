@@ -101,8 +101,8 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class ChipComponent {
-    /** Text of the chip, and the value `removed` emits. */
-    readonly label = input.required<string>();
+    /** Dims the chip and hides its remove button. `remove()` does nothing while it is set. */
+    readonly disabled = input<boolean>(false);
 
     /** Shows a remove button. Hidden while the chip is `disabled`. */
     readonly removable = input<boolean>(false);
@@ -110,8 +110,8 @@ export class ChipComponent {
     /** Highlights the chip, e.g. as an active filter. */
     readonly selected = input<boolean>(false);
 
-    /** Dims the chip and hides its remove button. `remove()` does nothing while it is set. */
-    readonly disabled = input<boolean>(false);
+    /** Text of the chip, and the value `removed` emits. */
+    readonly label = input.required<string>();
 
     /** Emits the chip's `label` when the remove button is clicked or `remove()` is called. */
     readonly removed = output<string>();

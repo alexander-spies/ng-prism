@@ -72,7 +72,7 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class ToggleComponent {
-    readonly label = input('Toggle');
     readonly checked = input(false);
+    readonly label = input('Toggle');
     readonly changed = output<boolean>();
 }

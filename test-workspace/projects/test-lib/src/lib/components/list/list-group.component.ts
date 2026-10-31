@@ -95,9 +95,9 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class ListGroupComponent {
-    /** Text of the label, which also names the group's items for assistive technology. */
-    readonly label = input.required<string>();
-
     /** Whether the items of the group are shown. Two-way bindable with `[(expanded)]`; the label toggles it. */
     readonly expanded = model(true);
+
+    /** Text of the label, which also names the group's items for assistive technology. */
+    readonly label = input.required<string>();
 }

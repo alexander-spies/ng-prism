@@ -60,14 +60,14 @@ let nextId = 0;
     }
 })
 export class InputDirective implements LibFormFieldControl {
-    /** Requires a value: the field marks its label. */
-    readonly required = input(false, { transform: booleanAttribute });
-
     /** Disables the element and dims the field. */
     readonly disabled = input(false, { transform: booleanAttribute });
 
     /** Shows the value without letting it be changed. */
     readonly readonly = input(false, { transform: booleanAttribute });
+
+    /** Requires a value: the field marks its label. */
+    readonly required = input(false, { transform: booleanAttribute });
 
     /** Id of the element, which the field's label points at. */
     readonly id = signal(`lib-input-${nextId++}`).asReadonly();

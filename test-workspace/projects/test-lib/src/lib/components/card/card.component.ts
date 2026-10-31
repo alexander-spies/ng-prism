@@ -116,20 +116,20 @@ import { Showcase } from '@ng-prism/core';
     `
 })
 export class CardComponent {
-    /** Heading of the card. Left out when empty. */
-    readonly title = input<string>('');
-
-    /** Short text below the title. Left out when empty. */
-    readonly subtitle = input<string>('');
-
-    /** Adds an image area above the text, filled with a placeholder graphic. */
-    readonly showImage = input<boolean>(false);
-
     /** Makes the whole card react to clicks: hover style, pointer cursor and the `clicked` output. */
     readonly clickable = input<boolean>(false);
 
     /** Lifts the card with a shadow. `false` draws a border instead. */
     readonly elevated = input<boolean>(true);
+
+    /** Adds an image area above the text, filled with a placeholder graphic. */
+    readonly showImage = input<boolean>(false);
+
+    /** Short text below the title. Left out when empty. */
+    readonly subtitle = input<string>('');
+
+    /** Heading of the card. Left out when empty. */
+    readonly title = input<string>('');
 
     /** Emits when a `clickable` card is clicked. Never emits otherwise. */
     readonly clicked = output<void>();
