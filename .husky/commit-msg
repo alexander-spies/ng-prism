@@ -1,0 +1,1 @@
+node scripts/strip-ai-coauthors.mjs "$1"
