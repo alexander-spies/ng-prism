@@ -119,12 +119,13 @@ change to the tour, read _Changing the tour_ first.
 11. **Encode for the web,** into a temporary file; narrating it comes next:
 
     ```bash
-    ffmpeg -i <master> -vf fps=30 -c:v libx264 -preset slow -crf 20 -tune animation -profile:v high \
+    ffmpeg -i <master> -vf fps=30 -c:v libx264 -preset slow -crf <crf> -tune animation -profile:v high \
       -pix_fmt yuv420p -c:a copy -movflags +faststart <encode>.mp4
     ```
 
-    It turns a 47 MB master into about 10 MB with no visible loss (compare crops of code and small text against the
-    master).
+    `<crf>` is 22 for a release clip and 20 for the tour. A release clip has to stay under 10 MB, GitHub's limit for a
+    video on the free plan; CRF 22 turns a one-minute master of 47 MB into about 9 MB with the narration, CRF 20 into
+    about 11 MB. Neither shows a visible loss (compare crops of code and small text against the master).
 
 12. **Narrate:**
     - **The lines:** the logo, the title's line, one line per beat written for a listener, the end card's. The
@@ -158,7 +159,9 @@ change to the tour, read _Changing the tour_ first.
       once, from `templates/sonic-logo-take.mp3`.
 
 13. **Deliver:**
-    - **A release clip** stays in `.videos/ng-prism-<version>.mp4`; the maintainer attaches it to the GitHub release.
+    - **A release clip** stays in `.videos/ng-prism-<version>.mp4`. Check that it is under 10 MB. The maintainer drags
+      it into the release notes in GitHub's web editor, which puts a player into the text; a file under the release's
+      assets would only be a download.
     - **The tour** is copied to `docs/assets/video/tour.mp4`, with a new poster from the master's lockup:
       `ffmpeg -ss 3.62 -i <master> -frames:v 1 docs/assets/video/tour-poster.png`.
     - **The credit:** the free plan's licence is non-commercial and wants "elevenlabs.io" in the title wherever a film
