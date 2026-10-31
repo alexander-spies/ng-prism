@@ -160,8 +160,9 @@ change to the tour, read _Changing the tour_ first.
 
 13. **Deliver:**
     - **A release clip** stays in `.videos/ng-prism-<version>.mp4`. Check that it is under 10 MB. The maintainer drags
-      it into the release notes in GitHub's web editor, which puts a player into the text; a file under the release's
-      assets would only be a download.
+      it into the release notes in GitHub's web editor, which inserts a `github.com/user-attachments/assets/…` URL; a
+      file under the release's assets would only be a download. The URL becomes a player only when it stands alone in
+      its paragraph, so an empty line goes between it and the credit below; without it GitHub shows a plain link.
     - **The tour** is copied to `docs/assets/video/tour.mp4`, with a new poster from the master's lockup:
       `ffmpeg -ss 3.62 -i <master> -frames:v 1 docs/assets/video/tour-poster.png`.
     - **The credit:** the free plan's licence is non-commercial and wants "elevenlabs.io" in the title wherever a film
