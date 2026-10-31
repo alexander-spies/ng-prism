@@ -33,7 +33,7 @@ sound the same: every film opens on the same title card, closes on the same end 
 | Scene                | Template                                 | Length   | Set per film                                       |
 | -------------------- | ---------------------------------------- | -------- | -------------------------------------------------- |
 | `title`              | `templates/scene-title.js`               | 4.0 s    | `VERSION` (table above)                            |
-| one beat per feature | `scene-code-card.js` or `scene-click.js` | 5.5–8 s  | everything: the two templates are worked examples  |
+| one beat per feature | `scene-code-card.js` or `scene-click.js` | 5.5–8 s  | everything: the templates are worked examples      |
 | `end`                | `templates/scene-end.js`                 | 4.0 s    | `COMMAND` (table above)                            |
 | sound                | `templates/score.js`                     | the film | `CLICKS` only, each as a scene id and a time in it |
 | narration            | `scripts/narrate.mjs`                    | the film | the beats' lines; the rest is fixed (step 12)      |
@@ -62,6 +62,12 @@ are; each scene's `id`, `name`, `dur` and `desc` are the film's), and the asset 
   inside the card. Dropping the indentation all shown lines share is fine and is said to the maintainer; a long line
   runs out of the card under the fade, never wrapped or shortened. video-lib's showcases are written to fit a card;
   test-lib works where its lines do.
+- **Terminal cards** (a feature without UI of its own: rescans, builder output, warnings, migrations): the code card's
+  card and veil with a terminal in it. The command is typed at 34 cps, then the builder's real output appears
+  **verbatim**, line by line at the pace it really comes. Behind the card the window cross-fades to its after state at
+  the moment the output says the work is done, so cause and effect are both in the picture. No template yet: the first
+  film that needs one builds it from `scene-code-card.js` and adds it to `templates/`. A feature with nothing to show,
+  not even in the terminal, gets no beat; the release notes have it.
 - **Sound:** no music. In the film only keystrokes (automatic from `kit.typist`) and the cursor's clicks (`CLICKS`).
 - **Narration:** it opens with the sonic logo, `templates/sonic-logo.flac` (the ElevenLabs voice Lily whispering "N G
   prism" in a hall), 0.5 s into the title. Everything after it is the ElevenLabs voice Chris, an advertising read: the
