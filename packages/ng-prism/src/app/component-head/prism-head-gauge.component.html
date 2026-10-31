@@ -1,35 +1,49 @@
-<button
-    class="gauge"
-    type="button"
-    [class.gauge--ok]="summary().variant === 'ok'"
-    [class.gauge--warn]="summary().variant === 'warn'"
-    [class.gauge--danger]="summary().variant === 'danger'"
-    popovertarget="prism-head-gauge"
-    [attr.aria-label]="ariaLabel()"
-    [attr.title]="ariaLabel()">
-    <span
-        class="gauge__dot"
-        aria-hidden="true"></span>
-    @if (summary().worst; as worst) {
-        <span class="gauge__text">{{ worst.label }} {{ worst.value }}</span>
-        @if (summary().others > 0) {
-            <span class="gauge__more">+{{ summary().others }}</span>
-        }
-    } @else {
-        <span class="gauge__text">{{ summary().measured }}</span>
-    }
-</button>
-
-<div
-    popover
-    id="prism-head-gauge"
-    class="gauge-card"
-    role="dialog"
-    aria-label="Component metrics">
+<ng-template #rows>
+    <div
+        class="gauge-card__row gauge-card__row--head"
+        aria-hidden="true">
+        <span>Metric</span>
+        <span>Threshold</span>
+        <span>Value</span>
+    </div>
     @for (m of metrics(); track m.id) {
         <prism-stat
             [label]="m.label"
+            [threshold]="m.threshold"
             [value]="m.value"
             [variant]="m.variant" />
     }
-</div>
+</ng-template>
+
+@if (chip(); as c) {
+    @if (inline()) {
+        <div
+            class="gauge-rows"
+            role="group"
+            aria-label="Component metrics">
+            <ng-container *ngTemplateOutlet="rows" />
+        </div>
+    } @else {
+        <button
+            class="gauge"
+            type="button"
+            popovertarget="prism-head-gauge"
+            [attr.aria-label]="c.metric.label + ' ' + c.metric.value + '. ' + title()"
+            [attr.title]="title()">
+            <prism-badge
+                dot
+                [tone]="tone()"
+                [label]="c.metric.label"
+                [value]="c.metric.value" />
+        </button>
+
+        <div
+            popover
+            id="prism-head-gauge"
+            class="gauge-card"
+            role="dialog"
+            aria-label="Component metrics">
+            <ng-container *ngTemplateOutlet="rows" />
+        </div>
+    }
+}

@@ -42,8 +42,9 @@ export class A11yOverlayHostComponent {
         };
     });
 
+    /** The role of the showcased element, which in a composition is not the rendered root. */
     protected readonly roleLabel = computed(() => {
-        const el = this.rendererService().renderedElement();
+        const el = this.rendererService().subjectElement();
 
         if (!el) return null;
         const role = el.getAttribute('role') ?? implicitRole(el);

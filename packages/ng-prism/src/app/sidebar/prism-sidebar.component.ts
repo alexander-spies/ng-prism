@@ -1,27 +1,72 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
+import {
+    afterNextRender,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    effect,
+    ElementRef,
+    HostListener,
+    inject,
+    Injector,
+    signal,
+    untracked,
+    viewChild
+} from '@angular/core';
 import type { ComponentStatus } from '../../decorator/showcase.types.js';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { BUILTIN_NAVIGATION_DECORATIONS } from '../panels/builtin-navigation-decorations.js';
+import { itemKey, itemShowcaseConfig } from '../services/navigation-item.js';
 import type { NavigationItem } from '../services/navigation-item.types.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPluginService } from '../services/prism-plugin.service.js';
 import { PrismSearchService } from '../services/prism-search.service.js';
-import { type CategoryRollup, decorateItem, type ItemDecorations, lifecycleIcon, resolveNavigationDecorations, rollupCategory } from './navigation-decorations.js';
+import { PrismBadgeComponent } from '../shared/prism-badge.component.js';
+import { handoffTarget } from './focus-handoff.js';
+import {
+    categoryCount,
+    type CategoryRollup,
+    decorateItem,
+    type ItemDecorations,
+    lifecycleIcon,
+    resolveNavigationDecorations,
+    rollupCategory,
+    sectionFacet
+} from './navigation-decorations.js';
+import { revealScrollTop } from './reveal-item.js';
 
 const STORAGE_KEY = 'ng-prism-sidebar-collapsed';
 
 const SECTION_ICONS: Record<string, string> = {
     Components: 'box',
-    Directives: 'zap'
+    Directives: 'zap',
+    Services: 'plug',
+    Pipes: 'pipette'
 };
 const DEFAULT_SECTION_ICON = 'box-select';
+const SERVICE_ICON = 'plug';
+const PIPE_ICON = 'pipette';
 
 function sectionIcon(name: string): string {
     return SECTION_ICONS[name] ?? DEFAULT_SECTION_ICON;
 }
 
+/** The glyph of an item's kind, shown unless it is a work in progress. `undefined` for a component: `lifecycleIcon` falls back to the box. */
+function idleIcon(item: NavigationItem): string | undefined {
+    switch (item.kind) {
+        case 'service':
+            return SERVICE_ICON;
+        case 'pipe':
+            return PIPE_ICON;
+        default:
+            return undefined;
+    }
+}
+
 interface SidebarCategory {
     name: string;
+    /** The key the group's collapsed state is stored under. */
+    key: string;
     items: NavigationItem[];
 }
 
@@ -33,6 +78,8 @@ interface SidebarItem {
 
 interface ComponentCategory {
     name: string;
+    /** The key the group's collapsed state is stored under. */
+    key: string;
     items: SidebarItem[];
     rollup: CategoryRollup;
 }
@@ -41,15 +88,18 @@ interface ComponentCategory {
     selector: 'prism-sidebar',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismIconComponent],
+    imports: [PrismIconComponent, PrismBadgeComponent],
     templateUrl: './prism-sidebar.component.html',
     styleUrl: './prism-sidebar.component.css'
 })
 export class PrismSidebarComponent {
     protected readonly navigationService = inject(PrismNavigationService);
+    private readonly mobileLayout = inject(PrismMobileLayoutService);
     protected readonly searchService = inject(PrismSearchService);
     private readonly pluginService = inject(PrismPluginService);
+    private readonly injector = inject(Injector);
     private readonly filterInput = viewChild<ElementRef<HTMLInputElement>>('filterInput');
+    private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
 
     private readonly decorations = computed(() => resolveNavigationDecorations(BUILTIN_NAVIGATION_DECORATIONS, this.pluginService.navigationDecorations()));
 
@@ -82,6 +132,7 @@ export class PrismSidebarComponent {
         }
         return [...catMap.entries()].map(([name, items]) => ({
             name,
+            key: `page:${name}`,
             items
         }));
     });
@@ -96,18 +147,46 @@ export class PrismSidebarComponent {
             categories: section.categories.map((cat): ComponentCategory => {
                 const items = cat.items.map((item) => ({
                     item,
-                    icon: lifecycleIcon(this.itemStatus(item)),
+                    icon: lifecycleIcon(this.itemStatus(item), idleIcon(item)),
                     decorations: decorateItem(item, defs)
                 }));
 
                 return {
                     name: cat.name,
+                    key: `sec:${section.name}:${cat.name}`,
                     rollup: rollupCategory(items.map((row) => row.decorations)),
                     items
                 };
             })
         }));
     });
+
+    constructor() {
+        // The phone layout's navigation was open when the window widened past
+        // the breakpoint: the ☰ button that held focus is gone, so this
+        // sidebar, which takes the list's place, takes focus over too.
+        const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+
+        afterNextRender(() => {
+            if (!this.mobileLayout.mobile() && this.mobileLayout.takeFocusHandoff()) handoffTarget(host)?.focus();
+        });
+
+        // Keeps the active item in sight: after a reload that restores it from the
+        // URL, on back and forward, and wherever else it is selected from outside the
+        // list. Its group opens if it is collapsed. Before the list renders, so the
+        // item is there to scroll to once it has.
+        effect(() => {
+            const active = this.navigationService.activeItem();
+
+            if (!active) return;
+            untracked(() => {
+                const group = this.groupOf(active);
+
+                if (group && this.isCollapsed(group)) this.toggleCollapse(group);
+                afterNextRender({ read: () => this.revealActive() }, { injector: this.injector });
+            });
+        });
+    }
 
     protected isCollapsed(key: string): boolean {
         return this.collapsedSet().has(key);
@@ -124,35 +203,23 @@ export class PrismSidebarComponent {
         });
     }
 
-    protected itemKey(item: NavigationItem): string {
-        return item.kind === 'component' ? item.data.meta.className : `page:${item.data.title}`;
-    }
+    protected readonly itemKey = itemKey;
 
     protected itemLabel(item: NavigationItem): string {
-        return item.kind === 'component' ? item.data.meta.showcaseConfig.title : item.data.title;
+        return item.kind === 'page' ? item.data.title : item.data.meta.showcaseConfig.title;
     }
 
     protected itemStatus(item: NavigationItem): ComponentStatus | undefined {
-        return item.kind === 'component' ? item.data.meta.showcaseConfig.status : undefined;
+        return itemShowcaseConfig(item)?.status;
     }
 
-    /**
-     * Accessible name for the roll-up pill, for the deviating case only. The
-     * pill otherwise renders a bare number distinguished only by colour. A
-     * screen reader would read the group head as "Feedback 3 12" with nothing
-     * naming what either number means, and a colour-blind reader can't tell
-     * them apart at all.
-     *
-     * There is no zero branch: a clean category renders its plain
-     * item count and the template leaves both attributes off, because
-     * `aria-label` on a descendant feeds the group button's name-from-content
-     * and "Buttons 0 components need review" is a claim about a group that has
-     * nothing to review.
-     */
-    protected rollupTooltip(rollup: CategoryRollup): string {
-        const noun = rollup.problems === 1 ? 'component needs' : 'components need';
+    /** The category head's count and problem chip. A clean category shows only its size. */
+    protected countOf(rollup: CategoryRollup, total: number) {
+        return categoryCount(rollup, total);
+    }
 
-        return `${rollup.problems} ${noun} review`;
+    protected facet(sectionName: string) {
+        return sectionFacet(sectionName);
     }
 
     protected itemTooltip(item: NavigationItem, decorations: ItemDecorations | null): string | null {
@@ -168,19 +235,51 @@ export class PrismSidebarComponent {
     protected isActive(item: NavigationItem): boolean {
         const active = this.navigationService.activeItem();
 
-        if (!active || active.kind !== item.kind) return false;
-        if (item.kind === 'component') {
-            return item.data.meta.className === (active as typeof item).data.meta.className;
-        }
-        return item.data.title === (active as typeof item).data.title;
+        return active !== null && itemKey(active) === itemKey(item);
     }
 
     protected onSelect(item: NavigationItem): void {
-        if (item.kind === 'component') {
-            this.navigationService.select(item.data);
-        } else {
-            this.navigationService.selectPage(item.data);
+        switch (item.kind) {
+            case 'component':
+                this.navigationService.select(item.data);
+                break;
+            case 'service':
+                this.navigationService.selectService(item.data);
+                break;
+            case 'pipe':
+                this.navigationService.selectPipe(item.data);
+                break;
+            case 'page':
+                this.navigationService.selectPage(item.data);
+                break;
         }
+        // On a phone the list covers the page; picking an entry, the active one
+        // included, takes the reader back to it. A no-op on the desktop layout.
+        this.mobileLayout.closeNav();
+    }
+
+    /** The key of the group the list shows `item` in, `undefined` while the filter hides it. */
+    private groupOf(item: NavigationItem): string | undefined {
+        const key = itemKey(item);
+        const page = this.pageCategories().find((cat) => cat.items.some((entry) => itemKey(entry) === key));
+
+        if (page) return page.key;
+        for (const section of this.componentSections()) {
+            const cat = section.categories.find((c) => c.items.some((row) => itemKey(row.item) === key));
+
+            if (cat) return cat.key;
+        }
+        return undefined;
+    }
+
+    private revealActive(): void {
+        const scroller = this.scroller()?.nativeElement;
+        const active = scroller?.querySelector('.sb-item--active');
+
+        if (!scroller || !active) return;
+        const top = revealScrollTop(scroller.getBoundingClientRect(), active.getBoundingClientRect(), scroller.scrollTop);
+
+        if (top !== null) scroller.scrollTop = top;
     }
 
     private loadCollapsed(): Set<string> {

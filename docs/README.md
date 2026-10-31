@@ -2,13 +2,19 @@
 
 A lightweight, Angular-native component showcase tool. Annotate your components directly with a `@Showcase` decorator. There are no separate story files and no parallel file tree to maintain.
 
+<video controls preload="metadata" playsinline poster="assets/video/tour-poster.png" width="100%" aria-label="A one-minute tour of ng-prism">
+  <source src="assets/video/tour.mp4" type="video/mp4" />
+</video>
+
+<sub>Voice: [elevenlabs.io](https://elevenlabs.io)</sub>
+
 > **[See it in action: Live Demo](/ng-prism/demo/?component=ButtonComponent ':ignore :target=_blank')**: a component
 > library with all six official plugins enabled, plus free-form component pages.
 
 ## Project Status
 
 - **Status:** Stable and actively maintained. Published on npm since April 2026; the current release line is v22.x.
-- **Version:** [![npm version](https://img.shields.io/npm/v/@ng-prism/core?label=%40ng-prism%2Fcore&color=7c3aed)](https://www.npmjs.com/package/@ng-prism/core) · [Releases & changelog](https://github.com/ng-prism/ng-prism/releases)
+- **Version:** [![npm version](https://img.shields.io/npm/v/@ng-prism/core?label=%40ng-prism%2Fcore&color=2563eb)](https://www.npmjs.com/package/@ng-prism/core) · [Releases & changelog](https://github.com/ng-prism/ng-prism/releases)
 - **Requires:** Angular 20+ (tested against 20, 21 and 22) · Node.js 20+ · TypeScript 5.5+
 - **Versioning:** The major tracks the Angular major it targets: v22.x is the Angular 22 line. Breaking changes within the same Angular major ship as a minor release.
 - **License:** [MIT](https://github.com/ng-prism/ng-prism/blob/main/LICENSE), © 2026 Alexander Spies
@@ -24,7 +30,12 @@ A lightweight, Angular-native component showcase tool. Annotate your components 
 - **No iframe:** components render in the same document, so dialogs, overlays, and CDK portals work out of the box
 - **TypeScript Compiler API:** inputs, outputs, and types are extracted at build time instead of through runtime reflection
 - **Component Pages:** register free-form Angular components as styleguide pages alongside `@Showcase` components
-- **URL state:** deep-linking via `?component=`, `?variant=`, `?state=`, `?page=`, `?view=` params
+- **Compositions:** show a component with the parts it works with, such as a form field with its input, as a compiled Angular template with `template`, `host: { template }` and `imports`, and keep the Overview, states and Controls (since `22.7.0`)
+- **Parts:** a component that only works inside another, such as an option in a select, names its parent with [`partOf`](guide/showcase-decorator.md#partof) and shows on the parent's page, with its inputs and outputs on a card behind a chip and a block on the API tab, instead of a page of its own (since `22.7.0`)
+- **Services:** an `@Injectable` or `@Service` with `@Showcase` gets an API page and a usage snippet, read from the code and its JSDoc, drawn by the [JSDoc plugin](plugins/jsdoc.md) (since `22.7.0`)
+- **Pipes:** a standalone `@Pipe` with `@Showcase` gets the same kind of page, with every `transform()` overload and a template line in its usage snippet (since `22.7.0`)
+- **On a phone:** a phone layout up to 900 px wide, with full-screen navigation, a panel that folds away and touch-sized controls, so a shared link opens properly on a phone and a component can be checked on a real device (since `22.7.0`, see [On a Phone](guide/first-showcase.md#on-a-phone))
+- **URL state:** deep-linking via `?component=`, `?service=`, `?pipe=`, `?variant=`, `?state=`, `?page=`, `?view=`, `?part=` params
 - **Zoneless ready:** opt in via `ng add @ng-prism/core --zoneless` for ~30 KB bundle savings
 
 ## Quick Example

@@ -20,16 +20,24 @@
 .json-input {
     padding: 4px 8px;
     margin: 0;
+    scrollbar-gutter: stable;
     font-family: var(--font-mono);
     font-size: 12px;
     line-height: 1.4;
     overflow-wrap: break-word;
     tab-size: 2;
     white-space: pre-wrap;
+    scrollbar-color: var(--prism-border-strong) transparent;
+    scrollbar-width: thin;
 }
 
+/* The pre sizes the editor up to ten lines; past that the textarea scrolls
+   and syncScroll() moves the pre along. Both reserve the same scrollbar
+   gutter, so their text wraps at the same width. */
 .json-pre {
     min-height: 56px;
+    max-height: calc(10lh + 8px);
+    overflow: hidden;
     pointer-events: none;
 }
 
@@ -54,7 +62,7 @@
 }
 
 :host ::ng-deep .jh-null {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }
 
 .json-input {
@@ -76,7 +84,7 @@
 }
 
 .json-input::selection {
-    background: rgb(99 102 241 / 30%);
+    background: color-mix(in srgb, var(--prism-primary) 30%, transparent);
 }
 
 .json-error {
@@ -84,4 +92,13 @@
     margin-top: 2px;
     font-size: 11px;
     color: var(--prism-danger);
+}
+
+/* Touch screens: 16px keeps iOS from zooming the page when the editor gets
+   focus. The pre and the textarea change together, as they must stay aligned. */
+@media (pointer: coarse) {
+    .json-pre,
+    .json-input {
+        font-size: 16px;
+    }
 }

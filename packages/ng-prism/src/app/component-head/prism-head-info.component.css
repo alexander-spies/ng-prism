@@ -3,17 +3,34 @@
 }
 
 .info-btn {
+    position: relative;
     display: grid;
     place-items: center;
     width: 20px;
     height: 20px;
     padding: 0;
     anchor-name: --prism-head-info;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     cursor: pointer;
     background: transparent;
     border: 0;
     border-radius: var(--radius-xs);
+}
+
+/* A metric that warns or alarms, while the gauge sits inside the card. */
+.info-btn__dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 7px;
+    height: 7px;
+    background: var(--prism-warn);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.5px var(--prism-bg);
+}
+
+.info-btn__dot--danger {
+    background: var(--prism-danger);
 }
 
 .info-btn:hover {
@@ -36,9 +53,9 @@
     position-try-fallbacks: flip-block, flip-inline;
     color: var(--prism-text-2);
     background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 8px 28px -10px rgb(0 0 0 / 45%);
+    box-shadow: var(--prism-shadow-md);
 }
 
 .info-card__selector {
@@ -77,4 +94,18 @@
     color: var(--prism-text-muted);
     border: 1px solid var(--prism-border);
     border-radius: var(--radius-xs);
+}
+
+/* What a compact head moves into the card: the parts and the metrics. Comment anchors do not count for :empty. */
+.info-card__more {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    padding-top: var(--sp-4);
+    margin-top: var(--sp-4);
+    border-top: 1px solid var(--prism-border);
+}
+
+.info-card__more:empty {
+    display: none;
 }

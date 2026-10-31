@@ -49,6 +49,10 @@ Thumbs.db
 
 test-output
 
+# Finished product films (release clips with their narration), kept here for the maintainer to attach to a release;
+# never committed. The docs tour is the one film in git: docs/assets/video/tour.mp4.
+/.videos
+
 # test-workspace: Angular CLI workspace for local testing. Sources of the
 # test libs and both prism apps are committed, generated files are not.
 test-workspace/node_modules

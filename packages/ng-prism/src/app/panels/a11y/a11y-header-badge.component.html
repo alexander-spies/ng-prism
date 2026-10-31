@@ -2,7 +2,8 @@
     <prism-metric-badge
         icon="accessibility"
         label="Library accessibility score"
-        [value]="d.score + '%'"
+        shortLabel="A11y"
+        [value]="'' + d.score"
         [variant]="d.variant"
         [title]="d.title" />
 }

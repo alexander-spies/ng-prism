@@ -4,119 +4,24 @@
     height: 100%;
     min-height: 0;
     overflow: hidden;
-    background: var(--prism-bg-elevated);
+    background: var(--prism-bg-surface);
     border-top: 1px solid var(--prism-border);
 }
 
 .panel-tabs {
     display: flex;
     flex-shrink: 0;
-    gap: 2px;
-    align-items: center;
-    height: 40px;
-    padding: 0 16px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    height: 38px;
+    padding: 0 12px;
     background: var(--prism-bg);
     border-bottom: 1px solid var(--prism-border);
-}
-
-.panel-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.p-tab {
-    position: relative;
-    display: flex;
-    gap: 7px;
-    align-items: center;
-    height: 100%;
-    padding: 0 12px;
-    font-family: var(--font-sans);
-    font-size: var(--fs-md);
-    font-weight: 500;
-    color: var(--prism-text-muted);
-    white-space: nowrap;
-    cursor: pointer;
-    background: none;
-    border: none;
-    transition: color var(--dur-fast);
-}
-
-.p-tab:hover {
-    color: var(--prism-text-2);
-}
-
-.p-tab--active {
-    color: var(--prism-text);
-}
-
-.p-tab--active::after {
-    position: absolute;
-    right: 8px;
-    bottom: -1px;
-    left: 8px;
-    height: 2px;
-    content: '';
-    background: linear-gradient(90deg, var(--prism-primary-from), var(--prism-primary-to));
-    border-radius: 1px;
-}
-
-.p-tab-badge {
-    display: grid;
-    place-items: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 5px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--prism-primary);
-    background: color-mix(in srgb, var(--prism-primary) 18%, transparent);
-    border-radius: 8px;
-}
-
-.p-tab-badge.warn {
-    color: var(--prism-warn);
-    background: color-mix(in srgb, var(--prism-warn) 18%, transparent);
-}
-
-.p-tab-badge.danger {
-    color: var(--prism-danger);
-    background: color-mix(in srgb, var(--prism-danger) 18%, transparent);
-}
-
-.panel-tabs-right {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    padding-left: 10px;
-    margin-left: auto;
-}
-
-.icon-btn {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: none;
-    border-radius: var(--radius-sm);
-    transition: all var(--dur-fast);
-}
-
-.icon-btn:hover {
-    color: var(--prism-text);
-    background: var(--prism-input-bg);
 }
 
 .panel-body {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    background: var(--prism-bg-elevated);
+    background: var(--prism-bg-surface);
 }
 
 .panel-body::-webkit-scrollbar {
@@ -127,6 +32,16 @@
 .panel-body::-webkit-scrollbar-thumb {
     background: var(--prism-border-strong);
     border-radius: 4px;
+}
+
+/* Folded away on a phone: only the tab bar shows. The panes stay in the DOM
+   so a panel keeps its state until it is opened again. */
+.panel--collapsed {
+    height: auto;
+}
+
+.panel--collapsed .panel-body {
+    display: none;
 }
 
 .panel-pane {
@@ -140,4 +55,10 @@
 :focus-visible {
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+    .panel-tabs {
+        height: 44px;
+    }
 }

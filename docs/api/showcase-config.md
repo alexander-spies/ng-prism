@@ -3,7 +3,7 @@
 Configuration object passed to the `@Showcase` decorator.
 
 ```typescript
-import type { Provider } from '@angular/core';
+import type { InjectionToken, Provider } from '@angular/core';
 
 interface ShowcaseConfig<T = unknown> {
     title: string;
@@ -17,21 +17,28 @@ interface ShowcaseConfig<T = unknown> {
     states?: ShowcaseState[];
     tags?: string[];
     providers?: Provider[];
-    meta?: Record<string, unknown>;
+    meta?: ShowcaseMeta;
+    setup?: () => readonly ShowcaseSetupRef[];
     bg?: CanvasBg;
     canvasLayout?: CanvasLayout;
-    host?: string | DirectiveHost;
+    host?: string | DirectiveHost | HostTemplate;
+    imports?: ShowcaseImport[];
+    partOf?: string;
     renderPage?: string;
     status?: ComponentStatus;
 }
 
 type ComponentStatus = 'stable' | 'beta' | 'wip' | 'deprecated';
 
+type ShowcaseSetupRef = ((...args: never[]) => unknown) | InjectionToken<unknown>;
+
 interface ShowcaseState {
     name: string;
     pseudo: ForcedPseudoStates;
 }
 ```
+
+`@Showcase` also goes on a class with `@Injectable` or `@Service`, which makes it a [service](guide/showcasing-services.md), and on a class with `@Pipe`, which makes it a [pipe](guide/showcasing-pipes.md) (both since `22.7.0`): a page with its API and no canvas. For a service or a pipe, the fields `title`, `description`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `tags`, `meta` and `status` apply, and so does [`setup`](#setup), which only they take. The others (`variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports`, `renderPage`) need a canvas, see [Services](#services) and [Pipes](#pipes) below. `partOf` is for components and directives only: on a service or a pipe it is dropped with a warning.
 
 The optional generic parameter `T` is the component class. When set via `@Showcase<MyComponent>({...})`, variant `inputs` are checked against `Partial<InputsOf<MyComponent>>`, giving you autocomplete on input names and type-checking on values. When omitted, `T` defaults to `unknown` and `inputs` accepts any `Record<string, unknown>`, so existing call sites keep working unchanged. See [Variants: Type-safe inputs](guide/variants.md#type-safe-inputs) for usage and [`InputsOf<T>`](api/types.md#inputsof) for the type mapping rules.
 
@@ -94,7 +101,7 @@ Optional number controlling the sort order of _this component_ within its catego
 
 ### `section`
 
-Optional string that places the component into a top-level sidebar section. Auto-detected when omitted: `'Directives'` for a `@Directive`, `'Components'` for a `@Component`. Any free-form string creates a new section (e.g. `'Pipes'`, `'Utilities'`).
+Optional string that places the component into a top-level sidebar section. Auto-detected when omitted: `'Directives'` for a `@Directive`, `'Components'` for a `@Component`, `'Services'` for a service, `'Pipes'` for a pipe. Any free-form string creates a new section (e.g. `'Forms'`, `'Utilities'`).
 
 ```typescript
 @Showcase({ title: 'Autofocus', section: 'Behavior' })
@@ -106,7 +113,7 @@ export class AutofocusDirective {}
 
 ### `sectionOrder`
 
-Optional number controlling the sort order of this _section_ in the sidebar. Lower numbers appear first. The section's effective order is the minimum `sectionOrder` among its items. Defaults: `Components` 0, `Directives` 10, custom 100.
+Optional number controlling the sort order of this _section_ in the sidebar. Lower numbers appear first. The section's effective order is the minimum `sectionOrder` among its items. Defaults: `Components` 0, `Directives` 10, `Services` 20, `Pipes` 30, custom 100.
 
 ```typescript
 @Showcase({ title: 'AutofocusDirective', section: 'Behavior', sectionOrder: 5 })
@@ -173,7 +180,7 @@ See [Variants: States](guide/variants.md#states) for how to write them and when 
 
 ### `tags`
 
-Optional array of strings used for sidebar search and filtering. Matched alongside `title` and `category`.
+Optional array of strings used for sidebar search and filtering. Matched alongside `title`, `category`, the class name and the selector.
 
 ```typescript
 @Showcase({ title: 'Button', tags: ['form', 'cta', 'interactive'] })
@@ -189,19 +196,54 @@ Use `defineConfig({ appProviders })` instead. For a provider only one component 
 
 ---
 
+### `setup`
+
+**Services and pipes only**, since `22.7.0`. The functions and `InjectionToken` constants that configure the service or pipe, as an arrow function that returns them. The styleguide documents each one next to the service or pipe: signature, description, `@example` and a table of its options, and the generated usage snippet calls them.
+
+```typescript
+@Showcase({
+    title: 'Notification Service',
+    setup: () => [provideNotifications]
+})
+@Injectable({ providedIn: 'root' })
+export class NotificationService {
+    /* ... */
+}
+```
+
+`setup` is an arrow function, not a list, so that a reference to a function declared in a file that imports the service or pipe back is only touched if the function runs. `@Showcase(...)` is evaluated when the class is defined, in every library build without [`ng-prism-strip`](guide/library-publishing.md), and a direct reference to a `const` of a module that is still loading fails with a `ReferenceError`. ng-prism never calls the function: the builder reads the array literal from the source, and `Showcase()` does nothing at runtime. TypeScript checks the references all the same, and renaming one in the IDE renames it here.
+
+What the builder accepts:
+
+- An arrow function with an array literal as its body (`() => [a, b]`), or with a block that only returns one. `as const`, a spread, a condition, a call and a constant that holds the list are not accepted: the whole `setup` is dropped with a warning.
+- Entries that are a function declaration, a `const` arrow or function expression, or a `const` of type `InjectionToken`. Anything else is dropped with a warning, and the other entries stay.
+- Entries that a scanned entry point exports, since the usage snippet needs the import path. One that is not exported is dropped with a warning.
+- `setup` written in the `@Showcase({ ... })` object itself. One that comes through a spread or a constant is not read, and nothing is reported.
+
+On a component or a directive, `setup` is reported and dropped. The type of an entry is `ShowcaseSetupRef`, exported from `@ng-prism/core`; ng-prism only reads its name, signature and type.
+
+For a pipe it works the same way, with `provideTimeAgo` in `setup: () => [provideTimeAgo]` on a class with `@Pipe({ name: 'timeAgo' })`. The exact wording of the warnings and everything else about the page is in [Showcasing Services](guide/showcasing-services.md#setup) and [Showcasing Pipes](guide/showcasing-pipes.md).
+
+---
+
 ### `meta`
 
-Optional arbitrary key-value metadata. Plugins read their own namespaced keys from this object.
+Optional key-value metadata, a [`ShowcaseMeta`](api/types.md#showcasemeta). Plugins read their own namespaced keys from this object. `a11y` is typed (since 22.7.0): `rules` switches axe rules on or off for the live audit, `disable` skips it, and `accept` lists [accepted violations](guide/accessibility.md#accepted-violations).
 
 ```typescript
 @Showcase({
   title: 'Button',
   meta: {
     figma: 'https://www.figma.com/design/abc/Design?node-id=1-1',
-    a11y: { disable: ['color-contrast'] },
+    a11y: {
+      rules: { 'color-contrast': { enabled: false } },
+      accept: [{ rule: 'button-name', reason: 'The icon-only variants are labelled by their tooltip.' }],
+    },
   },
 })
 ```
+
+Since `meta.a11y` is typed, an `a11y` entry in the wrong shape no longer compiles: `disable` is a boolean, a rule switch is `{ enabled: boolean }`, and an acceptance needs both `rule` and `reason`. Other keys under `meta` and under `meta.a11y` stay open.
 
 ---
 
@@ -239,6 +281,8 @@ Accepted values: `'fit'` (default), `'stretch'`.
 | `'fit'`     | Wrapper is `display: inline-block` and shrinks to the component's intrinsic size. The canvas stage's flexbox centers it. Use for the vast majority of components: buttons, badges, cards, alerts.                                                                   |
 | `'stretch'` | Wrapper becomes `display: block; width: 100%; max-width: 800px`. Use when the component has no intrinsic width (e.g. a horizontal divider rendered via `border-bottom`) or explicitly opts into filling its container (e.g. a full-width button via `width: 100%`). |
 
+With Viewport width on, the wrapper takes the width set there instead of the canvas width: a `'fit'` component is centred in it, a `'stretch'` component fills it, also when the subject renders in a `template` or a host template.
+
 A `Variant.canvasLayout` overrides the component-level setting.
 
 ```typescript
@@ -260,7 +304,7 @@ See also: [Variants: Per-Variant Canvas Layout](guide/variants.md#per-variant-ca
 
 ### `host`
 
-Optional. Tells ng-prism how to render a directive that cannot render on its own.
+Optional. Tells ng-prism what to render a directive on, or what to render a component or directive inside. A directive without `host` renders on the element its selector names, see [Without a Host](guide/directive-hosting.md#without-a-host).
 
 **String form**, an HTML element string:
 
@@ -281,7 +325,63 @@ Optional. Tells ng-prism how to render a directive that cannot render on its own
 })
 ```
 
+**Template form** (`HostTemplate`, since `22.7.0`), an Angular template the subject renders in. The element that the subject's selector matches is the subject, and `prism-subject` marks it when several match:
+
+```typescript
+@Showcase<InputDirective>({
+  title: 'Input',
+  host: { template: '<lib-form-field label="Name"><input libInput /></lib-form-field>' },
+})
+```
+
+The template form works for components and directives. The string and the object form only apply to directives: on a component they have no effect, and the build warns about that and drops them. `Variant.host` takes the template form and overrides this field for that variant.
+
 See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
+
+---
+
+### `imports`
+
+Optional, since `22.7.0`. What the [templates](guide/content-projection.md#compiled-content-template) of the showcase (`Variant.template`, `host: { template }`) use and ng-prism does not find in your library by itself: a class from another package such as `CdkTextareaAutosize`, or one of Angular's pipes and directives such as `DatePipe`. A list of `ShowcaseImport` objects:
+
+```typescript
+@Showcase({
+  title: 'Form Field',
+  imports: [
+    { name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' },
+    { name: 'DatePipe', from: '@angular/common' },
+  ],
+})
+```
+
+| Field  | Description                                               |
+| ------ | --------------------------------------------------------- |
+| `name` | The exported class name                                   |
+| `from` | The module specifier to import it from, as in an `import` |
+
+The entries are strings so that [`ng-prism-strip`](guide/library-publishing.md) leaves no import behind in the published library. Components, directives and pipes that your library's entry points export do not need an entry: a template that names them imports them, see [the rule](guide/content-projection.md#imports). ng-prism reads each entry from the declarations of its module to know its selector or name. An entry it cannot read is imported as written, with a notice. The field applies to components and directives, not to services or pipes.
+
+---
+
+### `partOf`
+
+Optional, since `22.7.0`. The selector of the showcased component or directive that this one is a part of, such as `'lib-select'` on `lib-option`. A part has no page of its own and no entry in the sidebar: its title, description, inputs and outputs appear on the page of its parent.
+
+```typescript
+@Showcase({
+  title: 'Option',
+  description: 'One choice of a select.',
+  partOf: 'lib-select',
+})
+@Component({ selector: 'lib-option', ... })
+export class OptionComponent { ... }
+```
+
+The value is a selector and not a class, so that the part does not have to import its parent, which usually imports the part back. It matches one entry of the parent's `selector`, trimmed: `'lib-select'` finds `selector: 'lib-select, [libSelect]'`. The parent can be in another entry point. A part has exactly one parent, a part cannot have parts, and a class cannot be its own part.
+
+A part uses `title`, `description`, `tags` and `status`, its inputs and outputs, and `meta` for plugins. `variants`, `states`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `bg`, `canvasLayout`, a host template (`host: { template }`), `imports` and `renderPage` have no effect on one: the scan drops each with a notice, which does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase). A value in one of them that is malformed or cannot be read, and an error in the template of a variant of the part, is still reported as on any component and does count, since the scan reads the class before it knows that it is a part. `providers` and `setup` keep their own warnings. A directive part keeps a string or object [`host`](#host), such as `host: '<button>Open</button>'`: it names the element the directive sits on, which a usage line such as the one of the [JSDoc plugin](plugins/jsdoc.md) is written on.
+
+A `partOf` that matches no showcased class, matches several, names a part or names the class itself is a warning that `strictShowcase` turns into a build error. The class then keeps a page of its own, variants included. [The decorator guide](guide/showcase-decorator.md#partof) has every message, and says when a class is a part and when it keeps a showcase of its own.
 
 ---
 
@@ -296,7 +396,7 @@ Optional title of a registered `ComponentPage`. When set, the matching page comp
 })
 ```
 
-The page component can inject `PrismRendererService` to react to variant and controls changes. See [Component Pages](guide/component-pages.md). A component with `renderPage` cannot declare [`states`](#states).
+The page component can inject `PrismRendererService` to react to variant and controls changes. See [Component Pages](guide/component-pages.md). A component with `renderPage` cannot declare [`states`](#states), has no Overview and no Events panel entries. For a subject that only needs other library parts around it or in it, a variant [`template`](guide/content-projection.md#compiled-content-template) or a [`host` template](#host) keeps all of that.
 
 ---
 
@@ -324,9 +424,37 @@ UI impact:
     - `'wip'`: the leading icon becomes a dashed circle (`circle-dashed`) instead of the regular `box`, with a native tooltip "Work in progress".
     - `'deprecated'`: component name is rendered struck-through and dimmed, with a native tooltip "Deprecated / Legacy".
     - `'stable'` / `'beta'` / unset: no sidebar decoration.
-- **Component head:** an outlined status chip renders inline with the title for every explicit value (Stable, Beta, Work in progress, Deprecated). The `<selector>` itself has moved into the details popover behind the ⓘ glyph.
+- **Component head:** a status badge with a dot renders inline with the title for every explicit value (Stable, Beta, Work in progress, Deprecated); its tooltip says what the status means. The `<selector>` itself has moved into the details popover behind the ⓘ glyph.
 
-All colors come from the `--prism-mark-*` role tokens (plus `--prism-text-muted` for `stable`) and adapt automatically to light/dark mode. The chip is always an outline and never a filled surface, so `deprecated` separates itself by hue rather than by weight.
+The badge is a soft-tinted [`prism-badge`](api/ng-prism-plugin.md#ui-primitives): `stable` in `--prism-success`, `beta` and `wip` in `--prism-warn` (`wip` with a hollow dot, the one status without a settled state), `deprecated` in `--prism-danger`. The colours adapt to light and dark mode (since `22.7.0`; before, the chip was an outline in the `--prism-mark-*` colours).
+
+---
+
+## Services
+
+A class with `@Injectable` or `@Service` from `@angular/core` is a [service](guide/showcasing-services.md), unless it also has `@Component` or `@Directive`. `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` do nothing there, since a service page has no canvas.
+
+**Until 23.0.0 they decide what the class is** (deprecated since 22.7.0, removed in 23.0.0). A class with `@Showcase` and `@Injectable` was shown as a component before services existed, and with `renderPage` it had a working page. A class with `@Injectable` or `@Service` that declares one of those fields stays a component, as before, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)):
+
+```
+⚠ ng-prism: ToastService is an @Injectable/@Service with @Showcase and declares variants, renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a service and these fields will be dropped; remove them, or move the page to a componentPage.
+```
+
+Remove the fields and move the demo to a [component page](guide/component-pages.md) to make it a service now. The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Deprecation: injectables and pipes with component-only fields](guide/migration-v22.md#deprecation-injectables-and-pipes-with-component-only-fields).
+
+---
+
+## Pipes
+
+A class with `@Pipe` from `@angular/core` is a [pipe](guide/showcasing-pipes.md), unless it also has `@Component` or `@Directive`; one with `@Pipe` and `@Injectable` is a pipe. The same fields as for a service apply, and `variants`, `states`, `providers`, `bg`, `canvasLayout`, `host`, `imports` and `renderPage` do nothing there.
+
+**Until 23.0.0 they decide what the class is** (deprecated since 22.7.0, removed in 23.0.0), as for services: a `@Pipe` class that declares one of those fields stays a component, and the build prints a notice (it does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase)):
+
+```
+⚠ ng-prism: LegacyPagePipe is a @Pipe with @Showcase and declares renderPage, so it is still treated as a component. From 23.0.0 it will be shown as a pipe and these fields will be dropped; remove them, or move the page to a componentPage.
+```
+
+A pipe declared in an NgModule (`standalone: false`) is not shown from 23.0.0, so its notice says that instead, see [Showcasing Pipes: Compatibility until 23.0.0](guide/showcasing-pipes.md#compatibility-until-2300). The exception is deprecated since 22.7.0 and ends in 23.0.0, see [Deprecation: injectables and pipes with component-only fields](guide/migration-v22.md#deprecation-injectables-and-pipes-with-component-only-fields).
 
 ---
 
@@ -343,6 +471,24 @@ interface DirectiveHost {
     };
     /** Static inputs passed to the host component */
     inputs?: Record<string, unknown>;
+}
+```
+
+## HostTemplate and ShowcaseImport Interfaces
+
+Since `22.7.0`, both exported from `@ng-prism/core`. See [Type Reference](api/types.md#hosttemplate).
+
+```typescript
+interface HostTemplate {
+    /** The markup the subject renders in, compiled as an Angular template */
+    template: string;
+}
+
+interface ShowcaseImport {
+    /** Exported name, e.g. 'CdkTextareaAutosize' */
+    name: string;
+    /** Module specifier, e.g. '@angular/cdk/text-field' */
+    from: string;
 }
 ```
 

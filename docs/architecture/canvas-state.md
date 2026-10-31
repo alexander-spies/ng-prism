@@ -43,7 +43,7 @@ state = the active state's pseudo, with the user's toggles on top
 Capture mode skips the toggles: both layers are what is declared.
 
 - `declared`: `Variant.pseudo` of the active variant, or `null`
-- `activeState`: the `ShowcaseState` at `PrismRendererService.activeStateIndex`, or `null`. The index is part of the addressed cell next to `activeVariantIndex`, not a browse toggle. It survives a variant change, so a column of states can be clicked through, and goes back to `null` when the component changes, or when a refresh leaves the component with fewer states than the index. A state slot the scanner could not evaluate (`pseudo: {}`) is still an active state, with an empty layer.
+- `activeState`: the `ShowcaseState` at `PrismRendererService.activeStateIndex`, or `null`. The index is part of the addressed cell next to `activeVariantIndex`. `selectVariant()` sets it back to `null`, so a state never follows the user to another variant unnoticed, and so do a component change and a refresh that leaves the component with fewer states than the index. Whatever addresses a whole cell, an Overview cell or the URL restore, selects the state after the variant. A state slot the scanner could not evaluate (`pseudo: {}`) is still an active state, with an empty layer.
 - `stateExclusion`: `'states: false'` while a state is active and the active variant opts out with `Variant.states: false`, else `null`. The state layer is `null` then, and the state declares nothing.
 - `override`: transient per-state toggles from the tools menu's **State** group. `true` adds a state on the whole component, `false` switches off one the variant or the state declares. Cleared whenever the active variant, the active state or the component changes, and ignored in capture mode, because session UI state must not shape a baseline. The active state, in contrast, applies in capture mode: it addresses the cell.
 - `layers`: `{ base, state }`, computed by `splitLayers()`. A toggle switched off takes the state out of both layers. A toggle switched on leaves a target the variant or the state declares in its own layer, and otherwise forces the state on the whole component in `base`, where the fit rule does not reach it. A state that does not fit is not applied, so it does not count as declaring anything here: `splitLayers()` takes a `stateFits` flag, and with `false` a class only the state declares is forced on the whole component by the toggle. The state layer is the same either way, since the marker still needs it to see when the state fits again. The state layer is `null` when no state applies or when the toggles have switched off every class the state declares, so a deliberate toggle never reads as a state that forces nothing. A state that declares nothing itself (a slot the scanner could not evaluate) stays an empty object, which the marker reports as not fitting. While nothing is toggled both layers are the declared objects themselves, not copies, because the render marker compares by identity (below).
@@ -61,7 +61,19 @@ The renderer has one marker for the canvas. An effect applies the two layers to 
 
 `renderedKey` withholds `data-prism-rendered` while the base forces something or a state layer is set, until `marker.applied()` reports that exact element and those exact `states` and `state` objects (`resolveRenderedKey()` in `renderer/rendered-key.ts`). The key is `<className>:<variantIndex>`, with `:<stateIndex>` appended while a state is active, an opted-out variant included (its state layer is `null`, the index is in the key regardless). A variant that forces nothing and has no state layer is not held back. `excludedReason`, `resolveExcludedReason()` in the same file, is the value of `data-prism-excluded`: `stateExclusion` while the variant opts out, else the `reason` of the marker's `fit` when it does not fit, else `null`, and always `null` without an active state. `.demo-wrap` carries the forced states in `data-pseudo`, taken from `appliedStateNames()`, so the active state's classes count only while it fits. That is what capture mode keys the room for focus rings on, and an excluded state gets none.
 
-Each Overview cell creates its own marker and applies the variant's declared states, and a matrix cell also its column's state as the state layer, so a state never leaks into a neighbouring cell. A matrix cell reports the marker's fit to the matrix (`fitChange`), which counts it in the column header. When the state does not fit, the cell clears the marker and the component and shows a dashed placeholder with the reason in its place, since a picture of the plain variant would sit under a label that says something else. The tools menu's toggle does not reach the Overview.
+Each Overview cell creates its own marker and applies the variant's declared states, and a matrix cell also its column's state as the state layer, so a state never leaks into a neighbouring cell. A matrix cell reports the marker's fit to the matrix (`fitChange`), which counts it in the column header. When the state does not fit, the cell clears the marker and the component and shows a dashed placeholder in its place, with the reason as its tooltip and in its label, since a picture of the plain variant would sit under a label that says something else. The tools menu's toggle does not reach the Overview.
+
+## Composed Variants: Root and Subject
+
+A variant with a `template` or a host template is rendered through the generated composition wrapper, see [Build Pipeline](architecture/pipeline.md#_6-runtime-manifest-generation). `PrismRendererService.renderedElement` is the host element of that wrapper, the root of the whole composition, the same way it is the host of a directive's wrapper. Everything that works from the rendered element therefore sees the composition and not only the showcased element:
+
+- the pseudo-state marker resolves its targets against the root, so a selector in `pseudo` or in a state finds elements of the frame and of the other parts, and `true` is every element of the composition (the rule "resolved against what is rendered");
+- `data-prism-rendered`, the `.demo-wrap` box, the box model, measuring, Figma and the a11y audit work on the root. A label that belongs to the frame is part of the audited tree;
+- the Overview cell of a composed variant renders the same wrapper with the variant's index.
+
+`PrismRendererService.subjectElement` (since 22.7.0) is the one place that needs the showcased element itself. It is computed from `renderedElement`: the element with `data-prism-subject`, which the wrapper puts on the subject (the root itself when it matches), and otherwise the root. The a11y overlay reads the role it labels from it. Outside a composition no element is marked, so it is the root.
+
+A switch to or from a composed variant creates the component again, since the type to render changes, and so does a switch between two composed variants, because each runs its own instances of the frame and the parts in it. The renderer keeps the type, the variant index and the content of the last render for that: only a variant of the same type and content takes the inputs through `setInput` on the instance it has.
 
 ## Viewport Width
 
@@ -74,11 +86,19 @@ gives up.
 
 ### The specimen is centred at the container
 
-While constrained, `.demo-wrap` is a grid with `justify-items: safe center` and `flex: none`, so a specimen narrower than
+While constrained, `.demo-wrap` takes the viewport width with `flex: none` in every layout. With
+`canvasLayout: 'fit'` it is also a grid with `justify-items: safe center`, so a specimen narrower than
 the viewport sits in the middle of it rather than against its left edge. Sizing is unchanged by
 this: a block-level specimen shrink-wraps here as it already does at rest inside the
-`inline-block` wrapper, and one that asks for `width: 100%` (the `canvasLayout: 'stretch'` case)
-still receives the whole viewport.
+`inline-block` wrapper, and one whose host asks for `width: 100%` still receives the whole viewport.
+
+With `canvasLayout: 'stretch'` it keeps the `display: block` of its resting rule, so the viewport width
+is laid out like the 800px at rest: a block-level specimen fills it, and so does the wrapper a
+composition renders in, which hands a subject with `width: 100%` the whole viewport. Centring would
+undo that. A grid item without a width of its own shrinks to its content, and in a composition the
+grid item is ng-prism's wrapper, not the subject: the subject came out only as wide as its own
+content, and a horizontal divider (`display: block`, no width) at 0px. `justify-items` stays off the
+stretch box too, because browsers align block-level children in block layout by it as well.
 
 `flex: none` is required too: the stage is a flex container and `.demo-wrap` is its only item, so the
 default `flex-shrink: 1` would render the box narrower than the requested width whenever the canvas is
@@ -109,8 +129,8 @@ Emulating media queries would mean rendering the component in an iframe, which w
 ### Not in the URL
 
 Like `zoom`, `guides` and `rulers`, the viewport width is a `localStorage` preference and not a URL
-parameter. `PrismUrlStateService` carries navigation only (which component, page, variant, state, view and
-panel you are looking at) and no canvas setup.
+parameter. `PrismUrlStateService` carries navigation only (which component, service, pipe, page, variant, state, view
+and panel you are looking at) and no canvas setup.
 
 ### Capture mode
 
@@ -119,6 +139,14 @@ from an earlier session can leak into a baseline. The grips and the dimension li
 renderer's `@if (!capture.active())` block, alongside the crosshair, the rulers and the background
 pill. Capture mode also never _writes_ the width back to storage (`PrismCanvasService.save()` is a
 no-op while capture is active), so a capture run cannot corrupt the user's stored preference either.
+
+### Phone layout
+
+The phone layout (since 22.7.0) ignores the width the same way: the renderer's `viewportWidth`
+computed is `null` while capture mode is active or the phone layout is, so on a phone the specimen
+meets the device's own width. The grips, the dimension line, the crosshair, the rulers and the
+measuring tool are left out there too, and the stored width, like the other toggles, stays as it was
+and applies again once the window is wide.
 
 ## Measuring
 
@@ -157,5 +185,8 @@ The deeper reason is architectural rather than visual: a panel overlay is _about
 - **Canvas pill:** `Recommended: <bg> [Reset]` appears in the top-left of the canvas only when `isDeviating()` is true (actionable; the button clears the override and returns to the recommendation).
 - **Tools menu, active state:** the active background button binds to `effective()` and carries the filled `is-on` state. Clicks write to the override when a recommendation exists; otherwise they update the persisted global default (backward-compatible behavior for components without `bg`). The recommended and active buttons can be the same one.
 - **Dimension line:** a horizontal rule spanning the painted width at the top of the stage, in `--prism-measure`, with the value set into a gap at its centre and a short vertical tick at each end. The ticks make it read as a measurement instead of a divider, and they mark the two edges the grips can be dragged to. It is the third resident of the overlay band (pill left, dimension centre, rail right) and reads the same `--prism-canvas-overlay-top` as the others, so enabling rulers moves all three together. Its width carries the same `--prism-vp-w * --zoom` product the grips use, so the three stay locked together.
+
 - **Edge grips:** one straddling each edge of the constrained area, each a handle sitting on a faint 1px guide line that runs the full height of the stage. Only the handle is clickable: the line's full-height track is `pointer-events: none`, or it would cover the background pill's Reset button whenever a viewport is on. The handle's hit box is larger than the mark it draws (`background-clip: content-box` over padding), and the same widths are reachable from the **Width** chooser for anyone who cannot hit a 9px target. The line makes the constrained area read as a region instead of two loose handles; it crosses the specimen, so it stays faint and brightens with the handle on hover, drag and focus. The grips run on `prismResizer` with `scale` `-2 / zoom` and `2 / zoom`: `.demo-wrap` is centred and scaled by the canvas zoom, so an edge moving by `d` changes the width by `2d / zoom`, which keeps the grip under the cursor at any zoom level. Both are keyboard-reachable and expose `aria-valuenow`, `aria-valuemin` and `aria-valuemax`. ArrowRight and ArrowUp widen by 10px on either grip and ArrowLeft/ArrowDown narrow, with Home and End jumping to the floor and the ceiling. The pointer inversion that lets the left grip track the cursor does not apply to the keyboard, because two separators announcing the same `aria-valuenow` must not move it in opposite directions for the same key.
 - **Rail width readout:** a second line under the zoom percentage on the floating toolrail, shown only while the viewport constraint is on. It renders the active width with a `px` suffix (`390px`), since a bare number directly under a `100%` line would read ambiguously.
+
+**Overlay colours follow the ground.** The band's residents (rail, pill, pin row, rulers) paint with the `--prism-canvas-overlay-*` tokens, which the shell binds on `.prism-canvas-wrap` from `canvasOverlayTokens(PrismVariantBgService.effective())` (`canvas/canvas-overlay-tokens.ts`). On `bg: 'light'` and `bg: 'dark'` they are fixed light or dark values; on the theme-following grounds they fall back to the theme. The rail therefore never shows the dark theme's surface on a light canvas, or the reverse.

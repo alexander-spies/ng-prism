@@ -38,7 +38,7 @@
     z-index: 1;
     width: var(--prism-ruler-size);
     height: var(--prism-ruler-size);
-    background: var(--prism-bg);
+    background: var(--prism-canvas-overlay-bg);
     border-right: 1px solid var(--prism-border);
     border-bottom: 1px solid var(--prism-border);
 }

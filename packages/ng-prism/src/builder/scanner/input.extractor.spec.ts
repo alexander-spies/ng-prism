@@ -213,6 +213,14 @@ describe('extractInputs (signal-based)', () => {
         expect(inputs[1].required).toBe(false);
     });
 
+    it('marks a model() input, for which Angular adds a change output', () => {
+        const model = extractInputs(getClassDeclaration(exports, 'ModelInputComponent', checker), checker);
+        const signal = extractInputs(getClassDeclaration(exports, 'SignalButtonComponent', checker), checker);
+
+        expect(model.map((i) => i.model)).toEqual([true, true]);
+        expect(signal.filter((i) => 'model' in i)).toEqual([]);
+    });
+
     it('should resolve nullable number type (number | null) as number', () => {
         const classDecl = getClassDeclaration(exports, 'SignalButtonComponent', checker);
         const inputs = extractInputs(classDecl, checker);
@@ -292,6 +300,61 @@ describe('extractInputs with defaults beyond literals', () => {
         const maxFiles = extractInputs(classDecl, checker).find((input) => input.name === 'maxFiles')!;
 
         expect(maxFiles.defaultValue).toBe(3);
+        expect(maxFiles.defaultUnreadable).toBeUndefined();
+    });
+
+    it('marks a default it cannot evaluate, whole or in part', () => {
+        expect(inputs.get('maxFileSize')!.defaultUnreadable).toBe(true);
+        expect(inputs.get('formats')!.defaultUnreadable).toBe(true);
+        expect(inputs.get('rules')!.defaultUnreadable).toBe(true);
+    });
+
+    it('does not mark a default it read', () => {
+        expect(inputs.get('label')!.defaultUnreadable).toBeUndefined();
+        expect(inputs.get('label')).not.toHaveProperty('defaultUnreadable');
+    });
+});
+
+describe('extractInputs with a default it cannot read', () => {
+    let checker: ts.TypeChecker;
+    let exports: ts.Symbol[];
+
+    beforeAll(() => {
+        const entryFile = path.join(FIXTURES_DIR, 'composition-api.ts');
+        const result = resolveEntryPointExports([{ entryFile, importPath: 'fixture' }], compilerOptions);
+
+        checker = result.program.getTypeChecker();
+        exports = result.entries[0].exports;
+    });
+
+    function inputsOf(className: string): Map<string, InputMeta> {
+        return new Map(extractInputs(getClassDeclaration(exports, className, checker), checker).map((input) => [input.name, input]));
+    }
+
+    it('marks a default it cannot evaluate', () => {
+        const input = inputsOf('FrameComponent').get('computedDefault')!;
+
+        expect(input.defaultUnreadable).toBe(true);
+        expect(input.defaultValue).toBeUndefined();
+    });
+
+    it('does not mark an input without an argument', () => {
+        expect(inputsOf('FrameComponent').get('plain')).not.toHaveProperty('defaultUnreadable');
+    });
+
+    it('does not mark an input with a default it read', () => {
+        const label = inputsOf('FrameComponent').get('label')!;
+
+        expect(label.defaultValue).toBe('Label');
+        expect(label).not.toHaveProperty('defaultUnreadable');
+    });
+
+    it('replaces the mark of an inherited default with the value a subclass assigns it', () => {
+        const inputs = inputsOf('ReinitializedComponent');
+
+        expect(inputs.get('size')!.defaultValue).toBe('m');
+        expect(inputs.get('size')).not.toHaveProperty('defaultUnreadable');
+        expect(inputs.get('tone')!.defaultUnreadable).toBe(true);
     });
 });
 
@@ -368,6 +431,7 @@ describe('extractInputs and extractOutputs with base classes', () => {
         expect(value.required).toBe(false);
         expect(value.defaultValue).toBeNull();
         expect(value.type).toBe('string');
+        expect(value.model).toBe(true);
     });
 
     it('lets an input redeclared in the subclass win over the base class', () => {
@@ -387,6 +451,14 @@ describe('extractInputs and extractOutputs with base classes', () => {
 
         expect(count).toBeDefined();
         expect(count.defaultValue).toBeUndefined();
+        expect(count.defaultUnreadable).toBe(true);
+    });
+
+    it('does not mark an inherited input whose default the subclass assigns', () => {
+        const title = inputsOf('LegacyChildComponent').get('title')!;
+
+        expect(title.defaultValue).toBe('child');
+        expect(title).not.toHaveProperty('defaultUnreadable');
     });
 
     it('takes the default from an undecorated class that initializes an input again', () => {

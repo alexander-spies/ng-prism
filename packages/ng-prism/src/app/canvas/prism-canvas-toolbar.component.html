@@ -4,85 +4,91 @@
      view where it has no business being. -->
 <div
     class="prism-toolrail"
-    [class.has-rulers]="canvas.rulers()">
-    <span class="prism-toolrail__zoom">
-        {{ Math.round(canvas.zoom() * 100) }}%
-        @if (canvas.viewportWidth() !== null) {
-            <span class="prism-toolrail__vp">{{ canvas.viewportWidth() }}px</span>
-        }
-    </span>
+    [class.has-rulers]="canvas.rulers() && !mobileLayout.mobile()">
+    <span
+        class="prism-toolrail__zoom"
+        [attr.title]="zoomTitle()"
+        >{{ Math.round(canvas.zoom() * 100) }}%</span
+    >
 
-    <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.guides()"
-        (click)="canvas.toggleGuides()"
-        title="Toggle guides"
-        aria-label="Toggle guides"
-        [attr.aria-pressed]="canvas.guides()">
-        <prism-icon
-            name="crosshair"
-            [size]="14" />
-    </button>
+    <!-- Measuring needs a hovering, Alt-holding pointer, and on a phone the
+         canvas already is the viewport: the phone layout leaves these four out. -->
+    @if (!mobileLayout.mobile()) {
+        <button
+            prismIconButton
+            size="xs"
+            [pressed]="canvas.guides()"
+            (click)="canvas.toggleGuides()"
+            [title]="railTitle('Guides', canvas.guides())"
+            aria-label="Guides">
+            <prism-icon
+                name="crosshair"
+                [size]="14" />
+        </button>
 
-    <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.rulers()"
-        (click)="canvas.toggleRulers()"
-        title="Toggle rulers"
-        aria-label="Toggle rulers"
-        [attr.aria-pressed]="canvas.rulers()">
-        <prism-icon
-            name="move"
-            [size]="14" />
-    </button>
+        <button
+            prismIconButton
+            size="xs"
+            [pressed]="canvas.rulers()"
+            (click)="canvas.toggleRulers()"
+            [title]="railTitle('Rulers', canvas.rulers())"
+            aria-label="Rulers">
+            <prism-icon
+                name="move"
+                [size]="14" />
+        </button>
 
-    <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.viewportWidth() !== null"
-        (click)="canvas.toggleViewport()"
-        title="Toggle viewport width"
-        aria-label="Toggle viewport width"
-        [attr.aria-pressed]="canvas.viewportWidth() !== null">
-        <prism-icon
-            name="ruler-dimension"
-            [size]="14" />
-    </button>
+        <button
+            prismIconButton
+            size="xs"
+            [pressed]="canvas.viewportWidth() !== null"
+            (click)="canvas.toggleViewport()"
+            [title]="railTitle('Viewport width', canvas.viewportWidth() !== null)"
+            aria-label="Viewport width">
+            <prism-icon
+                name="ruler-dimension"
+                [size]="14" />
+        </button>
 
-    <button
-        type="button"
-        class="prism-toolrail__btn"
-        [class.is-on]="canvas.measure()"
-        (click)="canvas.toggleMeasure()"
-        title="Toggle measure tool"
-        aria-label="Toggle measure tool"
-        [attr.aria-pressed]="canvas.measure()">
-        <prism-icon
-            name="ruler"
-            [size]="14" />
-    </button>
+        <button
+            prismIconButton
+            size="xs"
+            [pressed]="canvas.measure()"
+            (click)="canvas.toggleMeasure()"
+            [title]="railTitle('Measure', canvas.measure())"
+            aria-label="Measure">
+            <prism-icon
+                name="ruler"
+                [size]="14" />
+        </button>
+    }
 
+    <!-- Not a toggle, so no [pressed]: it opens the menu. The dot says the
+         menu holds a state or a toggle while it is closed. -->
     <button
-        type="button"
-        class="prism-toolrail__btn"
+        prismIconButton
+        size="xs"
         popovertarget="prism-tools"
-        title="Canvas, state, zoom and width"
-        aria-label="Canvas, state, zoom and width">
+        [title]="toolsTitle()"
+        [attr.aria-label]="toolsTitle()">
         <prism-icon
             name="sliders-horizontal"
             [size]="14" />
+        @if (toolsSet()) {
+            <span
+                class="prism-toolrail__dot"
+                aria-hidden="true"></span>
+        }
     </button>
 
     <span class="prism-toolrail__sep"></span>
 
     <button
-        type="button"
-        class="prism-toolrail__btn"
+        prismIconButton
+        size="xs"
         popovertarget="prism-template"
-        title="Toggle Angular template"
-        aria-label="Toggle Angular template">
+        title="Angular template"
+        aria-label="Angular template">
         <prism-icon
             name="code"
             [size]="14" />
@@ -99,7 +105,7 @@
     id="prism-tools"
     class="prism-toolmenu"
     role="dialog"
-    aria-label="Canvas, state, zoom and width">
+    [attr.aria-label]="toolsLabel">
     <span class="prism-toolmenu__lbl">Canvas</span>
     <div class="prism-toolmenu__row">
         @for (bg of bgs; track bg) {
@@ -157,21 +163,23 @@
         }
     </div>
 
-    <span class="prism-toolmenu__lbl">Width</span>
-    <div class="prism-toolmenu__row">
-        <button
-            type="button"
-            [class.is-on]="canvas.viewportWidth() === null"
-            (click)="canvas.setViewportWidth(null)">
-            Auto
-        </button>
-        @for (w of viewports; track w) {
+    @if (!mobileLayout.mobile()) {
+        <span class="prism-toolmenu__lbl">Width</span>
+        <div class="prism-toolmenu__row">
             <button
                 type="button"
-                [class.is-on]="canvas.viewportWidth() === w"
-                (click)="canvas.setViewportWidth(w)">
-                {{ w }}
+                [class.is-on]="canvas.viewportWidth() === null"
+                (click)="canvas.setViewportWidth(null)">
+                Auto
             </button>
-        }
-    </div>
+            @for (w of viewports; track w) {
+                <button
+                    type="button"
+                    [class.is-on]="canvas.viewportWidth() === w"
+                    (click)="canvas.setViewportWidth(w)">
+                    {{ w }}
+                </button>
+            }
+        </div>
+    }
 </div>

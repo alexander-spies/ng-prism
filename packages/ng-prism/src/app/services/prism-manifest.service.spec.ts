@@ -1,5 +1,7 @@
 import { Injector, runInInjectionContext } from '@angular/core';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 
@@ -122,5 +124,47 @@ describe('PrismManifestService', () => {
         });
 
         expect(service.pages()).toEqual([{ type: 'component', title: 'Intro', category: 'Docs', component: expect.any(Function) }]);
+    });
+
+    it('should expose services from the manifest, none when it has no services field', () => {
+        const toast: RuntimeService = {
+            meta: {
+                className: 'ToastService',
+                filePath: '/toast.service.ts',
+                showcaseConfig: { title: 'Toasts' },
+                provision: 'auto',
+                api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+            }
+        };
+
+        expect(setup({ components: [] }).services()).toEqual([]);
+
+        const service = setup({ components: [], services: [toast] });
+
+        expect(service.services()).toEqual([toast]);
+
+        service.updateManifest({ components: [] });
+        expect(service.services()).toEqual([]);
+    });
+
+    it('should expose pipes from the manifest, none when it has no pipes field', () => {
+        const truncate: RuntimePipe = {
+            meta: {
+                className: 'TruncatePipe',
+                filePath: '/truncate.pipe.ts',
+                showcaseConfig: { title: 'Truncate' },
+                pipeName: 'truncate',
+                api: { tags: {}, transform: [], setup: [], types: [] }
+            }
+        };
+
+        expect(setup({ components: [] }).pipes()).toEqual([]);
+
+        const service = setup({ components: [], pipes: [truncate] });
+
+        expect(service.pipes()).toEqual([truncate]);
+
+        service.updateManifest({ components: [] });
+        expect(service.pipes()).toEqual([]);
     });
 });

@@ -6,10 +6,13 @@ import { VIEWPORT_SNAPS } from '../../shared/viewport.type.js';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { evaluateStateFit, type StateFit } from '../pseudo/state-fit.js';
 import { PrismCanvasService } from '../services/prism-canvas.service.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismVariantBgService } from '../services/prism-variant-bg.service.js';
+import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
+import { railToggleTitle, TOOLS_LABEL, toolsTitle, zoomTitle } from './canvas-overlay-tokens.js';
 import { buildStateChips, chipFits, type PseudoSource, type StateChip, toggleTitle } from './state-chips.js';
 
 /**
@@ -18,8 +21,7 @@ import { buildStateChips, chipFits, type PseudoSource, type StateChip, toggleTit
  * Things you toggle constantly (guides, rulers, the viewport constraint) get
  * their own button; things you set once (background, forced state, zoom,
  * viewport width) live in the menu. The template is a view rather than a setting and keeps its own
- * button. Zoom and the active viewport width are shown as readouts; the width
- * only appears while the viewport constraint is on.
+ * button. Zoom is shown as a readout, with the viewport width in its tooltip.
  *
  * The host generates no box. The rail must be a direct child of
  * `.prism-canvas-wrap` outside the stage, because that is what capture mode's
@@ -31,7 +33,7 @@ import { buildStateChips, chipFits, type PseudoSource, type StateChip, toggleTit
     selector: 'prism-canvas-toolbar',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismIconComponent],
+    imports: [PrismIconComponent, PrismIconButtonComponent],
     templateUrl: './prism-canvas-toolbar.component.html',
     styleUrl: './prism-canvas-toolbar.component.css'
 })
@@ -41,6 +43,7 @@ export class PrismCanvasToolbarComponent {
     protected readonly pseudoState = inject(PrismPseudoStateService);
     private readonly navigation = inject(PrismNavigationService);
     private readonly renderer = inject(PrismRendererService);
+    protected readonly mobileLayout = inject(PrismMobileLayoutService);
 
     /**
      * The pseudo states the canvas can force, as toggles. Several can be on at
@@ -108,8 +111,27 @@ export class PrismCanvasToolbarComponent {
         this.renderer.selectState(chip.active ? null : chip.index);
     }
 
+    protected readonly toolsLabel = TOOLS_LABEL;
+
+    private readonly toggled = computed(() => Object.keys(this.pseudoState.override()).length > 0);
+
+    /**
+     * Whether the menu holds something on top of the variant: an active state,
+     * or a pseudo state toggled on or off. Marked on the trigger, so it shows
+     * with the menu closed; both go with the next variant.
+     */
+    protected readonly toolsSet = computed(() => this.pseudoState.activeState() !== null || this.toggled());
+
+    protected readonly toolsTitle = computed(() => toolsTitle(this.pseudoState.activeState()?.name ?? null, this.toggled()));
+
     /** Angular templates resolve names against the component, not the global scope. */
     protected readonly Math = Math;
+
+    protected readonly zoomTitle = computed(() => zoomTitle(this.canvas.zoom(), this.canvas.viewportWidth()));
+
+    protected railTitle(label: string, on: boolean): string {
+        return railToggleTitle(label, on);
+    }
 
     protected setBg(bg: CanvasBg): void {
         if (this.variantBg.recommended() !== null) {

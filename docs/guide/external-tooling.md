@@ -8,13 +8,19 @@ ng-prism exposes a small, stable contract for those tools. This page is the cano
 
 ## The Anchors
 
-| Anchor                                                               | Where                           | Purpose                                                                                                                                                                                                                      |
-| -------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `window.__PRISM_MANIFEST__`                                          | global, set by `providePrism()` | Shape: `{ components: [{ className, title, meta?, variants: [{ name, index, bg, meta?, pseudo?, states? }], states?: [{ name, index, pseudo }] }], pages: [{ title }] }`. Use it to enumerate what to visit.                 |
-| URL params `?component=<className>&variant=<index>&state=<index>`    | navigation state                | Drive the app to a specific component+variant from the outside. `variant` is the array index; omit it for index `0`. `state` is the index into the component's `states`; omit it for no state.                               |
-| `[data-prism-rendered="<className>:<variantIndex>"]` on `.demo-wrap` | renderer host element           | Render marker. Wait for this attribute to match the expected key before inspecting the variant. While a component-level state is active the key ends in `:<stateIndex>`, see [Waiting for a render](#waiting-for-a-render).  |
-| `[data-prism-excluded="<reason>"]` on `.demo-wrap`                   | renderer host element           | Set next to the render marker when the requested state is not part of what the canvas shows. A runner reports the cell as excluded instead of capturing it, see [A state that does not apply](#a-state-that-does-not-apply). |
-| `?capture=1`                                                         | URL param                       | [Capture isolation mode](#capture-isolation-mode): strips canvas chrome, hands the canvas the whole viewport and freezes the render for deterministic screenshots.                                                           |
+| Anchor                                                               | Where                           | Purpose                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `window.__PRISM_MANIFEST__`                                          | global, set by `providePrism()` | Shape: `{ components: [{ className, title, meta?, variants: [{ name, index, bg, meta?, pseudo?, states? }], states?: [{ name, index, pseudo }], parts?: [{ className, title, selector, inputs, outputs }] }], pages: [{ title }] }`. Use it to enumerate what to visit. |
+| URL params `?component=<className>&variant=<index>&state=<index>`    | navigation state                | Drive the app to a specific component+variant from the outside. `variant` is the array index; omit it for index `0`. `state` is the index into the component's `states`; omit it for no state.                                                                          |
+| `[data-prism-rendered="<className>:<variantIndex>"]` on `.demo-wrap` | renderer host element           | Render marker. Wait for this attribute to match the expected key before inspecting the variant. While a component-level state is active the key ends in `:<stateIndex>`, see [Waiting for a render](#waiting-for-a-render).                                             |
+| `[data-prism-excluded="<reason>"]` on `.demo-wrap`                   | renderer host element           | Set next to the render marker when the requested state is not part of what the canvas shows. A runner reports the cell as excluded instead of capturing it, see [A state that does not apply](#a-state-that-does-not-apply).                                            |
+| `?capture=1`                                                         | URL param                       | [Capture isolation mode](#capture-isolation-mode): strips canvas chrome, hands the canvas the whole viewport and freezes the render for deterministic screenshots.                                                                                                      |
+
+> **Services and pipes are not part of this contract.** A [service](guide/showcasing-services.md) or [pipe](guide/showcasing-pipes.md) page is documentation without a canvas: it has no variants, no `.demo-wrap` and nothing a visual regression runner should capture. Neither appears in `__PRISM_MANIFEST__`, whose `components` lists exactly what renders. Before 22.7.0 a showcased service or pipe was listed there as a component that never rendered; from 22.7.0 a runner no longer sees it, see [Breaking changes and deprecations in 22.7.0](guide/migration-v22.md#breaking-changes-and-deprecations-in-2270). `?component=` never selects one. A service has its own URL parameter, `?service=<className>`, and a pipe `?pipe=<className>`, for deep links into the styleguide, see [State Preservation](guide/url-state.md).
+>
+> To look at a service's API page from the outside, for example to check its JSDoc, open `?service=<className>&view=jsdoc` and wait for `[data-prism-service-rendered="<className>"]`. For a pipe it is `?pipe=<className>&view=jsdoc` and `[data-prism-pipe-rendered="<className>"]`. The API tab of a component or directive is the same page, and for it it is `?component=<className>&view=jsdoc` and `[data-prism-component-rendered="<className>"]`. `@ng-prism/plugin-jsdoc` (since 22.7.0) sets that attribute on the page element once the page for that class is in the DOM; the element is also the page's scroll container. Exactly one of the three attributes is set, the one that fits the page. The showcase skill's screenshot script does this with `--service <ClassName>` and `--pipe <ClassName>`.
+>
+> `data-prism-component-rendered` is not the render marker of the canvas. It marks a page of documentation, not a rendered variant, so a visual regression runner keeps waiting for `data-prism-rendered` on `.demo-wrap`, and a component's API page is not a cell to capture.
 
 ### Enumerating what exists
 
@@ -44,7 +50,14 @@ A component that declares `states` in `@Showcase` lists them as `states`, one en
 
 A variant that opted out with `states: false` reports `states: false`, and every other variant has no `states` field. Whether a state fits a variant is not in the manifest, because that is only known once the variant renders. The cell is then reported by the render marker, see [A state that does not apply](#a-state-that-does-not-apply).
 
-The types are exported as `DiscoveryManifest`, `DiscoveryComponent`, `DiscoveryVariant`, `DiscoveryState` and `DiscoveryPage` from `@ng-prism/core/plugin`.
+A component or directive with [parts](guide/showcase-decorator.md#partof) (`@Showcase({ partOf })`, since 22.7.0) lists them as `parts`, and the field is omitted when there are none. A part is not in `components`: it has no page, no variants and no render marker of its own, because the variants of its parent render it, so a runner that walks `components` neither visits nor captures it. The parts are in the order of the parent's page, sorted by title. `inputs` and `outputs` are the names a template binds by, the `alias` where the class declares one and the member name otherwise. `outputs` ends with the change output Angular adds for each `model()` input, `selectedChange` for `selected = model(false)`.
+
+```js
+// component.parts -> [{ className: 'OptionComponent', title: 'Option', selector: 'lib-option',
+//                       inputs: ['value', 'disabled'], outputs: ['selected'] }]
+```
+
+The types are exported as `DiscoveryManifest`, `DiscoveryComponent`, `DiscoveryVariant`, `DiscoveryState`, `DiscoveryPart` and `DiscoveryPage` from `@ng-prism/core/plugin`. `DiscoveryPart` and `DiscoveryComponent.parts` are experimental until 23.0.0: the shape may change in a 22.x minor release.
 
 ### Reading the background
 
@@ -96,6 +109,15 @@ const skip = (component, variant) => variant.meta?.['vrt']?.skip ?? component.me
 ```
 
 Build-time plugin hooks write into the same `meta`, so plugin output (for example the Coverage plugin's per-component numbers) is visible here too.
+
+An a11y report producer reads the [accepted violations](guide/accessibility.md#accepted-violations) the same way. The acceptances of a variant are the component's and the variant's own, matched by the axe rule id, as the live audit applies them:
+
+```js
+const accepted = (component, variant) => [...(component.meta?.['a11y']?.accept ?? []), ...(variant.meta?.['a11y']?.accept ?? [])];
+const counts = (violation, component, variant) => !accepted(component, variant).some((a) => a.rule === violation.id);
+```
+
+Once a report lists a component, the build adds its entry (`found`, `score`, `summary`) to the component's `meta.a11y` next to `accept`, so a producer that reads a styleguide built with an earlier report still finds the acceptances.
 
 > Only JSON-safe values cross over. The global is read through a structured-clone bridge, and `meta` is an open `Record<string, unknown>`. Primitives, arrays and plain objects are passed through; class instances (Angular types included), functions, symbols, non-finite numbers, `Date`, `Map` and DOM nodes are dropped rather than half-serialised, and cycles are broken. Unrepresentable array entries become `null` so indices stay stable. Keep anything a tool must read to plain data.
 

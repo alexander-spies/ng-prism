@@ -1,0 +1,20 @@
+<div
+    class="prism-segmented"
+    role="radiogroup"
+    [attr.aria-label]="ariaLabel()"
+    (keydown)="onKey($event)">
+    @for (option of options(); track option.value; let i = $index) {
+        <button
+            #segment
+            type="button"
+            role="radio"
+            class="prism-segment"
+            [class.prism-segment--on]="option.value === value()"
+            [attr.aria-checked]="option.value === value()"
+            [attr.tabindex]="isFocusable(i) ? 0 : -1"
+            [attr.title]="option.title ?? null"
+            (click)="choose(option)">
+            {{ option.label }}
+        </button>
+    }
+</div>

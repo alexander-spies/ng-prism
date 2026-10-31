@@ -1,10 +1,11 @@
 import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import { COMPOSITION_SUBJECT_SLOT } from '../../shared/composition.js';
 import { openInPlayground } from '../overview/open-in-playground.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
-import { PrismRendererService } from './prism-renderer.service.js';
+import { computeVariantState, PrismRendererService } from './prism-renderer.service.js';
 
 function createComponent(
     overrides: Partial<{
@@ -13,10 +14,14 @@ function createComponent(
         states: RuntimeComponent['meta']['showcaseConfig']['states'];
         isDirective: boolean;
         host: RuntimeComponent['meta']['showcaseConfig']['host'];
+        composition: RuntimeComponent['meta']['composition'];
     }> = {}
 ): RuntimeComponent {
+    const type = class {} as any;
+
     return {
-        type: class {} as any,
+        type,
+        ...(overrides.composition && { composition: type }),
         meta: {
             className: 'Comp',
             filePath: '/test.ts',
@@ -28,7 +33,8 @@ function createComponent(
             },
             inputs: overrides.inputs ?? [],
             outputs: [],
-            componentMeta: { selector: 'test', standalone: true, isDirective: overrides.isDirective ?? false }
+            componentMeta: { selector: 'test', standalone: true, isDirective: overrides.isDirective ?? false },
+            ...(overrides.composition && { composition: overrides.composition })
         }
     };
 }
@@ -231,7 +237,7 @@ describe('PrismRendererService', () => {
             expect(renderer.activeStateIndex()).toBeNull();
         });
 
-        it('keeps the active state when the variant changes', () => {
+        it('clears the active state when the variant changes', () => {
             const comp = createComponent({ variants: [{ name: 'A' }, { name: 'B' }], states: STATES });
             const { renderer, navigation } = setup({ components: [comp] });
 
@@ -239,6 +245,20 @@ describe('PrismRendererService', () => {
             renderer.resetForComponent(comp);
             renderer.selectState(1);
             renderer.selectVariant(1);
+
+            expect(renderer.activeVariantIndex()).toBe(1);
+            expect(renderer.activeStateIndex()).toBeNull();
+        });
+
+        it('keeps a state selected after the variant', () => {
+            const comp = createComponent({ variants: [{ name: 'A' }, { name: 'B' }], states: STATES });
+            const { renderer, navigation } = setup({ components: [comp] });
+
+            navigation.select(comp);
+            renderer.resetForComponent(comp);
+            renderer.selectVariant(1);
+            renderer.selectState(1);
+            flush();
 
             expect(renderer.activeVariantIndex()).toBe(1);
             expect(renderer.activeStateIndex()).toBe(1);
@@ -721,6 +741,55 @@ describe('PrismRendererService', () => {
 
             expect(renderer.activeContent()).toBe('Projected content');
             expect(renderer.inputValues()['__prismContent__']).toBeUndefined();
+        });
+    });
+
+    describe('compositions', () => {
+        const SLOT = COMPOSITION_SUBJECT_SLOT;
+
+        /** A directive whose variant 0 renders its text content in a composition and variant 1 in the host wrapper. */
+        function tooltip(): RuntimeComponent {
+            return createComponent({
+                isDirective: true,
+                host: '<button>',
+                inputs: [{ name: 'text', type: 'string', defaultValue: 'Tip', required: false }],
+                variants: [
+                    { name: 'Composed', content: 'Hover me' },
+                    { name: 'Hosted', content: 'Hover me' }
+                ],
+                composition: { variantCases: [0, -1], cases: [{ template: `<button libTooltip${SLOT}>Hover me</button>`, unbound: [] }] }
+            });
+        }
+
+        it('computes no content and no __prismContent__ for a composed variant', () => {
+            const comp = tooltip();
+
+            expect(computeVariantState(comp, 0)).toEqual({ values: { text: 'Tip' }, activeContent: undefined });
+            expect(computeVariantState(comp, 0).values).not.toHaveProperty('__prismContent__');
+            expect(computeVariantState(comp, 1).values['__prismContent__']).toBe('Hover me');
+        });
+
+        it('projects no content into a composed component variant, and keeps it for a plain one', () => {
+            const comp = createComponent({
+                variants: [
+                    { name: 'Composed', content: '<b>Bold</b>' },
+                    { name: 'Plain', content: '<b>Bold</b>' }
+                ],
+                composition: { variantCases: [0, -1], cases: [{ template: `<section><test${SLOT}></test></section>`, unbound: [] }] }
+            });
+
+            expect(computeVariantState(comp, 0).activeContent).toBeUndefined();
+            expect(computeVariantState(comp, 1).activeContent).toBe('<b>Bold</b>');
+        });
+
+        it('adds no __prismContent__ and no content when it reconciles a composed variant', () => {
+            const comp = tooltip();
+            const { renderer } = setup({ components: [comp] });
+
+            renderer.reconcileForComponent(comp);
+
+            expect(renderer.inputValues()).not.toHaveProperty('__prismContent__');
+            expect(renderer.activeContent()).toBeUndefined();
         });
     });
 });

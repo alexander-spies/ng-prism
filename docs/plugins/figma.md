@@ -3,7 +3,7 @@
 `@ng-prism/plugin-figma` brings your Figma designs into ng-prism with two complementary panels:
 
 - **Figma Embed:** live, interactive iframe of the design. Registered by default.
-- **Design Diff:** pixel-by-pixel comparison between your rendered component and the Figma node (side-by-side, overlay, diff-only). **Opt-in** via `figmaPlugin({ designDiff: true })`.
+- **Design Diff:** pixel-by-pixel comparison between your rendered component and the Figma node (side by side, overlay, diff), switched in the panel toolbar; **Re-run** compares again, and the match percentage and the number of differing pixels are in its tooltip. **Opt-in** via `figmaPlugin({ designDiff: true })`.
 
 ## Install
 
@@ -169,7 +169,7 @@ Click **↺ Erneut** in the toolbar to re-run after editing the component or ref
 
 ### How the diff works
 
-1. The component is captured with `html2canvas` at the size it currently renders.
+1. The component is captured with `html2canvas` at the size it currently renders. For a variant with a `template` or a host template, that is the whole composition, see [Canvas State](architecture/canvas-state.md#composed-variants-root-and-subject).
 2. The Figma node is fetched at **2× scale** via `GET /v1/images/{fileKey}?ids={nodeId}&format=png&scale=2` and scaled to match the component dimensions.
 3. `pixelmatch` runs with `threshold: 0.1` and anti-aliasing detection disabled, producing the diff buffer.
 4. All three artefacts (component, Figma, diff) are stored as data URLs in the panel state, so mode switching makes no further network calls.

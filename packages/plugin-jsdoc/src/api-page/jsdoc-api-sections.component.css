@@ -1,0 +1,300 @@
+/* The panel stylesheet comes first in styleUrls: it supplies the shared look
+   (description, meta chips, headings, code blocks, tables, badges). It also
+   makes :host a scroll container, which the sections are not: they scroll
+   with the API page around them, so this file gives the host its flow back. */
+:host {
+    display: block;
+    height: auto;
+    overflow: visible;
+}
+
+/* Each section opens with its heading over a rule in the primary colour,
+   which no table or card border on the page has, so the rule reads as a
+   section break. 36px between sections, collapsed with the heading's margin. */
+.prism-jsdoc-panel__section + .prism-jsdoc-panel__section {
+    margin-top: 36px;
+}
+
+.prism-jsdoc-api-page__heading {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    color: var(--prism-text);
+    border-bottom: 1px solid color-mix(in srgb, var(--prism-primary) 50%, transparent);
+}
+
+.prism-jsdoc-api-page__heading-note {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--prism-text-muted);
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
+/* ──── Usage ──── */
+
+.prism-jsdoc-api-page__usage {
+    position: relative;
+}
+
+.prism-jsdoc-api-page__usage .prism-jsdoc-panel__code code {
+    padding: 10px 40px 10px 12px;
+    line-height: 1.6;
+}
+
+.prism-jsdoc-api-page__copy {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    color: var(--prism-text-muted);
+    cursor: pointer;
+    background: var(--prism-bg-elevated);
+    border: 1px solid var(--prism-border);
+    border-radius: 5px;
+}
+
+.prism-jsdoc-api-page__copy:hover {
+    color: var(--prism-text);
+}
+
+.prism-jsdoc-api-page__copy svg {
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* ──── Setup ──── */
+
+.prism-jsdoc-api-page__setup + .prism-jsdoc-api-page__setup {
+    margin-top: 16px;
+}
+
+.prism-jsdoc-api-page__sig {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 0 0 8px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--prism-text);
+    background: var(--prism-input-bg);
+    border: 1px solid var(--prism-border);
+    border-left: 2px solid var(--prism-primary);
+    border-radius: 8px;
+}
+
+.prism-jsdoc-api-page__sig code {
+    font-family: inherit;
+}
+
+.prism-jsdoc-api-page__fn {
+    color: var(--prism-code-tag);
+}
+
+/* A description under a signature or a type name: a lead, smaller than the
+   page's own description. Comes after the panel stylesheet, so it wins over
+   .prism-jsdoc-panel__description at the same specificity, and like the
+   panel's Markdown rules it needs ::ng-deep to reach what [innerHTML] puts in. */
+.prism-jsdoc-api-page__lead {
+    margin: 0 0 10px;
+    font-size: var(--fs-md);
+    line-height: 1.6;
+}
+
+:host ::ng-deep .prism-jsdoc-api-page__lead p {
+    line-height: 1.6;
+}
+
+.prism-jsdoc-api-page__table {
+    margin-bottom: 8px;
+}
+
+/* Next to the name in a type card or option table, where there is no Readonly column. */
+.prism-jsdoc-api-page__readonly {
+    color: var(--prism-text-muted);
+}
+
+/* A default such as 'bottom-right' would otherwise break at its hyphen. */
+.prism-jsdoc-api-page__default {
+    white-space: nowrap;
+}
+
+/* ──── Parameters ──── */
+
+.prism-jsdoc-api-page__param + .prism-jsdoc-api-page__param {
+    margin-top: 6px;
+}
+
+.prism-jsdoc-api-page__param-doc {
+    margin-top: 3px;
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+    color: var(--prism-text-muted);
+}
+
+:host ::ng-deep .prism-jsdoc-api-page__param-doc code {
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    color: var(--prism-text-2);
+}
+
+/* Under a setup signature, outside a table: the code gets the look of a type cell. */
+.prism-jsdoc-api-page__params {
+    margin: 0 0 10px;
+}
+
+.prism-jsdoc-api-page__params code {
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--prism-primary);
+    background: color-mix(in srgb, var(--prism-primary) 8%, transparent);
+    border-radius: var(--radius-xs);
+}
+
+/* ──── Type links ──── */
+
+/* The second selector reaches the links inside rendered descriptions, which `[innerHTML]` brings in without this component's attribute. */
+.prism-jsdoc-api-page__ref,
+:host ::ng-deep .prism-jsdoc-api-page__ref {
+    padding: 0;
+    font: inherit;
+    font-weight: 500;
+    color: var(--prism-link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, var(--prism-link) 45%, transparent);
+    text-underline-offset: 3px;
+    cursor: pointer;
+    background: none;
+    border: 0;
+}
+
+.prism-jsdoc-api-page__ref:hover,
+:host ::ng-deep .prism-jsdoc-api-page__ref:hover {
+    text-decoration-color: var(--prism-link);
+}
+
+.prism-jsdoc-api-page__ref:focus-visible,
+:host ::ng-deep .prism-jsdoc-api-page__ref:focus-visible {
+    outline: 2px solid var(--prism-link);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* A deprecation message is rendered Markdown inside the badge: its code and links take the badge's colour, not the description's blue. */
+:host ::ng-deep .prism-jsdoc-panel__badge--deprecated code {
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    color: inherit;
+}
+
+:host ::ng-deep .prism-jsdoc-panel__badge--deprecated a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+/* ──── Type cards ──── */
+
+.prism-jsdoc-api-page__type {
+    padding: 12px 14px 6px;
+    margin-bottom: 12px;
+    background: color-mix(in srgb, var(--prism-bg-surface) 60%, transparent);
+    border: 1px solid var(--prism-border);
+    border-radius: 10px;
+    transition:
+        border-color 0.3s var(--ease-default),
+        box-shadow 0.3s var(--ease-default);
+}
+
+/* The page lights up the block of a part the same way. */
+.prism-jsdoc-api-page__type--highlighted {
+    border-color: color-mix(in srgb, var(--prism-primary) 60%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--prism-primary) 22%, transparent);
+}
+
+.prism-jsdoc-api-page__type-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.prism-jsdoc-api-page__type-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--prism-text);
+}
+
+.prism-jsdoc-api-page__kind {
+    padding: 1px 5px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--prism-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--prism-border-strong);
+    border-radius: 3px;
+}
+
+.prism-jsdoc-api-page__reached {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--prism-text-muted);
+}
+
+.prism-jsdoc-api-page__reached code {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--prism-text-2);
+}
+
+.prism-jsdoc-api-page__type .prism-jsdoc-api-page__lead {
+    margin-bottom: 8px;
+}
+
+.prism-jsdoc-api-page__type-meta {
+    margin-bottom: 8px;
+}
+
+.prism-jsdoc-api-page__union {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 0.6em;
+    margin: 0 0 8px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    line-height: 1.7;
+    color: var(--prism-code-str);
+}
+
+.prism-jsdoc-api-page__union-bar {
+    color: var(--prism-text-ghost);
+}
+
+.prism-jsdoc-api-page__alias {
+    margin: 0 0 8px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    line-height: 1.7;
+    color: var(--prism-text-2);
+}
+
+.prism-jsdoc-api-page__alias code {
+    font-family: inherit;
+}

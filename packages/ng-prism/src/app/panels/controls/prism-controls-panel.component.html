@@ -1,79 +1,74 @@
 @if (navigationService.activeComponent(); as comp) {
     <div class="ctl-panel">
         @if (rendererService.dirtyInputCount(); as dirtyCount) {
-            <div class="ctl-toolbar">
-                <span class="ctl-dirty-info">
-                    <span
-                        class="ctl-dirty-dot"
-                        aria-hidden="true"></span>
-                    {{ dirtyCount }} {{ dirtyCount === 1 ? 'input' : 'inputs' }} modified
-                </span>
+            <prism-panel-toolbar>
                 <button
-                    type="button"
-                    class="ctl-reset-btn"
+                    toolbarEnd
+                    prismButton
+                    variant="secondary"
                     (click)="rendererService.resetInputsToVariantDefaults()"
-                    title="Reset all inputs to variant defaults">
-                    <span aria-hidden="true">&#x21BB;</span> Reset
+                    [title]="'Reset ' + dirtyCount + ' modified ' + (dirtyCount === 1 ? 'input' : 'inputs') + ' to the variant defaults'">
+                    Reset
                 </button>
-            </div>
+            </prism-panel-toolbar>
         }
-        @for (input of comp.meta.inputs; track input.name) {
-            <div class="ctl-row">
-                @if (getCustomControl(input); as customCtrl) {
-                    <ng-container
-                        [ngComponentOutlet]="customCtrl.component"
-                        [ngComponentOutletInputs]="{
-                            inputMeta: input,
-                            rendererService: rendererService
-                        }" />
-                } @else {
-                    <div class="ctl-label">
-                        <span class="ctl-name">{{ input.name }}</span>
-                        <span class="ctl-type"
-                            ><b>{{ input.rawType ?? input.type }}</b></span
-                        >
-                    </div>
-                    <div class="ctl-input">
-                        @if (isNonEditable(input)) {
-                            <span
-                                class="ctl-not-editable"
-                                title="This input type can't be edited from the controls panel"
-                                >Not editable</span
-                            >
-                        } @else {
-                            @switch (input.type) {
-                                @case ('boolean') {
-                                    <prism-boolean-control
-                                        [value]="asBoolean(rendererService.inputValues()[input.name])"
-                                        (valueChange)="rendererService.updateInput(input.name, $event)" />
-                                }
-                                @case ('number') {
-                                    <prism-number-control
-                                        [value]="asNumber(rendererService.inputValues()[input.name])"
-                                        (valueChange)="rendererService.updateInput(input.name, $event)" />
-                                }
-                                @case ('union') {
-                                    <prism-union-control
-                                        [value]="asString(rendererService.inputValues()[input.name])"
-                                        [options]="input.values ?? []"
-                                        (valueChange)="rendererService.updateInput(input.name, $event)" />
-                                }
-                                @case ('string') {
-                                    <prism-string-control
-                                        [value]="asString(rendererService.inputValues()[input.name])"
-                                        (valueChange)="rendererService.updateInput(input.name, $event)" />
-                                }
-                                @default {
-                                    <prism-json-control
-                                        [value]="rendererService.inputValues()[input.name]"
-                                        (valueChange)="rendererService.updateInput(input.name, $event)" />
+        <div class="ctl-rows">
+            @for (input of comp.meta.inputs; track input.name) {
+                <div class="ctl-row">
+                    @if (getCustomControl(input); as customCtrl) {
+                        <ng-container
+                            [ngComponentOutlet]="customCtrl.component"
+                            [ngComponentOutletInputs]="{
+                                inputMeta: input,
+                                rendererService: rendererService
+                            }" />
+                    } @else {
+                        <div class="ctl-label">
+                            <span class="ctl-name">{{ input.name }}</span>
+                            <span class="ctl-type">{{ input.rawType ?? input.type }}</span>
+                        </div>
+                        <div class="ctl-input">
+                            @if (notEditableReason(input, comp); as reason) {
+                                <span
+                                    class="ctl-not-editable"
+                                    [title]="reason"
+                                    >Not editable</span
+                                >
+                            } @else {
+                                @switch (input.type) {
+                                    @case ('boolean') {
+                                        <prism-boolean-control
+                                            [value]="asBoolean(rendererService.inputValues()[input.name])"
+                                            (valueChange)="rendererService.updateInput(input.name, $event)" />
+                                    }
+                                    @case ('number') {
+                                        <prism-number-control
+                                            [value]="asNumber(rendererService.inputValues()[input.name])"
+                                            (valueChange)="rendererService.updateInput(input.name, $event)" />
+                                    }
+                                    @case ('union') {
+                                        <prism-union-control
+                                            [value]="asString(rendererService.inputValues()[input.name])"
+                                            [options]="input.values ?? []"
+                                            (valueChange)="rendererService.updateInput(input.name, $event)" />
+                                    }
+                                    @case ('string') {
+                                        <prism-string-control
+                                            [value]="asString(rendererService.inputValues()[input.name])"
+                                            (valueChange)="rendererService.updateInput(input.name, $event)" />
+                                    }
+                                    @default {
+                                        <prism-json-control
+                                            [value]="rendererService.inputValues()[input.name]"
+                                            (valueChange)="rendererService.updateInput(input.name, $event)" />
+                                    }
                                 }
                             }
-                        }
-                    </div>
-                }
-            </div>
-        }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
         @if (comp.meta.inputs.length === 0) {
             <p class="ctl-empty">No inputs available</p>
         }

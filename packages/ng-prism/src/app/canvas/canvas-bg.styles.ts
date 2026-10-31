@@ -42,7 +42,7 @@ export const CANVAS_BG_STYLES = `
      mechanism per decision is enough.
 
      Literal values because this file is theme-independent, like the two
-     grounds below. Keep them in step with --prism-measure in
+     grounds below. Keep them in step with --prism-measure in canvas-overlay-tokens.ts and
      prism-default-theme.ts; semantic-colours.spec.ts fails if they drift. */
   [data-bg="light"] {
     background-color: var(--prism-void-light, #f7f5fc);

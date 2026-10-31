@@ -1,0 +1,12 @@
+:host {
+    display: inline-flex;
+    flex: none;
+    line-height: 0;
+}
+
+.prism-logo__image {
+    display: block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}

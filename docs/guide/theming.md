@@ -11,8 +11,6 @@ import { defineConfig } from '@ng-prism/core';
 export default defineConfig({
     theme: {
         '--prism-primary': '#0ea5e9',
-        '--prism-primary-from': '#0ea5e9',
-        '--prism-primary-to': '#6366f1',
         '--prism-bg': '#0f172a',
         '--prism-font-sans': '"Inter", system-ui, sans-serif'
     }
@@ -20,6 +18,8 @@ export default defineConfig({
 ```
 
 Values in `theme` are merged on top of the built-in defaults. You only need to specify the properties you want to change.
+
+Overriding `--prism-primary` alone also recolours everything that reads the primary: fills (primary buttons, checkboxes) through `--prism-primary-fill` and `--prism-primary-fill-hover`, the active toggle track (`--prism-toggle-on`, which follows the fill), the selection tints and the tab and sidebar indicators (`--prism-brand-ink` becomes your primary). Any of them you set yourself wins. Two things stay ng-prism's: the wordmark keeps the brand gradient, and the tool rail on the absolute `light` and `dark` canvas grounds keeps its own blue, picked for contrast on those grounds. Text on those fills stays `--prism-on-primary` (white); with a light primary of your own, set `--prism-on-primary` too so the label keeps 4.5:1.
 
 ## Theme-Specific Overrides
 
@@ -36,104 +36,135 @@ export default defineConfig({
         '--prism-bg-surface': '#112240'
     },
     lightTheme: {
-        '--prism-bg': '#ffffff',
-        '--prism-bg-surface': '#f5f6f7'
+        '--prism-bg': '#f1f5f9',
+        '--prism-bg-surface': '#ffffff'
     }
 });
 ```
 
 **Merge order:** `built-in defaults → darkTheme/lightTheme → theme`. The `theme` property always wins when the same key appears in both.
 
+**The header uses the dark set in both themes.** Since 22.7 the header is a navy brand band, also while the app runs light. It renders with the dark tokens, including your `darkTheme` overrides, so a header widget from any plugin reads colours that fit the band without code of its own. Menus that open out of the header follow the active theme again.
+
 ## Custom Stylesheet
 
 > **Deprecated since 22.6.0, removed in 23.0.0.** `themeStylesheet` was meant to load a stylesheet of your own into the styleguide app. Nothing has ever loaded it, so setting it never had an effect, and the build prints a notice while it is set. Colours, fonts and density go through the tokens above.
 
+## Brand
+
+| Property                                             | Default (dark)                                                               | Default (light)                                                              | Description                                                                                                                                             |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--prism-brand-gradient`                             | `linear-gradient(90deg, #00CFEA 0%, #078BFA 38%, #244BFF 68%, #A20CF0 100%)` | same                                                                         | The logo gradient: the wordmark and the header's top edge. Identical in both themes.                                                                    |
+| `--prism-brand-ink`                                  | `var(--prism-brand-gradient)`                                                | `linear-gradient(90deg, #0891b2 0%, #2563eb 38%, #6d28d9 68%, #a20cf0 100%)` | The gradient as a stroke on the current surface: tab indicators, the active sidebar entry, the active view segment. Every stop holds 3:1 on the chrome. |
+| `--prism-brand-glow`                                 | three soft radial gradients in cyan, blue and magenta                        | the same, a little fainter                                                   | The refracted light behind the logo and the empty state                                                                                                 |
+| `--prism-facet-cyan`, `-blue`, `-violet`, `-magenta` | `#22d3ee`, `#60a5fa`, `#a78bfa`, `#e879f9`                                   | `#0891b2`, `#2563eb`, `#7c3aed`, `#c026d3`                                   | The logo's facet colours for icons (sidebar sections). Each holds 3:1 on every surface.                                                                 |
+| `--prism-brand-motion`                               | `24s`                                                                        | same                                                                         | One cycle of the brand light in the header; see [Brand Motion](#brand-motion). `none` holds it still.                                                   |
+
+### Brand Motion
+
+The header's brand light moves, slowly enough that it rarely draws the eye. Once per cycle the glow behind the logo swells, a soft light leaves the mark along the top edge and fades out towards the header actions, and then the band rests until the next cycle. Only `transform` and `opacity` animate, so the browser runs it on the compositor.
+
+`--prism-brand-motion` is the length of one cycle. A longer time makes it slower and rarer, and `none` switches it off:
+
+```typescript
+export default defineConfig({
+    theme: {
+        '--prism-brand-motion': '40s' // calmer; 'none' holds the header still
+    }
+});
+```
+
+Any value that is not a time (`none`, `0`, `off`) leaves the animation without a duration, and the header shows its static look: the brand edge and the glow as they are without motion. Set the token in `theme` (or `darkTheme`): the header renders with the dark set in both themes, so a `lightTheme` value doesn't reach it. With `prefers-reduced-motion: reduce` set in the operating system, the header stays still whatever the token says. Capture mode holds it still as well.
+
 ## Color Properties
 
-| Property               | Default (dark) | Default (light) | Description                                    |
-| ---------------------- | -------------- | --------------- | ---------------------------------------------- |
-| `--prism-primary`      | `#a78bfa`      | `#7c3aed`       | Accent color for interactive elements          |
-| `--prism-primary-from` | `#7c3aed`      | `#7c3aed`       | Gradient start for primary UI elements         |
-| `--prism-primary-to`   | `#3b82f6`      | `#3b82f6`       | Gradient end for primary UI elements           |
-| `--prism-accent`       | `#ec4899`      | `#db2777`       | Secondary accent / highlights                  |
-| `--prism-bg`           | `#0d0b1c`      | `#ffffff`       | Main background                                |
-| `--prism-bg-surface`   | `#131022`      | `#faf9fd`       | Elevated surface (panels, cards)               |
-| `--prism-bg-elevated`  | `#1a1535`      | `#ffffff`       | Further elevated surface (dropdowns, tooltips) |
-| `--prism-void`         | `#07050f`      | `#f7f5fc`       | Deepest background (canvas backdrop)           |
+| Property                                 | Default (dark)                                              | Default (light)                                                  | Description                                                                |
+| ---------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--prism-primary`                        | `#60a5fa`                                                   | `#1d4ed8`                                                        | Text and indicator role: links, active tabs, active icons, selection tints |
+| `--prism-primary-fill`                   | `#2563eb`                                                   | `#2563eb`                                                        | Fill role: primary buttons, active toggles, checked checkboxes             |
+| `--prism-primary-fill-hover`             | `#1d4ed8`                                                   | `#1d4ed8`                                                        | Hover state of the fill                                                    |
+| `--prism-on-primary`                     | `#ffffff`                                                   | `#ffffff`                                                        | Text and knobs on the fill (5.2:1)                                         |
+| `--prism-toggle-on`                      | `linear-gradient(90deg, #078bfa, #2563eb)`                  | `linear-gradient(90deg, #078bfa, #244bff)`                       | Track of a switched-on toggle; follows an overridden primary or fill       |
+| `--prism-link`                           | `var(--prism-primary)`                                      | same                                                             | Links in the chrome                                                        |
+| `--prism-primary-bg`                     | `color-mix(in srgb, var(--prism-primary) 16%, transparent)` | `color-mix(in srgb, var(--prism-primary-fill) 10%, transparent)` | Selection and active-state tint                                            |
+| `--prism-accent`                         | `#a78bfa`                                                   | `#7c3aed`                                                        | Secondary accent                                                           |
+| `--prism-bg`                             | `#080d19`                                                   | `#f1f5f9`                                                        | Chrome: header, sidebar, component head, variant ribbon, panel tab bar     |
+| `--prism-bg-surface`                     | `#111827`                                                   | `#ffffff`                                                        | Content: addon panel, cards, canvas surround                               |
+| `--prism-bg-elevated`                    | `#1a2335`                                                   | `#ffffff`                                                        | Popovers, the tool rail (with `--prism-shadow-md`)                         |
+| `--prism-void`                           | `#050911`                                                   | `#eef2f7`                                                        | Deepest background behind everything                                       |
+| `--prism-shadow-sm`, `--prism-shadow-md` | dark, strong                                                | slate-tinted, soft                                               | Elevation of segments and popovers                                         |
+
+Why two primaries: the brand blue `#2563eb` reaches only 3–3.9:1 as text on the dark surfaces, but 5.2:1 under white text as a fill in both themes. So fills keep the brand blue, and text and indicators take a shade that holds 4.5:1 on every surface, including the tints.
+
+> **Deprecated since 22.7.0, removed in 23.0.0:** `--prism-primary-from` and `--prism-primary-to` (core no longer paints gradients from them) and `--prism-spectrum` (now an alias of `--prism-brand-gradient`). An override of them has no effect any more; the build prints a notice for it, and the browser console warns once per token.
 
 ## Text Properties
 
-| Property             | Default (dark) | Default (light) | Description              |
-| -------------------- | -------------- | --------------- | ------------------------ |
-| `--prism-text`       | `#ede9f8`      | `#1c1530`       | Primary text             |
-| `--prism-text-2`     | `#b0a6c8`      | `#4d4266`       | Secondary text           |
-| `--prism-text-muted` | `#8476a2`      | `#6b5e80`       | Muted / placeholder text |
-| `--prism-text-ghost` | `#6a5d87`      | `#b0a6c8`       | Disabled / ghost text    |
+| Property             | Default (dark) | Default (light) | Description                                                                        |
+| -------------------- | -------------- | --------------- | ---------------------------------------------------------------------------------- |
+| `--prism-text`       | `#f1f5f9`      | `#0f172a`       | Primary text                                                                       |
+| `--prism-text-2`     | `#cbd5e1`      | `#334155`       | Secondary text                                                                     |
+| `--prism-text-muted` | `#94a3b8`      | `#5b6b80`       | Muted text, labels, metadata. Holds 4.5:1 on every surface.                        |
+| `--prism-text-ghost` | `#64748b`      | `#94a3b8`       | Decoration and placeholders only; never for text someone has to read (under 4.5:1) |
 
 ## Status Colors
 
-| Property          | Default (dark) | Default (light) | Description          |
-| ----------------- | -------------- | --------------- | -------------------- |
-| `--prism-success` | `#34d399`      | `#047857`       | Success state        |
-| `--prism-warn`    | `#fbbf24`      | `#8f6b00`       | Warning state        |
-| `--prism-danger`  | `#f87171`      | `#951226`       | Danger / error state |
+| Property                                                     | Default (dark)                                        | Default (light)                                      | Description                                                                                                                                                                              |
+| ------------------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--prism-success`                                            | `#0ae2cb`                                             | `#06776a`                                            | Within its threshold                                                                                                                                                                     |
+| `--prism-warn`                                               | `#ffb984`                                             | `#a05602`                                            | Past its warning threshold                                                                                                                                                               |
+| `--prism-danger`                                             | `#fe6ba6`                                             | `#8e024d`                                            | Past its critical threshold                                                                                                                                                              |
+| `--prism-success-bg`, `--prism-warn-bg`, `--prism-danger-bg` | `color-mix(in srgb, var(--prism-x) 16%, transparent)` | `color-mix(in srgb, <vivid shade> 14%, transparent)` | Soft badge surfaces. In the light theme the tint comes from a vivid shade of the hue (`#0edbc5`, `#ffa65f`, `#ff7cad`), because a tint of the dark text colour reads olive and wine-red. |
+
+Every status colour holds 4.5:1 on every surface and on its own `-bg` tint. Warning and danger stay at least ΔE 45 and ΔL\* 14 apart, so they remain tellable apart for a reader with deuteranopia.
+
+> **Deprecated since 22.7.0, removed in 23.0.0:** `--prism-mark-nominal`, `--prism-mark-attention` and `--prism-mark-critical`. They are aliases of `--prism-success`, `--prism-warn` and `--prism-danger`. An override of a mark is carried over to its successor, so an existing theme keeps working; the build prints a notice for it and the browser console warns once per token. Move it to the new name.
 
 ## Code Syntax Colors
 
 | Property            | Default (dark) | Default (light) | Description                |
 | ------------------- | -------------- | --------------- | -------------------------- |
-| `--prism-code-tag`  | `#f472b6`      | `#be185d`       | HTML/XML tag names         |
-| `--prism-code-attr` | `#60a5fa`      | `#1d4ed8`       | Attribute names, JSON keys |
-| `--prism-code-str`  | `#86efac`      | `#047857`       | String values              |
-| `--prism-code-com`  | `#6a5d87`      | `#6b5e80`       | Comments                   |
+| `--prism-code-tag`  | `#e879f9`      | `#a21caf`       | HTML/XML tag names         |
+| `--prism-code-attr` | `#67e8f9`      | `#0e7490`       | Attribute names, JSON keys |
+| `--prism-code-str`  | `#86efac`      | `#127a3a`       | String values              |
+| `--prism-code-com`  | `#7c8ba1`      | `#5b6b80`       | Comments                   |
 
 ## Border & Glow Properties
 
-| Property                | Description                                      |
-| ----------------------- | ------------------------------------------------ |
-| `--prism-border`        | Default border color                             |
-| `--prism-border-strong` | Emphasized border (focus rings, active state)    |
-| `--prism-glow`          | Subtle glow for interactive focus                |
-| `--prism-glow-strong`   | Stronger glow for primary focus rings            |
-| `--prism-input-bg`      | Background for form inputs in the Controls panel |
-| `--prism-dot`           | Canvas dot-grid color                            |
+| Property                | Default (dark)             | Default (light)          | Description                                                        |
+| ----------------------- | -------------------------- | ------------------------ | ------------------------------------------------------------------ |
+| `--prism-border`        | `#1f2b3e`                  | `#e2e8f0`                | Dividers and decorative outlines                                   |
+| `--prism-border-strong` | `#64748b`                  | `#7b8aa0`                | Contours of controls (toggles, checkboxes, inputs); 3:1 everywhere |
+| `--prism-glow`          | `rgba(37, 99, 235, .18)`   | `rgba(37, 99, 235, .12)` | Subtle glow for interactive focus                                  |
+| `--prism-glow-strong`   | `rgba(37, 99, 235, .35)`   | `rgba(37, 99, 235, .25)` | Stronger glow                                                      |
+| `--prism-input-bg`      | `rgba(148, 163, 184, .08)` | `rgba(15, 23, 42, .04)`  | Background for form inputs in the Controls panel                   |
+| `--prism-dot`           | `rgba(96, 165, 250, .16)`  | `rgba(37, 99, 235, .14)` | Canvas dot-grid color                                              |
 
 ## Base Tokens (theme-independent)
 
 These tokens are set once and do not change between dark/light mode.
 
-| Property                | Default              | Description                                                                                |
-| ----------------------- | -------------------- | ------------------------------------------------------------------------------------------ |
-| `--prism-void-light`    | `#f7f5fc`            | Fixed light canvas background (for explicit `light` canvas mode)                           |
-| `--prism-void-dark`     | `#07050f`            | Fixed dark canvas background (for explicit `dark` canvas mode)                             |
-| `--prism-text-light`    | `#ede9f8`            | Light text for overlays on dark backgrounds                                                |
-| `--prism-header-height` | `var(--band-header)` | Alias kept for backward compatibility; see [Band Heights](#band-heights-and-density) below |
+| Property                | Default              | Description                                                                                                                                                      |
+| ----------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--prism-void-light`    | `#f7f5fc`            | Fixed light canvas background (for explicit `light` canvas mode). Part of every VRT baseline taken on `bg: 'light'`, so it did not change with the 22.7 palette. |
+| `--prism-void-dark`     | `#07050f`            | Fixed dark canvas background (for explicit `dark` canvas mode). Unchanged for the same reason.                                                                   |
+| `--prism-text-light`    | `#f1f5f9`            | Light text for overlays on dark backgrounds                                                                                                                      |
+| `--prism-header-height` | `var(--band-header)` | Alias kept for backward compatibility; see [Band Heights](#band-heights-and-density) below                                                                       |
 
-## Marks, Measurement and Stage Tokens
+## Measurement and Stage Tokens
 
-Introduced alongside the panel-tab and canvas-tool redesign. These are additive, not replacements for anything above.
+| Property                | Default (dark)                    | Default (light)                   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------- | --------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--prism-measure`       | `#f632ff`                         | `#ca00c1`                         | The role for measurements, as opposed to status. Core paints the canvas viewport constraint with it (the edge grips, their guide lines and the dimension line), and the measuring tool uses it for every mark it draws: the measurement line, its end ticks, the dotted snap echo, the floating value label and the pin row's chips below the canvas. Plugins drawing measurement or dimension UI should reach for it rather than picking their own. Note that `.prism-canvas-stage` re-points this token on the two absolute backgrounds (`bg: 'light'` and `bg: 'dark'`), because those grounds do not follow the theme; an override set here still applies everywhere else. |
+| `--prism-measure-plate` | _(falls back to `--prism-stage`)_ | _(falls back to `--prism-stage`)_ | The surface the measuring tool's value label paints itself on, so the number reads as a gap in the measurement line rather than a badge on top of it. Unset by default and resolved through `var(--prism-measure-plate, var(--prism-stage))`, because on the four theme-following backgrounds the stage _is_ the ground. `.prism-canvas-stage` re-points it on `bg: 'light'` and `bg: 'dark'` alongside `--prism-measure`. Override it only together with `--prism-measure`; the two are a foreground/background pair, and `semantic-colours.spec.ts` holds them to 4.5:1.                                                                                                     |
+| `--prism-stage`         | `#0e1524`                         | `#fafbfd`                         | Background colour of `.prism-canvas-stage`, independent of the variant's `bg` (`dots`/`plain`/`light`/`dark`/etc. paint on top of it). Kept distinct from `--prism-bg-surface`, which surrounds it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `--prism-stage-edge`    | `rgba(255,255,255,0.08)`          | `rgba(15,23,42,0.10)`             | The stage's boundary colour. Applied via `outline` + `box-shadow`, never `border`. A border would shrink the content box by its width and shift where `.demo-wrap` centres, moving every visual-regression baseline the day someone reached for the more obvious property.                                                                                                                                                                                                                                                                                                                                                                                                     |
 
-| Property                 | Default (dark)                                                                               | Default (light)                   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------------ | -------------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--prism-mark-nominal`   | `#34d399`                                                                                    | `#047857`                         | Green role for a value inside its thresholds. Same consumers as `--prism-mark-attention`, `ok` variant. Used where the element renders anyway (status chip, header badge, gauge chip, readout row), never to add an element that would otherwise not be there.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `--prism-mark-attention` | `#e8a33d`                                                                                    | `#8f6b00`                         | Amber role for a value past its warning threshold. Used by the sidebar's health dot, `PrismMetricBadgeComponent`'s `warn` variant, the component head's status chip, the head gauge, and `PrismStatComponent`'s `warn` dot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `--prism-mark-critical`  | `#e5484d`                                                                                    | `#951226`                         | Red role for a value past its critical threshold. Same consumers as `--prism-mark-attention`, `danger`/`critical` variant.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `--prism-measure`        | `#f632ff`                                                                                    | `#ca00c1`                         | The role for measurements, as opposed to status. Core paints the canvas viewport constraint with it (the edge grips, their guide lines, the dimension line and the rail's width readout), and the measuring tool uses it for every mark it draws: the measurement line, its end ticks, the dotted snap echo, the floating value label and the pin row's chips below the canvas. Plugins drawing measurement or dimension UI should reach for it rather than picking their own. Note that `.prism-canvas-stage` re-points this token on the two absolute backgrounds (`bg: 'light'` and `bg: 'dark'`), because those grounds do not follow the theme; an override set here still applies everywhere else. |
-| `--prism-measure-plate`  | _(falls back to `--prism-stage`)_                                                            | _(falls back to `--prism-stage`)_ | The surface the measuring tool's value label paints itself on, so the number reads as a gap in the measurement line rather than a badge on top of it. Unset by default and resolved through `var(--prism-measure-plate, var(--prism-stage))`, because on the four theme-following backgrounds the stage _is_ the ground. `.prism-canvas-stage` re-points it on `bg: 'light'` and `bg: 'dark'` alongside `--prism-measure`: those grounds are absolute and `--prism-stage` is not, so the pair would otherwise fall to roughly 2:1 on both. Override it only together with `--prism-measure`; the two are a foreground/background pair, and `semantic-colours.spec.ts` holds them to 4.5:1.               |
-| `--prism-stage`          | `#16122b`                                                                                    | `#ffffff`                         | Background colour of `.prism-canvas-stage`, independent of the variant's `bg` (`dots`/`plain`/`light`/`dark`/etc. paint on top of it).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `--prism-stage-edge`     | `rgba(255,255,255,0.10)`                                                                     | `rgba(28,21,48,0.14)`             | The stage's boundary colour. Applied via `outline` + `box-shadow`, never `border`. A border would shrink the content box by its width and shift where `.demo-wrap` centres, moving every visual-regression baseline the day someone reached for the more obvious property.                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `--prism-spectrum`       | `linear-gradient(90deg, var(--prism-accent), var(--prism-primary), var(--prism-primary-to))` | same shape, light-theme colours   | The gradient the variant ribbon reads a per-tab slice from (via `--i`/`--n` custom properties on each tab) so each variant's underline shows _where it sits in the sequence_ rather than an arbitrary per-index hue.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+### Canvas overlays
 
-> **Writing your own semantic colours?** Two floors are enforced by
-> `semantic-colours.spec.ts` and worth matching in a custom theme: each colour
-> needs at least **4.5:1** against `--prism-bg`, and the warning/error pair needs
-> at least **ΔE 45** and **ΔL\* 14** between them. The lightness gap is the part
-> that is easy to lose: these colours appear at 5–11px, where lightness carries
-> far more of the distinction than hue, and for a reader with deuteranopia it is
-> all that is left. The light theme originally shipped a pair only ΔL\* 3 apart
-> and they read as one colour.
+The tool rail, the background pill, the pin row and the rulers sit on the canvas, so they follow the canvas ground rather than the app theme. Six tokens carry their colours: `--prism-canvas-overlay-bg`, `-fg`, `-muted`, `-border`, `-primary` and `-active`. On the four grounds that follow the theme (`dots`, `plain`, `checker`, `transparent`) they resolve to the theme's elevated surface, text, text-2, border-strong, primary and primary tint. On the two absolute grounds (`bg: 'light'` and `bg: 'dark'`) the shell sets them to fixed light or dark values, so a rail stays light on a light canvas under the dark theme and the other way round. They are set on `.prism-canvas-wrap`; override them there only if you restyle the canvas chrome.
 
-Why `--prism-mark-*` and not the older `--prism-success`/`--prism-warn`/`--prism-danger`: the two families are not redundant. `--prism-success`/`--prism-warn`/`--prism-danger` remain in use for surfaces that need a positive "all clear" colour (green). `--prism-mark-*` originally had no nominal-good colour at all, so that chrome reporting _deviation_ drew nothing when there was none. That now holds only where an element would otherwise not exist: the sidebar still renders no mark for a clean component, because `decorateItem` returns `null` and green rows for every healthy component are the same wallpaper problem in another hue. Where the element renders regardless (the status chip, the header badges, the gauge chip and its readout rows), `ok` is drawn in `--prism-mark-nominal`, so success, warning and error form one explicit three-step coding instead of leaving "fine" indistinguishable from "not measured".
+> **Writing your own colours?** `semantic-colours.spec.ts` holds the defaults to these floors, and a custom theme should match them: every text role 4.5:1 on every surface (`--prism-void`, `--prism-bg`, `--prism-bg-surface`, `--prism-bg-elevated`, `--prism-stage`); status colours 4.5:1 on their own `-bg` tint too; control contours, fills and facet colours 3:1; warning and danger at least ΔE 45 and ΔL\* 14 apart. The lightness gap is the part that is easy to lose: these colours appear at 5–11px, where lightness carries far more of the distinction than hue, and for a reader with deuteranopia it is all that is left.
 
 ## Spacing Scale
 
@@ -216,7 +247,7 @@ The theme service sets every token, `--density` and the band heights included, a
 
 ## Dark and Light Themes
 
-ng-prism ships with a dark theme by default. A light theme variant is also available through the theme toggle button in the header toolbar. The choice is stored in `localStorage` (`ng-prism-theme`) and set as `data-theme` on `<html>`.
+ng-prism ships with a dark theme by default. A light theme variant is also available through the theme toggle button in the header toolbar. The header itself stays a navy band in both (see [Theme-Specific Overrides](#theme-specific-overrides)). The choice is stored in `localStorage` (`ng-prism-theme`) and set as `data-theme` on `<html>`.
 
 The light theme maps the same custom properties to lighter values. Your `theme` overrides apply to both; use `darkTheme` or `lightTheme` for overrides that apply to one of them only.
 

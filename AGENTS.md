@@ -36,8 +36,14 @@ This repo is an Nx monorepo on npm workspaces:
 - `test-workspace/` is a separate Angular workspace that consumes the local
   packages. Its `test-lib` is the demo styleguide and the scanner's real-world
   input (skill `prism-test-workspace`).
+- Product films (the tour on the docs start page, a clip per release) are made
+  with Claude Motion: private claude.ai artifacts built from the styleguide's
+  lifted DOM and CSS and exported as MP4 from their page. `test-workspace`'s
+  `video-lib` holds showcases written to fit their code cards (skill
+  `prism-motion-video`).
 - `docs/` is the published docsify site, `scripts/` holds the release and
-  lint-fix scripts.
+  lint-fix scripts and `render-brand-assets.mjs`, which renders the README cover
+  and the docs logo from `docs/assets/brand/cover.html`.
 
 # Architecture
 
@@ -169,13 +175,14 @@ skills and agents in `.claude/skills/` / `.claude/agents/` without the prefix
 stay local. Don't give a personal skill the `prism-` prefix or a project skill's
 name: a personal skill with the same name silently overrides the project one.
 
-| Skill                      | Covers                                                                        |
-| -------------------------- | ----------------------------------------------------------------------------- |
-| `prism-showcase-component` | Adding or editing a `@Showcase` decorator                                     |
-| `prism-angular-component`  | Creating a component for the core, a plugin or the scanner fixtures           |
-| `prism-scanner-module`     | Creating or extending a module under `packages/ng-prism/src/builder/scanner/` |
-| `prism-plugin`             | Creating a plugin against the `NgPrismPlugin` interface                       |
-| `prism-test-workspace`     | Running the demo styleguide on the local packages and checking a change in it |
+| Skill                      | Covers                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| `prism-showcase-component` | Adding or editing a `@Showcase` decorator                                            |
+| `prism-angular-component`  | Creating a component for the core, a plugin or the scanner fixtures                  |
+| `prism-scanner-module`     | Creating or extending a module under `packages/ng-prism/src/builder/scanner/`        |
+| `prism-plugin`             | Creating a plugin against the `NgPrismPlugin` interface                              |
+| `prism-test-workspace`     | Running the demo styleguide on the local packages and checking a change in it        |
+| `prism-motion-video`       | Making the tour or a release clip with Claude Motion, keeping the films' house style |
 
 # Subagents
 

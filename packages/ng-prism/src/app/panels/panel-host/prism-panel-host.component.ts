@@ -1,17 +1,24 @@
 import { NgComponentOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, EnvironmentInjector, inject, signal, type Type, untracked } from '@angular/core';
 import type { NgPrismConfig, PanelDefinition, RuntimeManifest } from '../../../plugin/plugin.types.js';
-import { PrismIconComponent } from '../../icons/prism-icon.component.js';
+import { PrismEventLogService } from '../../services/prism-event-log.service.js';
+import { PrismMobileLayoutService } from '../../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../../services/prism-navigation.service.js';
 import { PrismPanelService } from '../../services/prism-panel.service.js';
 import { PrismPluginService } from '../../services/prism-plugin.service.js';
 import { PrismRendererService } from '../../services/prism-renderer.service.js';
+import { type PrismTabItem, PrismTabsComponent } from '../../shared/prism-tabs.component.js';
 import { PRISM_CONFIG, PRISM_MANIFEST } from '../../tokens/prism-tokens.js';
+import { resolveAcceptances } from '../a11y/a11y-acceptances.js';
 import { A11yAuditService } from '../a11y/a11y-audit.service.js';
 import { resolveA11yThresholds } from '../a11y/a11y-thresholds.js';
 import type { A11yCoreConfig, A11yManifestMeta } from '../a11y/a11y.types.js';
 import { BUILTIN_PANELS } from '../builtin-panels.js';
-import { resolvePanelBadge } from './panel-badge.js';
+import { addonPanelsFor } from './addon-panels.js';
+import { deprecatedBadgeVariantNotice, normalizePanelBadge, resolvePanelBadge } from './panel-badge.js';
+
+/** Panels whose badge still sets `variant`, warned about once per page load. */
+const warnedVariantBadges = new Set<string>();
 
 type RenderedPanelEntry = {
     id: string;
@@ -24,7 +31,7 @@ type RenderedPanelEntry = {
     selector: 'prism-panel-host',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [NgComponentOutlet, PrismIconComponent],
+    imports: [NgComponentOutlet, PrismTabsComponent],
     templateUrl: './prism-panel-host.component.html',
     styleUrl: './prism-panel-host.component.css'
 })
@@ -32,6 +39,7 @@ export class PrismPanelHostComponent {
     private readonly pluginService = inject(PrismPluginService);
     private readonly nav = inject(PrismNavigationService);
     protected readonly panelService = inject(PrismPanelService);
+    protected readonly mobileLayout = inject(PrismMobileLayoutService);
     protected readonly envInjector = inject(EnvironmentInjector);
     private readonly auditService = inject(A11yAuditService);
     private readonly rendererService = inject(PrismRendererService);
@@ -58,23 +66,33 @@ export class PrismPanelHostComponent {
         return comp?.meta.inputs.length ?? 0;
     });
 
-    protected panelBadge(panel: PanelDefinition) {
-        return resolvePanelBadge(panel, this.nav.activeComponent(), {
+    private readonly eventLog = inject(PrismEventLogService);
+
+    private panelBadge(panel: PanelDefinition) {
+        const badge = resolvePanelBadge(panel, this.nav.activeComponent(), {
             inputCount: this.inputCount(),
+            eventCount: this.eventLog.events().length,
             a11yResult: this.auditService.scoreResult(),
             a11yThresholds: this.a11yThresholds()
         });
+        const notice = deprecatedBadgeVariantNotice(panel.id, badge);
+
+        if (notice && !warnedVariantBadges.has(panel.id)) {
+            warnedVariantBadges.add(panel.id);
+            console.warn(`[ng-prism] ${notice}`);
+        }
+        return normalizePanelBadge(badge);
     }
+
+    protected readonly tabItems = computed<PrismTabItem[]>(() =>
+        this.allPanels().map((panel) => ({ id: panel.id, label: panel.label, icon: panel.icon, badge: this.panelBadge(panel) }))
+    );
 
     private readonly builtInPanels = BUILTIN_PANELS;
 
-    protected readonly allPanels = computed(() => {
-        const comp = this.nav.activeComponent();
-        const panels = [...this.builtInPanels.filter((p) => p.placement !== 'view'), ...this.pluginService.addonPanels()];
-
-        if (!comp) return panels;
-        return panels.filter((p) => !p.isVisible || p.isVisible(comp));
-    });
+    protected readonly allPanels = computed(() =>
+        addonPanelsFor([...this.builtInPanels.filter((p) => p.placement !== 'view'), ...this.pluginService.addonPanels()], this.nav.activeComponent())
+    );
 
     protected readonly panelInputs = computed(() => ({
         activeComponent: this.nav.activeComponent()
@@ -91,7 +109,7 @@ export class PrismPanelHostComponent {
             const comp = this.nav.activeComponent() as any;
 
             this.rendererService.inputValues();
-            this.rendererService.activeVariantIndex();
+            const variantIndex = this.rendererService.activeVariantIndex();
 
             if (!element || !comp) {
                 this.auditService.clear();
@@ -105,7 +123,10 @@ export class PrismPanelHostComponent {
                 return;
             }
 
-            this.auditService.scheduleAudit(element, a11yConfig);
+            // The acceptances of the variant on screen: the component's and its own.
+            const accept = resolveAcceptances(comp.meta?.showcaseConfig?.meta, comp.meta?.showcaseConfig?.variants?.[variantIndex]?.meta);
+
+            this.auditService.scheduleAudit(element, { ...a11yConfig, accept });
         });
 
         effect(() => {
@@ -121,6 +142,18 @@ export class PrismPanelHostComponent {
                 this.pruneRenderedPanels(panels, panel ? activeId : null);
             });
         });
+    }
+
+    /** On a phone, a tap on the active tab folds the panel down to its tab bar, and any tab opens it again. */
+    protected onTabClick(id: string): void {
+        if (this.mobileLayout.mobile()) this.mobileLayout.onPanelTab(id, this.panelService.activePanelId());
+    }
+
+    /** Another tab became active, also by the arrow keys, which report no click: on a phone that opens a folded panel. */
+    protected onTabActivated(id: string | null): void {
+        if (id === null) return;
+        this.panelService.activePanelId.set(id);
+        if (this.mobileLayout.mobile()) this.mobileLayout.expandPanel();
     }
 
     private ensurePanelLoaded(panel: PanelDefinition): void {

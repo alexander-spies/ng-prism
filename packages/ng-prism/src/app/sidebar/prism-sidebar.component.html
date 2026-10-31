@@ -5,21 +5,23 @@
             [size]="12" />
         <input
             #filterInput
-            placeholder="Filter components…"
+            placeholder="Filter…"
             [value]="searchService.query()"
             (input)="searchService.search($any($event.target).value)" />
         <kbd>/</kbd>
     </div>
 
-    <div class="sb-scroll">
+    <div
+        #scroller
+        class="sb-scroll">
         @if (pageCategories().length > 0) {
             <div class="sb-pinned">
-                <div class="sb-pinned-head">
-                    <span class="sb-pinned-head-l">
+                <div class="sb-section-head sb-section-head--first">
+                    <span class="sb-section-head-l">
                         <prism-icon
                             name="pin"
                             [size]="10"
-                            class="sb-pinned-pin" />
+                            class="sb-section-icon sb-section-icon--muted" />
                         Pages
                     </span>
                     <span>{{ totalPages() }}</span>
@@ -27,24 +29,28 @@
                 @for (cat of pageCategories(); track cat.name) {
                     <div
                         class="sb-group"
-                        [class.sb-group--collapsed]="isCollapsed('page:' + cat.name)">
+                        [class.sb-group--collapsed]="isCollapsed(cat.key)">
                         <button
                             class="sb-group-head"
-                            (click)="toggleCollapse('page:' + cat.name)"
-                            [attr.aria-expanded]="!isCollapsed('page:' + cat.name)">
+                            (click)="toggleCollapse(cat.key)"
+                            [attr.aria-expanded]="!isCollapsed(cat.key)">
                             <prism-icon
                                 name="chevron-down"
                                 [size]="10" />
                             <span class="sb-group-chip"></span>
                             {{ cat.name }}
                         </button>
-                        @if (!isCollapsed('page:' + cat.name)) {
+                        @if (!isCollapsed(cat.key)) {
                             <div class="sb-group-body">
                                 @for (item of cat.items; track itemKey(item)) {
                                     <button
                                         class="sb-item"
                                         [class.sb-item--active]="isActive(item)"
                                         (click)="onSelect(item)">
+                                        <prism-icon
+                                            name="file-text"
+                                            [size]="12"
+                                            class="sb-item-icon" />
                                         <span class="sb-item-name">{{ itemLabel(item) }}</span>
                                     </button>
                                 }
@@ -59,8 +65,9 @@
                 <span class="sb-section-head-l">
                     <prism-icon
                         [name]="section.icon"
-                        [size]="10"
-                        class="sb-section-icon" />
+                        [size]="11"
+                        class="sb-section-icon"
+                        [attr.data-facet]="facet(section.name)" />
                     {{ section.name }}
                 </span>
                 <span>{{ section.totalCount }}</span>
@@ -68,30 +75,33 @@
             @for (cat of section.categories; track cat.name) {
                 <div
                     class="sb-group"
-                    [class.sb-group--collapsed]="isCollapsed('sec:' + section.name + ':' + cat.name)">
+                    [class.sb-group--collapsed]="isCollapsed(cat.key)">
                     <button
                         class="sb-group-head"
-                        (click)="toggleCollapse('sec:' + section.name + ':' + cat.name)"
-                        [attr.aria-expanded]="!isCollapsed('sec:' + section.name + ':' + cat.name)">
+                        (click)="toggleCollapse(cat.key)"
+                        [attr.aria-expanded]="!isCollapsed(cat.key)">
                         <prism-icon
                             name="chevron-down"
                             [size]="10" />
                         <span class="sb-group-chip"></span>
                         {{ cat.name }}
+                        @let count = countOf(cat.rollup, cat.items.length);
                         <span
                             class="sb-group-count"
-                            [class.sb-group-count--warn]="cat.rollup.variant === 'warn'"
-                            [class.sb-group-count--danger]="cat.rollup.variant === 'danger'"
-                            [attr.title]="cat.rollup.problems ? rollupTooltip(cat.rollup) : null"
-                            [attr.aria-label]="cat.rollup.problems ? rollupTooltip(cat.rollup) : null">
-                            @if (cat.rollup.problems) {
-                                {{ cat.rollup.problems }}/{{ cat.items.length }}
-                            } @else {
-                                {{ cat.items.length }}
+                            [attr.title]="count.title"
+                            [attr.aria-label]="count.title">
+                            {{ count.total }}
+                            @if (count.chip; as chip) {
+                                <prism-badge
+                                    size="sm"
+                                    dot
+                                    [tone]="chip.tone"
+                                    [value]="chip.text"
+                                    aria-hidden="true" />
                             }
                         </span>
                     </button>
-                    @if (!isCollapsed('sec:' + section.name + ':' + cat.name)) {
+                    @if (!isCollapsed(cat.key)) {
                         <div class="sb-group-body">
                             @for (row of cat.items; track itemKey(row.item)) {
                                 <button
@@ -110,6 +120,8 @@
                                             <prism-icon
                                                 [name]="mark.icon"
                                                 [size]="11"
+                                                role="img"
+                                                [attr.aria-label]="mark.label"
                                                 [class]="'sb-health sb-health--' + mark.variant" />
                                         }
                                     </span>

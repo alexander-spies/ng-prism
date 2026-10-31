@@ -2,9 +2,21 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import path, { join } from 'node:path';
 import ts from 'typescript';
+import { buildDeclarableIndex } from './composition/declarables.js';
 import { createScanner } from './scanner.js';
 
+// The real index with a seam: a test counts the calls or makes one throw.
+jest.mock('./composition/declarables.js', () => {
+    const actual = jest.requireActual('./composition/declarables.js');
+
+    return { ...actual, buildDeclarableIndex: jest.fn(actual.buildDeclarableIndex) };
+});
+
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
+
+afterEach(() => {
+    jest.mocked(buildDeclarableIndex).mockClear();
+});
 
 describe('createScanner', () => {
     const entryFile = path.join(FIXTURES_DIR, 'public-api.ts');
@@ -157,6 +169,269 @@ describe('createScanner', () => {
         } finally {
             warn.mockRestore();
         }
+    });
+
+    describe('services', () => {
+        const servicesDir = path.join(FIXTURES_DIR, 'services');
+        const apiEntry = path.join(servicesDir, 'services-api.ts');
+        const barrelEntry = path.join(servicesDir, 'services-barrel.ts');
+        let warn: jest.SpyInstance;
+
+        beforeEach(() => {
+            warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            warn.mockRestore();
+        });
+
+        it('scans the services of an entry point next to its components', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/toast' }] }).scan();
+            const toast = result.services.find((s) => s.className === 'ToastService');
+
+            expect(toast?.importPath).toBe('lib/toast');
+            expect(toast?.api.setup.map((entry) => entry.importPath)).toEqual(['lib/toast', 'lib/toast']);
+        });
+
+        it('leaves services out of the components, and components out of the services', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/toast' }] }).scan();
+
+            expect(result.components.map((c) => c.className)).not.toContain('ToastService');
+            expect(result.services.map((s) => s.className)).not.toContain('SetupOnComponent');
+        });
+
+        it('returns no services for a library without any', () => {
+            expect(createScanner({ entryPoints }).scan().services).toEqual([]);
+        });
+
+        it('dedupes a service exported by a secondary and the primary entry point', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/toast' },
+                    { entryFile: barrelEntry, importPath: 'lib', primary: true }
+                ]
+            }).scan();
+            const toasts = result.services.filter((s) => s.className === 'ToastService');
+
+            expect(toasts).toHaveLength(1);
+            expect(toasts[0].importPath).toBe('lib/toast');
+            expect(result.components.map((c) => c.className)).not.toContain('ToastService');
+            expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('multiple entry points'));
+        });
+
+        it('warns about a service two secondary entry points export, and keeps the first', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/toast' },
+                    { entryFile: barrelEntry, importPath: 'lib/barrel' }
+                ]
+            }).scan();
+            const toasts = result.services.filter((s) => s.className === 'ToastService');
+
+            expect(toasts).toHaveLength(1);
+            expect(toasts[0].importPath).toBe('lib/toast');
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('ToastService is exported by multiple entry points'));
+        });
+
+        it('imports a setup entry from the entry point that exports it, not from the one that scans the service', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: barrelEntry, importPath: 'lib' },
+                    { entryFile: apiEntry, importPath: 'lib/toast', primary: true }
+                ]
+            }).scan();
+            const toast = result.services.find((s) => s.className === 'ToastService');
+
+            expect(toast?.importPath).toBe('lib');
+            expect(toast?.api.setup.map((entry) => entry.importPath)).toEqual(['lib/toast', 'lib/toast']);
+        });
+
+        it('collects what it drops from a service once, even when several entry points export it', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/a' },
+                    { entryFile: apiEntry, importPath: 'lib/b' }
+                ]
+            }).scan();
+
+            expect(result.diagnostics.filter((message) => message.startsWith('UnexportedService'))).toHaveLength(1);
+            expect(new Set(result.diagnostics).size).toBe(result.diagnostics.length);
+        });
+
+        it('only counts the services when told not to read them, once each however many entry points export them', () => {
+            const scanner = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/toast' },
+                    { entryFile: barrelEntry, importPath: 'lib', primary: true }
+                ]
+            });
+            const read = scanner.scan();
+            const counted = scanner.scan({ services: false });
+
+            expect(read.unread.services).toBe(0);
+            expect(counted.services).toEqual([]);
+            expect(counted.unread.services).toBe(read.services.length);
+            expect(counted.diagnostics.filter((message) => message.startsWith('UnexportedService'))).toEqual([]);
+            expect(counted.components.map((c) => c.className)).toEqual(read.components.map((c) => c.className));
+        });
+    });
+
+    it('leaves the API of the components out when told to', () => {
+        const scanner = createScanner({ entryPoints });
+
+        expect(scanner.scan().components.every((c) => c.api !== undefined)).toBe(true);
+        expect(scanner.scan({ componentApi: false }).components.every((c) => c.api === undefined)).toBe(true);
+    });
+
+    describe('compositions', () => {
+        const compositionDir = path.join(FIXTURES_DIR, 'composition');
+        let warnSpy: jest.SpyInstance;
+
+        beforeEach(() => {
+            warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        });
+
+        afterEach(() => {
+            warnSpy.mockRestore();
+        });
+
+        it('reads them against the classes the library exports', () => {
+            const scanner = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'frame.showcase.ts'), importPath: 'fixture-lib' }] });
+            const field = scanner.scan().components.find((c) => c.className === 'FormFieldComponent')!;
+
+            expect(field.composition?.variantCases).toEqual([0, 1, 2, 0]);
+            expect(field.composition?.imports).toEqual([
+                { name: 'InputDirective', from: 'fixture-lib' },
+                { name: 'IconComponent', from: 'fixture-lib' }
+            ]);
+        });
+
+        it('leaves out a library class whose selector Angular cannot parse, with one notice per scan', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'throws.showcase.ts'), importPath: 'fixture-lib' }] }).scan();
+            const printed = warnSpy.mock.calls.map(([message]) => String(message)).filter((message) => message.includes('which Angular cannot parse'));
+
+            expect(printed).toEqual([expect.stringContaining('OddComponent from "fixture-lib" has the selector "lib-odd:not(.a:not(.b))"')]);
+            expect(result.components.find((c) => c.className === 'OddComponent')).not.toHaveProperty('composition');
+            expect(result.diagnostics).toEqual([expect.stringMatching(/^OddComponent › host — @angular\/compiler failed on it/)]);
+        });
+
+        // A library without compositions pays nothing for them, on every re-scan of `serve`, and hears nothing about them.
+        it('reads no declarables and says nothing about them when no showcase composes', () => {
+            const scanner = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'uncomposed.showcase.ts'), importPath: 'fixture-lib' }] });
+
+            scanner.scan();
+            scanner.scan();
+
+            expect(buildDeclarableIndex).not.toHaveBeenCalled();
+            expect(warnSpy).not.toHaveBeenCalled();
+        });
+
+        it('reads the declarables once per scan, however many showcases compose', () => {
+            const scanner = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'throws.showcase.ts'), importPath: 'fixture-lib' }] });
+
+            scanner.scan();
+            expect(buildDeclarableIndex).toHaveBeenCalledTimes(1);
+            scanner.scan();
+            expect(buildDeclarableIndex).toHaveBeenCalledTimes(2);
+        });
+
+        it('turns a failure to read the declarables into one diagnostic, and reads no composition', () => {
+            jest.mocked(buildDeclarableIndex).mockImplementationOnce(() => {
+                throw new Error('boom');
+            });
+
+            const result = createScanner({ entryPoints: [{ entryFile: path.join(compositionDir, 'throws.showcase.ts'), importPath: 'fixture-lib' }] }).scan();
+
+            expect(result.diagnostics).toEqual([
+                "ng-prism could not read the library's components, directives and pipes (boom), so no variant renders a template or a host template."
+            ]);
+            expect(result.components.filter((c) => c.composition)).toEqual([]);
+        });
+    });
+
+    describe('pipes', () => {
+        const pipesDir = path.join(FIXTURES_DIR, 'pipes');
+        const apiEntry = path.join(pipesDir, 'pipes-api.ts');
+        const barrelEntry = path.join(pipesDir, 'pipes-barrel.ts');
+        let warn: jest.SpyInstance;
+
+        beforeEach(() => {
+            warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            warn.mockRestore();
+        });
+
+        it('scans the pipes of an entry point next to its components and services', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/pipes' }] }).scan();
+            const timeAgo = result.pipes.find((p) => p.className === 'TimeAgoPipe');
+
+            expect(timeAgo?.pipeName).toBe('timeAgo');
+            expect(timeAgo?.importPath).toBe('lib/pipes');
+            expect(timeAgo?.api.setup.map((entry) => entry.importPath)).toEqual(['lib/pipes']);
+        });
+
+        it('keeps a pipe out of the components and the services, and a component and a service out of the pipes', () => {
+            const pipes = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/pipes' }] }).scan();
+            const others = createScanner({ entryPoints: [{ entryFile: path.join(FIXTURES_DIR, 'services', 'services-api.ts'), importPath: 'lib/toast' }] }).scan();
+
+            expect(pipes.components.map((c) => c.className)).not.toContain('StandalonePipe');
+            expect(pipes.services.map((s) => s.className)).not.toContain('StandalonePipe');
+            expect(others.pipes).toEqual([]);
+        });
+
+        it('does not list a @Pipe with @Injectable as a service', () => {
+            const result = createScanner({ entryPoints: [{ entryFile: apiEntry, importPath: 'lib/pipes' }] }).scan();
+
+            expect(result.pipes.map((p) => p.className)).toContain('InjectablePipe');
+            expect(result.services.map((s) => s.className)).not.toContain('InjectablePipe');
+            expect(result.components.map((c) => c.className)).not.toContain('InjectablePipe');
+        });
+
+        it('returns no pipes for a library without any', () => {
+            expect(createScanner({ entryPoints }).scan().pipes).toEqual([]);
+        });
+
+        it('dedupes a pipe exported by a secondary and the primary entry point', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/pipes' },
+                    { entryFile: barrelEntry, importPath: 'lib', primary: true }
+                ]
+            }).scan();
+            const timeAgos = result.pipes.filter((p) => p.className === 'TimeAgoPipe');
+
+            expect(timeAgos).toHaveLength(1);
+            expect(timeAgos[0].importPath).toBe('lib/pipes');
+            expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('multiple entry points'));
+        });
+
+        it('warns about a pipe two secondary entry points export, and keeps the first', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/pipes' },
+                    { entryFile: barrelEntry, importPath: 'lib/barrel' }
+                ]
+            }).scan();
+            const timeAgos = result.pipes.filter((p) => p.className === 'TimeAgoPipe');
+
+            expect(timeAgos).toHaveLength(1);
+            expect(timeAgos[0].importPath).toBe('lib/pipes');
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('TimeAgoPipe is exported by multiple entry points'));
+        });
+
+        it('collects what it drops from a pipe once, even when several entry points export it', () => {
+            const result = createScanner({
+                entryPoints: [
+                    { entryFile: apiEntry, importPath: 'lib/a' },
+                    { entryFile: apiEntry, importPath: 'lib/b' }
+                ]
+            }).scan();
+
+            expect(result.diagnostics.filter((message) => message.startsWith('NgModulePipe'))).toHaveLength(1);
+            expect(new Set(result.diagnostics).size).toBe(result.diagnostics.length);
+        });
     });
 
     it('should collect a dropped @Showcase value once, even when several entry points export its component', () => {

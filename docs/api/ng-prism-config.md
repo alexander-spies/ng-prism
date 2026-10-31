@@ -40,6 +40,7 @@ interface NgPrismConfig {
             serious?: number;
             moderate?: number;
         };
+        gate?: { score?: number; critical?: number; serious?: number; moderate?: number } | false; // since 22.7.0
         reportPath?: string;
     };
     strictShowcase?: boolean;
@@ -109,6 +110,8 @@ export default defineConfig({
 
 See [Theming](guide/theming.md) for the full list of available properties.
 
+An override of a token deprecated in 22.7.0 (`--prism-mark-nominal`, `--prism-mark-attention`, `--prism-mark-critical`, `--prism-spectrum`, `--prism-primary-from`, `--prism-primary-to`) in `theme`, `darkTheme` or `lightTheme` prints `⚠ ng-prism: ng-prism.config.ts sets <token> in "<option>": <token> is deprecated since 22.7.0 and will be removed in 23.0.0. <effect>; override <successor> instead.` at build time, and the styleguide warns once per token in the browser console. A mark's override still reaches its successor until 23.0.0; the others have no effect. See [Migration: mark, spectrum and primary gradient tokens](guide/migration-v22.md#deprecation-mark-spectrum-and-primary-gradient-tokens).
+
 ---
 
 ### Deprecated: `themeStylesheet`, `ui`, `headless`, `appComponent`
@@ -171,10 +174,10 @@ export default defineConfig({
 
 ### `a11y`
 
-Configuration for the library-wide accessibility audit. Drives both:
+Configuration for the library-wide accessibility audit. Drives:
 
-1. The **A11y header pill** (color-coded against `thresholds`).
-2. The **build-time threshold check**: when an `a11y-report.json` exists and a threshold is violated, `nx run my-lib-prism:build` fails.
+1. The **grading** of every a11y figure against `thresholds`: the header pill, the navigation marker, the gauge in the component head and the score card.
+2. The **build gate**: when an `a11y-report.json` exists and its total breaks the gate's limits, `nx run my-lib-prism:build` fails. The gate is `gate`, or `thresholds` while `gate` is left out (as before 22.7.0); `gate: false` never fails the build. The dev server only warns.
 
 ```typescript
 export default defineConfig({
@@ -196,6 +199,7 @@ export default defineConfig({
 | `thresholds.critical` | `0`                  | Maximum allowed critical violations                                                                                                                                   |
 | `thresholds.serious`  | `0`                  | Maximum allowed serious violations                                                                                                                                    |
 | `thresholds.moderate` | unlimited            | Maximum allowed moderate violations                                                                                                                                   |
+| `gate`                | `thresholds`         | Limits the build fails on, with the same keys and defaults as `thresholds`, or `false` to never fail. Since 22.7.0.                                                   |
 | `reportPath`          | `'a11y-report.json'` | Path (relative to workspace root) where the build pipeline reads the library-wide a11y report. Generating it is up to the consumer; see the guide for the JSON shape. |
 
 See [Accessibility: Library-Wide A11y Score](guide/accessibility.md#library-wide-a11y-score--header-badge) for the report shape and integration workflow.
@@ -206,7 +210,7 @@ See [Accessibility: Library-Wide A11y Score](guide/accessibility.md#library-wide
 
 Fail the build when a `@Showcase` value is lost, instead of warning about it. Default: `false`.
 
-The scanner reads `@Showcase` from the source and drops what it cannot use: a value it [cannot evaluate statically](guide/showcase-decorator.md#what-the-scanner-can-read), an invalid `bg`, `status` or `canvasLayout`, a [`pseudo`](guide/variants.md#per-variant-pseudo-states) state or target it cannot use, a [`states`](guide/variants.md#declaring-a-state) entry it cannot use (not an object, a repeated name, no usable `pseudo`; it keeps its place as an empty state, and an entry without a name is reported but kept under a generated name), `states` next to `renderPage`, a variant's `states` other than `false`, a config without a `title`, which costs the whole component, or the deprecated `providers`, which never reach the styleguide. Each loss prints a warning. With `strictShowcase` on, the build stops after the scan, before a manifest is written:
+The scanner reads `@Showcase` from the source and drops what it cannot use: a value it [cannot evaluate statically](guide/showcase-decorator.md#what-the-scanner-can-read), an invalid `bg`, `status` or `canvasLayout`, a [`pseudo`](guide/variants.md#per-variant-pseudo-states) state or target it cannot use, a [`states`](guide/variants.md#declaring-a-state) entry it cannot use (not an object, a repeated name, no usable `pseudo`; it keeps its place as an empty state, and an entry without a name is reported but kept under a generated name), `states` next to `renderPage`, a variant's `states` other than `false`, a [`template`](guide/content-projection.md#errors), `host: { template }` or `imports` value of the wrong type, an `imports` entry or an object host's `import` whose `name` is not an identifier, `content` set together with `template`, a composition that cannot be built (a syntax error in a template, an element left open, an unknown element or pipe, two library components on one element, a host template without a subject or with several, a value in `inputs` for an input the template sets on the subject, HTML `content` in a host template, a string or object host a variant `template` cannot render in, a subject that is not standalone, a failure of `@angular/compiler`, or the library's components, directives and pipes that could not be read), a config without a `title`, which costs the whole component, the deprecated `providers`, which never reach the styleguide, a [`partOf`](guide/showcase-decorator.md#partof) that matches no single other showcased component (none, several, a part or the class itself; the class keeps a page of its own), a service's or pipe's [`setup`](guide/showcasing-services.md#setup) that cannot be read or has an entry that is not a provider function or token, is not exported, or sits on a component, or a [pipe](guide/showcasing-pipes.md#warnings) that is declared with `standalone: false` or whose `name` cannot be evaluated. The losses of a service or a pipe only come up when a plugin shows services or pipes (`jsDocPlugin()`): without one the build does not read them, it only counts them. Each loss prints a warning. With `strictShowcase` on, the build stops after the scan, before a manifest is written:
 
 ```typescript
 export default defineConfig({ strictShowcase: true });
@@ -216,4 +220,4 @@ export default defineConfig({ strictShowcase: true });
 ng-prism: strictShowcase is enabled and 2 @Showcase value(s) were dropped; see the warnings above.
 ```
 
-`build` exits with an error, and `serve` does not start. When a watch-mode rebuild fails this way, the error is logged and the previous manifest stays in place. Deprecations that lose nothing, such as `bg: 'checker'`, remain warnings either way.
+`build` exits with an error, and `serve` does not start. When a watch-mode rebuild fails this way, the error is logged and the previous manifest stays in place. Deprecations that lose nothing, such as `bg: 'checker'`, remain warnings either way, and so do the notices about [services](guide/showcasing-services.md) and [pipes](guide/showcasing-pipes.md): the one for a class with component-only fields that is still treated as a component (deprecated since 22.7.0, removed in 23.0.0), the hint that no plugin shows services or pipes, and the notice for a class whose API the scanner could not read. The notices about [compositions](guide/content-projection.md#errors) are no diagnostics either: an `imports` entry ng-prism cannot read (Angular checks the template then, and an unknown element or pipe is a notice too), a library class that matches only by standard attributes, a library class that is not standalone, and a library selector Angular cannot parse, and so is the warning for a string or object `host` on a component, which a component has always ignored. So are the warnings the manifest generator prints for a host it cannot render as written, such as an object host without `import`, a selector that fits no host tag, or `content` on a void host.

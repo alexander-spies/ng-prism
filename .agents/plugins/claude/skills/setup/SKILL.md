@@ -78,10 +78,13 @@ the Node way, without tsconfig `paths`.
 - `appProviders`: providers for the whole styleguide app, where `@Showcase({ providers })` moved to.
 - `pages`: custom pages declared in the config.
 - `theme`, `darkTheme`, `lightTheme`: CSS custom property overrides (see Theming).
-- `title`, `subtitle`, `logo: { light, dark }`, `buildInfo: { version, gitHash }`: the header.
+- `title`, `subtitle`, `logo: { light, dark }`, `buildInfo: { version, gitHash }`: the header. Since 22.7 the header is
+  navy in both themes, so `logo.dark` is shown whenever it is set; a `title` is plain text, not in the brand gradient.
 - `urlState` (default `true`) keeps the selection in the URL; `persistState` (default `true`) keeps state in
   sessionStorage across reloads.
-- `a11y`: thresholds and report path for the accessibility audit (`api/ng-prism-config.md`).
+- `a11y`: report path, `thresholds` (grade the header pill, navigation markers and gauges) and `gate` (since 22.7:
+  the limits the build fails on; left out it is `thresholds`, `false` never fails, e.g. when CI gates on its own; the
+  dev server only warns) for the accessibility audit (`api/ng-prism-config.md`).
 - `strictShowcase` (default `false`): a dropped `@Showcase` value fails the build instead of warning.
 
 `ui`, `appComponent`, `themeStylesheet` and `headless` are in the typings, but nothing has ever read them; they are
@@ -95,15 +98,26 @@ and skips a plugin that is already there. In Nx: `npm i -D @ng-prism/plugin-<nam
 `npx nx g @ng-prism/plugin-<name>:ng-add`. Import from the package name; the Angular build picks the browser half
 itself. Keep the core and every plugin on the same version: plugins require `@ng-prism/core` `^<their version>-0`.
 
-| Package                              | Call                                                                  | Adds                                                       |
-| ------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab built from the JSDoc of inputs and outputs      |
-| `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                    |
-| `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel |
-| `@ng-prism/plugin-perf`              | `perfPlugin({ bundle?: { maxTreeDepth? } })`                          | a Performance panel                                        |
-| `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker               |
-| `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker             |
+| Package                              | Call                                                                  | Adds                                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `@ng-prism/plugin-jsdoc`             | `jsDocPlugin()`                                                       | an API tab for every component, directive, service and pipe, from the code and its JSDoc |
+| `@ng-prism/plugin-box-model`         | `boxModelPlugin()`                                                    | a Box Model panel with a canvas overlay                                                  |
+| `@ng-prism/plugin-figma`             | `figmaPlugin({ designDiff?, accessToken? })`                          | a Figma embed; with `designDiff: true` a Design Diff panel                               |
+| `@ng-prism/plugin-perf`              | `perfPlugin({ bundle?: { maxTreeDepth? } })`                          | a Performance panel                                                                      |
+| `@ng-prism/plugin-coverage`          | `coveragePlugin({ coveragePath?, thresholds? })`                      | coverage panel, header badge, sidebar marker                                             |
+| `@ng-prism/plugin-visual-regression` | `visualRegressionPlugin({ reportPath?, assetBaseUrl?, thresholds? })` | VRT report panel, header badge, sidebar marker                                           |
 
+- **JSDoc, services and pipes:** a class with `@Showcase` and `@Injectable` or `@Service` is a service, one with
+  `@Showcase` and `@Pipe` a pipe, and `jsDocPlugin()` draws the page of both (skill showcase, since 22.7.0).
+  **Services and pipes need the plugin.** Without it, or without any other plugin whose view panel has
+  `appliesTo: ['service']` (`['pipe']` for pipes, decided apart), the build leaves all services (pipes) out of the
+  manifest and the sidebar and logs once, through the normal log and not as a warning:
+  `ng-prism: <n> service(s) with @Showcase found, but no plugin shows services; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`
+  and, for pipes:
+  `ng-prism: <n> pipe(s) with @Showcase found, but no plugin shows pipes; add jsDocPlugin() from @ng-prism/plugin-jsdoc 22.7.0 or newer to ng-prism.config.ts to list them.`
+  When a user asks why a service or pipe is missing, look for that line first, then add the plugin
+  (`ng add @ng-prism/plugin-jsdoc`). If `jsDocPlugin()` is already there, update `@ng-prism/plugin-jsdoc` to 22.7.0 or
+  newer: an older one has no page for them. `strictShowcase` doesn't fail over either hint.
 - **Figma:** the embed shows when the component sets `meta: { figma: '<Figma URL with node-id>' }` as a string on
   `@Showcase` itself. The Design Diff panel appears once a variant sets `meta.figma`: a URL with `node-id`, or
   `{ url, nodeId }`; a variant without its own value falls back to the component's `meta.figma`. It calls the Figma
@@ -119,10 +133,17 @@ itself. Keep the core and every plugin on the same version: plugins require `@ng
 
 Theme values are CSS custom properties, set inline on `<html>`. The order: built-in tokens, the built-in dark or light
 theme, `darkTheme` / `lightTheme`, then `theme`, which wins in both modes. Dark is the default; the user's choice is
-stored in localStorage (`ng-prism-theme`). The main tokens: `--prism-primary`, `--prism-primary-from`,
-`--prism-primary-to`, `--prism-accent`, `--prism-bg`, `--prism-bg-surface`, `--prism-bg-elevated`, `--prism-text`,
-`--prism-text-muted`, `--prism-border`, `--prism-success`, `--prism-warn`, `--prism-danger`, `--prism-font-sans`,
-`--prism-font-mono`.
+stored in localStorage (`ng-prism-theme`). The main tokens: `--prism-primary` (text and indicators; overriding it
+alone also recolours the fills `--prism-primary-fill`, `-fill-hover` and `--prism-toggle-on`), `--prism-on-primary`
+(text on a fill; set it with a light primary of your own), `--prism-accent`, `--prism-bg`, `--prism-bg-surface`,
+`--prism-bg-elevated`, `--prism-text`, `--prism-text-muted`, `--prism-border`, `--prism-success`, `--prism-warn`,
+`--prism-danger`, `--prism-font-sans`, `--prism-font-mono`. The header is a navy brand band in both modes and renders
+with the dark set, `darkTheme` included; a custom `title` replaces the wordmark and is shown in neutral text.
+`--prism-brand-motion` (default `24s`) is the cycle of the header's slow brand light (glow swell, then a light along
+the top edge); `'none'` in `theme` holds it still, and `prefers-reduced-motion` always does.
+Deprecated since 22.7 (removed in 23.0): `--prism-primary-from`, `--prism-primary-to`, `--prism-spectrum` and
+`--prism-mark-nominal|attention|critical` (aliases of success, warn and danger; an override still carries over, with a
+console warning). Don't suggest them in new config.
 
 ## Publishing the library
 
@@ -139,8 +160,17 @@ In Nx, a target with `"command": "npx ng-prism-strip dist/<path>"` and `"depends
 
 ## Upgrading
 
-- ng-prism's major version follows Angular's. A breaking change within one Angular major ships as a minor release, with
-  a deprecation first and the removal in the next major. 22.x supports Angular 20 to 22.
+- ng-prism's major version follows Angular's. A breaking change within one Angular major ships as a minor release,
+  with a deprecation first and the removal in the next major where it can be deprecated. One that cannot, such as a
+  union type that gains a member, ships in the minor release itself and is listed in `guide/migration-v22.md`. 22.x
+  supports Angular 20 to 22.
+- 22.7.0 is such a release. A class with `@Showcase` and `@Injectable`, `@Service` or `@Pipe` but no component-only
+  field leaves `components`, `__PRISM_MANIFEST__` and `onComponentScanned`; it is listed as a service or a pipe with
+  `jsDocPlugin()` 22.7.0 or newer. Code that narrows a `NavigationItem` by `kind` needs a `'service'` and a `'pipe'`
+  branch. 22.7.0 also brings a new palette and look: `--prism-primary` is the text role and fills read
+  `--prism-primary-fill`, the `--prism-mark-*`, `--prism-spectrum` and `--prism-primary-from/-to` tokens are deprecated
+  (the build names any override of them), and `PanelBadge.variant` gives way to `kind`. See
+  `guide/migration-v22.md#breaking-changes-and-deprecations-in-2270`.
 - Update the core and all plugins in one call: `ng update @ng-prism/core @ng-prism/plugin-jsdoc …`.
 - The migrations to v22 (manifest moved to `ng-prism-cache/`, `.ng-prism/` renamed) read `angular.json` only; in an Nx
   workspace apply them by hand following `guide/migration-v22.md`. They need Angular CLI 22 and a Node version it

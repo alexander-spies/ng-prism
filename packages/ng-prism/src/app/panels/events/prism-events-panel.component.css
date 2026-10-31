@@ -16,19 +16,23 @@
     gap: 12px;
     align-items: center;
     min-height: 32px;
-    padding: 6px 20px;
+    padding: 6px 18px;
     font-family: var(--font-mono);
     font-size: 12px;
     border-bottom: 1px solid var(--prism-border);
 }
 
 .ev:hover {
-    background: color-mix(in srgb, var(--prism-primary) 3%, transparent);
+    background: var(--prism-input-bg);
+}
+
+.ev-none {
+    color: var(--prism-text-muted);
 }
 
 .ev-time {
     font-size: 11px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }
 
 .ev-idx {
@@ -52,5 +56,5 @@
     padding: 16px 20px;
     margin: 0;
     font-size: 13px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
 }

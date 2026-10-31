@@ -57,18 +57,19 @@ running an update.
 
 ## What it covers
 
-| Skill                   | For                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `ng-prism:showcase`     | Writing or changing `@Showcase` configs, fixing `⚠ ng-prism:` build warnings, checking variants in the running styleguide |
-| `ng-prism:setup`        | `ng add`, `ng-prism.config.ts`, the official plugins, theming, publishing a library without its showcases, upgrades       |
-| `ng-prism:write-plugin` | Your own plugin: build-time hooks, panels, controls, header widgets, sidebar decorations, packaging                       |
+| Skill                   | For                                                                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ng-prism:showcase`     | Writing or changing `@Showcase` configs, also for services, pipes and compositions (`template`, `host: { template }`, `imports`), fixing `⚠ ng-prism:` build warnings, checking variants in the running styleguide |
+| `ng-prism:setup`        | `ng add`, `ng-prism.config.ts`, the official plugins, theming, publishing a library without its showcases, upgrades                                                                                                |
+| `ng-prism:write-plugin` | Your own plugin: build-time hooks, panels, controls, header widgets, sidebar decorations, packaging                                                                                                                |
 
 Claude Code loads a skill when your request matches it. You can also call one directly, e.g. `/ng-prism:showcase`.
 
 ## Checking in the browser
 
 The showcase skill starts the styleguide (`ng run <lib>:prism`) and takes a screenshot of each variant it touched, using
-the Playwright of your project. If Playwright is missing, the agent asks before it installs it
+the Playwright of your project. For a [service](guide/showcasing-services.md) or a [pipe](guide/showcasing-pipes.md) it captures the API page instead,
+to check that its JSDoc reads cleanly there. If Playwright is missing, the agent asks before it installs it
 (`npm i -D playwright && npx playwright install chromium`). An agent with a browser tool of its own uses that instead;
 otherwise it gives you the URL to check. Either way it drives the styleguide through the
 [External Tooling API](guide/external-tooling.md).

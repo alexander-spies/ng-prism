@@ -1,0 +1,162 @@
+/* The panel stylesheet comes first in styleUrls: it makes :host the scroll
+   container (display: block, height: 100%, overflow: auto). This file adds
+   the layout, the blocks of a component's parts and the "On this page" list;
+   the sections inside bring their own stylesheet. */
+:host {
+    container-type: inline-size;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :host {
+        scroll-behavior: smooth;
+    }
+}
+
+.prism-jsdoc-api-page {
+    display: grid;
+    grid-template-columns: minmax(0, 880px) 200px;
+    gap: 32px;
+    align-items: start;
+    padding: 20px 24px 60px;
+    font-family: var(--font-sans);
+    font-size: var(--fs-md);
+    color: var(--prism-text);
+}
+
+/* ──── Parts ──── */
+
+/* After the component's own sections, a rule that names what follows. */
+.prism-jsdoc-api-page__parts-title {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 44px 0 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--prism-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.prism-jsdoc-api-page__parts-title::after {
+    flex: 1;
+    height: 1px;
+    content: '';
+    background: var(--prism-border);
+}
+
+/* Padded and pulled out by the same width, so its content lines up with the
+   page's while the highlight has room around it. */
+.prism-jsdoc-api-page__part {
+    padding: 12px 13px 4px;
+    margin: 16px -14px 0;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition:
+        border-color 0.3s var(--ease-default),
+        box-shadow 0.3s var(--ease-default);
+}
+
+/* The look of a highlighted type card. */
+.prism-jsdoc-api-page__part--highlighted {
+    border-color: color-mix(in srgb, var(--prism-primary) 60%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--prism-primary) 22%, transparent);
+}
+
+.prism-jsdoc-api-page__part-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: baseline;
+    margin-bottom: 12px;
+}
+
+.prism-jsdoc-api-page__part-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--prism-text);
+}
+
+.prism-jsdoc-api-page__part-selector {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--prism-code-tag);
+}
+
+/* ──── On this page ──── */
+
+.prism-jsdoc-api-page__toc {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 120px);
+    padding-left: 14px;
+    overflow-y: auto;
+    font-size: 12px;
+    border-left: 1px solid var(--prism-border);
+}
+
+.prism-jsdoc-api-page__toc-title {
+    margin-bottom: 8px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--prism-text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* A group after the page's own entries: the parts. */
+.prism-jsdoc-api-page__toc-link + .prism-jsdoc-api-page__toc-title {
+    margin-top: 16px;
+}
+
+.prism-jsdoc-api-page__toc-link {
+    display: block;
+    width: 100%;
+    padding: 3px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font: inherit;
+    color: var(--prism-text-muted);
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    background: none;
+    border: 0;
+}
+
+.prism-jsdoc-api-page__toc-link:hover {
+    color: var(--prism-text);
+}
+
+/* The entry of a part heads the entries of its sections. Before --active, which wins. */
+.prism-jsdoc-api-page__toc-link--part {
+    font-weight: 500;
+    color: var(--prism-text);
+}
+
+.prism-jsdoc-api-page__toc-link + .prism-jsdoc-api-page__toc-link--part {
+    margin-top: 6px;
+}
+
+.prism-jsdoc-api-page__toc-link--active {
+    font-weight: 500;
+    color: var(--prism-primary);
+}
+
+.prism-jsdoc-api-page__toc-link--sub {
+    padding-left: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+/* Too narrow for a second column: the list goes, the content keeps the width. */
+@container (max-width: 760px) {
+    .prism-jsdoc-api-page {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .prism-jsdoc-api-page__toc {
+        display: none;
+    }
+}

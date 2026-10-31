@@ -1,3 +1,7 @@
+import type { StatusTone } from '../../plugin/status.js';
+import { deriveA11ySummary } from '../panels/a11y/a11y-summary.js';
+import type { A11yScoreResult, A11yThresholds } from '../panels/a11y/a11y.types.js';
+
 /**
  * How a metric compares to its threshold.
  *
@@ -13,19 +17,83 @@ export interface HeadMetric {
     id: string;
     label: string;
     value: string;
+    /** What the value is graded against, for the readout's Threshold column. */
+    threshold: string;
     variant: MetricVariant;
 }
 
-/** What the gauge chip renders, derived from the full metric list. */
-export interface GaugeSummary {
-    /** Metrics that actually carry data. `none` does not count. */
+/** What the head knows about the component it introduces. */
+export interface HeadMetricInput {
+    /** The component's `showcaseConfig.meta`, where plugins leave their verdicts. */
+    meta: Record<string, unknown> | null;
+    /** The live audit of the current variant, or `null` before it ran. */
+    a11y: A11yScoreResult | null;
+    a11yThresholds: A11yThresholds;
+}
+
+interface CoverageMeta {
+    found?: boolean;
+    score?: number;
+    summary?: { variant?: string };
+    thresholds?: { lines: number; branches: number; functions: number; statements: number };
+}
+
+interface VrtMeta {
+    found?: boolean;
+    summary?: { value: string; variant: string };
+}
+
+const isVerdict = (v: unknown): v is 'ok' | 'warn' | 'danger' => v === 'ok' || v === 'warn' || v === 'danger';
+
+/**
+ * The head's metrics, in source order: coverage, the a11y score, the visual
+ * regression headline.
+ *
+ * It reads verdicts rather than computing them. Coverage and visual regression
+ * take what their plugins derived at build time from their own thresholds; the
+ * a11y score is the live audit graded by `deriveA11ySummary`, the rule the tab,
+ * the sidebar and the header use. A figure without a verdict stays `none`
+ * instead of being graded on a scale of the head's own.
+ */
+export function headMetrics(input: HeadMetricInput): HeadMetric[] {
+    const coverage = input.meta?.['coverage'] as CoverageMeta | undefined;
+    const vrt = input.meta?.['visualRegression'] as VrtMeta | undefined;
+    const t = coverage?.thresholds;
+    const coverageTarget = t ? Math.round((t.lines + t.branches + t.functions + t.statements) / 4) : null;
+    const hasCoverage = coverage?.found === true && typeof coverage.score === 'number';
+    const a11y = input.a11y;
+
+    return [
+        {
+            id: 'coverage',
+            label: 'Coverage',
+            value: hasCoverage ? `${coverage.score}%` : '—',
+            threshold: coverageTarget === null ? '—' : `≥ ${coverageTarget}%`,
+            variant: hasCoverage && isVerdict(coverage.summary?.variant) ? coverage.summary.variant : 'none'
+        },
+        {
+            id: 'a11y',
+            label: 'A11y score',
+            value: a11y === null ? '—' : String(a11y.score),
+            threshold: `≥ ${input.a11yThresholds.score}`,
+            variant: a11y === null ? 'none' : deriveA11ySummary(a11y, input.a11yThresholds).variant
+        },
+        {
+            id: 'vrt',
+            label: 'VRT diff',
+            value: vrt?.found && vrt.summary ? vrt.summary.value : '—',
+            threshold: 'no changes',
+            variant: vrt?.found && isVerdict(vrt.summary?.variant) ? vrt.summary.variant : 'none'
+        }
+    ];
+}
+
+/** What the gauge chip shows: one metric and the tone of the chip. */
+export interface GaugeChip {
+    metric: HeadMetric;
+    variant: StatusTone;
+    /** Metrics that carry a verdict, for the tooltip. */
     measured: number;
-    /** The worst-ranked deviating metric, or null when nothing deviates. */
-    worst: HeadMetric | null;
-    /** How many further metrics deviate besides `worst`. */
-    others: number;
-    /** Colour role for the chip. */
-    variant: 'ok' | 'warn' | 'danger';
 }
 
 const SEVERITY: Record<MetricVariant, number> = {
@@ -36,35 +104,35 @@ const SEVERITY: Record<MetricVariant, number> = {
 };
 
 /**
- * Folds the head's metrics into what one chip can say.
+ * The one metric the chip shows: the worst, ties resolved by source order so
+ * the chip does not flicker between two equally bad ones; when everything is
+ * fine, the first measured one in the ok tone. `null` when nothing is
+ * measured, and the head shows no gauge.
  *
- * A pure function instead of a computed inside the component:
- * components using signal inputs cannot be rendered through TestBed in this
- * repo's Jest setup, so any logic left in a template is logic that never gets
- * a test. This mirrors `decorateItem` in the sidebar, which resolves the same
- * kind of question for navigation marks.
- *
- * Ties resolve by source order so the chip shows a stable metric across
- * renders rather than flickering between two equally bad ones.
+ * A pure function instead of a computed inside the component: components using
+ * signal inputs cannot be rendered through TestBed in this repo's Jest setup.
  */
-export function summarizeMetrics(metrics: readonly HeadMetric[]): GaugeSummary {
-    let measured = 0;
-    let worst: HeadMetric | null = null;
-    let deviating = 0;
+export function gaugeChip(metrics: readonly HeadMetric[]): GaugeChip | null {
+    const measured = metrics.filter((m) => m.variant !== 'none');
 
-    for (const m of metrics) {
-        if (m.variant !== 'none') measured++;
-        if (SEVERITY[m.variant] === 0) continue;
-        deviating++;
-        if (worst === null || SEVERITY[m.variant] > SEVERITY[worst.variant]) {
-            worst = m;
-        }
+    if (measured.length === 0) return null;
+
+    let worst = measured[0];
+
+    for (const m of measured) {
+        if (SEVERITY[m.variant] > SEVERITY[worst.variant]) worst = m;
     }
 
-    return {
-        measured,
-        worst,
-        others: deviating > 0 ? deviating - 1 : 0,
-        variant: worst === null ? 'ok' : (worst.variant as 'warn' | 'danger')
-    };
+    return { metric: worst, variant: worst.variant as StatusTone, measured: measured.length };
+}
+
+/**
+ * The tone of the dot on ⓘ in the compact head, where the gauge chip has moved
+ * into the ⓘ card: the gauge's tone when it warns or alarms, `null` otherwise,
+ * so a dot always means something needs a look.
+ */
+export function infoDotTone(metrics: readonly HeadMetric[]): 'warn' | 'danger' | null {
+    const variant = gaugeChip(metrics)?.variant;
+
+    return variant === 'warn' || variant === 'danger' ? variant : null;
 }

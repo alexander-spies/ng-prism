@@ -6,6 +6,8 @@ Guides and rulers tell you where things sit on the canvas; the measuring tool an
 
 The measuring tool is a toggle button on the floating canvas rail, next to guides, rulers and the viewport-width constraint. Switching it on is a working-environment preference, not a statement about the component you happen to be looking at: like zoom, guides and rulers, it is written to `localStorage` and comes back exactly as you left it the next time you open the showcase, in any component, in any variant.
 
+On a phone the rail has no measuring button: since 22.7.0 the [phone layout](guide/first-showcase.md#on-a-phone) leaves the tool out, along with guides, rulers and the viewport width, and the canvas shows none of them. They come back as you left them once the window is wide again.
+
 ## Measuring a distance
 
 Press and drag from one point to another; releasing the pointer finishes the measurement. Press and _release_ without moving does not: a click is not a drag, and a zero-length measurement is not the statement "0 px" — it is no statement at all, so it is discarded rather than dropped into the pin row for you to clear by hand. Only the primary button starts a measurement; a right-click is ignored outright, because the context menu would take the pointer away and leave a half-finished measurement following the cursor with no button held. While dragging, each endpoint latches onto the nearest border, padding or content edge of whatever element sits under the pointer, as long as one is within 8 screen pixels — screen pixels, not CSS pixels, because the precision of a hand should feel the same whether the canvas is zoomed to 50% or 200%.

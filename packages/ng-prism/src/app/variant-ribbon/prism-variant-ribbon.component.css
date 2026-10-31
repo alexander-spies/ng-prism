@@ -13,70 +13,52 @@
 }
 
 .variant-ribbon-tabs {
-    display: flex;
     flex: 1;
-    gap: 2px;
-    align-items: center;
+    align-self: stretch;
     min-width: 0;
-    height: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
+    margin-left: -8px;
 }
 
-.variant-ribbon-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.v-tab {
-    position: relative;
-    display: flex;
-    gap: 8px;
+/* The active state: a pill in the tint of a pressed chip in the tools menu, so
+   it reads as set rather than as one more tab. The whole pill clears it. */
+.variant-ribbon-state {
+    display: inline-flex;
+    flex: none;
+    gap: 4px;
     align-items: center;
-    height: 100%;
-    padding: 0 14px;
+    max-width: 220px;
+    height: 22px;
+    padding: 0 6px 0 10px;
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    color: var(--prism-text-muted);
+    line-height: 1;
+    color: var(--prism-primary);
     white-space: nowrap;
     cursor: pointer;
-    background: none;
-    border: none;
-    transition: color var(--dur-fast);
+    background: var(--prism-primary-bg);
+    border: 1px solid color-mix(in srgb, var(--prism-primary) 55%, transparent);
+    border-radius: 999px;
+    transition: background var(--dur-fast) var(--ease-default);
 }
 
-/* Colour as position, not assignment: each tab shows the slice of one
-   broken spectrum that corresponds to where it sits in the sequence. Nine
-   arbitrary hues used to say nothing at all; this says "you are here". */
-.v-tab::after {
-    position: absolute;
-    right: var(--sp-3);
-    bottom: 0;
-    left: var(--sp-3);
-    height: 2px;
-    content: '';
-    background: var(--prism-spectrum);
-    background-position: calc(var(--i) / (var(--n) - 1) * 100%) 0;
-    background-size: calc(var(--n) * 100%) 100%;
-    border-radius: 2px;
-    opacity: 0;
-    transition: opacity var(--dur-fast) var(--ease-default);
+.variant-ribbon-tabs + .variant-ribbon-state {
+    margin-left: 12px;
 }
 
-.v-tab:hover {
-    color: var(--prism-text-2);
+.variant-ribbon-state:hover {
+    background: color-mix(in srgb, var(--prism-primary) 22%, transparent);
 }
 
-.v-tab--active {
-    color: var(--prism-text);
+/* Selected but forcing nothing: the dashed edge of such a chip in the tools menu. */
+.variant-ribbon-state.is-na {
+    border-style: dashed;
 }
 
-.v-tab--active::after {
-    opacity: 1;
-}
-
-.v-tab:hover::after {
-    opacity: 0.4;
+.variant-ribbon-state-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .variant-ribbon-right {
@@ -88,29 +70,6 @@
     padding-left: 12px;
     margin-left: 12px;
     border-left: 1px solid var(--prism-border);
-}
-
-.tool-btn {
-    display: grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: none;
-    border-radius: var(--radius-sm);
-    transition: all var(--dur-fast);
-}
-
-.tool-btn:hover:not(:disabled) {
-    color: var(--prism-text);
-    background: color-mix(in srgb, var(--prism-primary) 8%, transparent);
-}
-
-.tool-btn:disabled {
-    cursor: default;
-    opacity: 0.3;
 }
 
 :focus-visible {

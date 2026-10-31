@@ -1,69 +1,37 @@
 :host {
+    --prism-score-tone: var(--prism-success);
+
     display: inline-flex;
+    flex: none;
+    width: 40px;
+    height: 40px;
 }
 
-.score-ring {
-    position: relative;
-    width: 128px;
-    height: 128px;
+:host([data-tone='warn']) {
+    --prism-score-tone: var(--prism-warn);
 }
 
-:host-context(.compact) .score-ring,
-:host([style*='width:18px']) .score-ring {
-    width: 100%;
-    height: 100%;
+:host([data-tone='danger']) {
+    --prism-score-tone: var(--prism-danger);
 }
 
-.score-ring svg {
+svg {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
 }
 
-.score-ring circle {
+circle {
     fill: none;
-    stroke-width: 10;
+    stroke-width: 14;
 }
 
 .track {
     stroke: var(--prism-input-bg);
 }
 
-.gradient-start {
-    stop-color: var(--prism-primary);
-}
-
-.gradient-end {
-    stop-color: var(--prism-accent);
-}
-
 .fill {
+    stroke: var(--prism-score-tone);
     stroke-linecap: round;
     transition: stroke-dashoffset 0.5s ease;
-}
-
-.score-val {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    align-items: center;
-    justify-content: center;
-}
-
-.score-num {
-    font-family: var(--font-mono);
-    font-size: 30px;
-    font-weight: 700;
-    color: transparent;
-    letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--prism-primary), var(--prism-accent));
-    background-clip: text;
-}
-
-.score-max {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--prism-text-ghost);
 }

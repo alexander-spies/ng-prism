@@ -5,7 +5,17 @@
                 <span class="ev-time">{{ formatTime(entry.timestamp) }}</span>
                 <span class="ev-idx">#{{ padIdx(eventLogService.events().length - i) }}</span>
                 <span class="ev-name">{{ entry.name }}</span>
-                <span class="ev-args"><prism-json-node [value]="entry.value" /></span>
+                <span class="ev-args">
+                    @if (isEmptyPayload(entry.value)) {
+                        <span
+                            class="ev-none"
+                            title="Emitted without a value"
+                            >—</span
+                        >
+                    } @else {
+                        <prism-json-node [value]="entry.value" />
+                    }
+                </span>
             </div>
         } @empty {
             <p class="ev-empty">No events recorded</p>

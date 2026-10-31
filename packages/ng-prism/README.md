@@ -13,6 +13,9 @@
 - **Zero-config discovery**: TypeScript Compiler API scans your library at build time
 - **Signal-native**: works with `input()` / `output()` signals
 - **Directive support**: showcase directives with configurable host elements
+- **Compositions**: show a component with the parts it works with, such as a form field with its input, as a compiled Angular template with `template`, `host: { template }` and `imports`
+- **Services and pipes**: `@Showcase` on a service or pipe gives it an API page, no canvas needed
+- **Parts**: a component that only works inside another, such as an option in a select, names its parent with `partOf` and shows on the parent's page
 - **Plugin architecture**: JSDoc, A11y, Figma, Performance, Box Model, Coverage
 - **Live Controls**: auto-generated input controls with type-aware editors
 - **Code Snippets**: live-updating Angular template snippets per variant
@@ -95,7 +98,7 @@ export default defineConfig({
 
 ## Directives
 
-Directives need a host element. Use `host` to wrap them:
+A directive renders on the element its selector names. To put it on another element or component, or inside other markup, such as an input in its form field, configure `host`:
 
 ```typescript
 @Showcase({
@@ -135,14 +138,14 @@ Link to a `@Showcase`-decorated component for combined API docs + custom renderi
 
 ## Official Plugins
 
-| Plugin    | Package                              | Description                                                   |
-| --------- | ------------------------------------ | ------------------------------------------------------------- |
-| JSDoc     | `@ng-prism/plugin-jsdoc`             | API documentation from JSDoc comments                         |
-| Figma     | `@ng-prism/plugin-figma`             | Figma design embed + visual diff                              |
-| Box Model | `@ng-prism/plugin-box-model`         | CSS box model inspector                                       |
-| Perf      | `@ng-prism/plugin-perf`              | Render performance profiling                                  |
-| Coverage  | `@ng-prism/plugin-coverage`          | Per-component test coverage from Istanbul/v8                  |
-| VRT       | `@ng-prism/plugin-visual-regression` | Per-variant visual regression report from a screenshot runner |
+| Plugin    | Package                              | Description                                                                 |
+| --------- | ------------------------------------ | --------------------------------------------------------------------------- |
+| JSDoc     | `@ng-prism/plugin-jsdoc`             | API pages for components, directives, services and pipes, with linked types |
+| Figma     | `@ng-prism/plugin-figma`             | Figma design embed + visual diff                                            |
+| Box Model | `@ng-prism/plugin-box-model`         | CSS box model inspector                                                     |
+| Perf      | `@ng-prism/plugin-perf`              | Render performance profiling                                                |
+| Coverage  | `@ng-prism/plugin-coverage`          | Per-component test coverage from Istanbul/v8                                |
+| VRT       | `@ng-prism/plugin-visual-regression` | Per-variant visual regression report from a screenshot runner               |
 
 > **Note:** Accessibility auditing (axe-core) is built into ng-prism core, so no plugin is needed.
 

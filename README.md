@@ -15,11 +15,7 @@ You add one decorator to your component. ng-prism picks it up at build time and 
 
 [Live demo](https://ng-prism.github.io/ng-prism/demo/?component=ButtonComponent) · [Documentation](https://ng-prism.github.io/ng-prism/)
 
-<!-- TODO(maintainer): record a 10 to 15 s GIF: pick a component in the sidebar,
-     switch the variant, change a control, watch the code snippet update.
-     Save it as docs/demo.gif and uncomment the line below.
-<p align="center"><img src="docs/demo.gif" alt="ng-prism in action" width="800" /></p>
--->
+<p align="center"><a href="https://ng-prism.github.io/ng-prism/"><b>Watch the one-minute tour</b></a></p>
 
 ## Same button, two approaches
 
@@ -116,16 +112,17 @@ The details, including Nx targets and how to use the transformer programmaticall
 
 Storybook is a great tool. ng-prism deliberately covers less. It only supports Angular and tries to work the way Angular does.
 
-|                     | Storybook                                 | ng-prism                                                            |
-| ------------------- | ----------------------------------------- | ------------------------------------------------------------------- |
-| Frameworks          | React, Vue, Angular and more              | Angular only                                                        |
-| Where variants live | Separate `*.stories.ts`                   | On the component                                                    |
-| Controls            | Configured via `argTypes` / Compodoc      | Inferred from `input()` signals                                     |
-| Visual regression   | Chromatic (paid SaaS) or community addons | Official plugin, works with your own screenshot runner, no SaaS     |
-| Accessibility       | `@storybook/addon-a11y`                   | Built in (axe-core)                                                 |
-| Design handoff      | Design addons                             | Official Figma plugin, with an opt-in pixel diff against the design |
-| Interaction tests   | Yes (play functions)                      | No                                                                  |
-| Addon ecosystem     | Huge                                      | Small (official plugins)                                            |
+|                     | Storybook                                                             | ng-prism                                                                                                |
+| ------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Frameworks          | React, Vue, Angular and more                                          | Angular only                                                                                            |
+| Where variants live | Separate `*.stories.ts`                                               | On the component                                                                                        |
+| Controls            | Configured via `argTypes` / Compodoc                                  | Inferred from `input()` signals                                                                         |
+| Services and pipes  | Hand-written MDX page per service or pipe, members table via Compodoc | `@Showcase` on the service or pipe: API page from its JSDoc, with usage snippet, setup and linked types |
+| Visual regression   | Chromatic (paid SaaS) or community addons                             | Official plugin, works with your own screenshot runner, no SaaS                                         |
+| Accessibility       | `@storybook/addon-a11y`                                               | Built in (axe-core)                                                                                     |
+| Design handoff      | Design addons                                                         | Official Figma plugin, with an opt-in pixel diff against the design                                     |
+| Interaction tests   | Yes (play functions)                                                  | No                                                                                                      |
+| Addon ecosystem     | Huge                                                                  | Small (official plugins)                                                                                |
 
 Storybook is the better choice if you need several frameworks, its addons or interaction tests right now.
 ng-prism makes sense if you use modern, signal-based Angular and want your showcase to stay in sync with your components without maintaining story files.
@@ -136,7 +133,7 @@ ng-prism scans your library at build time with the TypeScript Compiler API, so t
 
 In the UI you get generated controls with an editor for each input type, plus an Angular template snippet per variant that updates while you change the controls. Every variant gets an axe-core audit, and that's part of the core, not a plugin. The visual regression plugin shows a diff report for each variant next to the live component. Your own screenshot runner writes a plain JSON report for it, and the example in the docs uses Playwright. A variant can also force `:hover`, `:active` or `:focus-visible` on the elements you name, and `states` declare such conditions once for every variant: the Overview lines the variants up against them in a matrix, and a state that cannot apply to a variant, like a focus ring on a disabled button, is left out instead of faked. Your component's own CSS draws the state, so focus rings show up in the styleguide and get a baseline like everything else.
 
-You can also showcase directives on a configurable host element and write your own demo pages for complex components. The URL always reflects the current component, variant, state and view, so you can share links to them. The UI is themed through CSS custom properties, and you can replace whole sections of it.
+You can also showcase directives on a configurable host element and write your own demo pages for complex components. A variant can show a component with the parts it works with, such as a form field with its input: `template`, `host: { template }` and `imports` compile that markup as an Angular template, and the Overview, states and Controls stay as they are. A component that only works inside another, such as an option in a select, names its parent with `partOf` and shows on the parent's page instead of a page of its own. The URL always reflects the current component, variant, state and view, so you can share links to them. The UI is themed through CSS custom properties, and you can replace whole sections of it.
 
 There are official plugins for JSDoc, Figma, performance, box model, coverage and visual regression.
 
@@ -177,7 +174,7 @@ export default defineConfig({
 
 ## Directives
 
-A directive needs a host element. You configure it with `host`:
+A directive renders on the element its selector names. To put it on another element or component, or inside other markup, such as an input in its form field, configure `host`:
 
 ```typescript
 @Showcase({
@@ -217,14 +214,14 @@ If you link the page to a component with `@Showcase`, you get the API docs and y
 
 ## Official Plugins
 
-| Plugin            | Package                              | What it does                                                                                |
-| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Visual Regression | `@ng-prism/plugin-visual-regression` | Diff report per variant, next to the live component. Works with your own screenshot runner. |
-| JSDoc             | `@ng-prism/plugin-jsdoc`             | API tables generated from your JSDoc comments                                               |
-| Figma             | `@ng-prism/plugin-figma`             | Shows the Figma frame next to the component, with an opt-in pixel diff against the design   |
-| Coverage          | `@ng-prism/plugin-coverage`          | Test coverage per component from Istanbul/v8                                                |
-| Perf              | `@ng-prism/plugin-perf`              | Measures render time per variant                                                            |
-| Box Model         | `@ng-prism/plugin-box-model`         | Live CSS box model inspector                                                                |
+| Plugin            | Package                              | What it does                                                                                        |
+| ----------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Visual Regression | `@ng-prism/plugin-visual-regression` | Diff report per variant, next to the live component. Works with your own screenshot runner.         |
+| JSDoc             | `@ng-prism/plugin-jsdoc`             | API pages from your code and JSDoc, with usage snippet and linked types, for services and pipes too |
+| Figma             | `@ng-prism/plugin-figma`             | Shows the Figma frame next to the component, with an opt-in pixel diff against the design           |
+| Coverage          | `@ng-prism/plugin-coverage`          | Test coverage per component from Istanbul/v8                                                        |
+| Perf              | `@ng-prism/plugin-perf`              | Measures render time per variant                                                                    |
+| Box Model         | `@ng-prism/plugin-box-model`         | Live CSS box model inspector                                                                        |
 
 Accessibility audits with axe-core are part of the core, so you don't need a plugin for them.
 

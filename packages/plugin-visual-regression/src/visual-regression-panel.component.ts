@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { PrismBadgeComponent, PrismListRowComponent } from '@ng-prism/core';
 import type { VrtComponentMeta, VrtVariantResult } from './visual-regression.types.js';
 import { VrtCompareComponent } from './vrt-compare.component.js';
-import { defaultExpandedGroups, formatPercent, groupRows, rowKey, rowLabel, STATUS_LABEL, STATUS_TONE, summarize, type VrtGroupKey } from './vrt-summarize.js';
-import { VrtSummaryComponent } from './vrt-summary.component.js';
+import { defaultExpandedGroups, formatPercent, groupRows, rowKey, rowLabel, statusBadge, summarize, summaryTitle, type VrtGroupKey } from './vrt-summarize.js';
 
 @Component({
     selector: 'prism-visual-regression-panel',
     standalone: true,
-    imports: [VrtCompareComponent, VrtSummaryComponent],
+    imports: [VrtCompareComponent, PrismListRowComponent, PrismBadgeComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './visual-regression-panel.component.html',
     styleUrl: './visual-regression-panel.component.css'
@@ -31,14 +31,16 @@ export class VisualRegressionPanelComponent {
 
     protected readonly summary = computed(() => summarize(this.variants()));
 
+    /** The status breakdown, as the list headings' tooltip. */
+    protected readonly breakdown = computed(() => summaryTitle(this.summary()));
+
     protected readonly rows = computed(() =>
         this.variants().map((variant) => ({
             key: rowKey(variant),
             variant,
             status: variant.status,
             label: rowLabel(variant),
-            statusLabel: STATUS_LABEL[variant.status] ?? variant.status,
-            tone: STATUS_TONE[variant.status] ?? 'muted',
+            badge: statusBadge(variant.status),
             diffLabel: formatDiff(variant)
         }))
     );

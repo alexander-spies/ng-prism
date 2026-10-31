@@ -16,6 +16,7 @@ export interface MatrixColumn {
 export interface MatrixRow {
     variant: number;
     title: string;
+    /** `bg: dark` or `states: false`: the row header's tooltip. */
     note: string | null;
     optedOut: boolean;
 }
@@ -82,9 +83,15 @@ export function pseudoSignature(pseudo: ForcedPseudoStates): string {
     return Array.from(groups, ([label, states]) => `${states.join(' + ')} → ${label}`).join('; ');
 }
 
-/** `fits 2 of 5`: the variants a state fits, of those it is combined with. */
-export function fitLabel(fits: number, eligible: number): string {
-    return `fits ${fits} of ${eligible}`;
+/** A column's fit count: short in the header, spelled out in its tooltip. */
+export interface FitLabel {
+    text: string;
+    title: string;
+}
+
+/** `2/5`: the variants a state fits, of those it is combined with. */
+export function fitLabel(fits: number, total: number): FitLabel {
+    return { text: `${fits}/${total}`, title: `State applies to ${fits} of ${total} ${total === 1 ? 'variant' : 'variants'}` };
 }
 
 /** Key of one cell's result in the map the matrix collects from the cells. */
@@ -135,8 +142,8 @@ export function statesFittingNowhere(results: ReadonlyMap<string, StateFit>, mat
 /** One column header of the matrix. */
 export interface ColumnHeader {
     column: MatrixColumn;
-    /** `fits x of y`, `null` for the Default column. */
-    fit: string | null;
+    /** `x/y` and its tooltip, `null` for the Default column. */
+    fit: FitLabel | null;
     /** The state is one of {@link statesFittingNowhere}. */
     fitsNowhere: boolean;
 }

@@ -5,6 +5,7 @@
         <button
             class="ctl-pill"
             [class.ctl-pill--active]="option === value()"
+            [attr.aria-pressed]="option === value()"
             (click)="valueChange.emit(option)">
             {{ option }}
         </button>

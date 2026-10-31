@@ -1,4 +1,5 @@
-import type { DiscoveryComponent, DiscoveryManifest, DiscoveryState, DiscoveryVariant, RuntimeManifest } from '../plugin/plugin.types.js';
+import type { DiscoveryComponent, DiscoveryManifest, DiscoveryPart, DiscoveryState, DiscoveryVariant, RuntimeManifest } from '../plugin/plugin.types.js';
+import { publicOutputNames } from '../shared/model-outputs.js';
 import type { ForcedPseudoStates } from '../shared/pseudo-state.type.js';
 import { resolveVariantBg } from '../shared/variant-bg.js';
 import { forcesAnyState } from './pseudo/pseudo-targets.js';
@@ -71,6 +72,9 @@ export function serializableMeta(meta: Record<string, unknown> | undefined): Rec
  * providers, no scanned input/output metadata. It carries what an external tool
  * needs to enumerate and address variants and component-level states, plus the
  * `@Showcase` metadata that lets a tool decide how to treat one.
+ *
+ * A part (`@Showcase({ partOf })`) is listed under its parent as `parts`, with the
+ * public names of its inputs and outputs, and never in `components`.
  */
 export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryManifest {
     return {
@@ -118,8 +122,17 @@ export function buildDiscoveryManifest(manifest: RuntimeManifest): DiscoveryMani
                 variants
             };
 
+            const parts: DiscoveryPart[] = (component.parts ?? []).map(({ meta: part }) => ({
+                className: part.className,
+                title: part.showcaseConfig.title,
+                selector: part.componentMeta.selector,
+                inputs: part.inputs.map((input) => input.alias ?? input.name),
+                outputs: publicOutputNames(part)
+            }));
+
             if (states.length) discovered.states = states;
             if (meta) discovered.meta = meta;
+            if (parts.length) discovered.parts = parts;
             return discovered;
         }),
         pages: (manifest.pages ?? []).map((page) => ({ title: page.title }))

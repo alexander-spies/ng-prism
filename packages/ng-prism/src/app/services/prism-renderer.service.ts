@@ -1,5 +1,7 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import type { RuntimeComponent } from '../../plugin/plugin.types.js';
+import { COMPOSITION_SUBJECT_ATTR } from '../../shared/composition.js';
+import { activeCase } from '../renderer/composition.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
 
 export interface ComputedVariantState {
@@ -48,14 +50,34 @@ export function computeVariantState(
         ...filteredVariantInputs
     };
 
-    if (comp.meta.componentMeta.isDirective && variant?.content) {
-        values['__prismContent__'] = typeof variant.content === 'string' ? variant.content : '';
+    const hostContent = directiveHostContent(comp, index);
+
+    if (hostContent !== undefined) {
+        values['__prismContent__'] = hostContent;
     }
 
     return {
         values,
-        activeContent: comp.meta.componentMeta.isDirective ? undefined : variant?.content
+        activeContent: projectedContent(comp, index)
     };
+}
+
+/**
+ * The text `content` the `__PrismHost` of a directive renders through `__prismContent__`, `undefined` for a variant
+ * without content, a component, or a composed variant, whose template holds the content and whose wrapper does not
+ * declare `__prismContent__`.
+ */
+function directiveHostContent(comp: RuntimeComponent, index: number): string | undefined {
+    const content = comp.meta.showcaseConfig.variants?.[index]?.content;
+
+    if (!comp.meta.componentMeta.isDirective || !content || activeCase(comp, index)) return undefined;
+    return typeof content === 'string' ? content : '';
+}
+
+/** The `content` the renderer projects into a component, `undefined` for a directive and for a composed variant. */
+function projectedContent(comp: RuntimeComponent, index: number): string | Record<string, string> | undefined {
+    if (comp.meta.componentMeta.isDirective || activeCase(comp, index)) return undefined;
+    return comp.meta.showcaseConfig.variants?.[index]?.content;
 }
 
 function valuesEqual(a: unknown, b: unknown): boolean {
@@ -77,12 +99,26 @@ export class PrismRendererService {
     /**
      * Position in `ShowcaseConfig.states` of the component-level state on the
      * canvas, `null` for none. Part of the addressed cell next to the variant:
-     * it survives a variant change and goes with the component.
+     * {@link selectVariant} clears it, like the toggles and the background of
+     * the tools menu, and it goes with the component.
      */
     readonly activeStateIndex = signal<number | null>(null);
     readonly inputValues = signal<Record<string, unknown>>({});
     readonly activeContent = signal<string | Record<string, string> | undefined>(undefined);
     readonly renderedElement = signal<Element | null>(null);
+    /**
+     * The element of the showcased component or directive in what the canvas
+     * renders: in a composition the one the wrapper marks, else the rendered
+     * element itself. `null` while nothing is rendered. Since 22.7.0.
+     */
+    readonly subjectElement = computed<Element | null>(() => {
+        const root = this.renderedElement();
+
+        if (!root) return null;
+        const selector = `[${COMPOSITION_SUBJECT_ATTR}]`;
+
+        return root.matches(selector) ? root : (root.querySelector(selector) ?? root);
+    });
 
     readonly dirtyInputCount = computed<number>(() => {
         const comp = this.navigationService.activeComponent();
@@ -172,17 +208,25 @@ export class PrismRendererService {
         const variant = variants[preservedIndex];
         const variantInputs = variant?.inputs ?? {};
         const merged: Record<string, unknown> = { ...defaults, ...variantInputs, ...preserved };
+        const hostContent = directiveHostContent(comp, preservedIndex);
 
-        if (comp.meta.componentMeta.isDirective && variant?.content && preserved['__prismContent__'] === undefined) {
-            merged['__prismContent__'] = typeof variant.content === 'string' ? variant.content : '';
+        if (hostContent !== undefined && preserved['__prismContent__'] === undefined) {
+            merged['__prismContent__'] = hostContent;
         }
 
         this.inputValues.set(merged);
-        this.activeContent.set(comp.meta.componentMeta.isDirective ? undefined : variant?.content);
+        this.activeContent.set(projectedContent(comp, preservedIndex));
     }
 
+    /**
+     * Shows variant `index` with its own inputs and without a state: a state
+     * belongs to the cell it was picked for, so it never follows the user to
+     * another variant unnoticed. A caller that addresses a whole cell selects
+     * the state after the variant.
+     */
     selectVariant(index: number): void {
         this.activeVariantIndex.set(index);
+        this.activeStateIndex.set(null);
         const comp = this.navigationService.activeComponent();
 
         if (comp) this.applyVariant(index, comp);

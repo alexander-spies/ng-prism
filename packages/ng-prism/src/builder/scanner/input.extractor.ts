@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import type { InputMeta, OutputMeta } from '../../plugin/plugin.types.js';
-import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, getJsDocComment } from './ast-utils.js';
-import { getClassHierarchy } from './class-hierarchy.js';
+import { evaluateExpression, evaluateStatic, findDecorator, getDecoratorArgument, getJsDocComment, UNEVALUABLE } from './ast-utils.js';
+import { type ClassHierarchy, getClassHierarchy } from './class-hierarchy.js';
 
 /**
  * Extract all @Input(), input() and model() signal metadata from a class
@@ -35,10 +35,9 @@ export function extractInputs(classDecl: ts.ClassDeclaration, checker: ts.TypeCh
             const initializedBy = reinitialized.get(name);
 
             if (initializedBy) {
-                const defaultValue = readInitialValue(initializedBy, checker);
-
-                if (defaultValue === undefined) delete input.defaultValue;
-                else input.defaultValue = defaultValue;
+                delete input.defaultValue;
+                delete input.defaultUnreadable;
+                Object.assign(input, defaultFields(readInitialValue(initializedBy, checker)));
             }
 
             seen.add(name);
@@ -49,17 +48,67 @@ export function extractInputs(classDecl: ts.ClassDeclaration, checker: ts.TypeCh
     return inputs;
 }
 
+/**
+ * The declaration Angular takes an input from: the member of that name in the
+ * nearest class that defines metadata and declares it an input, the one
+ * {@link extractInputs} reads.
+ */
+export function findInputDeclaration(hierarchy: ClassHierarchy, name: string): { member: ts.PropertyDeclaration; owner: ts.ClassDeclaration } | undefined {
+    return findDeclaration(hierarchy, name, (member) => !isStatic(member) && (!!findDecorator(member, 'Input') || !!getInputSignalCall(member)));
+}
+
+/** The declaration Angular takes an output from, as {@link findInputDeclaration} for an input. */
+export function findOutputDeclaration(hierarchy: ClassHierarchy, name: string): { member: ts.PropertyDeclaration; owner: ts.ClassDeclaration } | undefined {
+    return findDeclaration(hierarchy, name, (member) => !!findDecorator(member, 'Output') || isOutputSignal(member));
+}
+
+/** Whether an input is a `model()` or `model.required()`, for which Angular adds a change output. */
+export function isModelInput(member: ts.PropertyDeclaration): boolean {
+    const call = getInputSignalCall(member);
+    const callee = call && (ts.isPropertyAccessExpression(call.expression) ? call.expression.expression : call.expression);
+
+    return !!callee && ts.isIdentifier(callee) && callee.text === 'model';
+}
+
+function findDeclaration(
+    hierarchy: ClassHierarchy,
+    name: string,
+    declares: (member: ts.PropertyDeclaration) => boolean
+): { member: ts.PropertyDeclaration; owner: ts.ClassDeclaration } | undefined {
+    for (const { classDecl: owner, definesMetadata } of hierarchy.classes) {
+        if (!definesMetadata) continue;
+
+        const member = owner.members.find(
+            (m): m is ts.PropertyDeclaration => ts.isPropertyDeclaration(m) && ts.isIdentifier(m.name) && m.name.text === name && declares(m)
+        );
+
+        if (member) return { member, owner };
+    }
+
+    return undefined;
+}
+
 function isStatic(member: ts.PropertyDeclaration): boolean {
     return !!ts.getModifiers(member)?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword);
 }
 
-/** What a field starts out with: its initializer, or for `input()` and `model()` the value passed to them. */
+/**
+ * What a field starts out with: its initializer, or for `input()` and `model()` the value passed to them. `undefined`
+ * when there is none, {@link UNEVALUABLE} when there is one the scan cannot read.
+ */
 function readInitialValue(member: ts.PropertyDeclaration, checker: ts.TypeChecker): unknown {
     const signalCall = getInputSignalCall(member);
 
     if (!signalCall) return member.initializer ? evaluateDefault(member.initializer, checker) : undefined;
 
     return !isSignalInputRequired(signalCall) && signalCall.arguments.length > 0 ? evaluateDefault(signalCall.arguments[0], checker) : undefined;
+}
+
+/** How {@link InputMeta} carries what {@link readInitialValue} found: a value, or that there is one that could not be read. */
+function defaultFields(initial: unknown): Pick<InputMeta, 'defaultValue' | 'defaultUnreadable'> {
+    if (initial === UNEVALUABLE) return { defaultUnreadable: true };
+
+    return initial === undefined ? {} : { defaultValue: initial };
 }
 
 /**
@@ -78,7 +127,7 @@ function readInput(
     if (inputDecorator) {
         const required = isDecoratorInputRequired(inputDecorator);
         const alias = readAlias(getDecoratorArgument(inputDecorator), name, checker);
-        const defaultValue = readInitialValue(member, checker);
+        const initial = readInitialValue(member, checker);
         const doc = getJsDocComment(member, checker);
         const instantiated = subclass && usesTypeParameters(member.type ?? member.initializer, owner, checker) ? getInstantiatedType(name, subclass, checker) : undefined;
         const { type, values, rawType } = instantiated ? mapType(instantiated, checker) : resolveDecoratorInputType(member, checker);
@@ -90,7 +139,7 @@ function readInput(
             rawType,
             required,
             ...(values && { values }),
-            ...(defaultValue !== undefined && { defaultValue }),
+            ...defaultFields(initial),
             ...(doc && { doc })
         };
     }
@@ -102,7 +151,7 @@ function readInput(
     const required = isSignalInputRequired(signalCall);
     // `input(initial, options)`, but `input.required(options)`.
     const alias = readAlias(signalCall.arguments[required ? 0 : 1], name, checker);
-    const defaultValue = readInitialValue(member, checker);
+    const initial = readInitialValue(member, checker);
     const doc = getJsDocComment(member, checker);
     const declaredType = signalCall.typeArguments?.[0] ?? signalCall.arguments[0];
     // A signal is a getter function, so its call signature returns the value type.
@@ -117,8 +166,9 @@ function readInput(
         rawType,
         required,
         ...(values && { values }),
-        ...(defaultValue !== undefined && { defaultValue }),
-        ...(doc && { doc })
+        ...defaultFields(initial),
+        ...(doc && { doc }),
+        ...(isModelInput(member) && { model: true as const })
     };
 }
 
@@ -174,7 +224,7 @@ export function extractOutputs(classDecl: ts.ClassDeclaration, checker: ts.TypeC
  * mentions a type parameter of the class that declares it. Only then does the
  * subclass change the type; otherwise the source text stays, alias names included.
  */
-function usesTypeParameters(node: ts.Node | undefined, owner: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+export function usesTypeParameters(node: ts.Node | undefined, owner: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
     const parameters = owner.typeParameters;
 
     if (!node || !parameters?.length) return false;
@@ -218,7 +268,7 @@ function typeMentions(
  * sees it: `items = input.required<T[]>()` in `Field<T>` is an
  * `InputSignal<Country[]>` on `Picker extends Field<Country>`.
  */
-function getInstantiatedType(name: string, subclass: ts.ClassDeclaration, checker: ts.TypeChecker): ts.Type | undefined {
+export function getInstantiatedType(name: string, subclass: ts.ClassDeclaration, checker: ts.TypeChecker): ts.Type | undefined {
     const property = checker.getPropertyOfType(checker.getTypeAtLocation(subclass), name);
 
     return property && checker.getTypeOfSymbolAtLocation(property, subclass);
@@ -227,13 +277,15 @@ function getInstantiatedType(name: string, subclass: ts.ClassDeclaration, checke
 /**
  * A default is all or nothing. The renderer applies it to the component, so
  * the part of `{ ...shared, size: 'm' }` that can be read would overwrite the
- * whole default the component actually declares.
+ * whole default the component actually declares: it is {@link UNEVALUABLE}
+ * instead, so that a default the scan could not read stays apart from one that
+ * is `undefined`.
  */
 function evaluateDefault(node: ts.Expression, checker: ts.TypeChecker): unknown {
     let complete = true;
     const value = evaluateStatic(node, { checker, report: () => (complete = false) });
 
-    return complete ? value : undefined;
+    return complete ? value : UNEVALUABLE;
 }
 
 function getInputSignalCall(member: ts.PropertyDeclaration): ts.CallExpression | null {

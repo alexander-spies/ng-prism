@@ -9,7 +9,7 @@
         <div
             class="matrix__corner"
             role="columnheader">
-            Variant
+            Variant \ State
         </div>
         @for (header of headers(); track header.column.state) {
             <div
@@ -17,11 +17,17 @@
                 role="columnheader"
                 [attr.data-fits-nowhere]="header.fitsNowhere ? '' : null"
                 [attr.title]="header.fitsNowhere ? header.column.title + ' fits no variant; check its selectors' : null">
-                <span class="matrix__title">{{ header.column.title }}</span>
+                <span class="matrix__head-line">
+                    <span class="matrix__title">{{ header.column.title }}</span>
+                    @if (header.fit; as fit) {
+                        <span
+                            class="matrix__fit"
+                            [attr.title]="fit.title"
+                            >{{ fit.text }}</span
+                        >
+                    }
+                </span>
                 <span class="matrix__signature">{{ header.column.signature }}</span>
-                @if (header.fit; as fit) {
-                    <span class="matrix__fit">{{ fit }}</span>
-                }
             </div>
         }
     </div>
@@ -31,11 +37,9 @@
             role="row">
             <div
                 class="matrix__variant"
-                role="rowheader">
+                role="rowheader"
+                [attr.title]="row.note">
                 <span class="matrix__name">{{ row.title }}</span>
-                @if (row.note; as note) {
-                    <span class="matrix__note">{{ note }}</span>
-                }
             </div>
             @if (row.optedOut) {
                 <div

@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import type { MeasurePoint } from '../../shared/measure.type.js';
 import { PrismCanvasService } from '../services/prism-canvas.service.js';
 import { PrismMeasureService } from '../services/prism-measure.service.js';
+import { PrismMobileLayoutService } from '../services/prism-mobile-layout.service.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
 import { PrismCanvasPinRowComponent } from './prism-canvas-pin-row.component.js';
@@ -67,11 +68,14 @@ async function readAppResource(url: string): Promise<string> {
 
 describe('PrismCanvasPinRowComponent', () => {
     let measure: PrismMeasureService;
+    const phone = signal(false);
 
     beforeEach(async () => {
+        phone.set(false);
         TestBed.resetTestingModule();
         TestBed.configureTestingModule({
             providers: [
+                { provide: PrismMobileLayoutService, useValue: { mobile: phone } },
                 { provide: PrismNavigationService, useValue: { activeComponent: signal(null) } },
                 { provide: PrismRendererService, useValue: { activeVariantIndex: signal(0) } },
                 { provide: PrismCanvasService, useValue: { measure: signal(false) } }
@@ -121,5 +125,20 @@ describe('PrismCanvasPinRowComponent', () => {
         fixture.detectChanges();
 
         expect(measure.pins()).toEqual([]);
+    });
+
+    /** The phone layout leaves the measuring tool out, and with it what a desktop session pinned. */
+    it('should render nothing on a phone, even with pins', () => {
+        measure.beginDraft(pt(0, 0));
+        measure.updateDraft(pt(0, 24));
+        measure.commitDraft();
+        phone.set(true);
+
+        const fixture = TestBed.createComponent(PrismCanvasPinRowComponent);
+
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.querySelector('.pin-row')).toBeNull();
+        expect(measure.pins()).toHaveLength(1);
     });
 });

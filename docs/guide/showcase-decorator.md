@@ -17,6 +17,8 @@ The decorator is evaluated at build time by the TypeScript Compiler API scanner,
 
 > **Note:** `@Showcase` must always appear _above_ `@Component` or `@Directive`, as decorator application order in Angular matters.
 
+`@Showcase` also goes on a class with `@Injectable` or `@Service`, and on one with `@Pipe`. That makes it a service or a pipe, which has no canvas: it gets a page with its API instead. See [Showcasing Services](guide/showcasing-services.md) and [Showcasing Pipes](guide/showcasing-pipes.md) for what applies to one, including the [`setup`](#setup) field that only they take.
+
 ## Type-safe variants (optional)
 
 `@Showcase` is generic: `@Showcase<T>({...})` where `T` is the component class. Supplying it types each variant's `inputs` as `Partial<InputsOf<T>>`, giving you autocomplete on input names and value type-checking against the component's signal inputs.
@@ -71,7 +73,7 @@ Anything else would need the code to run, so the scanner drops it:
 | Function and method calls        | `megabytes(5)`, `items.map(toOption)`       |
 | Functions, classes and instances | `(value) => value.length > 0`, `new Date()` |
 
-Functions, classes and instances are a limit of the approach, not of the scanner: they only exist once code runs, so the static manifest has no way to hold them.
+Functions, classes and instances are a limit of the approach, not of the scanner: they only exist once code runs, so the static manifest has no way to hold them. The one function that works is [`setup: () => [...]`](guide/showcasing-services.md#setup) on a service or a pipe: the scanner reads the array literal it returns from the source and never evaluates or calls it.
 
 ### What happens to a value it cannot read
 
@@ -125,15 +127,7 @@ Groups the component in the sidebar. Components without a category land in "Unca
 @Showcase({ title: 'Card', category: 'Molecules' })
 ```
 
-Use `/` (space-slash-space) to nest categories under a parent group:
-
-```typescript
-@Showcase({ title: 'Button', category: 'Atoms' })
-@Showcase({ title: 'Dialog', category: 'Overlays' })
-@Showcase({ title: 'Color Tokens', category: 'Foundations' })
-```
-
-This creates a collapsible **Components** group in the sidebar containing **Atoms** and **Overlays** as sub-categories, while **Foundations** remains a top-level category.
+For a top-level group above categories, use [`section`](#section).
 
 ### `categoryOrder`
 
@@ -157,16 +151,16 @@ Controls the order of _this component_ within its category. Same sorting rules a
 
 ### `section`
 
-Top-level sidebar grouping. ng-prism auto-detects this from the decorator type: `@Directive` classes go to **Directives**, `@Component` classes go to **Components**. Set `section` to a different string to create your own top-level group:
+Top-level sidebar grouping. ng-prism auto-detects this from the decorator type: `@Directive` classes go to **Directives**, `@Component` classes go to **Components**, services go to **Services**, pipes go to **Pipes**. Set `section` to a different string to create your own top-level group:
 
 ```typescript
 @Showcase({ title: 'AutofocusDirective', section: 'Behavior' })
 @Directive({ selector: '[appAutofocus]', standalone: true })
 export class AutofocusDirective {}
 
-@Showcase({ title: 'CurrencyPipe', section: 'Pipes' })
-@Pipe({ name: 'libCurrency', standalone: true })
-export class CurrencyPipe {
+@Showcase({ title: 'Date Field', section: 'Forms' })
+@Component({ selector: 'lib-date-field', standalone: true, template: '…' })
+export class DateFieldComponent {
     /* ... */
 }
 ```
@@ -175,7 +169,7 @@ Inside each section, the existing `category` field still groups items into sub-c
 
 ### `sectionOrder`
 
-Controls the order of this _section_ in the sidebar. Lower numbers appear first. Default order: `Components` (0), then `Directives` (10), then everything else (100, alphabetically). The section's effective order is the minimum `sectionOrder` of any item it contains, so a single `@Showcase({ section: 'Behavior', sectionOrder: 5 })` pulls the whole "Behavior" section above "Components".
+Controls the order of this _section_ in the sidebar. Lower numbers appear first. Default order: `Components` (0), then `Directives` (10), then `Services` (20), then `Pipes` (30), then everything else (100, alphabetically). The section's effective order is the minimum `sectionOrder` of any item it contains, so a single `@Showcase({ section: 'Behavior', sectionOrder: 5 })` pulls the whole "Behavior" section above "Components".
 
 ```typescript
 @Showcase({ title: 'AutofocusDirective', section: 'Behavior', sectionOrder: 5 })
@@ -183,7 +177,7 @@ Controls the order of this _section_ in the sidebar. Lower numbers appear first.
 
 ### `variants`
 
-Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content`, a `description`, plugin `meta`, its own `bg` and `canvasLayout`, and forced `pseudo` states such as `:focus-visible`. A state that should apply to many variants is a component-level [`states`](#states) entry instead.
+Predefined tabs shown above the canvas. Each variant can set different `inputs`, `content` (HTML) or `template` (compiled, see [Content Projection](guide/content-projection.md#compiled-content-template)), a `host` template, a `description`, plugin `meta`, its own `bg` and `canvasLayout`, and forced `pseudo` states such as `:focus-visible`. A state that should apply to many variants is a component-level [`states`](#states) entry instead.
 
 ```typescript
 @Showcase({
@@ -225,7 +219,7 @@ Not combinable with [`renderPage`](#renderpage): a component page has no Overvie
 
 ### `tags`
 
-Array of strings used for search and filtering in the sidebar. Tags are matched alongside `title` and `category`.
+Array of strings used for search and filtering in the sidebar. Tags are matched alongside `title`, `category`, the class name and the selector.
 
 ```typescript
 @Showcase({
@@ -239,6 +233,23 @@ Array of strings used for search and filtering in the sidebar. Tags are matched 
 > **Deprecated since 22.4.0, removed in 23.0.0.** `providers` never reached the styleguide: a provider is a class, a factory or an instance, which the [scanner cannot read](#what-the-scanner-can-read). The build drops the field with one warning per component, and the component renders without it.
 
 Components that inject something the Prism app does not provide (a `Router` for `routerLink`, `HttpClient`, a translation service, a library config token) get it from `defineConfig({ appProviders })`, which feeds the app's root injector. In the rare case that one component needs a provider the others must not see, render it through a [component page](guide/component-pages.md) via [`renderPage`](#renderpage) and declare the provider on the page component.
+
+### `setup`
+
+Services and pipes only: the functions and `InjectionToken` constants that configure the service or pipe, as an arrow function that returns them. The styleguide documents each one next to the service or pipe, and the generated usage snippet calls them.
+
+```typescript
+@Showcase({
+    title: 'Notification Service',
+    setup: () => [provideNotifications]
+})
+@Injectable({ providedIn: 'root' })
+export class NotificationService {
+    /* ... */
+}
+```
+
+It is an arrow function so that a reference to a function from a file that imports the service or pipe back is not read while the class is still being defined. The builder reads the array literal from the source and never runs the function. See [`ShowcaseConfig.setup`](api/showcase-config.md#setup) for what it accepts and [Showcasing Services](guide/showcasing-services.md#setup) for the warnings; on a pipe it works the same way, see [Showcasing Pipes](guide/showcasing-pipes.md).
 
 ### `meta`
 
@@ -291,11 +302,13 @@ Accepted values: `'fit'` (default) and `'stretch'`.
 })
 ```
 
+With Viewport width on, the wrapper takes the width set there instead of the canvas width: a `'fit'` component is centred in it, a `'stretch'` component fills it, also when the subject renders in a [`template`](guide/content-projection.md#compiled-content-template) or a [host template](guide/directive-hosting.md#host-template).
+
 Variants can override this with their own `canvasLayout`. See [Variants: Per-Variant Canvas Layout](guide/variants.md#per-variant-canvas-layout) and the [`CanvasLayout`](api/types.md#canvaslayout) type for the exact wrapper styles applied in each mode.
 
 ### `host`
 
-Targets directives that cannot render on their own. Tells ng-prism what element or component to host the directive on.
+Tells ng-prism what to render a directive on, or what to render a component or directive inside. A directive without a `host` renders on the element its selector names, see [Directive Hosting](guide/directive-hosting.md#without-a-host).
 
 **String host** (an HTML element string):
 
@@ -326,7 +339,90 @@ export class TooltipDirective { ... }
 export class RippleDirective { ... }
 ```
 
-See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
+**Host template** (`{ template }`, since 22.7.0), an Angular template the subject renders in. It works for directives and components:
+
+```typescript
+@Showcase<InputDirective>({
+  title: 'Input',
+  host: { template: '<lib-form-field label="Name"><input libInput /></lib-form-field>' },
+})
+@Directive({ selector: 'input[libInput]' })
+export class InputDirective { ... }
+```
+
+A string or an object `host` on a component has no effect, and the build warns about it. See [Directive Hosting](guide/directive-hosting.md) for a full walkthrough.
+
+### `imports`
+
+What the templates of this showcase use and ng-prism does not find in your library by itself (since 22.7.0): classes from another package, and Angular's pipes and directives. A list of `{ name, from }` pairs, strings and not class references:
+
+```typescript
+@Showcase<FormFieldComponent>({
+  title: 'Form Field',
+  imports: [{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }],
+  variants: [{ name: 'Note', template: '<textarea libInput cdkTextareaAutosize></textarea>' }],
+})
+```
+
+Library classes that a template names are imported without being listed. See [Content Projection: Imports](guide/content-projection.md#imports) for the rule. `imports` is for components and directives only; on a service or a pipe it counts as a [component-only field](guide/showcasing-services.md#compatibility-until-2300).
+
+### `partOf`
+
+The selector of the component or directive that this one is a part of (since 22.7.0). Some components only exist inside another one: an option inside a select, an option group, a tab inside a tab group. A showcase for each of them rebuilds the parent's markup in a variant that the parent's own variants already show. `partOf` says what it belongs to instead, and the part gets no page of its own: its title, description, inputs and outputs appear on the page of its parent.
+
+```typescript
+@Showcase<SelectComponent>({
+  title: 'Select',
+  variants: [{ name: 'Default' }, { name: 'Groups', template: '<lib-optgroup label="Fruit"><lib-option value="apple">Apple</lib-option></lib-optgroup>' }],
+})
+@Component({ selector: 'lib-select, [libSelect]', ... })
+export class SelectComponent { ... }
+
+@Showcase({
+  title: 'Option',
+  description: 'One choice of a select.',
+  partOf: 'lib-select',
+})
+@Component({ selector: 'lib-option', ... })
+export class OptionComponent { ... }
+```
+
+The value is a selector string and not the class. A class would need `option.component.ts` to import `select.component.ts`, which usually imports the option for its `contentChildren`: an import cycle, and the config is evaluated when the class is defined, which makes the cycle a `ReferenceError` in a library build. A string costs nothing at runtime, and `ng-prism-strip` removes the decorator as it does for every other field.
+
+The rules:
+
+- **A selector matches when it equals one entry of the parent's `selector`**, ignoring spaces around it. `'lib-select'` matches `selector: 'lib-select, [libSelect]'`, and so does `'[libSelect]'`. The parent can be a component or a directive, and it can be exported from another entry point than the part.
+- **One parent, and no chains.** Name a selector that exactly one other class with `@Showcase` has. A part cannot be the parent of another part, and cannot name itself.
+- **A part uses `title`, `description`, `tags` and `status`**, the inputs and outputs that the scan reads from its class, and `meta`, which stays for plugins. A plugin that reads the API of components (`componentApi`) reads the part's as well. The sidebar search lists the parent for a query that matches the title, class name, selector or tags of one of its parts, since the part has no entry of its own.
+- **What only a page uses has no effect:** `variants`, `states`, `category`, `categoryOrder`, `componentOrder`, `section`, `sectionOrder`, `bg`, `canvasLayout`, a host template (`host: { template }`), `imports` and `renderPage`. Setting one costs a notice and never fails a build: the scan drops the field and says so, and a notice does not count for [`strictShowcase`](api/ng-prism-config.md#strictshowcase), since nothing is lost that the styleguide could have shown. The variants of a part are dropped too, so a part does not need one. The scan reads a class before it knows that it is a part, so a value in one of these fields that is malformed or cannot be read, and an error in the template of one of the part's variants, is reported as it is on any other component, and that does count for `strictShowcase`. `providers` and `setup` keep their own warnings on a part, as on every component. A directive part keeps a string or object `host`, such as `host: '<button>Open</button>'`: it names the element the directive sits on, and the API tab of the [JSDoc plugin](plugins/jsdoc.md) writes the part's usage line on it (`<button libTrigger>` instead of `<div libTrigger>`).
+- **Only a component or a directive can be a part.** `partOf` on a service or a pipe is dropped with a diagnostic, like the other losses of a service or a pipe: only when a plugin shows services or pipes.
+
+**Where a part shows up.** The head of the parent's page lists its parts after the title, the info glyph and the status badge: the label "Parts" and one chip per part, in the order of their titles. A click on a chip opens a card at that chip, built like the card behind the info glyph:
+
+- the part's title, its `<selector>` and its status badge, if it has a `status`;
+- its description;
+- **Inputs**: the name (or the alias, which is what a template binds), a `required` badge, the type as it is written in the source, the default and the JSDoc line;
+- **Outputs**: the name (or the alias) and the JSDoc line, then the change output Angular adds for each `model()`, `<name>Change`, with a line on the two-way binding.
+
+A section without entries is left out. Everything on the card comes from what the scan reads from the part's class, so it works without a plugin.
+
+At the bottom of the card, **Full API →** opens the first visible view panel that sets [`listsParts`](api/ng-prism-plugin.md#panels-that-list-parts), for example the API tab of the [JSDoc plugin](plugins/jsdoc.md), at the block of that part. It appears only when such a panel exists for the component, so without one the card ends with the outputs. The band of the head never wraps: when it is too narrow for all chips, they scroll sideways inside their own track.
+
+A `partOf` that does not resolve never makes a component disappear. The scan reports a diagnostic, drops `partOf`, and the class stays an entry of its own with everything it declares, its variants included:
+
+| Message                                                                                                                            | Cause and fix                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `<Class> › partOf — no component or directive with @Showcase has the selector "<selector>"; it keeps a page of its own`            | No exported class with `@Showcase` has that selector. Check the spelling, and that the parent has `@Showcase`.           |
+| `<Class> › partOf — "<selector>" is the selector of <A> and <B>; name a selector only one of them has. It keeps a page of its own` | Several showcased classes match. Name a selector only the parent has, for example an attribute selector.                 |
+| `<Class> › partOf — <Parent> is a part itself, and a part cannot have parts; it keeps a page of its own`                           | The parent declares `partOf` too. Point the part at the parent's own parent, or give the middle class a page of its own. |
+| `<Class> › partOf — a component cannot be a part of itself; it keeps a page of its own`                                            | The selector is one of the class's own.                                                                                  |
+| `<Class> › partOf — expected the selector of a showcased component or directive as a string, got <value>; it was dropped`          | `partOf` is not a string, or only spaces.                                                                                |
+| `<Class> › partOf — only a component or directive can be part of another; it was dropped`                                          | A service or a pipe declares `partOf`. Reported when a plugin shows services or pipes, as their other diagnostics are.   |
+| `<Class> › <field> — has no effect on a part, which has no page of its own: the parent's showcase shows it. It was dropped.`       | A notice, not a diagnostic. Delete the field from the part.                                                              |
+
+Each message ends with the file, line and column of the `partOf` or the field, as other `@Showcase` messages do.
+
+**When a part, when a showcase of its own.** Use `partOf` for a class that only works inside one parent and whose page would repeat what the parent's variants show: `lib-option` and `lib-optgroup` in `lib-select`. Keep a showcase of its own when the class has a life apart from one parent. `libInput` stays its own entry: a form field and a search input both use it, `partOf` takes exactly one parent, and it has states of its own that only a page of its own can show.
 
 ### `status`
 
@@ -343,21 +439,21 @@ When `status` is omitted, the component is treated as stable but renders without
 
 **Visual impact**
 
-| Status         | Sidebar item                           | Component head                              |
-| -------------- | -------------------------------------- | ------------------------------------------- |
-| _unset_        | unchanged                              | no status chip                              |
-| `'stable'`     | unchanged                              | muted outlined "Stable" chip                |
-| `'beta'`       | unchanged                              | amber "Beta" chip                           |
-| `'wip'`        | dashed-circle leading icon (tooltip)   | amber "Work in progress" chip (hollow ring) |
-| `'deprecated'` | name struck-through + dimmed (tooltip) | red "Deprecated" chip                       |
+| Status         | Sidebar item                           | Component head                                       |
+| -------------- | -------------------------------------- | ---------------------------------------------------- |
+| _unset_        | unchanged                              | no status badge                                      |
+| `'stable'`     | unchanged                              | "Stable" badge in the success colour                 |
+| `'beta'`       | unchanged                              | "Beta" badge in the warning colour                   |
+| `'wip'`        | dashed-circle leading icon (tooltip)   | "Work in progress" badge, warning, with a hollow dot |
+| `'deprecated'` | name struck-through + dimmed (tooltip) | "Deprecated" badge in the danger colour              |
 
-The status chip is rendered inline with the title in the component head's single row; the `<selector>` now lives in the details popover behind the ⓘ glyph. All colors come from the `--prism-mark-*` role tokens, so light/dark mode are handled automatically. A status chip is always an outline and never a filled surface. A permanently visible band is the wrong place for a filled alarm colour, so `deprecated` separates itself by hue rather than by weight.
+The status badge is rendered inline with the title in the component head's single row; the `<selector>` now lives in the details popover behind the ⓘ glyph. It is a soft-tinted badge with a dot, coloured with `--prism-success`, `--prism-warn` and `--prism-danger`, so light and dark mode are handled automatically, and its tooltip says what the status means.
 
 Use this to communicate migration state while moving components from a legacy library into a new one: set `'wip'` on what's actively being migrated, `'deprecated'` on what should no longer be used, and `'stable'` / `'beta'` to badge maturity once a component is done.
 
 ### `renderPage`
 
-Title of a registered `ComponentPage` to render instead of the default component canvas. Use for complex components that need elaborate template projections or mock data that cannot be expressed with simple `content` strings.
+Title of a registered `ComponentPage` to render instead of the default component canvas. Use for complex components that need mock data or providers of their own, or a demo that is more than one subject. Components that only need other library parts in their content, or a frame around them, are better served by a variant [`template`](guide/content-projection.md#compiled-content-template) or a [host template](guide/directive-hosting.md#host-template), which keep the Overview, `states` and the Events panel that a page gives up.
 
 The page component can inject `PrismRendererService` to react to variant and controls panel changes. A component with `renderPage` cannot declare [`states`](#states).
 

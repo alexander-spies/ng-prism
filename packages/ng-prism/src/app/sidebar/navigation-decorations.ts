@@ -127,7 +127,49 @@ export function rollupCategory(decorations: readonly (ItemDecorations | null)[])
  * finding. At 11px the previous pair (cube vs dashed square) was effectively
  * one glyph, so `wip` now uses a shape that differs in silhouette rather than
  * in stroke style.
+ *
+ * `idle` is the glyph of everything that is not work in progress: the box of a
+ * component by default, another one for another kind of item (the plug of a
+ * service). The dashed circle is shared, so work in progress reads the same
+ * for every kind.
  */
-export function lifecycleIcon(status: ComponentStatus | undefined): string {
-    return status === 'wip' ? 'circle-dashed' : 'box';
+export function lifecycleIcon(status: ComponentStatus | undefined, idle = 'box'): string {
+    return status === 'wip' ? 'circle-dashed' : idle;
+}
+
+/** What a category head shows on the right: its size and, if any, a problem chip. */
+export interface CategoryCount {
+    total: string;
+    chip: { text: string; tone: 'warn' | 'danger' } | null;
+    title: string | null;
+}
+
+/**
+ * The category head's count: the number of entries, plus a chip with the
+ * number that need review in the worst tone among them. Replaces "2/4", which
+ * read as a fraction of progress rather than as a count of problems.
+ */
+export function categoryCount(rollup: CategoryRollup, total: number): CategoryCount {
+    if (rollup.problems === 0 || rollup.variant === null) {
+        return { total: String(total), chip: null, title: null };
+    }
+    const verb = rollup.problems === 1 ? 'entry needs' : 'entries need';
+
+    return {
+        total: String(total),
+        chip: { text: String(rollup.problems), tone: rollup.variant },
+        title: `${rollup.problems} of ${total} ${verb} review`
+    };
+}
+
+const SECTION_FACETS: Record<string, 'cyan' | 'blue' | 'violet' | 'magenta'> = {
+    Components: 'cyan',
+    Directives: 'violet',
+    Services: 'magenta',
+    Pipes: 'blue'
+};
+
+/** The logo facet a section's icon is coloured in; `null` keeps the primary colour. */
+export function sectionFacet(name: string): 'cyan' | 'blue' | 'violet' | 'magenta' | null {
+    return SECTION_FACETS[name] ?? null;
 }

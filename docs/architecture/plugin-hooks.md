@@ -12,10 +12,22 @@ For each component (in scan order):
   → plugin[1].onComponentScanned(component)
   → ...
 
+For each service (in scan order, only when a plugin shows services):
+  → plugin[0].onServiceScanned(service)
+  → plugin[1].onServiceScanned(service)
+  → ...
+
+For each pipe (in scan order, only when a plugin shows pipes):
+  → plugin[0].onPipeScanned(pipe)
+  → plugin[1].onPipeScanned(pipe)
+  → ...
+
 For each page (in config order):
   → plugin[0].onPageScanned(page)
   → plugin[1].onPageScanned(page)
   → ...
+
+Then every part moves onto its parent (no hook runs, see "Parts in the hooks" below).
 
 Once, with the full manifest:
   → plugin[0].onManifestReady(manifest)
@@ -58,11 +70,78 @@ onComponentScanned(component) {
 
 **Chaining:** When plugin A and plugin B both implement `onComponentScanned`, the `ScannedComponent` passed to plugin B is the (possibly modified) output from plugin A.
 
+`component.api` (since `22.7.0`) is experimental until 23.0.0: its shape may change in a 22.x minor release. The scan only reads it when a plugin in the config sets [`componentApi`](api/ng-prism-plugin.md#componentapi), so a plugin that reads it sets the flag, and a component that another hook built from scratch has none. `className`, `inputs`, `outputs`, `showcaseConfig` and `meta` are stable. Add your own data to `component.meta`, and read `component.api` knowing it can change.
+
+`component.composition` (since `22.7.0`) is what the scan read from the `template` and host template fields, see [`ComponentComposition`](api/types.md#componentcomposition). Like `component.api`, its shape is experimental until 23.0.0. It is read before the hooks run, so a hook that changes those fields afterwards does not change what renders, and a component a hook builds from scratch has none. A plugin that shows the markup of a variant can read each case and replace `COMPOSITION_SUBJECT_SLOT` with the attributes it wants on the subject, as the JSDoc plugin does for its usage example.
+
+**Parts.** A showcase with [`partOf`](guide/showcase-decorator.md#partof) is a part of another component or directive and has no page of its own, but it goes through `onComponentScanned` like any component. The JSDoc plugin therefore gives it the same `meta.jsdoc` and `memberTags` as a component, and the API block of a part is as full as the page of its parent. The `ScannedComponent` of a resolved part has `parentClassName`, the class name of its parent, and a plugin that works per page skips a component that has it: the styleguide shows a part on the page of its parent, so there is no page to build, photograph or measure. What `onManifestReady` sees of parts is described in [Parts in the hooks](#parts-in-the-hooks).
+
+```typescript
+onComponentScanned(component) {
+  if (component.parentClassName) return; // a part: its parent's page shows it
+  // ...
+}
+```
+
 **Typical uses:**
 
 - Extract JSDoc from `component.filePath` using `ts.createSourceFile()` (JSDoc plugin)
 - Fetch external metadata keyed on `component.className`
 - Validate that required `meta` fields are present and warn if missing
+
+## `onServiceScanned`
+
+Called once per `@Showcase`-decorated [service](guide/showcasing-services.md), after the scanner has extracted its API.
+
+```typescript
+onServiceScanned(service: ScannedService): ScannedService | void | Promise<ScannedService | void>
+```
+
+The same mutation, return and chaining rules as `onComponentScanned`, and the same error handling: a hook that throws stops the build with `ng-prism: plugin "<name>" failed in onServiceScanned for service "<ClassName>": <cause>`.
+
+```typescript
+onServiceScanned(service) {
+  return {
+    ...service,
+    meta: { ...service.meta, myPlugin: { setupEntries: service.api.setup.length } },
+  };
+}
+```
+
+**A separate hook, not a second kind of component.** A service has no inputs, outputs, selector or canvas, and the four plugins that implement `onComponentScanned` (coverage, jsdoc, perf and visual regression) read exactly those. Giving services their own list and hook means none of them is ever called with one, and the manifest they write stays what it was. The JSDoc plugin does not need the hook: its service page reads `service.api` in the browser.
+
+**It may not run.** Services go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'service'`. Without one the scan only counts them, without reading them, so `onServiceScanned` is not called, and the pipeline logs a hint, see the services gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.services` only when they were kept.
+
+`service.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `service.meta`, which is stable, and read `service.api` knowing it can change.
+
+**No navigation decorations.** `navigationDecorations` are not called for a service. The `badge()` of a decoration takes a component, and coverage, a11y and visual regression measure what renders.
+
+## `onPipeScanned`
+
+Called once per `@Showcase`-decorated [pipe](guide/showcasing-pipes.md), after the scanner has extracted its API.
+
+```typescript
+onPipeScanned(pipe: ScannedPipe): ScannedPipe | void | Promise<ScannedPipe | void>
+```
+
+The same mutation, return and chaining rules as `onServiceScanned`, and the same error handling: a hook that throws stops the build with `ng-prism: plugin "<name>" failed in onPipeScanned for pipe "<ClassName>": <cause>`.
+
+```typescript
+onPipeScanned(pipe) {
+  return {
+    ...pipe,
+    meta: { ...pipe.meta, myPlugin: { signatures: pipe.api.transform.length } },
+  };
+}
+```
+
+**A separate hook, for the same reason.** A pipe has no inputs, outputs, selector or canvas, and it is not a service either: it has a template name, a purity and `transform()` signatures instead of members and a provision. Its own list and hook keep it away from `onComponentScanned` and `onServiceScanned`, so none of the plugins that implement those is called with one. The JSDoc plugin does not need the hook: its pipe page reads `pipe.api` in the browser.
+
+**It may not run.** Pipes go into the manifest only when some plugin has a view panel (`placement: 'view'`) with `appliesTo` including `'pipe'`, decided apart from services. Without one the scan only counts them, without reading them, so `onPipeScanned` is not called, and the pipeline logs a hint, see the services and pipes gate in the [Build Pipeline](architecture/pipeline.md). `onManifestReady` receives `manifest.pipes` only when they were kept.
+
+`pipe.api` is experimental until 23.0.0: its shape may change in a 22.x minor release. Add your own data to `pipe.meta`, which is stable, and read `pipe.api` knowing it can change.
+
+**No navigation decorations.** `navigationDecorations` are not called for a pipe either.
 
 ## `onPageScanned`
 
@@ -87,7 +166,7 @@ onPageScanned(page) {
 
 ## `onManifestReady`
 
-Called once with the complete `PrismManifest` after all `onComponentScanned` and `onPageScanned` hooks have finished.
+Called once with the complete `PrismManifest` after all `onComponentScanned`, `onServiceScanned`, `onPipeScanned` and `onPageScanned` hooks have finished and the parts are nested on their parents, see [Parts in the hooks](#parts-in-the-hooks).
 
 ```typescript
 onManifestReady(manifest: PrismManifest): PrismManifest | void | Promise<PrismManifest | void>
@@ -131,6 +210,23 @@ onManifestReady(manifest) {
 
 `manifest.meta` is serialized into the runtime manifest and accessible via the `PRISM_MANIFEST` injection token in the browser.
 
+### Parts in the hooks
+
+`onComponentScanned` runs on every part before anything is nested, so the components it sees are the flat list the scan produced. `onManifestReady` gets the manifest after the pipeline has nested the parts (see [Build Pipeline](architecture/pipeline.md#_5-plugin-hooks)):
+
+- A part is **not** in `manifest.components`. Its parent has it in `ScannedComponent.parts`, sorted by `showcaseConfig.title`, so the build-time and the runtime manifest have the same shape (`RuntimeComponent.parts`, see [`RuntimePart`](api/types.md#runtimepart)).
+- A part has no entry of its own in `onManifestReady`, so a plugin that counts or walks `manifest.components` sees parents only. One that must include parts reads `component.parts` as well.
+- A parent and its parts are one unit: a filter that drops a component from `manifest.components`, such as the `internal` tag example above, drops its parts with it.
+- A part is the object `onComponentScanned` returned, `parentClassName` and `showcaseConfig.partOf` included. Which parent it goes to is what the scan resolved, before any hook ran: a hook that rewrites a parent, its selector or class name included, keeps its parts on it, and a part never falls back to a component of its own after the hooks.
+- `parts` and `parentClassName` are experimental until 23.0.0: their shape may change in a 22.x minor release.
+
+```typescript
+onManifestReady(manifest) {
+  const parts = manifest.components.flatMap((c) => c.parts ?? []);
+  // ...
+}
+```
+
 ## Navigation Decorations
 
 `NgPrismPlugin.navigationDecorations` lets a plugin mark a component's sidebar item with a small icon. The built-in a11y, visual regression and coverage sources all use it to flag a component whose latest report needs attention. It is a runtime contribution (its `badge()` callback runs in the browser), but the verdict it displays has to be decided here, at build time. This section explains why.
@@ -166,7 +262,7 @@ All three built-in sources follow this split. See `packages/plugin-visual-regres
 
 ## Async Hooks
 
-All three hooks accept `Promise` return values. The pipeline runner uses `await` for each hook:
+All four hooks accept `Promise` return values. The pipeline runner uses `await` for each hook:
 
 ```typescript
 async onComponentScanned(component) {

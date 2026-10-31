@@ -1,4 +1,7 @@
+import type { ScannedComponent } from '@ng-prism/core/plugin';
 import { perfPlugin } from './perf-plugin.js';
+
+jest.mock('./bundle/bundle-scanner.js');
 
 describe('perfPlugin', () => {
     it('should return a plugin with the correct name', () => {
@@ -61,5 +64,27 @@ describe('perfPlugin', () => {
         } finally {
             warn.mockRestore();
         }
+    });
+
+    describe('onComponentScanned', () => {
+        it('leaves a part untouched and scans no bundle for it', async () => {
+            const { scanBundle } = require('./bundle/bundle-scanner.js');
+
+            const plugin = perfPlugin();
+            const component: ScannedComponent = {
+                className: 'SelectOptionComponent',
+                filePath: '/src/select-option.ts',
+                showcaseConfig: { title: 'SelectOption' },
+                inputs: [],
+                outputs: [],
+                componentMeta: { selector: 'x', standalone: true, isDirective: false },
+                parentClassName: 'SelectComponent'
+            };
+
+            const result = await plugin.onComponentScanned!(component);
+
+            expect(result).toBeUndefined();
+            expect(scanBundle).not.toHaveBeenCalled();
+        });
     });
 });

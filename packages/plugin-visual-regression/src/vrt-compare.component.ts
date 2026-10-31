@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { PrismPanelToolbarComponent, PrismSegmentedComponent, type PrismSegmentOption, type PrismTabItem, PrismTabsComponent } from '@ng-prism/core';
 import { resolveAssetUrl } from './asset-url.js';
 import type { VrtVariantResult } from './visual-regression.types.js';
 import { bgChange, shotSurfaceStyle } from './vrt-bg.js';
@@ -23,6 +24,7 @@ const MODE_LABEL: Record<CompareMode, string> = {
     selector: 'prism-vrt-compare',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [PrismPanelToolbarComponent, PrismTabsComponent, PrismSegmentedComponent],
     templateUrl: './vrt-compare.component.html',
     styleUrl: './vrt-compare.component.css'
 })
@@ -34,8 +36,33 @@ export class VrtCompareComponent {
     protected readonly zoom = signal<Zoom>('fit');
     protected readonly wipe = signal(50);
 
-    protected readonly MODE_LABEL = MODE_LABEL;
-    protected readonly ZOOMS = ZOOMS;
+    protected readonly zoomOptions: PrismSegmentOption[] = ZOOMS.map((z) => ({ value: String(z), label: z === 'fit' ? 'Fit' : `${z}×` }));
+
+    protected readonly modeItems = computed<PrismTabItem[]>(() => this.availableModes().map((mode) => ({ id: mode, label: MODE_LABEL[mode] })));
+
+    protected selectMode(id: string | null): void {
+        const mode = this.availableModes().find((m) => m === id);
+
+        if (mode) this.requestedMode.set(mode);
+    }
+
+    protected selectZoom(value: string | null): void {
+        const zoom = ZOOMS.find((z) => String(z) === value);
+
+        if (zoom !== undefined) this.zoom.set(zoom);
+    }
+
+    /** Size, changed pixels, ratio and ground of the capture: the toolbar's former meta line, as a tooltip. */
+    protected readonly metaTitle = computed(() => {
+        const v = this.variant();
+        const parts: string[] = [];
+
+        if (v.width && v.height) parts.push(`${v.width} × ${v.height}`);
+        if (v.diffPixels !== undefined) parts.push(`${v.diffPixels.toLocaleString()} px changed`);
+        if (v.diffRatio !== undefined) parts.push(`${this.percent(v.diffRatio)} diff`);
+        if (v.bg) parts.push(`captured on ${v.bg}`);
+        return parts.join(' · ');
+    });
 
     private readonly baselineUrl = computed(() => resolveAssetUrl(this.assetBaseUrl(), this.variant().baselinePath));
     private readonly currentUrl = computed(() => resolveAssetUrl(this.assetBaseUrl(), this.variant().currentPath));

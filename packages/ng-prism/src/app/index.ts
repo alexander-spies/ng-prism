@@ -40,7 +40,9 @@ export { enablePrismHmr } from './hmr.js';
 //
 // They still reach Node: `@ng-prism/plugin-coverage` and
 // `@ng-prism/plugin-visual-regression` re-export their header badges statically
-// from their Node entry, and those import `PrismMetricBadgeComponent` from here.
+// from their Node entry, and those import `PrismMetricBadgeComponent` from here;
+// since 22.7 `@ng-prism/plugin-perf` does the same with its panel, which is
+// built from the UI primitives below.
 // Loading a plugin config in `builder/config-loader` therefore pulls this whole
 // file, shell included, into Node. That only works because the config loader
 // imports `@angular/compiler` first.
@@ -52,3 +54,15 @@ export { enablePrismHmr } from './hmr.js';
 // public API decision.
 export { PrismMetricBadgeComponent } from './shared/prism-metric-badge.component.js';
 export { PrismIconComponent } from './icons/prism-icon.component.js';
+export { PrismBadgeComponent } from './shared/prism-badge.component.js';
+export { toneForStatus } from './shared/badge.types.js';
+export type { BadgeTone, StatusTone } from './shared/badge.types.js';
+export { PrismTabsComponent } from './shared/prism-tabs.component.js';
+export type { PrismTabBadge, PrismTabItem } from './shared/prism-tabs.component.js';
+export { PrismSegmentedComponent } from './shared/prism-segmented.component.js';
+export type { PrismSegmentOption } from './shared/prism-segmented.component.js';
+export { PrismPanelToolbarComponent } from './shared/prism-panel-toolbar.component.js';
+export { PrismListRowComponent } from './shared/prism-list-row.component.js';
+export { PrismIconButtonComponent } from './shared/prism-icon-button.component.js';
+export { PrismButtonComponent } from './shared/prism-button.component.js';
+export { PrismMetricCardComponent } from './shared/prism-metric-card.component.js';

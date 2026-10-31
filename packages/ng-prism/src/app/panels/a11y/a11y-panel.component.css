@@ -10,80 +10,10 @@
     height: 100%;
 }
 
-.subtabs {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    gap: 2px;
-    padding: 10px 20px 0;
-    background: var(--prism-bg-elevated);
-    border-bottom: 1px solid var(--prism-border);
-}
-
-.st-tab {
-    position: relative;
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    padding: 7px 12px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: none;
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    transition: color var(--dur-fast);
-}
-
-.st-tab:hover {
-    color: var(--prism-text-2);
-}
-
-.st-tab--active {
-    color: var(--prism-text);
-}
-
-.st-tab--active::after {
-    position: absolute;
-    right: 8px;
-    bottom: -1px;
-    left: 8px;
-    height: 2px;
-    content: '';
-    background: var(--prism-primary);
-    border-radius: 1px;
-}
-
-.st-badge {
-    display: grid;
-    place-items: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 5px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--prism-primary);
-    background: color-mix(in srgb, var(--prism-primary) 18%, transparent);
-    border-radius: 8px;
-}
-
-.st-badge--ok {
-    color: var(--prism-success);
-    background: color-mix(in srgb, var(--prism-success) 18%, transparent);
-}
-
-.st-badge--warn {
-    color: var(--prism-warn);
-    background: color-mix(in srgb, var(--prism-warn) 18%, transparent);
-}
-
 .a11y-content {
     flex: 1;
     min-height: 0;
+    container-type: inline-size;
     overflow: auto;
 }
 

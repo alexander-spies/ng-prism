@@ -9,6 +9,8 @@ interface Variant<T = unknown> {
     name: string;
     inputs?: Partial<InputsOf<T>>;
     content?: string | Record<string, string>;
+    template?: string;
+    host?: HostTemplate;
     description?: string;
     meta?: Record<string, unknown>;
     bg?: 'dots' | 'plain' | 'light' | 'dark' | 'checker' | 'transparent';
@@ -194,6 +196,28 @@ variants: [
 
 For multi-slot content projection, use a record. See [Content Projection](guide/content-projection.md).
 
+## Per-Variant Template and Host Template
+
+`content` is HTML. When a variant has to render components or directives that find each other through Angular, give it a `template` (since `22.7.0`), an Angular template that is compiled as the content of the showcased component:
+
+```typescript
+variants: [
+  { name: 'Default', inputs: { label: 'E-Mail' }, template: '<input libInput type="email" />' },
+  { name: 'With icon', inputs: { label: 'Search' }, template: '<lib-icon libPrefix name="search" /><input libInput />' },
+],
+```
+
+`host: { template }` on a variant (also since `22.7.0`) is the template the subject renders in, for a directive that sits in a frame or a radio in a group. It overrides the `host` of the showcase for that variant:
+
+```typescript
+variants: [
+  { name: 'Default' },
+  { name: 'With hint', host: { template: '<lib-form-field label="Name" hint="As on your ID"><input libInput /></lib-form-field>' } },
+],
+```
+
+`inputs` and the Controls stay the ones of the showcased component or directive. Whatever the template sets on the subject element itself belongs to the template, and its control reads `Not editable` in that variant. See [Compiled Content](guide/content-projection.md#compiled-content-template) and [Host Template](guide/directive-hosting.md#host-template) for the imports, the errors and what the canvas shows.
+
 ## Per-Variant Plugin Metadata
 
 Plugins like Figma support variant-level metadata to link each variant to a different design node:
@@ -264,7 +288,7 @@ A variant can override the wrapper layout used in the canvas. The default is `'f
 })
 ```
 
-In `'stretch'` mode `.demo-wrap` becomes `display: block; width: 100%; max-width: 800px`, giving children a real container width to size against. The variant-level value always wins over the component-level value.
+In `'stretch'` mode `.demo-wrap` becomes `display: block; width: 100%; max-width: 800px`, giving children a real container width to size against. With Viewport width on, that width is the one set there. The variant-level value always wins over the component-level value.
 
 See [Showcase Decorator: canvasLayout](guide/showcase-decorator.md#canvaslayout) for the component-level setting and the [`CanvasLayout`](api/types.md#canvaslayout) type for the wrapper styles applied in each mode.
 
@@ -317,7 +341,7 @@ The scanner checks `states` the way it checks `pseudo`. An entry that is not an 
 
 A state does not suit every variant. `.sg-chip__remove` exists only while a chip is removable, the button of a disabled variant cannot take focus, and a card shows its hover style only when it is clickable. Forcing the state anyway would show a picture the browser could never produce, such as a focus ring on a disabled button. A state therefore fits a rendered variant only if every pseudo-class it forces has at least one target the browser could put into that state:
 
-- A target has to exist: `true` is the host and everything inside it, a selector is matched against the host and everything inside it.
+- A target has to exist: `true` is the host and everything inside it, a selector is matched against the host and everything inside it. For a [composition](guide/content-projection.md#compiled-content-template) that means the whole composition, the frame around the subject included.
 - **`focus` and `focus-visible`**: the target is not `:disabled` (what `<fieldset disabled>` passes on to its fields included) and does not sit under `[inert]` inside the component. An element with `aria-disabled="true"` still counts, because the browser can focus it. For `true`, the fit is decided on what in the component could take focus at all (a button, a field, a link with `href`, `summary`, `iframe`, `[tabindex]` or an editable region), so a component whose only button is disabled reads `the component is disabled`; a component with nothing focusable in it is judged on all of its elements.
 - **`hover` and `active`**: the target, or something inside it, has a computed `pointer-events` other than `none`. A disabled button usually fails this, since components often set `pointer-events: none` on it. The styles are read with the variant's forced states and all of the state's own in place, so an action that takes the pointer only inside a hovered row counts when the variant or the state hovers that row, and a rule that sets `pointer-events: none` under its own `:hover` makes the state not fit, as the browser could not keep that element hovered either.
 - **`focus-within`**: not filtered. Whether anything inside can take focus is not something the browser tells.
@@ -335,7 +359,7 @@ Only the targets that pass get the class. When no target of a pseudo-class does,
 
 A state with several pseudo-classes fits only if each of them does, and the reason names the first that does not, in the order `hover`, `active`, `focus`, `focus-visible`, `focus-within`.
 
-The reason shows up where you look at the combination: an empty, dashed cell in the Overview, the tooltip of the chip in the tools menu and, for a runner, the `data-prism-excluded` attribute on `.demo-wrap`, see [A state that does not apply](guide/external-tooling.md#a-state-that-does-not-apply). The rule is checked again whenever the component's DOM changes, so switching the `removable` control of a chip on and off moves it between fitting and not fitting. A target that renders only later, behind `@defer` or after an HTTP call, is not there when the combination is first judged and reads as `matches nothing`.
+The reason shows up where you look at the combination: the tooltip of an empty, dashed cell in the Overview, the tooltip of the chip in the tools menu and, for a runner, the `data-prism-excluded` attribute on `.demo-wrap`, see [A state that does not apply](guide/external-tooling.md#a-state-that-does-not-apply). The rule is checked again whenever the component's DOM changes, so switching the `removable` control of a chip on and off moves it between fitting and not fitting. A target that renders only later, behind `@defer` or after an HTTP call, is not there when the combination is first judged and reads as `matches nothing`.
 
 The demo styleguide has an example of each:
 
@@ -345,7 +369,7 @@ The demo styleguide has an example of each:
 | Card      | `Hover` on `.sg-card--clickable`       | `Clickable`                                                                  | `Basic`: `.sg-card--clickable matches nothing`                                                      |
 | Button    | `Hover` and `Focus visible` on `.btn`  | every variant except `Disabled` (`Full width` opts out with `states: false`) | `Disabled`: `Hover` reads `.btn has pointer-events: none`, `Focus visible` reads `.btn is disabled` |
 
-A state that fits no variant at all is almost certainly a selector with a typo. The Overview warns once in the console (`[ng-prism] State "<name>" of <Class> fits no variant; check its selectors.`) and marks the header of its column: `fits 0 of <n>` turns to the attention colour, and the tooltip says the same as the warning. The scanner cannot catch this, because it does not render. An empty state, which forces nothing, is left out of both: it has no selector to check, and the scanner has reported it already.
+A state that fits no variant at all is almost certainly a selector with a typo. The Overview warns once in the console (`[ng-prism] State "<name>" of <Class> fits no variant; check its selectors.`) and marks the header of its column: `0/<n>` turns to the warning colour, and the tooltip says the same as the warning. The scanner cannot catch this, because it does not render. An empty state, which forces nothing, is left out of both: it has no selector to check, and the scanner has reported it already.
 
 ### Opting a variant out
 
@@ -359,11 +383,11 @@ The variant has a single cell in the Overview, spanning every column, and no sta
 
 ### Showing a state while browsing
 
-The **State** group in the tools menu (the sliders button on the floating canvas rail) starts with a row of chips, one per declared state, in declaration order. A chip carries the tinted border of a declared value. Pick one to show the variant you are looking at in that state, pick it again to turn it off. At most one is active, and the variant ribbon keeps listing variants only.
+The **State** group in the tools menu (the sliders button on the floating canvas rail) starts with a row of chips, one per declared state, in declaration order. A chip carries the tinted border of a declared value. Pick one to show the variant you are looking at in that state, pick it again to turn it off. At most one is active. While it is, the variant ribbon shows it as a chip next to the tabs, for example `Focus visible ✕`, and a click on the chip clears the state. A variant with `states: false` shows no chip, see [Opting a variant out](#opting-a-variant-out). The sliders button carries a dot while the menu holds a state or a toggle, so you see it with the menu closed (since `22.7.0`).
 
-The active state is part of the address of what you see, next to the variant, not a browse toggle like a background override:
+The active state is part of the address of what you see, next to the variant, and like a background override it belongs to the variant you picked it for:
 
-- It stays active when you pick another variant, so you can step through the variants in one state. It goes when you switch to another component.
+- It goes when you pick another variant or switch to another component (since `22.7.0`; before, it stayed on every variant). A cell in the Overview opens its variant in its state, and the next variant you pick starts without one. To compare one state across the variants, read its column in the Overview, or pick the state again after the switch.
 - It is in the URL as `state`, see [State Preservation](guide/url-state.md), and it applies in capture mode.
 - The Controls stay usable. Change an input while a state is on and you see the component with that input in that state.
 
@@ -411,8 +435,10 @@ Hover, active and focus states cannot be set through an input. Focusing an eleme
 
 The keys are the states: `hover`, `active`, `focus`, `focus-visible` and `focus-within`. Each one takes a target:
 
-- **`true`**: every element of the rendered component, the host included. Closest to what a pointer resting on the component does.
-- **A selector, or a list of them**: only the matching elements, matched against the host element and everything inside it. Use it for the element the state belongs to, such as the inner `<button>` of a host component or a visually hidden `<input>` whose sibling draws the box.
+- **`true`**: every element of what is rendered, the host included. Closest to what a pointer resting on the component does.
+- **A selector, or a list of them**: only the matching elements, matched against what is rendered: the host element and everything inside it. Use it for the element the state belongs to, such as the inner `<button>` of a host component or a visually hidden `<input>` whose sibling draws the box.
+
+What is rendered is the whole [composition](guide/content-projection.md#compiled-content-template) when a variant has a `template` or a host template, so both forms reach the elements of the frame and of the other parts as well: `{ hover: '.lib-form-field__box' }` hovers the box of the frame around the subject, and `true` is every element of the composition.
 
 ```typescript
 variants: [
@@ -448,7 +474,7 @@ The scanner reads `pseudo` from the source like any other variant value. An unkn
 
 ### Forcing a state while browsing
 
-Below the chips for the component's [states](#showing-a-state-while-browsing), the **State** group in the tools menu has one toggle per pseudo-class. It forces that state on whatever variant is shown, on the whole component. Several can be on at once. The states the variant declares carry a tinted border, like the recommended background in the **Canvas** group, and can be switched off there too. Like a background override, the toggle is transient: switching variants, states or components resets it, and capture mode ignores it.
+Below the chips for the component's [states](#showing-a-state-while-browsing), the **State** group in the tools menu has one toggle per pseudo-class. It forces that state on whatever variant is shown, on the whole component. Several can be on at once. The states the variant declares carry a tinted border, like the recommended background in the **Canvas** group, and can be switched off there too. Like a background override, the toggle is transient: switching variants, states or components resets it, and capture mode ignores it. While a toggle is set, the sliders button carries a dot.
 
 ### Under visual regression
 
@@ -456,7 +482,7 @@ A forced state is part of the variant, so a screenshot runner captures it withou
 
 ## Overview: All Variants at Once
 
-The component header carries a third view tab between `Playground` and `API`: **Overview**. It renders every variant of the active component at the same time, as a grid of cells, more of a contact sheet than a viewfinder. Use it to compare variants against each other instead of stepping through them one by one. A component with [states](#states) gets a matrix of variants against states instead, see [With states](#with-states).
+The component header carries a third view tab between `Playground` and `API`: **Overview**. It renders every variant of the active component at the same time, as a grid of cells, more of a contact sheet than a viewfinder. Use it to compare variants against each other instead of stepping through them one by one. A component with [states](#states) gets a matrix of variants against states instead, see [With states](#with-states). The Overview belongs to the component it shows: selecting another component opens that one on the Playground (since 22.7.0; before, the Overview stayed open from component to component).
 
 The tab appears when the Overview would have at least two cells. Without `states` a cell is a variant, so that means two or more variants. It stays hidden for single-variant components (a one-cell grid says nothing the Playground does not say better) and for components using [`renderPage`](guide/component-pages.md). Those render a page that reads its values from a single shared renderer state, so every cell would show the same thing.
 
@@ -471,16 +497,16 @@ Each cell renders its variant as declared:
 
 The Overview is a stage, not a workbench: it has no controls, no density or zoom settings, and no addon panel. Control values you changed in the Playground do not leak into it. Every cell shows the variant as the decorator declares it.
 
-Every cell opens in the Playground. Click it, or focus it and press Enter or Space, and the Playground shows exactly that combination: the variant and, in the matrix, the state. That holds for components without states as well.
+Every cell opens in the Playground. Click it, or focus it and press Enter or Space, and the Playground shows exactly that combination: the variant and, in the matrix, the state. That holds for components without states as well. A hovered cell and the one the Playground currently shows have a primary-coloured frame.
 
 ### With states
 
 The matrix has a row per variant and a column per state, Default first and then the states in the order they are declared:
 
-- **Row header**: the variant name, with a note below it where there is something to say: the variant's own `bg` (`bg: dark`), or `states: false`.
-- **Column header**: the state's name, what it forces (`hover + active → .btn`, with a group per target when the pseudo-classes name different ones: `hover → .pill; focus-visible → .pill__close`), and how many variants it fits (`fits 2 of 5`). The count is of the variants the state is combined with, so those with `states: false` are not in it. The Default column says `no state`.
+- **Row header**: the variant name. Where there is something to add, the variant's own `bg` (`bg: dark`) or `states: false`, it is the header's tooltip.
+- **Column header**: the state's name, what it forces (`hover + active → .btn`, with a group per target when the pseudo-classes name different ones: `hover → .pill; focus-visible → .pill__close`), and how many variants it fits (`2/5` next to the name, spelled out in its tooltip). The count is of the variants the state is combined with, so those with `states: false` are not in it. The Default column says `no state`. The corner above the row headers reads `Variant \ State`.
 - **Background and layout** belong to the row: a variant's `bg` paints every cell of its row, and a `stretch` variant fills its cells.
-- **A cell that does not fit** is empty and dashed, with the reason in it, see [When a state fits](#when-a-state-fits).
+- **A cell that does not fit** is empty and dashed, with only a `–` in it. The reason is the cell's tooltip and part of its accessible name, see [When a state fits](#when-a-state-fits).
 - **A variant with `states: false`** has a single cell across all columns, because it is combined with none of them.
 
 Each cell shows the variant with the state of its column forced, and only there, like a variant's own `pseudo`. Many states or a wide component make the matrix scroll horizontally. The header row and the variant column stay in view, and the columns have a minimum width instead of being squeezed.

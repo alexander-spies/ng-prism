@@ -1,23 +1,33 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, viewChild, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { PrismIconComponent } from '../icons/prism-icon.component.js';
 import { PrismNavigationService } from '../services/prism-navigation.service.js';
+import { PrismPseudoStateService } from '../services/prism-pseudo-state.service.js';
 import { PrismRendererService } from '../services/prism-renderer.service.js';
-import { spectrumSlot } from './spectrum.js';
+import { PrismIconButtonComponent } from '../shared/prism-icon-button.component.js';
+import { type PrismTabItem, PrismTabsComponent } from '../shared/prism-tabs.component.js';
+
+/** The active state as the ribbon shows it, a chip that clears it. */
+interface RibbonStateChip {
+    name: string;
+    /** The accessible name: what a click does. */
+    label: string;
+    /** The label, and why the state is not applied while the canvas finds no target for it. */
+    title: string;
+    fits: boolean;
+}
 
 @Component({
     selector: 'prism-variant-ribbon',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [PrismIconComponent],
+    imports: [PrismIconComponent, PrismTabsComponent, PrismIconButtonComponent],
     templateUrl: './prism-variant-ribbon.component.html',
     styleUrl: './prism-variant-ribbon.component.css'
 })
 export class PrismVariantRibbonComponent {
     private readonly navigationService = inject(PrismNavigationService);
     protected readonly rendererService = inject(PrismRendererService);
-
-    private readonly tabsContainer = viewChild<ElementRef<HTMLElement>>('tabsContainer');
-    private readonly tabButtons = viewChildren<ElementRef<HTMLButtonElement>>('tabButton');
+    private readonly pseudoState = inject(PrismPseudoStateService);
 
     protected readonly variants = computed(() => {
         const comp = this.navigationService.activeComponent();
@@ -25,29 +35,28 @@ export class PrismVariantRibbonComponent {
         return comp?.meta.showcaseConfig.variants ?? [];
     });
 
-    constructor() {
-        effect(() => {
-            const idx = this.rendererService.activeVariantIndex();
-            const container = this.tabsContainer()?.nativeElement;
-            const button = this.tabButtons()[idx]?.nativeElement;
+    /** One tab per variant, keyed by index: names need not be unique. */
+    protected readonly tabItems = computed<PrismTabItem[]>(() => this.variants().map((v, i) => ({ id: String(i), label: v.name })));
 
-            if (!container || !button) return;
+    /**
+     * The active state next to the tabs, so it never sits on the canvas unseen.
+     * None on a variant with `states: false`: the Playground names the state as
+     * not applicable there, and a chip would claim it is shown.
+     */
+    protected readonly stateChip = computed<RibbonStateChip | null>(() => {
+        const state = this.pseudoState.activeState();
 
-            const buttonLeft = button.offsetLeft;
-            const buttonRight = buttonLeft + button.offsetWidth;
-            const viewLeft = container.scrollLeft;
-            const viewRight = viewLeft + container.clientWidth;
+        if (!state || this.pseudoState.stateExclusion() !== null) return null;
+        const fit = this.pseudoState.canvasFit();
+        const label = `Clear state ${state.name}`;
 
-            if (buttonLeft < viewLeft) {
-                container.scrollLeft = buttonLeft;
-            } else if (buttonRight > viewRight) {
-                container.scrollLeft = buttonRight - container.clientWidth;
-            }
-        });
-    }
+        return fit?.fits === false
+            ? { name: state.name, label, title: `${label} (not applied: ${fit.reason})`, fits: false }
+            : { name: state.name, label, title: label, fits: true };
+    });
 
-    protected slot(index: number): { i: number; n: number } {
-        return spectrumSlot(index, this.variants().length);
+    protected select(id: string | null): void {
+        if (id !== null) this.rendererService.selectVariant(Number(id));
     }
 
     protected prev(): void {
@@ -60,5 +69,9 @@ export class PrismVariantRibbonComponent {
         const idx = this.rendererService.activeVariantIndex();
 
         if (idx < this.variants().length - 1) this.rendererService.selectVariant(idx + 1);
+    }
+
+    protected clearState(): void {
+        this.rendererService.selectState(null);
     }
 }

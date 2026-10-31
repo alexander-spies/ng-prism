@@ -1,5 +1,16 @@
 import type { VrtStatus, VrtVariantResult } from './visual-regression.types.js';
-import { defaultExpandedGroups, formatPercent, groupRows, rowKey, rowLabel, statSummary, summarize, summarySegments } from './vrt-summarize.js';
+import {
+    defaultExpandedGroups,
+    formatPercent,
+    groupRows,
+    rowKey,
+    rowLabel,
+    statSummary,
+    statusBadge,
+    summarize,
+    summarySegments,
+    summaryTitle
+} from './vrt-summarize.js';
 
 function variant(status: VrtStatus, diffRatio?: number): VrtVariantResult {
     return {
@@ -326,5 +337,32 @@ describe('rowLabel', () => {
     it('falls back to the name the scanner gives a state without one, counting from 1', () => {
         expect(rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, stateIndex: 0, status: 'unchanged' })).toBe('Outlined × State 1');
         expect(rowLabel({ className: 'C', variantName: 'Outlined', variantIndex: 2, stateIndex: 1, status: 'unchanged' })).toBe('Outlined × State 2');
+    });
+});
+
+/** The badge on each row of the list: the status as a word, in its tone. */
+describe('statusBadge', () => {
+    it.each([
+        ['changed', { label: 'Changed', tone: 'danger' }],
+        ['new', { label: 'New', tone: 'primary' }],
+        ['size-mismatch', { label: 'Resized', tone: 'warn' }],
+        ['unchanged', { label: 'Unchanged', tone: 'success' }],
+        ['excluded', { label: 'Excluded', tone: 'neutral' }]
+    ] as const)('shows %s as %o', (status, badge) => {
+        expect(statusBadge(status)).toEqual(badge);
+    });
+});
+
+/** The breakdown the list headings carry as their tooltip, now that the segment bar is gone. */
+describe('summaryTitle', () => {
+    it('lists each status with its count and the largest diff', () => {
+        const summary = summarize([
+            { name: 'a', status: 'changed', diffRatio: 0.1026 },
+            { name: 'b', status: 'unchanged' },
+            { name: 'c', status: 'unchanged' },
+            { name: 'd', status: 'new' }
+        ] as VrtVariantResult[]);
+
+        expect(summaryTitle(summary)).toBe('1 changed · 2 unchanged · 1 new · max diff 10.26%');
     });
 });

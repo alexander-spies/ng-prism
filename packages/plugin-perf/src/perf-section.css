@@ -1,0 +1,84 @@
+/* Shared by the bundle, render and memory sections: metric cards on a 12 px
+   grid, block cards for bars and traces, and the empty state. The cards
+   themselves are prism-metric-card from @ng-prism/core. */
+:host {
+    display: block;
+}
+
+.perf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 16px 18px 0;
+}
+
+.perf-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    margin: 12px 18px 0;
+    background: var(--prism-bg-surface);
+    border: 1px solid var(--prism-border);
+    border-radius: 6px;
+}
+
+.perf-block:last-child {
+    margin-bottom: 16px;
+}
+
+.perf-block__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--prism-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Quantities, not verdicts: one colour, the primary, never the brand gradient. */
+.perf-bars {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.perf-bar-label {
+    color: var(--prism-text-muted);
+}
+
+.perf-bar-track {
+    height: 6px;
+    overflow: hidden;
+    background: var(--prism-input-bg);
+    border-radius: 3px;
+}
+
+.perf-bar-fill {
+    height: 100%;
+    background: var(--prism-primary);
+    border-radius: 3px;
+}
+
+.perf-bar-val {
+    color: var(--prism-text-2);
+    white-space: nowrap;
+}
+
+.perf-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 160px;
+    font-size: 12.5px;
+    color: var(--prism-text-muted);
+}
+
+.perf-block > prism-badge {
+    align-self: flex-start;
+}

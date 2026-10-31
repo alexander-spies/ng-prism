@@ -1,5 +1,6 @@
-import type { AxeResults } from 'axe-core';
-import { calculateScore, runCoreAudit } from './a11y-audit.service.js';
+import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
+import axe, { type AxeResults, type Result } from 'axe-core';
+import { A11yAuditService, calculateScore, runCoreAudit } from './a11y-audit.service.js';
 
 const mockResults: AxeResults = {
     violations: [],
@@ -106,7 +107,8 @@ describe('calculateScore', () => {
 });
 
 describe('runCoreAudit', () => {
-    const mockElement = {} as Element;
+    // Outside a canvas stage: the node environment has no DOM, and an audit there skips the hiding.
+    const mockElement = { closest: () => null } as unknown as Element;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -142,5 +144,52 @@ describe('runCoreAudit', () => {
         (axe.run as jest.Mock).mockRejectedValueOnce(new Error('axe failed'));
 
         await expect(runCoreAudit(mockElement)).rejects.toThrow('axe failed');
+    });
+});
+
+describe('accepted violations', () => {
+    const contrastViolation: Result = { id: 'color-contrast', impact: 'serious', description: '', nodes: [], tags: [], help: '', helpUrl: '' };
+    const contrast = { rule: 'color-contrast', reason: 'The placeholder is muted by design.' };
+
+    it('does not count an accepted violation', () => {
+        const result = calculateScore({ ...mockResults, violations: [contrastViolation] }, [contrast]);
+
+        expect(result).toMatchObject({ score: 100, serious: 0, violations: 0 });
+    });
+
+    describe('in the audit service', () => {
+        const element = { closest: () => null } as unknown as Element;
+        let service: A11yAuditService;
+
+        beforeEach(() => {
+            jest.useFakeTimers();
+            (axe.run as jest.Mock).mockResolvedValue({ ...mockResults, violations: [contrastViolation] });
+            const injector = Injector.create({ providers: [{ provide: DestroyRef, useValue: { onDestroy: () => () => undefined } }] });
+
+            service = runInInjectionContext(injector, () => new A11yAuditService());
+        });
+        afterEach(() => jest.useRealTimers());
+
+        async function audit(): Promise<void> {
+            await jest.advanceTimersByTimeAsync(500);
+        }
+
+        it('sets an accepted violation apart from the counted ones', async () => {
+            service.scheduleAudit(element, { accept: [contrast] });
+            await audit();
+
+            expect(service.scoreResult()).toMatchObject({ score: 100, serious: 0 });
+            expect(service.violations()).toEqual([]);
+            expect(service.accepted()).toEqual([{ ...contrastViolation, reason: contrast.reason }]);
+        });
+
+        it('grades with the acceptances of the audit it last scheduled, not of the variant before', async () => {
+            service.scheduleAudit(element, { accept: [contrast] });
+            service.scheduleAudit(element, {});
+            await audit();
+
+            expect(service.scoreResult()).toMatchObject({ serious: 1 });
+            expect(service.accepted()).toEqual([]);
+        });
     });
 });

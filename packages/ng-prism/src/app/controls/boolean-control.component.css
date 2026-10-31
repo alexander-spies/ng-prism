@@ -1,24 +1,30 @@
+/* Off: a contour and a knob in the control-contour colour, 3:1 on every
+   surface, instead of a tint that disappears. On: the brand-blue track with a
+   white knob. */
 .ctl-toggle {
     position: relative;
+    box-sizing: border-box;
     flex-shrink: 0;
     width: 34px;
     height: 18px;
     padding: 0;
     cursor: pointer;
-    background: var(--prism-input-bg);
-    border: 1px solid var(--prism-border);
+    background: transparent;
+    border: 1.5px solid var(--prism-border-strong);
     border-radius: 9px;
-    transition: all var(--dur-fast);
+    transition:
+        background var(--dur-fast),
+        border-color var(--dur-fast);
 }
 
 .ctl-toggle::after {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
     content: '';
-    background: var(--prism-text-muted);
+    background: var(--prism-border-strong);
     border-radius: 50%;
     transition:
         transform var(--dur-fast),
@@ -26,11 +32,26 @@
 }
 
 .ctl-toggle.on {
-    background: var(--prism-primary);
-    border-color: var(--prism-primary);
+    background: var(--prism-toggle-on);
+    border-color: transparent;
 }
 
 .ctl-toggle.on::after {
-    background: white;
+    background: var(--prism-on-primary);
     transform: translateX(16px);
+}
+
+.ctl-toggle:focus-visible {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: 2px;
+}
+
+/* Touch screens: the switch keeps its look, an invisible margin around it
+   takes the tap, 46 × 42 px in all. */
+@media (pointer: coarse) {
+    .ctl-toggle::before {
+        position: absolute;
+        inset: -13px -7px;
+        content: '';
+    }
 }

@@ -1,17 +1,19 @@
 <div
     class="prism-canvas-stage"
     [attr.data-bg]="variantBg.effective()"
-    [attr.data-rulers]="canvasService.rulers() ? '' : null"
+    [attr.data-rulers]="canvasService.rulers() && desktopTools() ? '' : null"
     [attr.data-viewport]="viewportWidth() !== null ? '' : null"
     [style.--prism-vp-w.px]="viewportWidth()"
     [style.--zoom]="canvasService.zoom()">
     @if (!capture.active()) {
-        <div
-            class="stage-crosshair"
-            [class.visible]="canvasService.guides()"></div>
-        <prism-canvas-rulers />
-        @if (canvasService.measure()) {
-            <prism-canvas-measure />
+        @if (desktopTools()) {
+            <div
+                class="stage-crosshair"
+                [class.visible]="canvasService.guides()"></div>
+            <prism-canvas-rulers />
+            @if (canvasService.measure()) {
+                <prism-canvas-measure />
+            }
         }
         <prism-canvas-bg-pill />
         @if (viewportWidth() !== null) {

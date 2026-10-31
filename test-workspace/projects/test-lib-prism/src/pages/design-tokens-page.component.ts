@@ -1,148 +1,290 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+
+interface Swatch {
+    name: string;
+    hex: string;
+}
+
+interface Palette {
+    name: string;
+    description: string;
+    swatches: Swatch[];
+}
 
 @Component({
     selector: 'design-tokens-page',
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <div class="tokens-page">
-            <h1>Design Tokens</h1>
-            <p class="tokens-page__intro">Visual reference for all design tokens used across the component library.</p>
+        <article class="doc-page">
+            <header class="doc-header">
+                <p class="doc-eyebrow">Foundations</p>
+                <h1 class="doc-title">Design Tokens</h1>
+                <p class="doc-lead"
+                    >The colours, spacing, radii and type sizes test-lib's components are built from. Reach for these values first when you build something that has to
+                    sit next to them.</p
+                >
+            </header>
 
-            <section class="tokens-section">
-                <h2>Colors</h2>
-                <div class="tokens-grid">
-                    @for (color of colors; track color.name) {
-                        <div class="token-swatch">
-                            <div class="token-swatch__color" [style.background]="color.value"></div>
-                            <span class="token-swatch__name">{{ color.name }}</span>
-                            <code class="token-swatch__value">{{ color.value }}</code>
+            <section class="doc-section">
+                <h2 class="doc-section__title">Colour</h2>
+                <p class="doc-section__lead">Indigo carries the brand, four hues carry status, and a cool grey does the rest.</p>
+                @for (palette of palettes; track palette.name) {
+                    <div class="palette">
+                        <div class="palette__head">
+                            <h3 class="doc-label">{{ palette.name }}</h3>
+                            <span class="palette__description">{{ palette.description }}</span>
                         </div>
-                    }
-                </div>
+                        <div class="doc-grid" style="--doc-grid-min: 120px">
+                            @for (swatch of palette.swatches; track swatch.hex) {
+                                <figure class="swatch">
+                                    <div class="swatch__chip" [style.background]="swatch.hex"></div>
+                                    <figcaption class="swatch__caption">
+                                        <span class="swatch__name">{{ swatch.name }}</span>
+                                        <code class="swatch__hex">{{ swatch.hex }}</code>
+                                    </figcaption>
+                                </figure>
+                            }
+                        </div>
+                    </div>
+                }
             </section>
 
-            <section class="tokens-section">
-                <h2>Spacing Scale</h2>
-                <div class="tokens-spacing">
+            <section class="doc-section">
+                <h2 class="doc-section__title">Spacing</h2>
+                <p class="doc-section__lead">A 4px base. Related controls sit <code>sm</code> apart, sections <code>lg</code> and up.</p>
+                <div class="doc-card scale">
                     @for (space of spacing; track space.name) {
-                        <div class="token-space">
-                            <div class="token-space__bar" [style.width.px]="space.px"></div>
-                            <span class="token-space__label">{{ space.name }} · {{ space.px }}px</span>
+                        <div class="scale__row">
+                            <code class="scale__name">{{ space.name }}</code>
+                            <span class="scale__value">{{ space.px }}px</span>
+                            <div class="scale__bar" [style.width.px]="space.px"></div>
                         </div>
                     }
                 </div>
             </section>
 
-            <section class="tokens-section">
-                <h2>Typography</h2>
-                <div class="tokens-type">
-                    <p style="font-size: 32px; font-weight: 700;">Heading 1 · 32px Bold</p>
-                    <p style="font-size: 24px; font-weight: 600;">Heading 2 · 24px Semibold</p>
-                    <p style="font-size: 18px; font-weight: 600;">Heading 3 · 18px Semibold</p>
-                    <p style="font-size: 16px; font-weight: 400;">Body · 16px Regular</p>
-                    <p style="font-size: 14px; font-weight: 400; opacity: 0.7;">Caption · 14px Regular</p>
-                    <p style="font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">Overline · 12px Medium</p>
+            <section class="doc-section">
+                <h2 class="doc-section__title">Radius</h2>
+                <p class="doc-section__lead">Small elements get small corners, surfaces get larger ones, and toggles and chips are fully round.</p>
+                <div class="doc-grid" style="--doc-grid-min: 150px">
+                    @for (radius of radii; track radius.name) {
+                        <div class="doc-card radius">
+                            <div class="radius__sample" [style.border-radius.px]="radius.px"></div>
+                            <span class="swatch__name">{{ radius.name }}</span>
+                            <code class="swatch__hex">{{ radius.px === 999 ? 'full' : radius.px + 'px' }}</code>
+                        </div>
+                    }
                 </div>
             </section>
-        </div>
+
+            <section class="doc-section">
+                <h2 class="doc-section__title">Typography</h2>
+                <p class="doc-section__lead">One family, the system UI font, in six steps.</p>
+                <div class="doc-card type">
+                    @for (step of typeScale; track step.name) {
+                        <div class="type__row">
+                            <div class="type__meta">
+                                <span class="swatch__name">{{ step.name }}</span>
+                                <code class="swatch__hex">{{ step.size }}px · {{ step.weight }}</code>
+                            </div>
+                            <p class="type__sample" [class.type__sample--overline]="step.overline" [style.font-size.px]="step.size" [style.font-weight]="step.weight">
+                                The quick brown fox jumps over the lazy dog
+                            </p>
+                        </div>
+                    }
+                </div>
+            </section>
+        </article>
     `,
+    styleUrls: ['./page-frame.css'],
     styles: `
-        .tokens-page {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 32px;
-            font-family: system-ui, sans-serif;
-            color: #1a1a2e;
+        .palette + .palette {
+            margin-top: 28px;
         }
-        .tokens-page h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
+
+        .palette__head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 4px 12px;
+            margin-bottom: 12px;
         }
-        .tokens-page__intro {
-            color: #666;
-            margin-bottom: 32px;
-        }
-        .tokens-section {
-            margin-bottom: 40px;
-        }
-        .tokens-section h2 {
-            font-size: 18px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-        }
-        .tokens-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 16px;
-        }
-        .token-swatch__color {
-            width: 100%;
-            height: 64px;
-            border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-        }
-        .token-swatch__name {
-            display: block;
+
+        .palette__description {
             font-size: 13px;
-            font-weight: 500;
-            margin-top: 8px;
+            color: var(--prism-text-muted);
         }
-        .token-swatch__value {
-            display: block;
-            font-size: 11px;
-            color: #888;
+
+        .swatch {
+            margin: 0;
         }
-        .tokens-spacing {
+
+        .swatch__chip {
+            height: 56px;
+            border: 1px solid var(--prism-border-strong);
+            border-radius: 8px;
+        }
+
+        .swatch__caption {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            margin-top: 8px;
         }
-        .token-space {
+
+        .swatch__name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--prism-text);
+        }
+
+        .swatch__hex {
+            font-size: 11px;
+            color: var(--prism-text-muted);
+        }
+
+        .scale {
             display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .scale__row {
+            display: grid;
+            grid-template-columns: 48px 48px minmax(0, 1fr);
             align-items: center;
             gap: 12px;
         }
-        .token-space__bar {
-            height: 12px;
-            background: #6366f1;
-            border-radius: 4px;
-            min-width: 4px;
+
+        .scale__name {
+            color: var(--prism-text);
         }
-        .token-space__label {
+
+        .scale__value {
             font-size: 13px;
-            color: #555;
+            color: var(--prism-text-muted);
         }
-        .tokens-type {
+
+        .scale__bar {
+            height: 12px;
+            border-radius: 3px;
+            background: var(--prism-primary);
+        }
+
+        .radius {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 2px;
         }
-        .tokens-type p {
+
+        .radius__sample {
+            width: 56px;
+            height: 56px;
+            margin-bottom: 10px;
+            border: 2px solid var(--prism-primary);
+            background: var(--prism-input-bg);
+        }
+
+        .doc-card.type {
+            display: flex;
+            flex-direction: column;
+            padding: 4px 20px;
+        }
+
+        .type__row {
+            display: grid;
+            grid-template-columns: 140px minmax(0, 1fr);
+            align-items: baseline;
+            gap: 16px;
+            padding: 16px 0;
+        }
+
+        .type__row + .type__row {
+            border-top: 1px solid var(--prism-border);
+        }
+
+        .type__meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .type__sample {
             margin: 0;
+            overflow: hidden;
+            font-family: system-ui, sans-serif;
+            line-height: 1.3;
+            color: var(--prism-text);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .type__sample--overline {
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
     `
 })
 export class DesignTokensPageComponent {
-    colors = [
-        { name: 'Primary', value: '#6366f1' },
-        { name: 'Primary Dark', value: '#4f46e5' },
-        { name: 'Success', value: '#22c55e' },
-        { name: 'Warning', value: '#f59e0b' },
-        { name: 'Error', value: '#ef4444' },
-        { name: 'Info', value: '#3b82f6' },
-        { name: 'Neutral 100', value: '#f5f5f5' },
-        { name: 'Neutral 300', value: '#d4d4d4' },
-        { name: 'Neutral 500', value: '#737373' },
-        { name: 'Neutral 900', value: '#171717' }
+    protected readonly palettes: Palette[] = [
+        {
+            name: 'Brand',
+            description: 'Buttons, tabs, toggles, sliders and spinners',
+            swatches: [
+                { name: 'Indigo 50', hex: '#eef2ff' },
+                { name: 'Indigo 100', hex: '#e0e7ff' },
+                { name: 'Indigo 500', hex: '#6366f1' },
+                { name: 'Indigo 600', hex: '#4f46e5' },
+                { name: 'Indigo 700', hex: '#4338ca' }
+            ]
+        },
+        {
+            name: 'Status',
+            description: 'Alerts, badges and progress bars',
+            swatches: [
+                { name: 'Info', hex: '#3b82f6' },
+                { name: 'Success', hex: '#22c55e' },
+                { name: 'Warning', hex: '#f59e0b' },
+                { name: 'Error', hex: '#ef4444' }
+            ]
+        },
+        {
+            name: 'Neutral',
+            description: 'Text, borders and surfaces',
+            swatches: [
+                { name: 'Grey 50', hex: '#f9fafb' },
+                { name: 'Grey 100', hex: '#f3f4f6' },
+                { name: 'Grey 200', hex: '#e5e7eb' },
+                { name: 'Grey 300', hex: '#d1d5db' },
+                { name: 'Grey 400', hex: '#9ca3af' },
+                { name: 'Grey 500', hex: '#6b7280' },
+                { name: 'Grey 700', hex: '#374151' },
+                { name: 'Grey 900', hex: '#111827' }
+            ]
+        }
     ];
 
-    spacing = [
+    protected readonly spacing = [
         { name: 'xs', px: 4 },
         { name: 'sm', px: 8 },
         { name: 'md', px: 16 },
         { name: 'lg', px: 24 },
         { name: 'xl', px: 32 },
         { name: '2xl', px: 48 }
+    ];
+
+    protected readonly radii = [
+        { name: 'Small', px: 4 },
+        { name: 'Medium', px: 8 },
+        { name: 'Large', px: 12 },
+        { name: 'Full', px: 999 }
+    ];
+
+    protected readonly typeScale = [
+        { name: 'Heading 1', size: 32, weight: 700, overline: false },
+        { name: 'Heading 2', size: 24, weight: 600, overline: false },
+        { name: 'Heading 3', size: 18, weight: 600, overline: false },
+        { name: 'Body', size: 16, weight: 400, overline: false },
+        { name: 'Caption', size: 14, weight: 400, overline: false },
+        { name: 'Overline', size: 12, weight: 500, overline: true }
     ];
 }

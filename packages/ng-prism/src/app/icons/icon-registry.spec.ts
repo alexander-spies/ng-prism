@@ -15,4 +15,19 @@ describe('icon registry', () => {
 
         expect(taken).not.toContain(ICONS.ruler);
     });
+
+    it('should carry a glyph for the Services section', () => {
+        expect(ICON_NAMES).toContain('plug');
+        expect(ICONS.plug).toBeTruthy();
+    });
+
+    it('should carry a glyph for the Pipes section', () => {
+        expect(ICON_NAMES).toContain('pipette');
+        expect(ICONS.pipette).toBeTruthy();
+    });
+
+    it('should carry a glyph for the navigation toggle on a phone', () => {
+        expect(ICON_NAMES).toContain('menu');
+        expect(ICONS.menu).toBeTruthy();
+    });
 });

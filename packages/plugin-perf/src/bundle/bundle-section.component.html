@@ -1,93 +1,64 @@
 @if (metrics(); as m) {
-    <div class="perf-body perf-body--4col">
-        <div class="perf-card">
-            <div class="perf-card-head">
-                <span class="perf-card-name">Source Size</span>
-                <span
-                    class="perf-card-status"
-                    [class]="sizeStatus()"
-                    >{{ sizeStatusText() }}</span
-                >
-            </div>
-            <div class="perf-card-val">{{ formatKb(m.sourceSize) }}<span>kb</span></div>
-            <div class="perf-card-sub">{{ formatBytes(m.sourceSize) }} bytes</div>
-        </div>
-        <div class="perf-card">
-            <div class="perf-card-head">
-                <span class="perf-card-name">Gzip Estimate</span>
-                <span
-                    class="perf-card-status"
-                    [class]="gzipStatus()"
-                    >{{ gzipStatusText() }}</span
-                >
-            </div>
-            <div class="perf-card-val">{{ formatKb(m.gzipEstimate) }}<span>kb</span></div>
-            <div class="perf-card-sub">~{{ gzipPercent() }}% of source</div>
-        </div>
-        <div class="perf-card">
-            <div class="perf-card-head">
-                <span class="perf-card-name">Direct Imports</span>
-            </div>
-            <div class="perf-card-val">{{ m.directImports }}</div>
-            <div class="perf-card-sub">top-level only</div>
-        </div>
-        <div class="perf-card">
-            <div class="perf-card-head">
-                <span class="perf-card-name">Tree Depth</span>
-            </div>
-            <div class="perf-card-val">{{ m.treeDepth }}<span>/ 10</span></div>
-            <div class="perf-card-sub">import levels</div>
-        </div>
+    <div class="perf-grid">
+        <prism-metric-card
+            label="Source size"
+            unit="kb"
+            [value]="formatKb(m.sourceSize)"
+            [tone]="toneOf(sourceStatus().tone)"
+            [statusLabel]="sourceStatus().label"
+            [title]="sourceTitle()" />
+        <prism-metric-card
+            label="Gzip estimate"
+            unit="kb"
+            [value]="formatKb(m.gzipEstimate)"
+            [tone]="toneOf(gzipStatus().tone)"
+            [statusLabel]="gzipStatus().label"
+            [title]="gzipTitle()" />
+        <prism-metric-card
+            label="Direct imports"
+            title="Top-level imports only"
+            [value]="'' + m.directImports" />
+        <prism-metric-card
+            label="Tree depth"
+            unit="/ 10"
+            title="Import levels below the component"
+            [value]="'' + m.treeDepth" />
     </div>
 
-    <div class="perf-detail">
-        <div class="perf-card perf-card--block">
-            <div class="perf-card-head"><span class="perf-card-name">Size Breakdown</span></div>
-            <div class="perf-bars">
-                <span class="perf-bar-label">source</span>
+    <div
+        class="perf-block"
+        [title]="breakdownTitle()">
+        <span class="perf-block__label">{{ breakdownLabel() }}</span>
+        <div class="perf-bars">
+            @for (row of breakdown(); track row.label) {
+                <span class="perf-bar-label">{{ row.label }}</span>
                 <div class="perf-bar-track"
                     ><div
                         class="perf-bar-fill"
-                        [style.width.%]="sourceBarPercent()"></div
+                        [class.perf-bar-fill--secondary]="row.secondary"
+                        [style.width.%]="barPercent(row.bytes)"></div
                 ></div>
-                <span class="perf-bar-val">{{ formatKb(m.sourceSize) }} KB</span>
-                <span class="perf-bar-label">gzip est.</span>
-                <div class="perf-bar-track"
-                    ><div
-                        class="perf-bar-fill"
-                        [style.width.%]="gzipBarPercent()"></div
-                ></div>
-                <span class="perf-bar-val">{{ formatKb(m.gzipEstimate) }} KB</span>
-            </div>
-            <div class="perf-thresholds"
-                >Thresholds: <span class="perf-thresholds--warn">warn &ge; {{ warnKb() }} KB</span> &middot;
-                <span class="perf-thresholds--crit">crit &ge; {{ critKb() }} KB</span></div
-            >
+                <span class="perf-bar-val">{{ formatKb(row.bytes) }}{{ row.budgeted ? ' / ' + warnKb() : '' }} kb</span>
+            }
         </div>
     </div>
 
-    <div class="perf-detail perf-detail--last">
-        <div class="perf-card perf-card--block">
-            <div class="perf-card-head"
-                ><span class="perf-card-name">Direct Imports ({{ m.directImports }})</span></div
-            >
-            <div class="perf-chips">
-                @for (imp of visibleImports(); track imp) {
-                    <span
-                        class="perf-chip"
-                        [class]="chipClass(imp)"
-                        >{{ imp }}</span
-                    >
-                }
-                @if (hiddenImportCount() > 0) {
-                    <span class="perf-chip">+{{ hiddenImportCount() }} more</span>
-                }
-            </div>
+    <div class="perf-block">
+        <span class="perf-block__label">Direct imports</span>
+        <div class="perf-chips">
+            @for (imp of visibleImports(); track imp) {
+                <prism-badge
+                    [tone]="imp.startsWith('@angular/') ? 'primary' : 'neutral'"
+                    [value]="imp" />
+            }
+            @if (hiddenImportCount() > 0) {
+                <prism-badge [value]="'+' + hiddenImportCount()" />
+            }
         </div>
     </div>
 } @else {
     <div class="perf-empty">
-        <div class="perf-empty-text">No bundle data available</div>
-        <div class="perf-empty-hint">Bundle metrics are collected at build time</div>
+        <span>No bundle data available</span>
+        <span>Bundle metrics are collected at build time</span>
     </div>
 }

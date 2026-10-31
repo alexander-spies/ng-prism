@@ -1,0 +1,12 @@
+@if (dot()) {
+    <span
+        class="prism-badge__dot"
+        aria-hidden="true"></span>
+}
+@if (label()) {
+    <span class="prism-badge__label">{{ label() }}</span>
+}
+@if (value()) {
+    <span class="prism-badge__value">{{ value() }}</span>
+}
+<ng-content />

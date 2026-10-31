@@ -1,37 +1,158 @@
+/* The host carries the dark token set inline (see the component), so every
+   token below resolves to the navy band in both themes. */
+:host {
+    display: block;
+}
+
+/* The padding keeps the brand edge out of the content box, so the content centres
+   in what is visible below the edge. Without it, it sits a pixel too high. */
 .prism-header {
+    --brand-edge: 2px;
+
+    position: relative;
     display: grid;
     grid-template-columns: minmax(min-content, var(--sw, 264px)) 1fr auto;
     align-items: center;
     height: var(--band-header);
-    padding: 0 14px 0 0;
+    padding: var(--brand-edge) 14px 0 0;
+    color: var(--prism-text);
     background: var(--prism-bg);
     border-bottom: 1px solid var(--prism-border);
 }
 
+/* The brand edge: one of the few places the gradient appears outside the logo. */
+.prism-header::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--brand-edge);
+    pointer-events: none;
+    content: '';
+    background: var(--prism-brand-gradient);
+}
+
+/*
+ * Brand motion: once per --prism-brand-motion the glow behind the mark swells,
+ * a soft light leaves it along the brand edge and dissolves towards the actions,
+ * then the band rests. Slow, faint and rare on purpose: noticed after a while,
+ * never in the way. Only transform and opacity move, so the compositor runs it.
+ * Both animations share one duration and keyframe timeline, so they stay in step.
+ * A duration that is not a time (`none`) or none at all leaves both still, and
+ * the band looks exactly as it does without motion.
+ */
+.prism-header__sheen {
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--brand-edge);
+    overflow: hidden;
+    pointer-events: none;
+    mask-image: linear-gradient(90deg, transparent, #000 14%, #000 48%, transparent 94%);
+}
+
+.prism-header__sheen::after {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 25%;
+    content: '';
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 70%), transparent);
+    transform: translateX(-100%);
+    animation-name: prism-brand-sheen;
+    animation-duration: var(--prism-brand-motion);
+    animation-iteration-count: infinite;
+}
+
+@keyframes prism-brand-sheen {
+    0%,
+    16% {
+        transform: translateX(-100%);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+    }
+
+    64%,
+    100% {
+        transform: translateX(400%);
+    }
+}
+
+/* In the light theme the band sets itself apart; a hairline under it only adds noise. */
+:host-context(html[data-theme='light']) .prism-header {
+    border-bottom-color: transparent;
+}
+
 .prism-header__brand {
+    position: relative;
     display: flex;
-    gap: 10px;
+    gap: 9px;
     align-items: center;
     padding: 0 16px;
     white-space: nowrap;
     cursor: pointer;
+    isolation: isolate;
 }
 
-.prism-header__logo-default {
-    flex: 0 0 26px;
-    width: 26px;
-    height: 26px;
-    color: var(--prism-primary);
-    filter: drop-shadow(0 0 8px var(--prism-glow-strong));
+/* Light through the prism: a soft refraction behind the mark, never on it. */
+.prism-header__glow {
+    position: absolute;
+    top: -16px;
+    left: 4px;
+    z-index: -1;
+    width: 150px;
+    height: 68px;
+    pointer-events: none;
+    background: var(--prism-brand-glow);
+    border-radius: 50%;
+    filter: blur(10px);
 }
 
-.prism-header__logo-default img {
-    width: 30px;
+/* A second layer of the same light that swells over the first, so the resting glow stays as it is. */
+.prism-header__glow::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: var(--prism-brand-glow);
+    border-radius: inherit;
+    opacity: 0;
+    animation-name: prism-brand-swell;
+    animation-duration: var(--prism-brand-motion);
+    animation-iteration-count: infinite;
+}
+
+@keyframes prism-brand-swell {
+    0%,
+    8% {
+        opacity: 0;
+        transform: scale(0.9);
+        animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+    }
+
+    22% {
+        opacity: 0.9;
+        transform: scale(1.08);
+        animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+    }
+
+    46%,
+    100% {
+        opacity: 0;
+        transform: scale(1.2);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .prism-header__sheen::after,
+    .prism-header__glow::after {
+        animation: none;
+    }
+}
+
+/* Capture mode keeps screenshots deterministic. */
+:host-context([data-prism-capture]) .prism-header__sheen::after,
+:host-context([data-prism-capture]) .prism-header__glow::after {
+    animation: none;
 }
 
 .prism-header__logo-img {
     width: auto;
-    height: 26px;
+    height: 24px;
     object-fit: contain;
 }
 
@@ -41,64 +162,27 @@
     line-height: 1.1;
 }
 
-.prism-header__brand-name {
-    font-size: var(--fs-xl);
+/* The wordmark runs through the brand gradient end to end (brand guide). */
+.prism-header__wordmark {
+    font-size: 16.5px;
     font-weight: 700;
     color: transparent;
-    letter-spacing: -0.01em;
-    background: linear-gradient(90deg, var(--prism-primary), var(--prism-accent) 60%, var(--prism-primary-to));
+    letter-spacing: -0.035em;
+    background: var(--prism-brand-gradient);
     background-clip: text;
+}
+
+.prism-header__brand-name {
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    color: var(--prism-text);
+    letter-spacing: -0.01em;
 }
 
 .prism-header__brand-sub {
     font-family: var(--font-mono);
     font-size: var(--fs-xs);
-    color: var(--prism-text-ghost);
-}
-
-.prism-header__cmdbar {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-self: center;
-    width: 100%;
-    max-width: 540px;
-    height: 32px;
-    padding: 0 12px;
-    font-size: var(--fs-lg);
     color: var(--prism-text-muted);
-    cursor: pointer;
-    background: var(--prism-input-bg);
-    border: 1px solid var(--prism-border);
-    border-radius: 8px;
-    transition:
-        border-color var(--dur-fast),
-        background var(--dur-fast);
-}
-
-.prism-header__cmdbar:hover {
-    color: var(--prism-text-2);
-    border-color: var(--prism-border-strong);
-}
-
-.prism-header__cmdbar-text {
-    flex: 1;
-    text-align: left;
-}
-
-.prism-header__cmdbar-shortcut {
-    display: flex;
-    gap: 3px;
-}
-
-.prism-header__cmdbar-shortcut kbd {
-    padding: 1px 5px;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--prism-text-muted);
-    background: var(--prism-input-bg);
-    border: 1px solid var(--prism-border);
-    border-radius: 4px;
 }
 
 .prism-header__build-pill {
@@ -106,7 +190,7 @@
     font-family: var(--font-mono);
     font-size: var(--fs-xs);
     line-height: 1.4;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     white-space: nowrap;
     background: var(--prism-input-bg);
     border: 1px solid var(--prism-border);
@@ -132,26 +216,115 @@
     padding-left: 4px;
 }
 
-.prism-header__icon-btn {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: none;
-    border-radius: 8px;
-    transition: all var(--dur-fast);
+/* A wrapper for the end widgets that the phone layout turns into a strip of
+   its own. Out of the way everywhere else, so the actions keep their gap. */
+.prism-header__widgets--end {
+    display: contents;
 }
 
-.prism-header__icon-btn:hover {
-    color: var(--prism-text);
-    background: var(--prism-input-bg);
+/*
+ * The phone layout: one flex row of ☰, brand, widgets and ⋮. The subtitle,
+ * the build info pill and the theme switch leave the band; the pill and the
+ * switch move into the ⋮ menu. What is left gives way in a fixed order: the
+ * brand name shortens first, down to the logo alone, and only then do the
+ * widget strips start to scroll. Flex does the ordering. Shrinking is weighted
+ * by flex-shrink, and the name's factor is a thousand times the strips', so the
+ * name takes all of the shortfall until it is gone, leaving the logo, and the
+ * strips only then take what remains. The strips' factor stays at 1: factors
+ * that add up to less than 1 only ever apply that fraction of the shortfall.
+ */
+:host-context([data-prism-mobile]) .prism-header {
+    /* A stacking context for the glow, which loses the brand box it sat in.
+       Raised above the page and the full-screen navigation (20), since the ⋮
+       menu that opens out of the band stays inside this context. */
+    z-index: 30;
+    display: flex;
+    gap: 4px;
+    padding-left: 4px;
+}
+
+:host-context([data-prism-mobile]) .prism-header__nav-toggle,
+:host-context([data-prism-mobile]) prism-layout-menu,
+:host-context([data-prism-mobile]) .prism-header__brand prism-logo,
+:host-context([data-prism-mobile]) .prism-header__logo-img {
+    flex: none;
+}
+
+/* A consumer's own logo can be a wide wordmark; capped, it scales down
+   inside its box instead of pushing the widgets and the menu out of the band. */
+:host-context([data-prism-mobile]) .prism-header__logo-img {
+    max-width: 40vw;
+    object-position: left center;
+}
+
+/*
+ * The brand box steps aside, so the logo and the text are flex items of the
+ * row themselves. As one box, the brand could not shrink below its min-content
+ * width, and with the name on one line that is the whole name: it would push
+ * the widgets and the menu out of the band instead of shortening.
+ */
+:host-context([data-prism-mobile]) .prism-header__brand {
+    display: contents;
+}
+
+/* No minimum width, so the name yields while the logo beside it stays whole. */
+:host-context([data-prism-mobile]) .prism-header__brand-text {
+    flex: 0 1000 auto;
+    min-width: 0;
+    margin: 0 6px 0 5px;
+    overflow: hidden;
+}
+
+:host-context([data-prism-mobile]) .prism-header__wordmark,
+:host-context([data-prism-mobile]) .prism-header__brand-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:host-context([data-prism-mobile]) .prism-header__brand-sub,
+:host-context([data-prism-mobile]) .prism-header__build-pill,
+:host-context([data-prism-mobile]) .prism-header__theme {
+    display: none;
+}
+
+:host-context([data-prism-mobile]) .prism-header__actions {
+    display: contents;
+}
+
+:host-context([data-prism-mobile]) .prism-header__widgets--start,
+:host-context([data-prism-mobile]) .prism-header__widgets--end {
+    display: flex;
+    flex: 0 1 auto;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    padding-left: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+:host-context([data-prism-mobile]) .prism-header__widgets--end {
+    margin-left: auto;
+}
+
+/* Each widget keeps its size and the strip scrolls instead. The host is
+   display: contents elsewhere, which would make the plugin's own element the
+   flex item, and this stylesheet cannot reach that one. */
+:host-context([data-prism-mobile]) prism-header-widget-host {
+    display: flex;
+    flex: none;
 }
 
 :focus-visible {
     outline: 2px solid var(--prism-primary);
     outline-offset: 2px;
+}
+
+/* Touch screens: the band the shell's row reserves for it (see prism-shell.component.css). */
+@media (pointer: coarse) {
+    .prism-header {
+        height: calc(48px * var(--density, 1));
+    }
 }

@@ -1,11 +1,13 @@
-import { statSync } from 'fs';
-import { dirname } from 'path';
+import { existsSync, statSync } from 'fs';
+import { dirname, resolve } from 'path';
 import chokidar from 'chokidar';
 
 export interface ChangeHandlerOptions {
     onRebuild: () => Promise<void>;
     logger: { info(msg: string): void; error(msg: string): void };
     debounceMs?: number;
+    /** Which changed files can affect the manifest. Default: TypeScript sources. */
+    isRelevant?: (filename: string) => boolean;
 }
 
 export interface ChangeHandler {
@@ -15,19 +17,29 @@ export interface ChangeHandler {
 
 export interface WatcherHandle {
     close(): void;
+    /**
+     * Replaces the single files watched beside the sources. A file that stays is
+     * added again once its directory has appeared: chokidar misses a file whose
+     * directory did not exist when it was added, and a rebuild is the next chance
+     * to pick it up. Not otherwise, since every add of a missing file puts one
+     * more listener on its parent.
+     */
+    setFiles(files: string[]): void;
 }
 
 export interface StartWatcherOptions {
     entryPoint: string;
     configFile?: string;
     ignorePaths?: string[];
+    /** Single files that rebuild the manifest whatever their extension, such as the a11y report. */
+    files?: string[];
     onRebuild: () => Promise<void>;
     logger: { info(msg: string): void; error(msg: string): void };
     debounceMs?: number;
 }
 
 export function createChangeHandler(options: ChangeHandlerOptions): ChangeHandler {
-    const { onRebuild, logger, debounceMs = 300 } = options;
+    const { onRebuild, logger, debounceMs = 300, isRelevant = (filename: string) => /\.ts$/.test(filename) } = options;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let isRebuilding = false;
     let pendingChange = false;
@@ -64,7 +76,7 @@ export function createChangeHandler(options: ChangeHandlerOptions): ChangeHandle
 
     function handleChange(filename: string | null): void {
         if (disposed) return;
-        if (filename && !/\.ts$/.test(filename)) return;
+        if (filename && !isRelevant(filename)) return;
 
         if (timer) clearTimeout(timer);
         timer = setTimeout(triggerRebuild, debounceMs);
@@ -83,7 +95,15 @@ export function createChangeHandler(options: ChangeHandlerOptions): ChangeHandle
 
 export function startWatcher(options: StartWatcherOptions): WatcherHandle {
     const { entryPoint, configFile, ignorePaths, onRebuild, logger, debounceMs } = options;
-    const handler = createChangeHandler({ onRebuild, logger, debounceMs });
+    let files = (options.files ?? []).map((file) => resolve(file));
+    /** The files added while their directory was missing, which chokidar cannot see yet. */
+    let blind = new Set(files.filter((file) => !existsSync(dirname(file))));
+    const handler = createChangeHandler({
+        onRebuild,
+        logger,
+        debounceMs,
+        isRelevant: (filename) => /\.ts$/.test(filename) || files.includes(resolve(filename))
+    });
 
     const isDir = (() => {
         try {
@@ -104,7 +124,7 @@ export function startWatcher(options: StartWatcherOptions): WatcherHandle {
         ignorePatterns.push(...ignorePaths);
     }
 
-    const watcher = chokidar.watch(watchPaths, {
+    const watcher = chokidar.watch([...watchPaths, ...files], {
         ignored: ignorePatterns,
         ignoreInitial: true,
         persistent: true
@@ -115,12 +135,22 @@ export function startWatcher(options: StartWatcherOptions): WatcherHandle {
     watcher.on('unlink', (filePath) => handler.handleChange(filePath));
     watcher.on('error', (err) => logger.error(`ng-prism: Watcher error: ${err instanceof Error ? err.message : String(err)}`));
 
-    logger.info(`ng-prism: Watching ${watchPaths.join(', ')} for changes...`);
+    logger.info(`ng-prism: Watching ${[...watchPaths, ...files].join(', ')} for changes...`);
 
     return {
         close() {
             handler.dispose();
             watcher.close();
+        },
+        setFiles(next: string[]) {
+            const resolved = next.map((file) => resolve(file));
+            const gone = files.filter((file) => !resolved.includes(file));
+            const toAdd = resolved.filter((file) => !files.includes(file) || (blind.has(file) && existsSync(dirname(file))));
+
+            if (gone.length > 0) watcher.unwatch(gone);
+            files = resolved;
+            blind = new Set(resolved.filter((file) => (toAdd.includes(file) || blind.has(file)) && !existsSync(dirname(file))));
+            if (toAdd.length > 0) watcher.add(toAdd);
         }
     };
 }

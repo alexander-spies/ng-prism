@@ -1,76 +1,112 @@
-import { type HeadMetric, summarizeMetrics } from './head-metrics.js';
+import { deriveA11ySummary } from '../panels/a11y/a11y-summary.js';
+import { DEFAULT_A11Y_THRESHOLDS } from '../panels/a11y/a11y-thresholds.js';
+import type { A11yScoreResult } from '../panels/a11y/a11y.types.js';
+import { gaugeChip, type HeadMetric, headMetrics, infoDotTone } from './head-metrics.js';
 
-const metric = (id: string, variant: HeadMetric['variant'], value = '—'): HeadMetric => ({ id, label: id, value, variant });
+const audit = (patch: Partial<A11yScoreResult> = {}): A11yScoreResult => ({
+    score: 100,
+    violations: 0,
+    critical: 0,
+    serious: 0,
+    moderate: 0,
+    minor: 0,
+    passes: 4,
+    incomplete: 0,
+    ...patch
+});
 
-describe('summarizeMetrics', () => {
-    it('reports nothing for an empty list', () => {
-        expect(summarizeMetrics([])).toEqual({
-            measured: 0,
-            worst: null,
-            others: 0,
-            variant: 'ok'
+const thresholds80 = { lines: 80, branches: 80, functions: 80, statements: 80 };
+
+const coverage = (score: number, variant?: 'ok' | 'warn' | 'danger') => ({
+    coverage: { found: true, score, thresholds: thresholds80, ...(variant ? { summary: { variant, label: '' } } : {}) }
+});
+
+const byId = (metrics: HeadMetric[], id: string) => metrics.find((m) => m.id === id)!;
+
+describe('headMetrics', () => {
+    it('lists coverage, a11y and visual regression in that order', () => {
+        expect(headMetrics({ meta: null, a11y: null, a11yThresholds: DEFAULT_A11Y_THRESHOLDS }).map((m) => m.id)).toEqual(['coverage', 'a11y', 'vrt']);
+    });
+
+    it('takes the coverage verdict the plugin derived, not a fixed 90', () => {
+        const metric = byId(headMetrics({ meta: coverage(85, 'ok'), a11y: null, a11yThresholds: DEFAULT_A11Y_THRESHOLDS }), 'coverage');
+
+        expect(metric).toEqual({ id: 'coverage', label: 'Coverage', value: '85%', threshold: '≥ 80%', variant: 'ok' });
+    });
+
+    it('gives no coverage verdict when the plugin wrote no summary', () => {
+        expect(byId(headMetrics({ meta: coverage(85), a11y: null, a11yThresholds: DEFAULT_A11Y_THRESHOLDS }), 'coverage').variant).toBe('none');
+    });
+
+    it('grades the live a11y score with the rule the tab and the sidebar use', () => {
+        const metric = byId(headMetrics({ meta: null, a11y: audit({ score: 90, serious: 1 }), a11yThresholds: DEFAULT_A11Y_THRESHOLDS }), 'a11y');
+
+        expect(metric).toEqual({ id: 'a11y', label: 'A11y score', value: '90', threshold: '≥ 80', variant: 'danger' });
+    });
+
+    it('reads the visual regression headline as the plugin derived it', () => {
+        const meta = { visualRegression: { found: true, summary: { value: '10.26%', variant: 'danger' } } };
+
+        expect(byId(headMetrics({ meta, a11y: null, a11yThresholds: DEFAULT_A11Y_THRESHOLDS }), 'vrt')).toEqual({
+            id: 'vrt',
+            label: 'VRT diff',
+            value: '10.26%',
+            threshold: 'no changes',
+            variant: 'danger'
         });
     });
 
-    it('counts measured values and stays quiet when all are ok', () => {
-        const result = summarizeMetrics([metric('variants', 'ok', '9'), metric('coverage', 'ok', '99%')]);
+    it('shows a dash for what is not measured', () => {
+        const metrics = headMetrics({ meta: null, a11y: null, a11yThresholds: DEFAULT_A11Y_THRESHOLDS });
 
-        expect(result.measured).toBe(2);
-        expect(result.worst).toBeNull();
-        expect(result.variant).toBe('ok');
+        expect(metrics.every((m) => m.value === '—' && m.variant === 'none')).toBe(true);
     });
 
-    /**
-     * A metric with no data is not a metric in good standing. It is one the
-     * gauge has nothing to say about. Counting it would make "5" mean something
-     * different depending on which plugins happen to be installed.
-     */
-    it('excludes metrics without data from the count', () => {
-        const result = summarizeMetrics([metric('coverage', 'ok', '99%'), metric('vrt', 'none', '—')]);
+    /** Same input, same tone: the gauge never grades a figure differently from the tab, the sidebar or the header. */
+    it.each([audit({ score: 95 }), audit({ score: 85 }), audit({ score: 70 }), audit({ score: 59 }), audit({ score: 98, critical: 1 })])(
+        'agrees with the a11y summary for %o',
+        (result) => {
+            const metric = byId(headMetrics({ meta: null, a11y: result, a11yThresholds: DEFAULT_A11Y_THRESHOLDS }), 'a11y');
 
-        expect(result.measured).toBe(1);
+            expect(metric.variant).toBe(deriveA11ySummary(result, DEFAULT_A11Y_THRESHOLDS).variant);
+        }
+    );
+});
+
+describe('gaugeChip', () => {
+    const metric = (id: string, variant: HeadMetric['variant']): HeadMetric => ({ id, label: id, value: '1', threshold: '', variant });
+
+    it('shows the worst metric', () => {
+        expect(gaugeChip([metric('a', 'ok'), metric('b', 'danger'), metric('c', 'warn')])).toEqual({ metric: metric('b', 'danger'), variant: 'danger', measured: 3 });
     });
 
-    it('surfaces a single deviation as the worst', () => {
-        const result = summarizeMetrics([metric('coverage', 'warn', '73%'), metric('a11y', 'ok', '100')]);
-
-        expect(result.worst?.id).toBe('coverage');
-        expect(result.others).toBe(0);
-        expect(result.variant).toBe('warn');
+    it('breaks ties by order', () => {
+        expect(gaugeChip([metric('a', 'warn'), metric('b', 'warn')])?.metric.id).toBe('a');
     });
 
-    it('ranks danger above warn regardless of order', () => {
-        const result = summarizeMetrics([metric('coverage', 'warn', '73%'), metric('a11y', 'danger', '64')]);
-
-        expect(result.worst?.id).toBe('a11y');
-        expect(result.others).toBe(1);
-        expect(result.variant).toBe('danger');
+    it('shows the first measured metric when everything is fine', () => {
+        expect(gaugeChip([metric('a', 'none'), metric('b', 'ok'), metric('c', 'ok')])).toEqual({ metric: metric('b', 'ok'), variant: 'ok', measured: 2 });
     });
 
-    /**
-     * Ties resolve by source order, so the chip shows the same metric on every
-     * render instead of flickering between two equally bad ones.
-     */
-    it('breaks ties by source order', () => {
-        const result = summarizeMetrics([metric('vrt', 'warn', '2 diffs'), metric('coverage', 'warn', '73%')]);
-
-        expect(result.worst?.id).toBe('vrt');
-        expect(result.others).toBe(1);
+    it('has nothing to show when nothing is measured', () => {
+        expect(gaugeChip([metric('a', 'none'), metric('b', 'none')])).toBeNull();
     });
 });
 
-describe('metrics without a threshold', () => {
-    /**
-     * A variant count is a fact, not a verdict. It renders grey like a missing
-     * value and stays out of the tally, so the gauge's quiet number means "this
-     * many metrics were measured against a threshold and all of them passed"
-     * rather than counting a number that could not have failed.
-     */
-    it('keeps a plain count out of the tally', () => {
-        const result = summarizeMetrics([metric('variants', 'none', '9'), metric('coverage', 'ok', '99%'), metric('a11y', 'ok', '100')]);
+describe('infoDotTone', () => {
+    const metric = (id: string, variant: HeadMetric['variant']): HeadMetric => ({ id, label: id, value: '1', threshold: '', variant });
 
-        expect(result.measured).toBe(2);
-        expect(result.worst).toBeNull();
-        expect(result.variant).toBe('ok');
+    it('should be danger when the worst metric is', () => {
+        expect(infoDotTone([metric('a', 'warn'), metric('b', 'danger')])).toBe('danger');
+    });
+
+    it('should be warn when the worst metric is', () => {
+        expect(infoDotTone([metric('a', 'ok'), metric('b', 'warn')])).toBe('warn');
+    });
+
+    it('should be null when everything is fine or nothing is measured', () => {
+        expect(infoDotTone([metric('a', 'ok')])).toBeNull();
+        expect(infoDotTone([metric('a', 'none')])).toBeNull();
+        expect(infoDotTone([])).toBeNull();
     });
 });

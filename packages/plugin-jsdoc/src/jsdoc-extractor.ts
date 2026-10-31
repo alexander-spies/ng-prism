@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import ts from 'typescript';
 import type { JsDocData, JsDocTags, MethodDoc, ParamDoc } from './jsdoc.types.js';
 
@@ -8,17 +8,7 @@ import type { JsDocData, JsDocTags, MethodDoc, ParamDoc } from './jsdoc.types.js
  * member decides its tags, as a redeclaration replaces the inherited one.
  */
 export function extractJsDocData(filePath: string, className: string, baseClasses: { className: string; filePath: string }[] = []): JsDocData | null {
-    const sourceFiles = new Map<string, ts.SourceFile>();
-    const findClass = (path: string, name: string) => {
-        let sourceFile = sourceFiles.get(path);
-
-        if (!sourceFile) {
-            sourceFile = ts.createSourceFile(path, readFileSync(path, 'utf-8'), ts.ScriptTarget.ES2022, true);
-            sourceFiles.set(path, sourceFile);
-        }
-
-        return findClassByName(sourceFile, name);
-    };
+    const findClass = (path: string, name: string) => findClassByName(parseFile(path), name);
 
     const classDecl = findClass(filePath, className);
 
@@ -32,6 +22,25 @@ export function extractJsDocData(filePath: string, className: string, baseClasse
         memberTags: extractAllMemberTags(hierarchy),
         methods: extractPublicMethods(hierarchy)
     };
+}
+
+/**
+ * The files parsed so far, with the size and modification time they had then.
+ * `serve` runs the hook for every component again on each change in the
+ * library, so a file that has not changed since is neither read nor parsed again.
+ */
+const parsedFiles = new Map<string, { mtimeMs: number; size: number; sourceFile: ts.SourceFile }>();
+
+function parseFile(path: string): ts.SourceFile {
+    const { mtimeMs, size } = statSync(path);
+    const cached = parsedFiles.get(path);
+
+    if (cached?.mtimeMs === mtimeMs && cached.size === size) return cached.sourceFile;
+
+    const sourceFile = ts.createSourceFile(path, readFileSync(path, 'utf-8'), ts.ScriptTarget.ES2022, true);
+
+    parsedFiles.set(path, { mtimeMs, size, sourceFile });
+    return sourceFile;
 }
 
 function findClassByName(sourceFile: ts.SourceFile, className: string): ts.ClassDeclaration | null {

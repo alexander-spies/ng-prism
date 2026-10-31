@@ -15,9 +15,15 @@ interface NgPrismPlugin {
 
     // Build-time hooks (run in Node.js during scanning)
     onComponentScanned?: (component: ScannedComponent) => ScannedComponent | void | Promise<ScannedComponent | void>;
-    onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
-
+    // Services (@Showcase + @Injectable/@Service) never reach onComponentScanned; they get this hook (since 22.7.0)
+    onServiceScanned?: (service: ScannedService) => ScannedService | void | Promise<ScannedService | void>;
+    // Pipes (@Showcase + @Pipe) have their own hook and list as well, apart from components and services (since 22.7.0)
+    onPipeScanned?: (pipe: ScannedPipe) => ScannedPipe | void | Promise<ScannedPipe | void>;
     onPageScanned?: (page: StyleguidePage) => StyleguidePage | void | Promise<StyleguidePage | void>;
+    onManifestReady?: (manifest: PrismManifest) => PrismManifest | void | Promise<PrismManifest | void>;
+    // The scan reads ScannedComponent.api, and the manifest carries it, only when a plugin sets this (since 22.7.0,
+    // experimental). Set it in the Node entry when a hook or panel reads `api`; jsDocPlugin() does.
+    componentApi?: boolean;
 
     // Runtime contributions (embedded in the Prism app)
     panels?: PanelDefinition[];
@@ -59,6 +65,41 @@ export function examplePlugin(options: ExamplePluginOptions = {}): NgPrismPlugin
     };
 }
 ```
+
+### Compositions in a hook
+
+`ScannedComponent.composition` (`ComponentComposition`, since 22.7.0, `@experimental` until 23.0.0) is what the scan read
+from a showcase whose variants render as compiled compositions (a `template` or `host: { template }`). It is set before
+`onComponentScanned` runs, and it is absent when no variant has one and on a component a hook builds from scratch.
+
+- `variantCases`: one entry per variant, the index into `cases`, or `-1` for a variant without a composition (it renders
+  as it did before).
+- `cases`: `{ template, unbound }[]`. `template` is the markup as written and contains `COMPOSITION_SUBJECT_SLOT`
+  (exported from `@ng-prism/core/plugin`) at the end of the subject's start tag, where the subject's bindings go: a
+  plugin that shows the markup replaces it with the attributes it wants. `unbound` lists the inputs the case does not
+  bind.
+- `imports`: the classes the wrapper imports besides the subject (`{ name, from }`).
+- The runtime manifest carries `composition` too, without the build-time `origin` of each case.
+- A hook that adds, removes or rebuilds variants must keep `variantCases` aligned with them, or drop `composition`.
+  Editing `template` or `host` in a hook changes nothing that renders: the scan has read them already.
+
+### Parts in a hook
+
+A class with `@Showcase({ partOf: '<selector of the parent>' })` (since 22.7.0, `@experimental` until 23.0.0) is a part
+of that component or directive and has no page of its own.
+
+- `onComponentScanned` runs on a part like on any component. A resolved part has `parentClassName`, the class name of
+  its parent. A hook that works per page (builds, measures or photographs each component, as perf and
+  visual-regression do) returns early with `if (component.parentClassName) return;`. One that reads every component's
+  API (jsdoc, coverage) keeps the part.
+- `onManifestReady` gets the parts nested: not in `manifest.components` but in `parts` of their parent
+  (`ScannedComponent.parts`, sorted by title), the shape of `RuntimeComponent.parts`. A plugin that walks the list reads
+  `c.parts ?? []` to include parts, and a filter that drops a parent drops its parts too.
+- The scan decides which parent a part belongs to: a hook that rewrites a parent, its selector or class name included,
+  keeps its parts on it.
+- A view panel that shows parts sets `listsParts: true` and declares `readonly activePart = input<string | null>(null)`:
+  the key of the part to show, its class name with `~2`, `~3`, … appended for a later part of the same class name
+  (`partKeys(parts)` from `@ng-prism/core/plugin`). It scrolls to the block of that part.
 
 ## Plugin Registration
 
@@ -110,12 +151,27 @@ interface PanelDefinition {
     icon?: string;
     position?: 'bottom' | 'right'; // deprecated since 22.6.0, never had an effect
     placement?: 'addon' | 'view';
+    // Default ['component']. 'service' and 'pipe' only count on a view panel: they give the inputs activeService and
+    // activePipe, and the build reads services (pipes) and keeps them in the manifest only when such a panel exists
+    // for them, decided apart (read from the Node entry); otherwise it only counts them. Since 22.7.0.
+    appliesTo?: readonly ('component' | 'service' | 'pipe')[];
+    // A view panel for components that shows their parts; gets the input activePart (the part's key). Since 22.7.0.
+    listsParts?: boolean;
     providers?: Provider[];
-    isVisible?: (component: RuntimeComponent) => boolean;
+    isVisible?: (component: RuntimeComponent) => boolean; // components only
     badge?: (component: RuntimeComponent) => PanelBadge | null;
     keepAlive?: boolean;
 }
 ```
+
+### Measuring what is rendered
+
+A panel or an overlay reads the canvas through `PrismRendererService` (`@ng-prism/core`):
+
+- `renderedElement` is the root of everything the canvas renders. For a composed variant that is the whole composition,
+  frame included. Measure, audit or capture this one.
+- `subjectElement` (since 22.7.0, `Element | null`) is the showcased element itself: `[data-prism-subject]` inside a
+  composition, else the root. Read the subject's own role, label or attributes from it.
 
 ## Plugin with Custom Controls
 
@@ -176,7 +232,10 @@ Prism app ships.
 - [ ] Plugin factory function with options parameter
 - [ ] Unique `name` property
 - [ ] Build-time hooks return modified object or void
+- [ ] `componentApi: true` in the Node entry if a hook or panel reads `ScannedComponent.api`
+- [ ] A hook that reads `composition` copes with a missing one and with `-1` in `variantCases`, and keeps it aligned when it changes variants
 - [ ] Runtime components are standalone Angular components
+- [ ] A panel measures or captures `renderedElement`, and reads the subject's own attributes from `subjectElement`
 - [ ] Exported from package index
 - [ ] Tests for hook behavior
 - [ ] Registered via `defineConfig({ plugins: [...] })`

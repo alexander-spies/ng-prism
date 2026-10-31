@@ -1,6 +1,5 @@
 :host {
-    display: flex;
-    flex-direction: column;
+    display: block;
     height: 100%;
 }
 
@@ -10,128 +9,14 @@
     height: 100%;
 }
 
-.prism-subtabs {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    gap: 2px;
-    padding: 10px 20px 0;
-    background: var(--prism-bg-elevated);
-    border-bottom: 1px solid var(--prism-border);
-}
-
-.prism-st-tab {
-    position: relative;
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    padding: 7px 12px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    border-radius: 6px 6px 0 0;
-    transition: color var(--dur-fast);
-}
-
-.prism-st-tab:hover {
-    color: var(--prism-text-2);
-}
-
-.prism-st-tab--active {
-    color: var(--prism-text);
-}
-
-.prism-st-tab--active::after {
-    position: absolute;
-    right: 8px;
-    bottom: -1px;
-    left: 8px;
-    height: 2px;
-    content: '';
-    background: var(--prism-primary);
-    border-radius: 1px;
-}
-
-.prism-subtabs-actions {
+.prism-perf-actions {
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-left: auto;
-}
-
-.prism-perf-cd-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 24px;
-    padding: 0 8px;
-    font-family: var(--font-mono, 'JetBrains Mono', monospace);
-    font-size: 11px;
-    color: var(--prism-primary);
-    background: color-mix(in srgb, var(--prism-primary) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--prism-primary) 25%, transparent);
-    border-radius: 5px;
-}
-
-.prism-tool-btn {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    height: 24px;
-    padding: 0 9px;
-    font-family: var(--font-sans);
-    font-size: 11.5px;
-    font-weight: 500;
-    color: var(--prism-text-muted);
-    cursor: pointer;
-    background: none;
-    border: none;
-    border-radius: 5px;
-    transition: all 0.12s;
-}
-
-.prism-tool-btn:hover {
-    color: var(--prism-text);
-    background: color-mix(in srgb, var(--prism-primary) 8%, transparent);
-}
-
-.prism-perf-status {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--prism-text-muted);
-}
-
-.prism-perf-status-dot {
-    display: inline-block;
-    width: 5px;
-    height: 5px;
-    background: var(--prism-success);
-    border-radius: 50%;
-    box-shadow: 0 0 6px var(--prism-success);
-    animation: prism-perf-pulse 2s ease-in-out infinite;
-}
-
-@keyframes prism-perf-pulse {
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.4;
-    }
 }
 
 .prism-perf-content {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
+    overflow: auto;
 }

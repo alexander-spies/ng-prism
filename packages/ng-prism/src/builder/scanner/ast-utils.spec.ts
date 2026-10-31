@@ -589,4 +589,22 @@ describe('getJsDocComment', () => {
 
         expect(getJsDocComment(classDecl, checker)).toBeUndefined();
     });
+
+    it("keeps the separator between a link's target and its text", () => {
+        // TypeScript only splits a link into target and text when the target resolves, hence `Item`.
+        const source = `
+      interface Item {}
+      class Subject {
+        /** A {@link Item}, B {@link Item | the item}, C {@link Item the item}, D {@link https://angular.dev | Angular}, E {@link Missing}, F {@link Missing | text}. */
+        item = 1;
+      }
+    `;
+        const { checker, sourceFile } = createProgramFromSource(source);
+        const classDecl = sourceFile.statements.find(ts.isClassDeclaration)!;
+        const property = classDecl.members.find(ts.isPropertyDeclaration)!;
+
+        expect(getJsDocComment(property, checker)).toBe(
+            'A {@link Item}, B {@link Item | the item}, C {@link Item | the item}, D {@link https://angular.dev Angular}, E {@link Missing}, F {@link Missing text}.'
+        );
+    });
 });

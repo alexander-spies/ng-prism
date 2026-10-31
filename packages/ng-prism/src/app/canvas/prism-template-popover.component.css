@@ -19,11 +19,9 @@
     position-try-fallbacks: flip-block, flip-inline;
     overflow: hidden;
     background: var(--prism-bg-elevated);
-    border: 1px solid var(--prism-border-strong);
+    border: 1px solid var(--prism-border);
     border-radius: var(--radius-lg, 10px);
-    box-shadow:
-        0 20px 60px rgb(0 0 0 / 45%),
-        0 0 0 1px color-mix(in srgb, var(--prism-primary) 10%, transparent);
+    box-shadow: var(--prism-shadow-md);
     animation: tpl-fade-in var(--dur-fast, 0.15s) var(--ease-default, ease-out);
 }
 

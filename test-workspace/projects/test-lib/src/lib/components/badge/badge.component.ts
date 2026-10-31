@@ -1,11 +1,30 @@
 import { ChangeDetectionStrategy, Component, computed, input, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** Semantic colour of a badge. `default` is neutral, the others carry a status. */
 export type BadgeVariantType = 'default' | 'success' | 'warning' | 'error' | 'info';
 
 /**
- * A small status indicator badge for counts, labels, or status markers.
+ * Small pill that labels a status or a count.
+ *
+ * ## Variants
+ *
+ * - `default`: neutral labels such as "New" or a plain count
+ * - `success`, `warning`, `error`: the outcome of a check, e.g. "3 passed"
+ * - `info`: hints such as "Beta"
+ *
+ * Keep the text to a word, two at most, or a number. A longer message belongs in an `AlertComponent`.
+ *
  * @since 1.0.0
+ * @see AlertComponent
+ * @example
+ * ```html
+ * <sg-badge text="Beta" variant="info" />
+ * ```
+ * @example
+ * ```html
+ * <h3>Inbox <sg-badge [text]="unread().toString()" /></h3>
+ * ```
  */
 @Showcase({
     title: 'Badge',
@@ -65,7 +84,10 @@ export type BadgeVariantType = 'default' | 'success' | 'warning' | 'error' | 'in
     `
 })
 export class BadgeComponent {
+    /** Text inside the badge. A count works too, passed as a string. */
     readonly text = input.required<string>();
+
+    /** Semantic colour of the badge, see {@link BadgeVariantType}. */
     readonly variant = input<BadgeVariantType>('default');
 
     protected readonly ariaLabel = computed(() => `${this.variant()} badge: ${this.text()}`);

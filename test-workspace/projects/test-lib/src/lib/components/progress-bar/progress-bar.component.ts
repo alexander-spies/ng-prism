@@ -1,11 +1,30 @@
 import { ChangeDetectionStrategy, Component, computed, input, ViewEncapsulation } from '@angular/core';
 import { Showcase } from '@ng-prism/core';
 
+/** Semantic colour of a progress bar's fill. */
 export type ProgressBarVariantType = 'default' | 'success' | 'warning' | 'error';
 
 /**
- * A horizontal progress bar that visualizes completion percentage.
+ * Horizontal bar that shows how far a task has come.
+ *
+ * ## Two modes
+ *
+ * - **Determinate**: `value` from 0 to 100 sets the fill, values outside that range are clamped
+ * - **Indeterminate**: for work of unknown length, a segment runs along the track
+ *
+ * With a `label`, a header line above the bar shows the label and, while determinate, the percentage.
+ * The track carries `role="progressbar"`; `aria-valuenow` is left out while indeterminate.
+ *
  * @since 1.0.0
+ * @see SpinnerComponent
+ * @example
+ * ```html
+ * <sg-progress-bar [value]="uploaded()" label="Uploading" />
+ * ```
+ * @example
+ * ```html
+ * <sg-progress-bar [indeterminate]="true" label="Preparing export" />
+ * ```
  */
 @Showcase({
     title: 'Progress Bar',
@@ -104,14 +123,27 @@ export type ProgressBarVariantType = 'default' | 'success' | 'warning' | 'error'
     `
 })
 export class ProgressBarComponent {
+    /** Progress in percent, clamped to 0 to 100. Ignored while `indeterminate`. */
     readonly value = input<number>(0);
+
+    /** Colour of the fill: `success` once the task is done, `warning` and `error` for thresholds such as disk usage. */
     readonly variant = input<ProgressBarVariantType>('default');
+
+    /** Text above the bar. Without it the header line, percentage included, is left out. */
     readonly label = input<string>('');
+
+    /**
+     * Shows a running segment instead of a fill, for work of unknown length.
+     * @since 1.2.0
+     */
     readonly indeterminate = input<boolean>(false);
 
     protected readonly clampedValue = computed(() => Math.max(0, Math.min(100, this.value())));
 
-    /** Returns the clamped progress value between 0 and 100. */
+    /**
+     * Returns `value` clamped to 0 to 100.
+     * @deprecated Since 1.3.0, removed in 2.0.0. The bar clamps on its own; clamp `value` yourself where you need the number.
+     */
     getClampedValue(): number {
         return this.clampedValue();
     }

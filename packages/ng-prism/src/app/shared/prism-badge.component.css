@@ -1,0 +1,76 @@
+:host {
+    --prism-badge-fg: var(--prism-text-muted);
+    --prism-badge-bg: var(--prism-input-bg);
+
+    display: inline-flex;
+    flex: none;
+    gap: 5px;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--prism-badge-fg);
+    white-space: nowrap;
+    background: var(--prism-badge-bg);
+    border-radius: 4px;
+}
+
+:host(.prism-badge--sm) {
+    gap: 4px;
+    height: 16px;
+    padding: 0 5px;
+    font-size: 10px;
+}
+
+:host(.prism-badge--primary) {
+    --prism-badge-fg: var(--prism-primary);
+    --prism-badge-bg: var(--prism-primary-bg);
+}
+
+:host(.prism-badge--success) {
+    --prism-badge-fg: var(--prism-success);
+    --prism-badge-bg: var(--prism-success-bg);
+}
+
+:host(.prism-badge--warn) {
+    --prism-badge-fg: var(--prism-warn);
+    --prism-badge-bg: var(--prism-warn-bg);
+}
+
+:host(.prism-badge--danger) {
+    --prism-badge-fg: var(--prism-danger);
+    --prism-badge-bg: var(--prism-danger-bg);
+}
+
+:host(.prism-badge--outline) {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--prism-badge-fg) 65%, transparent);
+}
+
+:host(.prism-badge--neutral.prism-badge--outline) {
+    box-shadow: inset 0 0 0 1px var(--prism-border-strong);
+}
+
+.prism-badge__dot {
+    box-sizing: border-box;
+    flex: none;
+    width: 6px;
+    height: 6px;
+    background: var(--prism-badge-dot-fill, currentcolor);
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px currentcolor;
+}
+
+:host(.prism-badge--sm) .prism-badge__dot {
+    width: 5px;
+    height: 5px;
+}
+
+.prism-badge__value {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}

@@ -4,37 +4,95 @@
     <div
         class="a11y-body"
         [class.a11y-body--loading]="auditService.running()">
-        <div class="score-wrap">
-            <prism-a11y-score [score]="scoreResult()?.score ?? 0" />
-            <div class="score-label">axe-core audit</div>
-            <div class="score-meta">
-                @if (scoreResult()?.critical) {
-                    <span><i style="background: var(--prism-danger)"></i>{{ scoreResult()!.critical }} critical</span>
-                }
-                @if (scoreResult()?.moderate) {
-                    <span><i style="background: var(--prism-warn)"></i>{{ scoreResult()!.moderate }} moderate</span>
-                }
-                <span><i style="background: var(--prism-success)"></i>{{ scoreResult()?.passes ?? 0 }} pass</span>
-            </div>
-        </div>
+        <prism-metric-card
+            class="a11y-score-card"
+            label="Score"
+            unit="/ 100"
+            [value]="'' + (scoreResult()?.score ?? 0)"
+            [tone]="badgeTone()"
+            [title]="scoreTitle()">
+            <prism-a11y-score
+                metricVisual
+                [score]="scoreResult()?.score ?? 0"
+                [tone]="grade()" />
+        </prism-metric-card>
+
         <div class="viol-list">
-            @for (item of allResults(); track item.id + item.impact) {
-                <div
-                    class="viol"
-                    [style.--sev-color]="sevColor(item.impact)">
-                    <span class="viol-sev">{{ item.impact ?? 'pass' }}</span>
-                    <div class="viol-text">
-                        <b>{{ item.description }}</b>
-                        @if (item.help) {
-                            <span>{{ item.help }}</span>
-                        }
-                    </div>
-                    <span class="viol-rule">{{ item.id }}</span>
-                </div>
+            @for (item of violations(); track item.id) {
+                <prism-list-row>
+                    <prism-badge
+                        rowBadge
+                        [tone]="item.badge.tone"
+                        [variant]="item.badge.variant"
+                        [label]="item.badge.label" />
+                    <span rowTitle>{{ item.help || item.description }}</span>
+                    <span rowDescription>{{ item.description }}</span>
+                    <span rowMeta>{{ item.id }}</span>
+                </prism-list-row>
             } @empty {
                 @if (!auditService.running()) {
-                    <div class="a11y-status">No results yet.</div>
+                    <div class="a11y-status">No violations.</div>
                 }
+            }
+
+            @if (accepted().length > 0) {
+                <details
+                    class="viol-fold"
+                    open>
+                    <summary title="Declared with meta.a11y.accept: audited and shown, but not counted towards the score."> Accepted · {{ accepted().length }} </summary>
+                    <div class="viol-fold__list">
+                        @for (item of accepted(); track item.id) {
+                            <prism-list-row>
+                                <prism-badge
+                                    rowBadge
+                                    tone="neutral"
+                                    label="Accepted" />
+                                <span rowTitle>{{ item.help || item.description }}</span>
+                                <span rowDescription>{{ item.reason }}</span>
+                                <span rowMeta>{{ item.id }}</span>
+                            </prism-list-row>
+                        }
+                    </div>
+                </details>
+            }
+
+            @if (review().length > 0) {
+                <details
+                    class="viol-fold"
+                    open>
+                    <summary title="axe could not decide these checks; they do not count towards the score."> Needs review · {{ review().length }} </summary>
+                    <div class="viol-fold__list">
+                        @for (item of review(); track item.id) {
+                            <prism-list-row>
+                                <prism-badge
+                                    rowBadge
+                                    tone="neutral"
+                                    label="Review" />
+                                <span rowTitle>{{ item.help }}</span>
+                                <span rowDescription>{{ item.reasons.join(' · ') }}</span>
+                                <span rowMeta>{{ item.id }} · {{ item.nodes }} {{ item.nodes === 1 ? 'node' : 'nodes' }}</span>
+                            </prism-list-row>
+                        }
+                    </div>
+                </details>
+            }
+
+            @if (passes().length > 0) {
+                <details class="viol-fold">
+                    <summary>{{ passes().length }} passed {{ passes().length === 1 ? 'check' : 'checks' }}</summary>
+                    <div class="viol-fold__list">
+                        @for (pass of passes(); track pass.id) {
+                            <prism-list-row>
+                                <prism-badge
+                                    rowBadge
+                                    tone="success"
+                                    label="Passed" />
+                                <span rowTitle>{{ pass.help || pass.description }}</span>
+                                <span rowMeta>{{ pass.id }}</span>
+                            </prism-list-row>
+                        }
+                    </div>
+                </details>
             }
         </div>
     </div>

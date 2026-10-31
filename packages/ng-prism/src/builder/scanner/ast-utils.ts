@@ -517,6 +517,26 @@ export function getDecoratorArgument(decorator: ts.Decorator): ts.Expression | u
 }
 
 /**
+ * One field of `@Component`/`@Directive`/`@Pipe` metadata, read from its own
+ * property where the literal has one, so that `imports`, `providers` and the
+ * rest are not resolved only to be thrown away. A spread or a shorthand could
+ * supply the field from elsewhere, so then the whole argument is evaluated.
+ * Without a `checker`, only what the literal itself says can be read.
+ */
+export function readDecoratorField(arg: ts.Expression, key: string, checker?: ts.TypeChecker): unknown {
+    if (ts.isObjectLiteralExpression(arg) && !arg.properties.some(ts.isSpreadAssignment)) {
+        const prop = arg.properties.find((p) => p.name !== undefined && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === key);
+
+        if (!prop) return undefined;
+        if (ts.isPropertyAssignment(prop)) return evaluateExpression(prop.initializer, checker);
+    }
+
+    const raw = evaluateExpression(arg, checker);
+
+    return typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>)[key] : undefined;
+}
+
+/**
  * Get the JSDoc comment for a node.
  */
 export function getJsDocComment(node: ts.Node, checker: ts.TypeChecker): string | undefined {
@@ -524,7 +544,27 @@ export function getJsDocComment(node: ts.Node, checker: ts.TypeChecker): string 
 
     if (!symbol) return undefined;
 
-    const doc = ts.displayPartsToString(symbol.getDocumentationComment(checker)).trim();
+    const doc = joinDocParts(symbol.getDocumentationComment(checker)).trim();
 
     return doc || undefined;
+}
+
+/**
+ * Joins the parts of a comment like `ts.displayPartsToString`, except that a
+ * link keeps the separator between its target and its text. TypeScript drops
+ * it, and `{@link Item | the item}` would read `{@link Itemthe item}`. It only
+ * splits a link into a `linkName` and a `linkText` when the target resolves to a
+ * symbol. Any other target comes as one `linkText` that still ends in the blank
+ * before the closing brace, which is trimmed here.
+ */
+function joinDocParts(parts: ts.SymbolDisplayPart[]): string {
+    return parts
+        .map((part, index) => {
+            if (part.kind !== 'linkText') return part.text;
+
+            const text = parts[index + 1]?.kind === 'link' ? part.text.trimEnd() : part.text;
+
+            return parts[index - 1]?.kind === 'linkName' ? ` | ${text}` : text;
+        })
+        .join('');
 }

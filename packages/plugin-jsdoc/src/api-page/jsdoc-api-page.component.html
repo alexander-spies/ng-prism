@@ -1,0 +1,58 @@
+<!-- An entry of "On this page": a section or a type of the page, a part or a section of a part. -->
+<ng-template
+    #tocLink
+    let-entry>
+    <button
+        type="button"
+        class="prism-jsdoc-api-page__toc-link"
+        [class.prism-jsdoc-api-page__toc-link--sub]="entry.level === 2"
+        [class.prism-jsdoc-api-page__toc-link--part]="entry.part"
+        [class.prism-jsdoc-api-page__toc-link--active]="activeId() === entry.id"
+        [attr.aria-current]="activeId() === entry.id ? 'location' : null"
+        [title]="entry.label"
+        (click)="goTo(entry.id)">
+        {{ entry.label }}
+    </button>
+</ng-template>
+
+<div
+    #layout
+    class="prism-jsdoc-api-page">
+    <div class="prism-jsdoc-api-page__content">
+        <prism-jsdoc-api-sections [page]="page()" />
+
+        @if (parts().length) {
+            <div class="prism-jsdoc-api-page__parts-title">Parts</div>
+            @for (part of parts(); track part.scope) {
+                <section
+                    class="prism-jsdoc-api-page__part"
+                    [class.prism-jsdoc-api-page__part--highlighted]="highlightedId() === part.scope"
+                    [attr.data-toc-id]="part.scope">
+                    <div class="prism-jsdoc-api-page__part-head">
+                        <h3 class="prism-jsdoc-api-page__part-title">{{ part.title }}</h3>
+                        <code class="prism-jsdoc-api-page__part-selector">&lt;{{ part.selector }}&gt;</code>
+                    </div>
+                    <prism-jsdoc-api-sections
+                        [page]="part.page"
+                        [scope]="part.scope"
+                        nested />
+                </section>
+            }
+        }
+    </div>
+
+    <nav
+        class="prism-jsdoc-api-page__toc"
+        aria-label="On this page">
+        <div class="prism-jsdoc-api-page__toc-title">On this page</div>
+        @for (entry of toc(); track entry.id) {
+            <ng-container *ngTemplateOutlet="tocLink; context: { $implicit: entry }" />
+        }
+        @if (partsToc().length) {
+            <div class="prism-jsdoc-api-page__toc-title">Parts</div>
+            @for (entry of partsToc(); track entry.id) {
+                <ng-container *ngTemplateOutlet="tocLink; context: { $implicit: entry }" />
+            }
+        }
+    </nav>
+</div>

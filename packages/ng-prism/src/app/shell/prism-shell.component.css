@@ -22,15 +22,20 @@
      is why this one track is the only place that needs saying. */
     grid-template-columns: minmax(0, 1fr);
     height: 100vh;
+
+    /* The visible height on a phone, without the part the browser's own bars
+       cover. Browsers without dynamic viewport units keep 100vh from above. */
+    height: 100dvh;
     overflow: hidden;
     font-family: var(--font-sans, var(--prism-font-sans));
     color: var(--prism-text);
     background: var(--prism-void);
 }
 
+/* The resizer takes no width of its own: it overlays the sidebar's edge. */
 .prism-body {
     display: grid;
-    grid-template-columns: var(--sw, 264px) 4px 1fr;
+    grid-template-columns: var(--sw, 280px) 0 1fr;
     min-height: 0;
 }
 
@@ -47,9 +52,28 @@
     border-right: 1px solid var(--prism-border);
 }
 
-.prism-sidebar-wrap prism-sidebar {
+.prism-sidebar-wrap prism-sidebar,
+.prism-nav-screen prism-sidebar {
     flex: 1;
     min-height: 0;
+}
+
+/* The phone layout's navigation: the sidebar over the whole area below the
+   header. Positioned rather than placed in the grid, because capture mode
+   overrides the shell's tracks and an explicitly placed sibling would move
+   the body out of the track it keeps. The shell is its containing block. */
+.prism-shell--mobile {
+    position: relative;
+}
+
+.prism-nav-screen {
+    position: absolute;
+    inset: var(--band-header) 0 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--prism-bg);
 }
 
 .prism-sidebar-foot {
@@ -58,36 +82,86 @@
     align-items: center;
     padding: 10px 14px;
     font-size: 11px;
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     border-top: 1px solid var(--prism-border);
 }
 
-.prism-sidebar-foot__logo {
-    flex-shrink: 0;
-    width: 16px;
-}
-
 .prism-sidebar-foot__link {
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-decoration: none;
     transition: color var(--dur-fast);
 }
 
 .prism-sidebar-foot__link:hover {
-    color: var(--prism-text-2);
+    color: var(--prism-text);
 }
 
-.prism-resizer-col {
+/* Resize grips, one look for both edges, turned for the axis: a 3 × 28 px
+   pill at rest, centred on the edge, over an 8 px hit zone around a
+   zero-width edge. Hovered, dragged or focused, the pill stretches into a
+   2 px primary line along the whole edge. */
+.prism-resizer-col,
+.prism-resizer-row {
     position: relative;
     z-index: 5;
-    width: 4px;
-    background: transparent;
-    transition: background var(--dur-fast) var(--ease-default);
+    outline: none;
 }
 
-.prism-resizer-col:hover,
-.prism-resizer-col.active {
+.prism-resizer-col::before,
+.prism-resizer-row::before {
+    position: absolute;
+    content: '';
+}
+
+.prism-resizer-col::before {
+    inset: 0 -4px;
+}
+
+.prism-resizer-row::before {
+    inset: -4px 0;
+}
+
+.prism-resizer-col::after,
+.prism-resizer-row::after {
+    position: absolute;
+    pointer-events: none;
+    content: '';
+    background: var(--prism-border-strong);
+    border-radius: 2px;
+    transition:
+        background var(--dur-fast) var(--ease-default),
+        inset var(--dur-fast) var(--ease-default),
+        border-radius var(--dur-fast) var(--ease-default);
+}
+
+.prism-resizer-col::after {
+    inset: calc(50% - 14px) -1.5px;
+}
+
+.prism-resizer-row::after {
+    inset: -1.5px calc(50% - 14px);
+}
+
+.prism-resizer-col:hover::after,
+.prism-resizer-col.active::after,
+.prism-resizer-col:focus-visible::after,
+.prism-resizer-row:hover::after,
+.prism-resizer-row.active::after,
+.prism-resizer-row:focus-visible::after {
     background: var(--prism-primary);
+    border-radius: 0;
+}
+
+.prism-resizer-col:hover::after,
+.prism-resizer-col.active::after,
+.prism-resizer-col:focus-visible::after {
+    inset: 0 -1px;
+}
+
+.prism-resizer-row:hover::after,
+.prism-resizer-row.active::after,
+.prism-resizer-row:focus-visible::after {
+    inset: -1px 0;
 }
 
 .prism-main {
@@ -99,23 +173,23 @@
 }
 
 .prism-resizer-row {
-    position: relative;
-    z-index: 5;
     flex-shrink: 0;
-    height: 4px;
-    background: transparent;
-    transition: background var(--dur-fast) var(--ease-default);
-}
-
-.prism-resizer-row:hover,
-.prism-resizer-row.active {
-    background: var(--prism-primary);
+    height: 0;
 }
 
 /* One row, not two: the canvas tools no longer occupy a band above the
    stage, they float over it from a rail absolutely positioned against
    this element. The position: relative below is what anchors it. */
 .prism-canvas-wrap {
+    /* Overlay colours on the canvas. These defaults follow the theme; the
+       shell overrides them inline on the two absolute grounds. */
+    --prism-canvas-overlay-bg: var(--prism-bg-elevated);
+    --prism-canvas-overlay-fg: var(--prism-text);
+    --prism-canvas-overlay-muted: var(--prism-text-2);
+    --prism-canvas-overlay-border: var(--prism-border-strong);
+    --prism-canvas-overlay-primary: var(--prism-primary);
+    --prism-canvas-overlay-active: var(--prism-primary-bg);
+
     position: relative;
     display: grid;
     flex: 1;
@@ -133,9 +207,25 @@
 
 .prism-main__panel {
     flex-shrink: 0;
-    height: var(--ph, 260px);
+    height: var(--ph, 300px);
     min-height: 0;
     overflow: hidden;
+}
+
+.prism-main__panel--collapsed {
+    height: auto;
+}
+
+/* The phone layout's guarantee that the canvas never vanishes: the panel gives
+   way before the canvas goes below MOBILE_PANEL.minCanvas (mobile-layout.ts),
+   even before the shell has measured the space or while a toggle changes it. */
+.prism-shell--mobile .prism-main__panel {
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.prism-shell--mobile .prism-canvas-wrap {
+    min-height: 96px;
 }
 
 .prism-shell__empty {
@@ -147,22 +237,60 @@
     justify-content: center;
 }
 
-.prism-shell__empty-icon {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 8px;
-    color: var(--prism-text-ghost);
+/* The mark in its own refracted light: the one large brand moment in the app. */
+.prism-shell__empty-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    margin-bottom: 12px;
+    isolation: isolate;
+}
+
+.prism-shell__empty-mark::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: -1;
+    width: 340px;
+    height: 200px;
+    pointer-events: none;
+    content: '';
+    background: var(--prism-brand-glow);
+    filter: blur(18px);
+    transform: translate(-50%, -50%);
 }
 
 .prism-shell__empty-text {
     margin: 0;
     font-size: var(--fs-xl);
     font-weight: 500;
-    color: var(--prism-text-muted);
+    color: var(--prism-text);
 }
 
 .prism-shell__empty-hint {
     margin: 0;
     font-size: var(--fs-lg);
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
+}
+
+/*
+ * Touch screens: bands a finger can hit. The band sizes are density tokens on
+ * <html>, redefined here for the shell's subtree. The header carries its own
+ * inline copy of the tokens (the navy set), so it repeats its height itself;
+ * keep the two in step. The resize grips get a wider invisible hit zone.
+ */
+@media (pointer: coarse) {
+    .prism-shell {
+        --band-header: calc(48px * var(--density, 1));
+        --band-head: calc(44px * var(--density, 1));
+        --band-rail: calc(44px * var(--density, 1));
+    }
+
+    .prism-resizer-col::before {
+        inset: 0 -12px;
+    }
+
+    .prism-resizer-row::before {
+        inset: -16px 0;
+    }
 }

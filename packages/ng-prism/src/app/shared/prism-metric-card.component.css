@@ -1,0 +1,89 @@
+:host {
+    --prism-metric-tone: var(--prism-primary);
+
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px 12px;
+    background: var(--prism-bg-surface);
+    border: 1px solid var(--prism-border);
+    border-radius: 6px;
+}
+
+:host([data-tone='success']) {
+    --prism-metric-tone: var(--prism-success);
+}
+
+:host([data-tone='warn']) {
+    --prism-metric-tone: var(--prism-warn);
+}
+
+:host([data-tone='danger']) {
+    --prism-metric-tone: var(--prism-danger);
+}
+
+.prism-metric-card__head {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 16px;
+}
+
+.prism-metric-card__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--prism-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.prism-metric-card__body {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.prism-metric-card__value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: var(--prism-text);
+}
+
+.prism-metric-card__value small {
+    margin-left: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--prism-text-muted);
+}
+
+.prism-metric-card__bar {
+    position: relative;
+    height: 4px;
+    margin-top: 2px;
+    background: var(--prism-input-bg);
+    border-radius: 2px;
+}
+
+.prism-metric-card__bar i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--prism-metric-tone);
+    border-radius: 2px;
+}
+
+.prism-metric-card__bar b {
+    position: absolute;
+    top: -3px;
+    width: 1.5px;
+    height: 10px;
+    margin-left: -0.75px;
+    background: var(--prism-text-2);
+}

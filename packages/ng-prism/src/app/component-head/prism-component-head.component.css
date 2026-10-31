@@ -19,13 +19,14 @@
    and costing the gauge the fixed position it was designed around. So the
    title truncates with an ellipsis and the chip stays at the right edge. The crumb gives way
    first, being the least important text in the row. */
+
 .comp-crumb {
     flex: 0 8 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: var(--fs-xs);
-    color: var(--prism-text-ghost);
+    color: var(--prism-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     white-space: nowrap;
@@ -59,6 +60,16 @@ prism-head-gauge,
     flex: none;
 }
 
+/* The chips give way before the title does and after the crumb: shrink factors
+   are weighted by size, so with the crumb at 8 and the title at 1, a factor of 2
+   lets the chips, which are by far the widest of the three, take most of what the
+   row lacks while the title stays readable. They scroll inside their own track
+   once they are narrower than their content (see prism-head-parts). */
+prism-head-parts {
+    flex: 0 2 auto;
+    min-width: 0;
+}
+
 /* Wraps the slot rather than styling the projected element, which this
    stylesheet cannot reach. :empty keeps the row's trailing gap from
    appearing when nothing is projected; comment anchors do not count. */
@@ -71,53 +82,7 @@ prism-head-gauge,
     display: none;
 }
 
-/* Always an outline, never a filled surface. Deprecated separates itself
-   by hue, not by weight. A filled alarm-coloured chip in a permanently
-   visible band is the "red as background texture" problem this
-   redesign exists to fix. */
-.comp-status {
-    display: inline-flex;
-    gap: var(--sp-2);
-    align-items: center;
-    height: 18px;
-    padding: 0 var(--sp-3) 0 var(--sp-2);
-    font-size: var(--fs-xs);
-    font-weight: 600;
-    color: var(--prism-text-muted);
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-    border: 1px solid currentcolor;
-    border-radius: var(--radius-xs);
-}
-
-.comp-status-mark {
-    width: 6px;
-    height: 6px;
-    background: currentcolor;
-    border-radius: 50%;
-}
-
-.comp-status--stable {
-    color: var(--prism-mark-nominal);
-    background: color-mix(in srgb, var(--prism-mark-nominal) 10%, transparent);
-}
-
-.comp-status--beta,
+/* Work in progress keeps its ring: the one status without a settled state. */
 .comp-status--wip {
-    color: var(--prism-mark-attention);
-    background: color-mix(in srgb, var(--prism-mark-attention) 10%, transparent);
-}
-
-.comp-status--wip .comp-status-mark {
-    box-sizing: border-box;
-    width: 7px;
-    height: 7px;
-    background: transparent;
-    border: 1.5px solid currentcolor;
-}
-
-.comp-status--deprecated {
-    color: var(--prism-mark-critical);
-    background: color-mix(in srgb, var(--prism-mark-critical) 12%, transparent);
-    border-color: color-mix(in srgb, var(--prism-mark-critical) 55%, transparent);
+    --prism-badge-dot-fill: transparent;
 }

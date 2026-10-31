@@ -3,7 +3,7 @@
  * `InputsOf<T>` helper. Most assertions are compile-time only. Jest just
  * confirms the file loads (which means it type-checked through SWC).
  */
-import { input, model, output } from '@angular/core';
+import { InjectionToken, input, model, output } from '@angular/core';
 import type { InputsOf } from './index.js';
 import { Showcase } from './index.js';
 
@@ -127,6 +127,84 @@ void StatesUsage;
 })
 class BadVariantStatesUsage {}
 void BadVariantStatesUsage;
+
+// (g) A service's `setup` is a lazy list of functions and tokens, never called by ng-prism.
+const FIXTURE_TOKEN = new InjectionToken<string>('FIXTURE');
+
+function provideFixture(): never[] {
+    return [];
+}
+
+@Showcase({ title: 'S', setup: () => [provideFixture, FIXTURE_TOKEN] })
+class SetupUsage {}
+void SetupUsage;
+
+@Showcase({
+    title: 'S',
+    // @ts-expect-error: setup is a function returning the list, not the list itself
+    setup: [provideFixture]
+})
+class BadSetupUsage {}
+void BadSetupUsage;
+
+// (h) Compositions: a host template, a template and a host template per variant, and the imports they need.
+@Showcase<FixtureComponent>({
+    title: 'Composition',
+    host: { template: '<lib-frame><lib-fixture /></lib-frame>' },
+    imports: [{ name: 'CdkTextareaAutosize', from: '@angular/cdk/text-field' }],
+    variants: [{ name: 'a', template: '<input libInput />', host: { template: '<lib-frame><lib-fixture /></lib-frame>' } }]
+})
+class CompositionUsage {}
+void CompositionUsage;
+
+@Showcase<FixtureComponent>({
+    title: 'Composition',
+    // @ts-expect-error: an import names the class and its module, both as strings
+    imports: [{ name: 'CdkTextareaAutosize' }],
+    variants: [
+        // @ts-expect-error: a variant host is a { template }, not a host string
+        { name: 'b', host: '<lib-frame>' },
+        // @ts-expect-error: a variant template is a string
+        { name: 'c', template: 42 }
+    ]
+})
+class BadCompositionUsage {}
+void BadCompositionUsage;
+
+// (i) meta.a11y: rules, disable and accept are typed, other keys stay open.
+@Showcase<FixtureComponent>({
+    title: 'A11y',
+    meta: {
+        figma: 'https://figma.com/x',
+        a11y: {
+            rules: { 'color-contrast': { enabled: false } },
+            disable: false,
+            accept: [{ rule: 'color-contrast', reason: 'The placeholder is muted by design.' }],
+            custom: 1
+        }
+    },
+    variants: [{ name: 'a', meta: { a11y: { accept: [{ rule: 'label', reason: 'Labelled by the frame.' }] } } }]
+})
+class A11yMetaUsage {}
+void A11yMetaUsage;
+
+@Showcase<FixtureComponent>({
+    title: 'A11y',
+    meta: {
+        a11y: {
+            // @ts-expect-error: an acceptance needs a reason
+            accept: [{ rule: 'color-contrast' }],
+            // @ts-expect-error: a rule is switched with a boolean
+            rules: { label: { enabled: 'no' } },
+            // @ts-expect-error: disable is a boolean
+            disable: 'yes'
+        }
+    },
+    // @ts-expect-error: a variant's acceptance needs a reason too
+    variants: [{ name: 'a', meta: { a11y: { accept: [{ rule: 'label' }] } } }]
+})
+class BadA11yMetaUsage {}
+void BadA11yMetaUsage;
 
 describe('@Showcase<T> typed variant inputs', () => {
     it('loads without runtime errors (all checks are compile-time)', () => {

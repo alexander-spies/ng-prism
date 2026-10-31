@@ -174,6 +174,12 @@ Same as above: `npm run test:workspace:reset` puts the workspace back into a run
 npm run docs   # Starts docsify on http://localhost:3000
 ```
 
+### Product Films
+
+The tour on the docs start page and the clip per release are made with Claude Motion, the "Motion" artifact type on claude.ai. A film is a private artifact whose scenes, lifted styleguide markup and CSS live in its store; the picture is the real styleguide, lifted from a build of `test-workspace` and animated with a camera and a cursor, and the MP4 is exported from the film's page. `test-workspace`'s `video-lib` holds showcases written to fit the films' code cards.
+
+The agent skill `prism-motion-video` (`.agents/skills/prism-motion-video/`) has the house style, the templates for the title, the end card and the sound, and the scripts that lift the styleguide, check the lift against screenshots and preview a scene locally. The scripts use the root Playwright and `ffmpeg` (`brew install ffmpeg`). Only the tour's export is committed, as `docs/assets/video/tour.mp4` with `tour-poster.png`.
+
 ## Project Structure
 
 ```
@@ -427,6 +433,7 @@ Tests use **Jest 30** with **SWC** for fast TypeScript transformation.
 
 - Test files are colocated with source: `foo.spec.ts` next to `foo.ts`
 - Test fixtures go in `__fixtures__/` directories
+- Helpers that several specs share go in `__test-utils__/` directories. Both are left out of the library build and of the declared-dependencies check (`npm run check:deps`), so a fixture or helper may import a package that only the root `package.json` declares, as a devDependency
 - Test environment is `node` (not `jsdom`) unless specifically required
 
 ### Running Tests
@@ -520,11 +527,14 @@ ng-prism has a plugin architecture. Plugins live under `packages/plugin-*/` and 
 
 ### Plugin Hooks
 
-| Hook                 | Phase   | Purpose                     |
-| -------------------- | ------- | --------------------------- |
-| `onComponentScanned` | Build   | Enrich component metadata   |
-| `onPageScanned`      | Build   | Modify or add pages         |
-| `panels`             | Runtime | Add custom panels to the UI |
+| Hook                 | Phase   | Purpose                                                |
+| -------------------- | ------- | ------------------------------------------------------ |
+| `onComponentScanned` | Build   | Enrich component metadata                              |
+| `onServiceScanned`   | Build   | Enrich service metadata (since 22.7.0)                 |
+| `onPipeScanned`      | Build   | Enrich pipe metadata (since 22.7.0)                    |
+| `onPageScanned`      | Build   | Modify or add pages                                    |
+| `onManifestReady`    | Build   | Read or change the whole manifest before it is written |
+| `panels`             | Runtime | Add custom panels to the UI                            |
 
 ### Plugin Conventions
 

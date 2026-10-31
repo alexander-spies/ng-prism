@@ -1,6 +1,8 @@
 <div class="prism-bmp">
     @if (stateService.hoveredBoxModel(); as bm) {
-        <div class="prism-bmp__diagram">
+        <div
+            class="prism-bmp__diagram"
+            [title]="sizeTitle(bm)">
             <div class="prism-bmp__region prism-bmp__region--margin">
                 <span class="prism-bmp__region-label">margin</span>
                 <div class="prism-bmp__sides">

@@ -16,7 +16,8 @@ export const PSEUDO_STATES: readonly PseudoState[] = ['hover', 'active', 'focus'
  *
  * `true` puts it on every element of the rendered component, the host
  * included. A selector, or a list of them, limits it to the matching elements,
- * resolved against the host and everything inside it.
+ * resolved against what is rendered: the host and everything inside it, or the
+ * whole composition for a variant with a `template` or a host template.
  */
 export type PseudoTarget = true | string | readonly string[];
 

@@ -2,11 +2,16 @@
     class="info-btn"
     type="button"
     popovertarget="prism-head-info"
-    title="Component details"
-    aria-label="Component details">
+    [attr.title]="buttonLabel()"
+    [attr.aria-label]="buttonLabel()">
     <prism-icon
         name="info"
         [size]="13" />
+    @if (dot(); as tone) {
+        <span
+            class="info-btn__dot"
+            [class.info-btn__dot--danger]="tone === 'danger'"></span>
+    }
 </button>
 
 <div
@@ -14,8 +19,8 @@
     id="prism-head-info"
     class="info-card"
     role="dialog"
-    aria-label="Component details">
-    <code class="info-card__selector">&lt;{{ selector() }}&gt;</code>
+    [attr.aria-label]="label()">
+    <code class="info-card__selector">{{ codeBlock() }}</code>
     @if (description()) {
         <p class="info-card__desc">{{ description() }}</p>
     }
@@ -32,6 +37,9 @@
             }
         </p>
     }
+    @for (fact of facts(); track fact) {
+        <p class="info-card__meta">{{ fact }}</p>
+    }
     @if (tags().length) {
         <div class="info-card__tags">
             @for (tag of tags(); track tag) {
@@ -39,4 +47,5 @@
             }
         </div>
     }
+    <div class="info-card__more"><ng-content /></div>
 </div>

@@ -8,10 +8,10 @@
 
 .prism-a11y-sr-ov__focus {
     position: absolute;
-    background: rgb(167 139 250 / 8%);
-    border: 2px solid var(--prism-primary);
+    background: color-mix(in srgb, var(--prism-primary-fill) 8%, transparent);
+    border: 2px solid var(--prism-primary-fill);
     border-radius: 4px;
-    box-shadow: 0 0 0 4px rgb(167 139 250 / 12%);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--prism-primary-fill) 12%, transparent);
 }
 
 .prism-a11y-sr-ov__badge {
@@ -25,17 +25,17 @@
     font-family: var(--prism-font-sans, system-ui, sans-serif);
     font-size: 9px;
     font-weight: 700;
-    color: white;
-    background: var(--prism-primary);
+    color: var(--prism-on-primary);
+    background: var(--prism-primary-fill);
     border-radius: 9px;
     box-shadow:
-        0 0 0 1.5px white,
-        0 2px 4px rgb(0 0 0 / 25%);
+        0 0 0 1.5px var(--prism-on-primary),
+        var(--prism-shadow-sm);
 }
 
 .prism-a11y-sr-ov__badge--active {
-    background: var(--prism-primary-from);
+    background: var(--prism-primary-fill-hover);
     box-shadow:
-        0 0 0 2px white,
-        0 0 0 4px rgb(124 58 237 / 40%);
+        0 0 0 2px var(--prism-on-primary),
+        0 0 0 4px color-mix(in srgb, var(--prism-primary-fill) 40%, transparent);
 }

@@ -1,5 +1,7 @@
 import { Injector, runInInjectionContext } from '@angular/core';
+import type { RuntimePipe } from '../../plugin/pipe.types.js';
 import type { RuntimeComponent, RuntimeManifest } from '../../plugin/plugin.types.js';
+import type { RuntimeService } from '../../plugin/service.types.js';
 import { PRISM_MANIFEST } from '../tokens/prism-tokens.js';
 import { PrismManifestService } from './prism-manifest.service.js';
 import { PrismNavigationService } from './prism-navigation.service.js';
@@ -37,9 +39,64 @@ function createComponent(
     };
 }
 
+function createService(
+    overrides: Partial<{
+        title: string;
+        category: string;
+        className: string;
+        section: string;
+        sectionOrder: number;
+        componentOrder: number;
+        categoryOrder: number;
+    }> = {}
+): RuntimeService {
+    return {
+        meta: {
+            className: overrides.className ?? 'SomeService',
+            filePath: '/some.service.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Default',
+                category: overrides.category,
+                section: overrides.section,
+                sectionOrder: overrides.sectionOrder,
+                componentOrder: overrides.componentOrder,
+                categoryOrder: overrides.categoryOrder
+            },
+            provision: 'auto',
+            api: { tags: {}, properties: [], methods: [], setup: [], types: [] }
+        }
+    };
+}
+
+function createPipe(
+    overrides: Partial<{
+        title: string;
+        category: string;
+        className: string;
+        section: string;
+        sectionOrder: number;
+    }> = {}
+): RuntimePipe {
+    return {
+        meta: {
+            className: overrides.className ?? 'SomePipe',
+            filePath: '/some.pipe.ts',
+            showcaseConfig: {
+                title: overrides.title ?? 'Default',
+                category: overrides.category,
+                section: overrides.section,
+                sectionOrder: overrides.sectionOrder
+            },
+            pipeName: 'some',
+            api: { tags: {}, transform: [], setup: [], types: [] }
+        }
+    };
+}
+
 function setup(manifest: RuntimeManifest): {
     service: PrismNavigationService;
     manifestService: PrismManifestService;
+    searchService: PrismSearchService;
 } {
     const rootInjector = Injector.create({
         providers: [{ provide: PRISM_MANIFEST, useValue: manifest }]
@@ -61,10 +118,20 @@ function setup(manifest: RuntimeManifest): {
     });
     const service = runInInjectionContext(navInjector, () => new PrismNavigationService());
 
-    return { service, manifestService };
+    return { service, manifestService, searchService };
 }
 
 describe('PrismNavigationService', () => {
+    it('finds the component a part belongs to by the class name of the part', () => {
+        const option = { meta: createComponent({ className: 'OptionComponent' }).meta };
+        const select = { ...createComponent({ className: 'SelectComponent' }), parts: [option] };
+        const { service } = setup({ components: [createComponent({ className: 'ButtonComponent' }), select] });
+
+        expect(service.parentOfPart('OptionComponent')).toBe(select);
+        expect(service.parentOfPart('SelectComponent')).toBeUndefined();
+        expect(service.parentOfPart('GoneComponent')).toBeUndefined();
+    });
+
     it('should have null activeComponent by default', () => {
         const { service } = setup({ components: [] });
 
@@ -173,6 +240,138 @@ describe('PrismNavigationService', () => {
 
         expect(service.activePage()).toBe(updatedPage);
         expect(service.activePage()).not.toBe(page);
+    });
+
+    it('selectFirst falls back to services when there are no pages or components', () => {
+        const toast = createService({ className: 'ToastService', title: 'Toasts' });
+        const { service } = setup({ components: [], services: [toast] });
+
+        service.selectFirst();
+        expect(service.activeService()).toBe(toast);
+        expect(service.activeComponent()).toBeNull();
+        expect(service.activePage()).toBeNull();
+    });
+
+    it('selectFirst prefers components over services', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const toast = createService({ className: 'ToastService' });
+        const { service } = setup({ components: [comp], services: [toast] });
+
+        service.selectFirst();
+        expect(service.activeComponent()).toBe(comp);
+        expect(service.activeService()).toBeNull();
+    });
+
+    it('sets activeService via selectService() and leaves the component and page empty', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const toast = createService({ className: 'ToastService' });
+        const { service } = setup({ components: [comp], services: [toast] });
+
+        service.select(comp);
+        service.selectService(toast);
+        expect(service.activeService()).toBe(toast);
+        expect(service.activeComponent()).toBeNull();
+        expect(service.activeItem()).toEqual({ kind: 'service', data: toast });
+    });
+
+    it('has no activeService while a component is selected', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const { service } = setup({ components: [comp], services: [createService()] });
+
+        service.select(comp);
+        expect(service.activeService()).toBeNull();
+    });
+
+    it('relinks activeService after a manifest update', () => {
+        const original = createService({ className: 'ToastService', title: 'Toasts' });
+        const { service, manifestService } = setup({ components: [], services: [original] });
+
+        service.selectService(original);
+
+        const updated = createService({ className: 'ToastService', title: 'Toasts NEW' });
+
+        manifestService.updateManifest({ components: [], services: [updated] });
+        expect(service.activeService()).toBe(updated);
+
+        manifestService.updateManifest({ components: [] });
+        expect(service.activeService()).toBeNull();
+    });
+
+    it('selectFirst falls back to pipes last', () => {
+        const truncate = createPipe({ className: 'TruncatePipe', title: 'Truncate' });
+        const toast = createService({ className: 'ToastService' });
+
+        const onlyPipes = setup({ components: [], pipes: [truncate] });
+
+        onlyPipes.service.selectFirst();
+        expect(onlyPipes.service.activePipe()).toBe(truncate);
+        expect(onlyPipes.service.activeComponent()).toBeNull();
+        expect(onlyPipes.service.activeService()).toBeNull();
+        expect(onlyPipes.service.activePage()).toBeNull();
+
+        const withService = setup({ components: [], services: [toast], pipes: [truncate] });
+
+        withService.service.selectFirst();
+        expect(withService.service.activeService()).toBe(toast);
+        expect(withService.service.activePipe()).toBeNull();
+    });
+
+    it('sets activePipe via selectPipe() and leaves the other kinds empty', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const toast = createService({ className: 'ToastService' });
+        const truncate = createPipe({ className: 'TruncatePipe' });
+        const { service } = setup({ components: [comp], services: [toast], pipes: [truncate] });
+
+        service.selectService(toast);
+        service.selectPipe(truncate);
+        expect(service.activePipe()).toBe(truncate);
+        expect(service.activeService()).toBeNull();
+        expect(service.activeComponent()).toBeNull();
+        expect(service.activeItem()).toEqual({ kind: 'pipe', data: truncate });
+
+        service.select(comp);
+        expect(service.activePipe()).toBeNull();
+    });
+
+    it('relinks activePipe after a manifest update', () => {
+        const original = createPipe({ className: 'TruncatePipe', title: 'Truncate' });
+        const { service, manifestService } = setup({ components: [], pipes: [original] });
+
+        service.selectPipe(original);
+
+        const updated = createPipe({ className: 'TruncatePipe', title: 'Truncate NEW' });
+
+        manifestService.updateManifest({ components: [], pipes: [updated] });
+        expect(service.activePipe()).toBe(updated);
+
+        manifestService.updateManifest({ components: [] });
+        expect(service.activePipe()).toBeNull();
+    });
+
+    it('reports the active target', () => {
+        const comp = createComponent({ className: 'Alpha' });
+        const toast = createService({ className: 'ToastService' });
+        const truncate = createPipe({ className: 'TruncatePipe' });
+        const page = { type: 'component' as const, title: 'Intro', component: class {} as any };
+        const { service, manifestService } = setup({ components: [comp], services: [toast], pipes: [truncate], pages: [page] });
+
+        expect(service.activeTarget()).toBeNull();
+
+        service.select(comp);
+        expect(service.activeTarget()).toBe('component');
+
+        service.selectService(toast);
+        expect(service.activeTarget()).toBe('service');
+
+        service.selectPipe(truncate);
+        expect(service.activeTarget()).toBe('pipe');
+
+        service.selectPage(page);
+        expect(service.activeTarget()).toBeNull();
+
+        service.selectPipe(truncate);
+        manifestService.updateManifest({ components: [comp], services: [toast], pages: [page] });
+        expect(service.activeTarget()).toBeNull();
     });
 
     describe('sectionTree', () => {
@@ -301,6 +500,129 @@ describe('PrismNavigationService', () => {
 
             expect(comps?.totalCount).toBe(2);
             expect(dirs?.totalCount).toBe(1);
+        });
+
+        it('puts services into a Services section after Directives', () => {
+            const comp = createComponent({ className: 'Btn' });
+            const dir = createComponent({ className: 'HiDir', isDirective: true });
+            const toast = createService({ className: 'ToastService' });
+            const { service } = setup({ components: [comp, dir], services: [toast] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Components', 'Directives', 'Services']);
+            expect(tree[2].order).toBe(20);
+            expect(tree[2].totalCount).toBe(1);
+            expect(tree[2].categories[0].items[0]).toEqual({ kind: 'service', data: toast });
+        });
+
+        it("honours a service's own section", () => {
+            const toast = createService({ className: 'ToastService', section: 'Infrastructure' });
+            const plain = createService({ className: 'PlainService' });
+            const { service } = setup({ components: [], services: [toast, plain] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Services', 'Infrastructure']);
+            expect(tree[1].categories[0].items[0]).toEqual({ kind: 'service', data: toast });
+        });
+
+        it('lets a service and a component share a section', () => {
+            const comp = createComponent({ className: 'Btn', section: 'Shared' });
+            const toast = createService({ className: 'ToastService', section: 'Shared' });
+            const { service } = setup({ components: [comp], services: [toast] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Shared']);
+            expect(tree[0].categories[0].items.map((i) => i.kind)).toEqual(['component', 'service']);
+        });
+
+        it('orders services by componentOrder, then title, and their categories by categoryOrder', () => {
+            const b = createService({ className: 'B', title: 'Bravo', category: 'Zeta' });
+            const a = createService({ className: 'A', title: 'Alpha', category: 'Zeta' });
+            const first = createService({ className: 'First', title: 'Zulu', category: 'Zeta', componentOrder: 1 });
+            const early = createService({ className: 'Early', title: 'Late alphabetically', category: 'Omega', categoryOrder: 0 });
+            const { service } = setup({ components: [], services: [b, a, first, early] });
+
+            const tree = service.sectionTree();
+            const categories = tree[0].categories;
+
+            expect(categories.map((c) => c.name)).toEqual(['Omega', 'Zeta']);
+            expect(categories[1].items.map((i) => (i.kind === 'service' ? i.data.meta.className : ''))).toEqual(['First', 'A', 'B']);
+        });
+
+        it('hides services the filter excludes', () => {
+            const toast = createService({ className: 'ToastService', title: 'Toasts' });
+            const comp = createComponent({ className: 'Btn', title: 'Button' });
+            const { service, searchService } = setup({ components: [comp], services: [toast] });
+
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Components', 'Services']);
+
+            searchService.search('button');
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Components']);
+
+            searchService.search('toasts');
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Services']);
+        });
+
+        it('puts pipes into a Pipes section after Services', () => {
+            const comp = createComponent({ className: 'Btn' });
+            const dir = createComponent({ className: 'HiDir', isDirective: true });
+            const toast = createService({ className: 'ToastService' });
+            const truncate = createPipe({ className: 'TruncatePipe' });
+            const { service } = setup({ components: [comp, dir], services: [toast], pipes: [truncate] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Components', 'Directives', 'Services', 'Pipes']);
+            expect(tree[3].order).toBe(30);
+            expect(tree[3].totalCount).toBe(1);
+            expect(tree[3].categories[0].items[0]).toEqual({ kind: 'pipe', data: truncate });
+        });
+
+        it("honours a pipe's own section", () => {
+            const truncate = createPipe({ className: 'TruncatePipe', section: 'Formatting' });
+            const plain = createPipe({ className: 'PlainPipe' });
+            const { service } = setup({ components: [], pipes: [truncate, plain] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Pipes', 'Formatting']);
+            expect(tree[1].categories[0].items[0]).toEqual({ kind: 'pipe', data: truncate });
+        });
+
+        it('lets a pipe and a service share a section', () => {
+            const toast = createService({ className: 'ToastService', section: 'Shared' });
+            const truncate = createPipe({ className: 'TruncatePipe', section: 'Shared' });
+            const { service } = setup({ components: [], services: [toast], pipes: [truncate] });
+
+            const tree = service.sectionTree();
+
+            expect(tree.map((s) => s.name)).toEqual(['Shared']);
+            expect(tree[0].categories[0].items.map((i) => i.kind)).toEqual(['service', 'pipe']);
+        });
+
+        it('breaks a tie of section orders in favour of Pipes over a custom section', () => {
+            const custom = createComponent({ className: 'Btn', section: 'Alpha', sectionOrder: 30 });
+            const truncate = createPipe({ className: 'TruncatePipe' });
+            const { service } = setup({ components: [custom], pipes: [truncate] });
+
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Pipes', 'Alpha']);
+        });
+
+        it('hides pipes the filter excludes', () => {
+            const truncate = createPipe({ className: 'TruncatePipe', title: 'Truncate' });
+            const comp = createComponent({ className: 'Btn', title: 'Button' });
+            const { service, searchService } = setup({ components: [comp], pipes: [truncate] });
+
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Components', 'Pipes']);
+
+            searchService.search('button');
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Components']);
+
+            searchService.search('truncate');
+            expect(service.sectionTree().map((s) => s.name)).toEqual(['Pipes']);
         });
     });
 });

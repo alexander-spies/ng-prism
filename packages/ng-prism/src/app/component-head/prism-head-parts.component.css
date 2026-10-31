@@ -1,0 +1,211 @@
+/* min-width 0 lets the host give way to its neighbours, and the overflow keeps
+   what no longer fits from spilling over them: the gauge and the view tabs next
+   to it stay where they are, as the rest of the row does. */
+:host {
+    display: inline-flex;
+    gap: var(--sp-3);
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.parts-label {
+    flex: none;
+    font-size: var(--fs-sm);
+    color: var(--prism-text-muted);
+    white-space: nowrap;
+}
+
+/* The band never wraps, so a part that does not fit is scrolled to, not pushed
+   onto a second line or out of the row. The chips keep their size and the track
+   gives way; the scrollbar stays hidden because the band has no room for one.
+   Focus scrolls a chip into view. The padding keeps the focus ring of the first
+   and last chip from being cut off by the track's own clipping. */
+.parts {
+    display: flex;
+    flex: 0 1 auto;
+    gap: var(--sp-2);
+    align-items: center;
+    min-width: 0;
+    padding: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.part-chip {
+    flex: none;
+    height: 20px;
+    padding: 0 var(--sp-3);
+    font: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--prism-primary);
+    white-space: nowrap;
+    cursor: pointer;
+    background: var(--prism-bg-surface);
+    border: 1px solid var(--prism-border);
+    border-radius: 999px;
+}
+
+.part-chip:hover,
+.part-chip:has(+ .part-card:popover-open) {
+    background: var(--prism-primary-bg);
+}
+
+.part-chip:has(+ .part-card:popover-open) {
+    border-color: var(--prism-primary);
+}
+
+.part-chip:focus-visible {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: 1px;
+}
+
+/* No display here: the UA hides a closed popover with a display rule of its
+   own, and an author display on the base rule outranks it (see the note in
+   prism-template-popover.component.ts). The anchor name of a chip and the
+   position-anchor of its card are bound per chip in the template, since every
+   part needs a pair of its own. */
+.part-card {
+    inset: auto;
+    width: 340px;
+    max-width: calc(100vw - var(--sp-6));
+    max-height: min(70vh, 520px);
+    padding: var(--sp-4);
+    margin: 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    color: var(--prism-text-2);
+    background: var(--prism-bg-elevated);
+    border: 1px solid var(--prism-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--prism-shadow-md);
+}
+
+.part-card__top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-3);
+    align-items: center;
+}
+
+.part-card__top prism-badge {
+    margin-left: auto;
+}
+
+.part-card__title {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--prism-text);
+}
+
+.part-card__selector {
+    font-family: var(--font-mono);
+    font-size: var(--fs-md);
+    color: var(--prism-primary);
+    user-select: all;
+}
+
+.part-card__desc {
+    margin: var(--sp-3) 0 0;
+    font-size: var(--fs-lg);
+    line-height: 1.55;
+}
+
+.part-card__h {
+    margin: var(--sp-5) 0 var(--sp-2);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--prism-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* The rows of a section share its columns, so the types line up. The name
+   column is as wide as the longest name, within 92px and the cap of a name,
+   so that a name such as a model's change output is not broken mid-word. */
+.part-card__rows {
+    display: grid;
+    grid-template-columns: minmax(92px, max-content) minmax(0, 1fr);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+/* The name and the type sit side by side, the doc line under the type. An
+   output has no type, so its doc takes the type's place beside the name. */
+.part-row {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    gap: 2px var(--sp-3);
+    padding: var(--sp-2) 0;
+    font-size: var(--fs-md);
+    border-top: 1px solid var(--prism-border);
+}
+
+.part-row:first-child {
+    border-top: 0;
+}
+
+.part-row__name {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    align-items: center;
+    max-width: 160px;
+    overflow-wrap: anywhere;
+}
+
+.part-row__name code {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--prism-text);
+}
+
+.part-row__type {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--prism-code-attr);
+    overflow-wrap: anywhere;
+}
+
+.part-row__doc {
+    grid-column: 2;
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+    color: var(--prism-text-muted);
+}
+
+.part-card__foot {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--sp-3);
+    margin-top: var(--sp-4);
+    border-top: 1px solid var(--prism-border);
+}
+
+.part-card__link {
+    padding: 0;
+    font: inherit;
+    font-size: var(--fs-md);
+    font-weight: 500;
+    color: var(--prism-link);
+    cursor: pointer;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-xs);
+}
+
+.part-card__link:hover {
+    text-decoration: underline;
+}
+
+.part-card__link:focus-visible {
+    outline: 2px solid var(--prism-primary);
+    outline-offset: 2px;
+}

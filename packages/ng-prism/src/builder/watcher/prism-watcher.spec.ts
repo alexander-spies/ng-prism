@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import chokidar from 'chokidar';
 import { createChangeHandler, startWatcher } from './prism-watcher.js';
 
@@ -17,7 +20,7 @@ function createLogger() {
 
 describe('startWatcher', () => {
     function makeMockWatcher() {
-        const w = { on: jest.fn(), close: jest.fn() };
+        const w = { on: jest.fn(), close: jest.fn(), add: jest.fn(), unwatch: jest.fn() };
 
         w.on.mockReturnValue(w);
         return w;
@@ -65,6 +68,103 @@ describe('startWatcher', () => {
         expect(watchOptions.ignored[0]).toBeInstanceOf(RegExp);
 
         handle.close();
+    });
+});
+
+describe('startWatcher with single files', () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        mockChokidarWatch.mockReset();
+    });
+    afterEach(() => jest.useRealTimers());
+
+    function start(files: string[]) {
+        const w = { on: jest.fn(), close: jest.fn(), add: jest.fn(), unwatch: jest.fn() };
+
+        w.on.mockReturnValue(w);
+        mockChokidarWatch.mockReturnValue(w);
+        const onRebuild = jest.fn().mockResolvedValue(undefined);
+        const handle = startWatcher({ entryPoint: '/ws/lib/public-api.ts', files, onRebuild, logger: createLogger(), debounceMs: 10 });
+        const change = w.on.mock.calls.find(([event]) => event === 'change')![1] as (path: string) => void;
+
+        return { w, handle, onRebuild, change };
+    }
+
+    async function settle(): Promise<void> {
+        jest.advanceTimersByTime(10);
+        await Promise.resolve();
+    }
+
+    it('watches a file whatever its extension and rebuilds when it changes', async () => {
+        const { handle, onRebuild, change } = start(['/ws/a11y-report.json']);
+
+        expect(mockChokidarWatch.mock.calls[0][0]).toContain('/ws/a11y-report.json');
+        change('/ws/a11y-report.json');
+        await settle();
+
+        expect(onRebuild).toHaveBeenCalledTimes(1);
+        handle.close();
+    });
+
+    it('still ignores other files of that extension', async () => {
+        const { handle, onRebuild, change } = start(['/ws/a11y-report.json']);
+
+        change('/ws/lib/data.json');
+        await settle();
+
+        expect(onRebuild).not.toHaveBeenCalled();
+        handle.close();
+    });
+
+    it('swaps the files on setFiles', async () => {
+        const { w, handle, onRebuild, change } = start(['/ws/a11y-report.json']);
+
+        handle.setFiles(['/ws/reports/a11y.json']);
+
+        expect(w.unwatch).toHaveBeenCalledWith(['/ws/a11y-report.json']);
+        expect(w.add).toHaveBeenCalledWith(['/ws/reports/a11y.json']);
+        change('/ws/a11y-report.json');
+        await settle();
+        expect(onRebuild).not.toHaveBeenCalled();
+        change('/ws/reports/a11y.json');
+        await settle();
+        expect(onRebuild).toHaveBeenCalledTimes(1);
+        handle.close();
+    });
+
+    describe('a file whose directory is missing', () => {
+        let root: string;
+
+        beforeEach(() => {
+            root = mkdtempSync(join(tmpdir(), 'ng-prism-watcher-'));
+        });
+        afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+        it('adds it again once the directory exists, for chokidar to see it', () => {
+            const report = join(root, 'coverage', 'a11y-report.json');
+            const { w, handle } = start([report]);
+
+            mkdirSync(join(root, 'coverage'));
+            handle.setFiles([report]);
+
+            expect(w.add).toHaveBeenCalledWith([report]);
+            handle.close();
+        });
+
+        it('does not add it again while the directory is still missing, or once it was added with it', () => {
+            const report = join(root, 'coverage', 'a11y-report.json');
+            const { w, handle } = start([report]);
+
+            handle.setFiles([report]);
+            handle.setFiles([report]);
+            expect(w.add).not.toHaveBeenCalled();
+
+            mkdirSync(join(root, 'coverage'));
+            handle.setFiles([report]);
+            handle.setFiles([report]);
+            expect(w.add).toHaveBeenCalledTimes(1);
+            handle.close();
+        });
     });
 });
 
@@ -136,6 +236,23 @@ describe('createChangeHandler', () => {
         jest.advanceTimersByTime(200);
 
         expect(onRebuild).not.toHaveBeenCalled();
+
+        handler.dispose();
+    });
+
+    it('rebuilds for what isRelevant accepts instead of .ts files', async () => {
+        const onRebuild = jest.fn().mockResolvedValue(undefined);
+        const handler = createChangeHandler({ onRebuild, logger: createLogger(), debounceMs: 100, isRelevant: (f) => f.endsWith('report.json') });
+
+        handler.handleChange('x.ts');
+        jest.advanceTimersByTime(100);
+        await Promise.resolve();
+        expect(onRebuild).not.toHaveBeenCalled();
+
+        handler.handleChange('report.json');
+        jest.advanceTimersByTime(100);
+        await Promise.resolve();
+        expect(onRebuild).toHaveBeenCalledTimes(1);
 
         handler.dispose();
     });
